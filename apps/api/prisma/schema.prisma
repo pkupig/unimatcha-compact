@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// 用户体系
+// ─────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  status       UserStatus @default(ACTIVE)
+  mode         UserMode   @default(MATCH_MODE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  profile   Profile?
+  answers   Answer[]
+  matchesAsUserA Match[] @relation("MatchUserA")
+  matchesAsUserB Match[] @relation("MatchUserB")
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+enum UserMode {
+  MATCH_MODE
+  RELATIONSHIP_MODE
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  isSuperAdmin Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+// ─────────────────────────────────────────────
+// 用户资料（可扩展字段）
+// ─────────────────────────────────────────────
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nickname   String?
+  school     String?
+  grade      String?   // 大一/大二/大三/大四/研究生
+  gender     String?   // male/female/non-binary/other
+  genderPref String?   // 偏好性别 male/female/any
+  age        Int?
+  city       String?
+  interests  String[]  // 兴趣标签
+  bio        String?   @db.Text
+  avatarUrl  String?
+
+  // 可公开字段由后台配置（此处存完整 Profile，匹配结果按配置过滤输出）
+  extraData  Json?     // 预留扩展字段
+
+  profileCompleteness Int @default(0) // 0-100
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+// ─────────────────────────────────────────────
+// 问卷体系
+// ─────────────────────────────────────────────
+
+model QuestionnaireVersion {
+  id          String    @id @default(cuid())
+  version     Int       @unique
+  title       String
+  description String?   @db.Text
+  isActive    Boolean   @default(false)
+  publishedAt DateTime?
+
+  questions   Question[]
+  answers     Answer[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("questionnaire_versions")
+}
+
+model Question {
+  id              String               @id @default(cuid())
+  questionnaireId String
+  questionnaire   QuestionnaireVersion @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+
+  type            QuestionType
+  title           String
+  description     String?
+  isRequired      Boolean              @default(true)
+  isEnabled       Boolean              @default(true)
+  order           Int                  @default(0)
+  group           String?
+
+  options         QuestionOption[]
+  answers         Answer[]
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  SCALE
+  TEXT
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  label      String
+  value      String
+  order      Int      @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("question_options")
+}
+
+model Answer {
+  id                     String               @id @default(cuid())
+  userId                 String
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionnaireVersionId String
+  questionnaireVersion   QuestionnaireVersion @relation(fields: [questionnaireVersionId], references: [id])
+  questionId             String
+  question               Question             @relation(fields: [questionId], references: [id])
+
+  value      Json     // 灵活存储：string | string[] | number
+
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, questionnaireVersionId, questionId])
+  @@map("answers")
+}
+
+// ─────────────────────────────────────────────
+// 匹配体系
+// ─────────────────────────────────────────────
+
+model MatchConfig {
+  id          String   @id @default(cuid())
+  cronExpr    String   // cron 表达式，如 "0 20 * * 3" = 每周三20点
+  isEnabled   Boolean  @default(true)
+  description String?
+  timezone    String   @default("Asia/Shanghai")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("match_configs")
+}
+
+model MatchJob {
+  id              String       @id @default(cuid())
+  status          MatchJobStatus @default(PENDING)
+  triggeredBy     String?      // 'scheduler' | 'manual:<adminId>'
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorMessage    String?      @db.Text
+
+  totalCandidates Int          @default(0)
+  totalMatched    Int          @default(0)
+
+  matches         Match[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("match_jobs")
+}
+
+enum MatchJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Match {
+  id         String      @id @default(cuid())
+  matchJobId String
+  matchJob   MatchJob    @relation(fields: [matchJobId], references: [id])
+
+  userAId    String
+  userA      User        @relation("MatchUserA", fields: [userAId], references: [id])
+  userBId    String
+  userB      User        @relation("MatchUserB", fields: [userBId], references: [id])
+
+  status     MatchStatus @default(MATCHED)
+  score      Float?
+  metadata   Json?       // AI 模型返回的原始数据
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([userAId, userBId])
+  @@map("matches")
+}
+
+enum MatchStatus {
+  MATCHED
+  RELATIONSHIP_MODE
+  DISSOLVED
+}
+
+// ─────────────────────────────────────────────
+// 系统配置（可公开字段列表、其他全局配置）
+// ─────────────────────────────────────────────
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}
