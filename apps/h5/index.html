@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Campus Love 💕</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #FF6B8A; --primary-dark: #E85578; --bg: #FFF5F7;
+  --card: #fff; --text: #333; --text-light: #888; --border: #F0E0E4;
+  --success: #4CAF50; --danger: #FF5252; --warning: #FF9800;
+  --primary-bg: #FFF0F3;
+}
+body { font-family: -apple-system, 'PingFang SC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.page { display: none; padding: 20px; max-width: 420px; margin: 0 auto; min-height: 100vh; }
+.page.active { display: block; }
+
+/* Header */
+.header { text-align: center; padding: 40px 0 20px; }
+.header h1 { font-size: 28px; color: var(--primary); }
+.header p { color: var(--text-light); margin-top: 6px; font-size: 14px; }
+.logo { font-size: 48px; margin-bottom: 8px; }
+
+/* Cards */
+.card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(255,107,138,0.08); }
+.card h3 { font-size: 16px; margin-bottom: 12px; color: var(--primary-dark); }
+
+/* Forms */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 14px; color: var(--text-light); margin-bottom: 6px; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 15px; background: #FAFAFA; transition: border-color 0.2s; outline: none;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--primary); background: #fff; }
+.form-group textarea { height: 80px; resize: none; }
+
+/* Buttons */
+.btn {
+  width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+.btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-warning { background: var(--warning); color: #fff; }
+.btn-sm { width: auto; padding: 8px 20px; font-size: 14px; display: inline-block; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { flex: 1; }
+
+/* Tabs */
+.tabs { display: flex; margin-bottom: 20px; background: var(--card); border-radius: 12px; padding: 4px; }
+.tab { flex: 1; padding: 10px; text-align: center; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-light); transition: all 0.2s; }
+.tab.active { background: var(--primary); color: #fff; }
+
+/* Status Badge */
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-waiting { background: #FFF3E0; color: var(--warning); }
+.badge-confirmed { background: #E8F5E9; color: var(--success); }
+.badge-love { background: #FCE4EC; color: var(--primary); }
+
+/* Partner Card */
+.partner-card { text-align: center; padding: 30px 20px; }
+.partner-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #FFD6E0, #FFF0F3); display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; color: var(--primary); font-weight: 600; }
+.partner-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.partner-info { color: var(--text-light); font-size: 14px; margin-bottom: 4px; }
+.partner-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+.tag { background: var(--primary-bg); color: var(--primary); padding: 4px 12px; border-radius: 16px; font-size: 12px; }
+.score { font-size: 14px; color: var(--warning); margin-top: 10px; }
+
+/* Questionnaire */
+.q-progress { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 20px; }
+.q-progress-bar { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+.q-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; line-height: 1.5; }
+.q-option { padding: 14px; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; font-size: 15px; }
+.q-option:active, .q-option.selected { border-color: var(--primary); background: var(--primary-bg); color: var(--primary-dark); }
+.q-scale { display: flex; gap: 8px; }
+.q-scale-item { flex: 1; text-align: center; padding: 14px 0; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 18px; transition: all 0.2s; }
+.q-scale-item:active, .q-scale-item.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+/* Toast */
+.toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: #fff; padding: 10px 24px; border-radius: 20px; font-size: 14px; z-index: 999; display: none; }
+.toast.show { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: var(--text-light); }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Bottom Nav */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; display: flex; padding: 8px 0 env(safe-area-inset-bottom, 8px); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; }
+.nav-item { flex: 1; text-align: center; font-size: 11px; color: var(--text-light); padding: 4px 0; cursor: pointer; transition: color 0.2s; }
+.nav-item.active { color: var(--primary); font-weight: 600; }
+.nav-icon { font-size: 22px; margin-bottom: 2px; }
+.main-content { padding-bottom: 70px; }
+
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 64px; margin-bottom: 16px; }
+.empty h3 { font-size: 18px; margin-bottom: 8px; }
+.empty p { color: var(--text-light); font-size: 14px; line-height: 1.6; }
+
+/* Gender select */
+.gender-select { display: flex; gap: 10px; }
+.gender-option { flex: 1; text-align: center; padding: 16px; border: 1.5px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+.gender-option .icon { font-size: 28px; margin-bottom: 6px; }
+.gender-option.selected { border-color: var(--primary); background: var(--primary-bg); }
+
+/* Splash */
+.splash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(160deg, #FF6B8A, #FF8E9E, #FFB5C5); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s; }
+.splash-logo { font-size: 72px; margin-bottom: 16px; animation: pulse 1s ease-in-out; }
+.splash h1 { color: #fff; font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.splash p { color: rgba(255,255,255,0.85); font-size: 16px; }
+@keyframes pulse { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+/* Leaderboard */
+.lb-row { display: flex; align-items: center; padding: 14px; background: #fff; border-radius: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.lb-rank { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; margin-right: 12px; flex-shrink: 0; }
+.lb-rank.gold { background: #FFD700; color: #fff; }
+.lb-rank.silver { background: #C0C0C0; color: #fff; }
+.lb-rank.bronze { background: #CD7F32; color: #fff; }
+.lb-rank.normal { color: var(--text-light); font-size: 16px; }
+.lb-avatars { display: flex; margin-right: 12px; flex-shrink: 0; }
+.lb-mini-avatar { width: 36px; height: 36px; border-radius: 50%; background: #FFE8EE; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--primary); border: 2px solid #fff; }
+.lb-mini-avatar + .lb-mini-avatar { margin-left: -8px; }
+.lb-info { flex: 1; min-width: 0; }
+.lb-names { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-school { font-size: 12px; color: var(--text-light); }
+.lb-value { text-align: right; flex-shrink: 0; margin-left: 8px; }
+.lb-num { font-size: 18px; font-weight: 700; color: var(--primary); }
+.lb-unit { font-size: 11px; color: var(--text-light); }
+
+/* Profile section */
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(180deg, #FFD6E0, #FFF0F3); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 500; color: var(--primary); margin: 0 auto 12px; }
+.profile-name { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+.profile-meta { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.profile-meta-item { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
+.profile-action-btn { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--primary); width: 100%; height: 44px; background: var(--primary-bg); border: none; border-radius: 22px; cursor: pointer; margin-top: 16px; }
+.profile-action-btn:active { opacity: 0.8; }
+.social-row { display: flex; align-items: center; padding: 10px 16px; }
+.social-row + .social-row { border-top: 1px solid #f5f5f5; }
+.social-icon { width: 24px; text-align: center; margin-right: 12px; font-size: 16px; }
+.social-label { width: 60px; color: var(--text-light); font-size: 14px; }
+.social-value { flex: 1; font-size: 14px; }
+.settings-row { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; }
+.settings-row .s-icon { width: 28px; color: var(--primary); font-size: 18px; }
+.settings-row .s-title { flex: 1; font-size: 15px; }
+.settings-row .s-arrow { color: #ccc; font-size: 12px; }
+.settings-row .s-hint { font-size: 12px; color: #ddd; margin-right: 8px; }
+.logout-btn { display: block; width: calc(100% - 40px); margin: 16px 20px; padding: 14px; border: none; border-radius: 14px; background: #fff; color: var(--danger); font-size: 16px; font-weight: 500; cursor: pointer; text-align: center; }
+.logout-btn:active { background: #f9f9f9; }
+
+/* Social edit row */
+.social-edit-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.social-edit-row .se-icon { font-size: 20px; width: 28px; text-align: center; }
+.social-edit-row input { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: #fafafa; }
+.social-edit-row input:focus { border-color: var(--primary); background: #fff; }
+
+/* Partner profile overlay */
+.overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 200; overflow-y: auto; display: none; }
+.overlay.active { display: block; }
+.overlay-header { display: flex; align-items: center; padding: 16px 20px; background: #fff; position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.overlay-back { font-size: 20px; cursor: pointer; margin-right: 12px; color: var(--primary); }
+.overlay-title { font-size: 17px; font-weight: 600; }
+.overlay-content { padding: 20px; max-width: 420px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ SPLASH ============ -->
+<div class="splash" id="splash">
+  <div class="splash-logo">💕</div>
+  <h1>Campus Love</h1>
+  <p>找到属于你的校园爱情</p>
+</div>
+
+<!-- ============ AUTH PAGE ============ -->
+<div class="page" id="page-auth">
+  <div class="header">
+    <div class="logo">💕</div>
+    <h1>Campus Love</h1>
+    <p>大学生长期恋爱匹配平台</p>
+  </div>
+
+  <div class="tabs" id="auth-tabs">
+    <div class="tab active" onclick="switchAuthTab('login')">登录</div>
+    <div class="tab" onclick="switchAuthTab('register')">注册</div>
+  </div>
+
+  <div id="login-form">
+    <div class="card">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="login-email" placeholder="输入邮箱">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="login-password" placeholder="输入密码">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">登录</button>
+    </div>
+  </div>
+
+  <div id="register-form" style="display:none">
+    <div class="card">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="reg-email" placeholder="输入邮箱">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="reg-password" placeholder="至少6位密码">
+      </div>
+      <div class="form-group">
+        <label>确认密码</label>
+        <input type="password" id="reg-password2" placeholder="再次输入密码">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">注册</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PROFILE SETUP PAGE ============ -->
+<div class="page" id="page-profile-setup">
+  <div class="header" style="padding-top:20px">
+    <h1>✨ 完善资料</h1>
+    <p>让我们更好地了解你</p>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label>昵称</label>
+      <input type="text" id="prof-nickname" placeholder="你的昵称">
+    </div>
+    <div class="form-group">
+      <label>学校</label>
+      <input type="text" id="prof-school" placeholder="你的学校">
+    </div>
+    <div class="form-group">
+      <label>年级</label>
+      <select id="prof-grade">
+        <option value="">选择年级</option>
+        <option>大一</option><option>大二</option><option>大三</option><option>大四</option><option>研究生</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>年龄</label>
+      <input type="number" id="prof-age" placeholder="你的年龄" min="16" max="35">
+    </div>
+    <div class="form-group">
+      <label>城市</label>
+      <input type="text" id="prof-city" placeholder="所在城市">
+    </div>
+    <div class="form-group">
+      <label>性别</label>
+      <div class="gender-select" id="gender-select">
+        <div class="gender-option" data-value="male" onclick="selectGender(this)"><div class="icon">👦</div>男生</div>
+        <div class="gender-option" data-value="female" onclick="selectGender(this)"><div class="icon">👧</div>女生</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>希望匹配</label>
+      <div class="gender-select" id="genderpref-select">
+        <div class="gender-option" data-value="male" onclick="selectGenderPref(this)"><div class="icon">👦</div>男生</div>
+        <div class="gender-option" data-value="female" onclick="selectGenderPref(this)"><div class="icon">👧</div>女生</div>
+        <div class="gender-option" data-value="any" onclick="selectGenderPref(this)"><div class="icon">💫</div>都可以</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>兴趣标签（逗号分隔）</label>
+      <input type="text" id="prof-interests" placeholder="如：读书,音乐,旅行">
+    </div>
+    <div class="form-group">
+      <label>个人简介</label>
+      <textarea id="prof-bio" placeholder="简单介绍一下自己..."></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveProfile()">保存资料</button>
+  </div>
+</div>
+
+<!-- ============ QUESTIONNAIRE PAGE ============ -->
+<div class="page" id="page-questionnaire">
+  <div class="header" style="padding-top:20px">
+    <h1>📝 匹配问卷</h1>
+    <p id="q-desc">回答问题帮助我们找到最合适的人</p>
+  </div>
+  <div class="q-progress"><div class="q-progress-bar" id="q-progress-bar"></div></div>
+  <div class="card" id="q-card">
+    <div class="loading"><div class="spinner"></div>加载问卷中...</div>
+  </div>
+</div>
+
+<!-- ============ MAIN HOME (3 tabs) ============ -->
+<div class="page" id="page-home">
+  <div class="main-content" id="main-content">
+    <!-- Content injected by JS based on active tab -->
+  </div>
+
+  <div class="bottom-nav" id="bottom-nav">
+    <div class="nav-item active" data-tab="match" onclick="switchTab('match')"><div class="nav-icon">💕</div>匹配</div>
+    <div class="nav-item" data-tab="leaderboard" onclick="switchTab('leaderboard')"><div class="nav-icon">🏆</div>排行榜</div>
+    <div class="nav-item" data-tab="profile" onclick="switchTab('profile')"><div class="nav-icon">👤</div>我的</div>
+  </div>
+</div>
+
+<!-- ============ PARTNER PROFILE OVERLAY ============ -->
+<div class="overlay" id="overlay-partner">
+  <div class="overlay-header">
+    <div class="overlay-back" onclick="closePartnerProfile()">←</div>
+    <div class="overlay-title">对方主页</div>
+  </div>
+  <div class="overlay-content" id="partner-profile-content">
+    <div class="loading"><div class="spinner"></div>加载中...</div>
+  </div>
+</div>
+
+<!-- ============ EDIT PROFILE OVERLAY ============ -->
+<div class="overlay" id="overlay-edit-profile">
+  <div class="overlay-header">
+    <div class="overlay-back" onclick="closeEditProfile()">←</div>
+    <div class="overlay-title">编辑资料</div>
+    <div style="margin-left:auto;color:var(--primary);font-weight:600;cursor:pointer" onclick="saveEditProfile()">保存</div>
+  </div>
+  <div class="overlay-content" id="edit-profile-content"></div>
+</div>
+
+<script>
+// ─── Config ──────────────────────────────────────────
+const API = `http://${location.hostname}:3001/api/v1`;
+let token = localStorage.getItem('cl_token');
+let currentUser = null;
+let selectedGender = '';
+let selectedGenderPref = '';
+let questionnaire = null;
+let currentQ = 0;
+let answers = {};
+let activeTab = 'match';
+let matchStatus = null;
+
+// ─── API Helper ──────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API}${path}`, opts);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || '请求失败');
+  return json.data !== undefined ? json.data : json;
+}
+
+function toast(msg, duration = 2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── Splash ─────────────────────────────────────────
+function hideSplash() {
+  const splash = document.getElementById('splash');
+  splash.style.opacity = '0';
+  setTimeout(() => { splash.style.display = 'none'; }, 500);
+}
+
+// ─── Auth ────────────────────────────────────────────
+function switchAuthTab(tab) {
+  const tabs = document.querySelectorAll('#auth-tabs .tab');
+  tabs[0].classList.toggle('active', tab === 'login');
+  tabs[1].classList.toggle('active', tab === 'register');
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return toast('请输入邮箱和密码');
+  try {
+    const data = await api('/auth/login', 'POST', { email, password });
+    token = data.accessToken || data.token;
+    localStorage.setItem('cl_token', token);
+    toast('登录成功！');
+    await checkUserState();
+  } catch (e) { toast(e.message); }
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const password2 = document.getElementById('reg-password2').value;
+  if (!email || !password) return toast('请填写完整');
+  if (password !== password2) return toast('两次密码不一致');
+  if (password.length < 6) return toast('密码至少6位');
+  try {
+    const data = await api('/auth/register', 'POST', { email, password });
+    token = data.accessToken || data.token;
+    localStorage.setItem('cl_token', token);
+    toast('注册成功！');
+    await checkUserState();
+  } catch (e) { toast(e.message); }
+}
+
+function doLogout() {
+  token = null;
+  currentUser = null;
+  matchStatus = null;
+  localStorage.removeItem('cl_token');
+  showPage('page-auth');
+  toast('已退出');
+}
+
+// ─── User State Check ────────────────────────────────
+async function checkUserState() {
+  try {
+    currentUser = await api('/users/me');
+    if (!currentUser.profile || !currentUser.profile.nickname) {
+      showPage('page-profile-setup');
+      return;
+    }
+    try {
+      const myAnswers = await api('/answers/mine');
+      if (!myAnswers || (Array.isArray(myAnswers) && myAnswers.length === 0)) {
+        await loadQuestionnaire();
+        showPage('page-questionnaire');
+        return;
+      }
+    } catch (e) {
+      await loadQuestionnaire();
+      showPage('page-questionnaire');
+      return;
+    }
+    showPage('page-home');
+    switchTab('match');
+  } catch (e) {
+    token = null;
+    localStorage.removeItem('cl_token');
+    showPage('page-auth');
+  }
+}
+
+// ─── Profile Setup ──────────────────────────────────
+function selectGender(el) {
+  document.querySelectorAll('#gender-select .gender-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGender = el.dataset.value;
+}
+
+function selectGenderPref(el) {
+  document.querySelectorAll('#genderpref-select .gender-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedGenderPref = el.dataset.value;
+}
+
+async function saveProfile() {
+  const data = {
+    nickname: document.getElementById('prof-nickname').value.trim(),
+    school: document.getElementById('prof-school').value.trim(),
+    grade: document.getElementById('prof-grade').value,
+    age: parseInt(document.getElementById('prof-age').value) || null,
+    city: document.getElementById('prof-city').value.trim(),
+    gender: selectedGender,
+    genderPref: selectedGenderPref,
+    interests: document.getElementById('prof-interests').value.split(',').map(s => s.trim()).filter(Boolean),
+    bio: document.getElementById('prof-bio').value.trim(),
+  };
+  if (!data.nickname || !data.gender || !data.genderPref) return toast('请至少填写昵称、性别和匹配偏好');
+  try {
+    await api('/profiles/me', 'PUT', data);
+    toast('资料保存成功！');
+    await checkUserState();
+  } catch (e) { toast(e.message); }
+}
+
+// ─── Questionnaire ───────────────────────────────────
+async function loadQuestionnaire() {
+  try {
+    questionnaire = await api('/questionnaire/active');
+    currentQ = 0;
+    answers = {};
+    document.getElementById('q-desc').textContent = questionnaire.description || '回答问题帮助我们找到最合适的人';
+    renderQuestion();
+  } catch (e) { toast('加载问卷失败: ' + e.message); }
+}
+
+function renderQuestion() {
+  const qs = questionnaire.questions;
+  if (!qs || !qs.length) return;
+  const q = qs[currentQ];
+  const total = qs.length;
+  const pct = ((currentQ + 1) / total) * 100;
+  document.getElementById('q-progress-bar').style.width = pct + '%';
+
+  let html = `<div class="q-title">${currentQ + 1}/${total}  ${q.title}</div>`;
+
+  if (q.type === 'SINGLE_CHOICE' && q.options) {
+    html += q.options.map(o =>
+      `<div class="q-option ${answers[q.id] === o.value ? 'selected' : ''}" onclick="answerSingle('${q.id}','${o.value}')">${o.label}</div>`
+    ).join('');
+  } else if (q.type === 'MULTIPLE_CHOICE' && q.options) {
+    const selected = answers[q.id] || [];
+    html += q.options.map(o =>
+      `<div class="q-option ${selected.includes(o.value) ? 'selected' : ''}" onclick="answerMultiple('${q.id}','${o.value}')">${o.label}</div>`
+    ).join('');
+  } else if (q.type === 'SCALE') {
+    html += '<div class="q-scale">';
+    for (let i = 1; i <= 5; i++) {
+      html += `<div class="q-scale-item ${answers[q.id] === i ? 'selected' : ''}" onclick="answerScale('${q.id}',${i})">${i}</div>`;
+    }
+    html += '</div>';
+  } else if (q.type === 'TEXT') {
+    html += `<div class="form-group"><textarea id="q-text-input" placeholder="请输入你的回答..." onchange="answerText('${q.id}')">${answers[q.id] || ''}</textarea></div>`;
+  }
+
+  html += '<div style="margin-top:16px">';
+  if (currentQ > 0) html += `<button class="btn btn-outline btn-sm" onclick="prevQuestion()">上一题</button> `;
+  if (currentQ < total - 1) html += `<button class="btn btn-primary btn-sm" onclick="nextQuestion()" style="float:right">下一题</button>`;
+  else html += `<button class="btn btn-primary btn-sm" onclick="submitAnswers()" style="float:right">提交问卷</button>`;
+  html += '</div>';
+
+  document.getElementById('q-card').innerHTML = html;
+}
+
+function answerSingle(qId, val) { answers[qId] = val; renderQuestion(); }
+function answerScale(qId, val) { answers[qId] = val; renderQuestion(); }
+function answerText(qId) { answers[qId] = document.getElementById('q-text-input').value; }
+function answerMultiple(qId, val) {
+  if (!answers[qId]) answers[qId] = [];
+  const idx = answers[qId].indexOf(val);
+  if (idx >= 0) answers[qId].splice(idx, 1);
+  else answers[qId].push(val);
+  renderQuestion();
+}
+function nextQuestion() { if (currentQ < questionnaire.questions.length - 1) { currentQ++; renderQuestion(); } }
+function prevQuestion() { if (currentQ > 0) { currentQ--; renderQuestion(); } }
+
+async function submitAnswers() {
+  const qs = questionnaire.questions;
+  for (const q of qs) {
+    if (q.isRequired && !answers[q.id]) return toast(`请回答：${q.title}`);
+  }
+  try {
+    const payload = {
+      questionnaireVersionId: questionnaire.id,
+      answers: Object.entries(answers).map(([questionId, value]) => ({ questionId, value })),
+    };
+    await api('/answers', 'POST', payload);
+    toast('问卷提交成功！');
+    showPage('page-home');
+    switchTab('match');
+  } catch (e) { toast(e.message); }
+}
+
+// ─── Tab Navigation ─────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('#bottom-nav .nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.tab === tab);
+  });
+  if (tab === 'match') loadMatchTab();
+  else if (tab === 'leaderboard') loadLeaderboardTab();
+  else if (tab === 'profile') loadProfileTab();
+}
+
+// ─── Match Tab ──────────────────────────────────────
+async function loadMatchTab() {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+
+  try {
+    matchStatus = await api('/matching/status');
+    renderMatchTab();
+  } catch (e) {
+    // Fallback: try old endpoint
+    try {
+      const result = await api('/matching/result');
+      matchStatus = convertOldResult(result);
+      renderMatchTab();
+    } catch (e2) {
+      mc.innerHTML = `<div class="empty"><div class="empty-icon">😅</div><h3>加载失败</h3><p>${e2.message}</p><button class="btn btn-primary" style="margin-top:16px;width:auto;padding:10px 30px" onclick="loadMatchTab()">重试</button></div>`;
+    }
+  }
+}
+
+function convertOldResult(result) {
+  if (result.status === 'RELATIONSHIP_MODE') return { state: 'relationship', match: result, partner: result.partner };
+  if (result.status === 'PENDING_CONFIRM') return { state: 'matched', match: result, partner: result.partner };
+  if (result.matched === false) return { state: 'idle' };
+  return { state: 'idle' };
+}
+
+function renderMatchTab() {
+  const mc = document.getElementById('main-content');
+  const s = matchStatus;
+  const state = s.state || 'idle';
+
+  if (state === 'idle') {
+    mc.innerHTML = `
+      <div style="text-align:center;padding-top:60px">
+        <div style="font-size:80px;margin-bottom:20px">💕</div>
+        <h2 style="font-size:22px;margin-bottom:8px;color:var(--text)">准备开始匹配</h2>
+        <p style="color:var(--text-light);font-size:14px;margin-bottom:30px;line-height:1.6">
+          点击下方按钮，系统将为你<br>寻找最合适的另一半
+        </p>
+        <button class="btn btn-primary" style="width:200px;margin:0 auto;border-radius:25px;padding:16px;font-size:17px" onclick="startMatch()">
+          开始匹配
+        </button>
+        ${s.matchConfig?.nextMatchTime ? `<p style="color:var(--text-light);font-size:12px;margin-top:16px">下次匹配：${new Date(s.matchConfig.nextMatchTime).toLocaleString('zh-CN')}</p>` : ''}
+      </div>`;
+    return;
+  }
+
+  if (state === 'searching') {
+    mc.innerHTML = `
+      <div style="text-align:center;padding-top:60px">
+        <div class="spinner" style="width:48px;height:48px;border-width:4px;margin-bottom:20px"></div>
+        <h2 style="font-size:20px;margin-bottom:8px">正在匹配中...</h2>
+        <p style="color:var(--text-light);font-size:14px;line-height:1.6">
+          系统正在为你寻找最合适的人<br>请耐心等待
+        </p>
+      </div>`;
+    return;
+  }
+
+  if (state === 'matched') {
+    const p = s.partner || {};
+    const m = s.match || {};
+    mc.innerHTML = `
+      <div style="text-align:center;padding:20px 0 10px">
+        <h2 style="font-size:20px;color:var(--primary)">🎉 找到匹配！</h2>
+      </div>
+      <div class="card partner-card">
+        <div class="partner-avatar">${(p.nickname || '?')[0]}</div>
+        <div class="partner-name">${p.nickname || '匿名用户'}</div>
+        <div class="partner-info">${p.school || ''} ${p.grade || ''}</div>
+        <div class="partner-info">${p.age ? p.age + '岁' : ''} ${p.city || ''}</div>
+        ${p.interests?.length ? `<div class="partner-tags">${p.interests.map(i => `<span class="tag">${i}</span>`).join('')}</div>` : ''}
+        ${p.bio ? `<div class="partner-info" style="margin-top:10px;font-style:italic">"${p.bio}"</div>` : ''}
+        ${m.score ? `<div class="score">💯 匹配度 ${Math.round(m.score)}分</div>` : ''}
+        <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="viewPartnerProfile('${p.userId || ''}')">查看主页</button>
+      </div>
+      <div class="card">
+        <h3>确认状态</h3>
+        <p style="margin-bottom:4px">你：${m.myConfirmed ? '<span class="badge badge-confirmed">已确认</span>' : '<span class="badge badge-waiting">待确认</span>'}</p>
+        <p>对方：${m.partnerConfirmed ? '<span class="badge badge-confirmed">已确认</span>' : '<span class="badge badge-waiting">待确认</span>'}</p>
+      </div>
+      ${!m.myConfirmed ? `
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="confirmMatch()">💕 确认匹配</button>
+        <button class="btn btn-danger" onclick="rejectMatch()">拒绝</button>
+      </div>` : `
+      <div class="card" style="text-align:center;color:var(--text-light)">
+        <p>你已确认，等待对方确认中...</p>
+      </div>`}`;
+    return;
+  }
+
+  if (state === 'relationship') {
+    const p = s.partner || {};
+    const m = s.match || {};
+    const days = m.relationshipStartedAt ? Math.floor((Date.now() - new Date(m.relationshipStartedAt).getTime()) / 86400000) : 0;
+    mc.innerHTML = `
+      <div style="text-align:center;padding:20px 0 10px">
+        <h2 style="font-size:20px;color:var(--primary)">💕 恋爱模式</h2>
+      </div>
+      <div class="card partner-card">
+        <div class="partner-avatar" style="background:linear-gradient(135deg,#FF6B8A,#FF3366);color:#fff;font-size:32px">💕</div>
+        <div class="partner-name">${p.nickname || '你的另一半'}</div>
+        <div class="partner-info">${p.school || ''} ${p.grade || ''}</div>
+        ${days > 0 ? `<div style="margin-top:10px"><span class="badge badge-love">在一起 ${days} 天</span></div>` : ''}
+        <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="viewPartnerProfile('${p.userId || ''}')">查看主页</button>
+      </div>
+      <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="dissolveMatch()">解除恋爱关系</button>`;
+    return;
+  }
+}
+
+async function startMatch() {
+  try {
+    await api('/matching/start', 'POST');
+    toast('匹配已开始！');
+    loadMatchTab();
+  } catch (e) { toast(e.message); }
+}
+
+async function confirmMatch() {
+  try {
+    await api('/matching/confirm', 'POST');
+    toast('已确认匹配！');
+    loadMatchTab();
+  } catch (e) { toast(e.message); }
+}
+
+async function rejectMatch() {
+  if (!confirm('确定要拒绝这次匹配吗？')) return;
+  try {
+    await api('/matching/reject', 'POST');
+    toast('已拒绝匹配');
+    loadMatchTab();
+  } catch (e) { toast(e.message); }
+}
+
+async function dissolveMatch() {
+  const reason = prompt('确定要解除恋爱关系吗？\n可以填写原因（可选）：');
+  if (reason === null) return;
+  try {
+    await api('/matching/dissolve', 'POST', { reason: reason || undefined });
+    toast('已解除关系');
+    loadMatchTab();
+  } catch (e) { toast(e.message); }
+}
+
+// ─── Partner Profile ────────────────────────────────
+async function viewPartnerProfile(userId) {
+  if (!userId) return toast('无法查看主页');
+  const overlay = document.getElementById('overlay-partner');
+  const content = document.getElementById('partner-profile-content');
+  overlay.classList.add('active');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+
+  try {
+    const p = await api(`/users/${userId}/public-profile`);
+    const sl = p.socialLinks || {};
+    const socialItems = [
+      { label: '微信', icon: '💬', value: sl.wechat },
+      { label: 'QQ', icon: '🔵', value: sl.qq },
+      { label: '小红书', icon: '📕', value: sl.xiaohongshu },
+      { label: '微博', icon: '🌐', value: sl.weibo },
+      { label: 'Instagram', icon: '📷', value: sl.instagram },
+    ].filter(s => s.value);
+
+    content.innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div class="profile-avatar">${(p.nickname || '?')[0]}</div>
+        <div class="profile-name">${p.nickname || '未设置昵称'}</div>
+        <div class="profile-meta" style="margin-top:8px">
+          ${p.school ? `<span class="profile-meta-item">🎓 ${p.school}</span>` : ''}
+          ${p.grade ? `<span class="profile-meta-item">📖 ${p.grade}</span>` : ''}
+          ${p.city ? `<span class="profile-meta-item">📍 ${p.city}</span>` : ''}
+          ${p.age ? `<span class="profile-meta-item">${p.age}岁</span>` : ''}
+        </div>
+      </div>
+      ${p.interests?.length ? `
+      <div class="card">
+        <h3>兴趣标签</h3>
+        <div class="partner-tags" style="justify-content:flex-start">${p.interests.map(i => `<span class="tag">${i}</span>`).join('')}</div>
+      </div>` : ''}
+      ${p.bio ? `
+      <div class="card">
+        <h3>个人简介</h3>
+        <p style="font-size:14px;line-height:1.6;color:var(--text)">${p.bio}</p>
+      </div>` : ''}
+      ${socialItems.length ? `
+      <div class="card">
+        <h3>社交账号</h3>
+        ${socialItems.map(s => `
+          <div class="social-row">
+            <div class="social-icon">${s.icon}</div>
+            <div class="social-label">${s.label}</div>
+            <div class="social-value">${s.value}</div>
+          </div>`).join('')}
+      </div>` : ''}
+      ${p.relationshipScore ? `
+      <div class="card" style="text-align:center">
+        <div style="font-size:28px;font-weight:700;color:var(--primary)">${p.relationshipScore.toFixed(1)}</div>
+        <div style="font-size:13px;color:var(--text-light)">恋爱积分</div>
+      </div>` : ''}`;
+  } catch (e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">😅</div><h3>加载失败</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function closePartnerProfile() {
+  document.getElementById('overlay-partner').classList.remove('active');
+}
+
+// ─── Leaderboard Tab ────────────────────────────────
+let lbTab = 'duration';
+
+async function loadLeaderboardTab() {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = `
+    <div style="padding-top:12px">
+      <h2 style="text-align:center;font-size:20px;margin-bottom:16px">🏆 排行榜</h2>
+      <div class="tabs" id="lb-tabs">
+        <div class="tab ${lbTab === 'duration' ? 'active' : ''}" onclick="switchLbTab('duration')">恋爱时长</div>
+        <div class="tab ${lbTab === 'score' ? 'active' : ''}" onclick="switchLbTab('score')">恋爱积分</div>
+      </div>
+      <div id="lb-content"><div class="loading"><div class="spinner"></div>加载中...</div></div>
+    </div>`;
+  await loadLeaderboardData();
+}
+
+function switchLbTab(tab) {
+  lbTab = tab;
+  document.querySelectorAll('#lb-tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`#lb-tabs .tab:${tab === 'duration' ? 'first' : 'last'}-child`).classList.add('active');
+  loadLeaderboardData();
+}
+
+async function loadLeaderboardData() {
+  const lc = document.getElementById('lb-content');
+  if (!lc) return;
+  lc.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+
+  try {
+    const data = await api(`/leaderboard/${lbTab}?limit=20`);
+    const entries = Array.isArray(data) ? data : [];
+
+    if (entries.length === 0) {
+      lc.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🏆</div>
+          <h3>暂无数据</h3>
+          <p>还没有情侣上榜哦<br>成为第一对吧！</p>
+        </div>`;
+      return;
+    }
+
+    lc.innerHTML = entries.map((e, i) => {
+      const rank = e.rank || (i + 1);
+      const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : 'normal';
+      const a = e.coupleA || {};
+      const b = e.coupleB || {};
+      const value = lbTab === 'duration' ? (e.durationDays || 0) : (e.avgScore ? e.avgScore.toFixed(1) : '0');
+      const unit = lbTab === 'duration' ? '天' : '分';
+      return `
+        <div class="lb-row">
+          <div class="lb-rank ${rankClass}">${rank}</div>
+          <div class="lb-avatars">
+            <div class="lb-mini-avatar">${(a.nickname || '?')[0]}</div>
+            <div class="lb-mini-avatar">${(b.nickname || '?')[0]}</div>
+          </div>
+          <div class="lb-info">
+            <div class="lb-names">${a.nickname || '?'} & ${b.nickname || '?'}</div>
+            ${a.school ? `<div class="lb-school">${a.school}</div>` : ''}
+          </div>
+          <div class="lb-value">
+            <div class="lb-num">${value}</div>
+            <div class="lb-unit">${unit}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    lc.innerHTML = `<div class="empty"><div class="empty-icon">😅</div><h3>加载失败</h3><p>${e.message}</p><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="loadLeaderboardData()">重试</button></div>`;
+  }
+}
+
+// ─── Profile Tab ────────────────────────────────────
+async function loadProfileTab() {
+  const mc = document.getElementById('main-content');
+  mc.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+
+  try {
+    currentUser = await api('/users/me');
+    renderProfileTab();
+  } catch (e) {
+    mc.innerHTML = `<div class="empty"><div class="empty-icon">😅</div><h3>加载失败</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function renderProfileTab() {
+  const mc = document.getElementById('main-content');
+  const p = currentUser?.profile || {};
+  const sl = p.socialLinks || {};
+  const socialItems = [
+    { label: '微信', icon: '💬', value: sl.wechat },
+    { label: 'QQ', icon: '🔵', value: sl.qq },
+    { label: '小红书', icon: '📕', value: sl.xiaohongshu },
+    { label: '微博', icon: '🌐', value: sl.weibo },
+    { label: 'Instagram', icon: '📷', value: sl.instagram },
+  ].filter(s => s.value);
+
+  // Check if in relationship for relationship mode entry
+  const inRelationship = matchStatus && matchStatus.state === 'relationship';
+
+  mc.innerHTML = `
+    <div style="padding-top:16px">
+      <div style="text-align:center;margin-bottom:20px">
+        <div class="profile-avatar">${(p.nickname || '?')[0]}</div>
+        <div class="profile-name">${p.nickname || '未设置昵称'}</div>
+        <div class="profile-meta" style="margin-top:8px">
+          ${p.school ? `<span class="profile-meta-item">🎓 ${p.school}</span>` : ''}
+          ${p.grade ? `<span class="profile-meta-item">📖 ${p.grade}</span>` : ''}
+          ${p.city ? `<span class="profile-meta-item">📍 ${p.city || '未设置'}</span>` : ''}
+        </div>
+      </div>
+
+      <div style="padding:0 20px">
+        <button class="profile-action-btn" onclick="openEditProfile()">✏️ 编辑资料</button>
+      </div>
+
+      ${inRelationship ? `
+      <div class="card" style="margin:16px 20px;cursor:pointer" onclick="toast('恋爱模式即将开放')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">💕</span>
+          <div>
+            <div style="font-size:16px;font-weight:600">恋爱模式</div>
+            <div style="font-size:12px;color:var(--text-light)">管理你的恋爱生活</div>
+          </div>
+          <span style="margin-left:auto;color:#ccc">›</span>
+        </div>
+      </div>` : ''}
+
+      ${socialItems.length ? `
+      <div style="padding:0 20px;margin-top:16px">
+        <div style="font-size:14px;font-weight:600;color:var(--text-light);margin-bottom:8px">社交账号</div>
+        <div class="card" style="margin-bottom:0;padding:0">
+          ${socialItems.map(s => `
+            <div class="social-row">
+              <div class="social-icon">${s.icon}</div>
+              <div class="social-label">${s.label}</div>
+              <div class="social-value">${s.value}</div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <div style="padding:0 20px;margin-top:16px">
+        <div class="card" style="padding:0">
+          <div class="settings-row" onclick="toast('设置功能即将开放')">
+            <div class="s-icon">⚙️</div>
+            <div class="s-title">设置</div>
+            <div class="s-hint">即将开放</div>
+            <div class="s-arrow">›</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="logout-btn" onclick="doLogout()">退出登录</button>
+
+      <div style="text-align:center;padding:8px;font-size:12px;color:#ddd">版本 1.0.0</div>
+    </div>`;
+}
+
+// ─── Edit Profile Overlay ───────────────────────────
+function openEditProfile() {
+  const overlay = document.getElementById('overlay-edit-profile');
+  const content = document.getElementById('edit-profile-content');
+  const p = currentUser?.profile || {};
+  const sl = p.socialLinks || {};
+
+  content.innerHTML = `
+    <div class="card">
+      <h3>基本信息</h3>
+      <div class="form-group">
+        <label>昵称</label>
+        <input type="text" id="edit-nickname" value="${p.nickname || ''}">
+      </div>
+      <div class="form-group">
+        <label>学校</label>
+        <input type="text" id="edit-school" value="${p.school || ''}">
+      </div>
+      <div class="form-group">
+        <label>年级</label>
+        <select id="edit-grade">
+          <option value="">选择年级</option>
+          ${['大一','大二','大三','大四','研究生'].map(g => `<option ${p.grade === g ? 'selected' : ''}>${g}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>年龄</label>
+        <input type="number" id="edit-age" value="${p.age || ''}" min="16" max="35">
+      </div>
+      <div class="form-group">
+        <label>城市</label>
+        <input type="text" id="edit-city" value="${p.city || ''}">
+      </div>
+      <div class="form-group">
+        <label>兴趣标签（逗号分隔）</label>
+        <input type="text" id="edit-interests" value="${(p.interests || []).join(',')}">
+      </div>
+      <div class="form-group">
+        <label>个人简介</label>
+        <textarea id="edit-bio">${p.bio || ''}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>社交联系方式</h3>
+      <div class="social-edit-row">
+        <div class="se-icon">💬</div>
+        <input type="text" id="edit-wechat" placeholder="微信号" value="${sl.wechat || ''}">
+      </div>
+      <div class="social-edit-row">
+        <div class="se-icon">🔵</div>
+        <input type="text" id="edit-qq" placeholder="QQ 号" value="${sl.qq || ''}">
+      </div>
+      <div class="social-edit-row">
+        <div class="se-icon">📕</div>
+        <input type="text" id="edit-xiaohongshu" placeholder="小红书" value="${sl.xiaohongshu || ''}">
+      </div>
+      <div class="social-edit-row">
+        <div class="se-icon">🌐</div>
+        <input type="text" id="edit-weibo" placeholder="微博" value="${sl.weibo || ''}">
+      </div>
+      <div class="social-edit-row">
+        <div class="se-icon">📷</div>
+        <input type="text" id="edit-instagram" placeholder="Instagram" value="${sl.instagram || ''}">
+      </div>
+    </div>`;
+
+  overlay.classList.add('active');
+}
+
+function closeEditProfile() {
+  document.getElementById('overlay-edit-profile').classList.remove('active');
+}
+
+async function saveEditProfile() {
+  const socialLinks = {};
+  const wechat = document.getElementById('edit-wechat').value.trim();
+  const qq = document.getElementById('edit-qq').value.trim();
+  const xiaohongshu = document.getElementById('edit-xiaohongshu').value.trim();
+  const weibo = document.getElementById('edit-weibo').value.trim();
+  const instagram = document.getElementById('edit-instagram').value.trim();
+  if (wechat) socialLinks.wechat = wechat;
+  if (qq) socialLinks.qq = qq;
+  if (xiaohongshu) socialLinks.xiaohongshu = xiaohongshu;
+  if (weibo) socialLinks.weibo = weibo;
+  if (instagram) socialLinks.instagram = instagram;
+
+  const data = {
+    nickname: document.getElementById('edit-nickname').value.trim(),
+    school: document.getElementById('edit-school').value.trim(),
+    grade: document.getElementById('edit-grade').value,
+    age: parseInt(document.getElementById('edit-age').value) || null,
+    city: document.getElementById('edit-city').value.trim(),
+    interests: document.getElementById('edit-interests').value.split(',').map(s => s.trim()).filter(Boolean),
+    bio: document.getElementById('edit-bio').value.trim(),
+    socialLinks,
+  };
+
+  try {
+    await api('/profiles/me', 'PUT', data);
+    toast('资料已保存');
+    closeEditProfile();
+    await loadProfileTab();
+  } catch (e) { toast(e.message); }
+}
+
+// ─── Init ────────────────────────────────────────────
+setTimeout(() => {
+  hideSplash();
+  if (token) {
+    checkUserState();
+  } else {
+    showPage('page-auth');
+  }
+}, 1500);
+</script>
+</body>
+</html>

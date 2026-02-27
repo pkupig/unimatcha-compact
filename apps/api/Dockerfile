@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Verify build succeeded (fails loudly if dist/main.js missing)
-RUN echo "=== Build output ===" && ls -la dist/ && test -f dist/main.js && echo "=== BUILD OK ==="
+RUN echo "=== Build output ===" && ls -la dist/src/ && test -f dist/src/main.js && echo "=== BUILD OK ==="
 
 # ─── Stage 2: Runner ───────────────────────────────────────
 FROM node:20-slim AS runner
@@ -36,4 +36,4 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 
 # Start: push schema to DB → seed admin data → run API
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (node dist/prisma/seed.js || echo 'Seed skipped') && node dist/main"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (node dist/prisma/seed.js || echo 'Seed skipped') && node dist/src/main"]

@@ -1,5 +1,5 @@
 import {
-  IsString, IsOptional, IsInt, IsArray, IsEnum, Min, Max,
+  IsString, IsOptional, IsInt, IsArray, IsEnum, IsObject, Min, Max, Allow,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -62,6 +62,14 @@ export class CreateProfileDto {
   @IsOptional()
   @IsString()
   avatarUrl?: string;
+
+  @ApiPropertyOptional({
+    description: '社交联系方式 JSON',
+    example: { wechat: 'myWx123', qq: '123456', xiaohongshu: '', weibo: '', instagram: '' },
+  })
+  @IsOptional()
+  @IsObject()
+  socialLinks?: Record<string, string>;
 }
 
 export class UpdateProfileDto extends CreateProfileDto {}

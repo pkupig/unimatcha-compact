@@ -28,3 +28,10 @@ export class TriggerMatchJobDto {
   @IsString()
   triggeredBy?: string;
 }
+
+export class DissolveDto {
+  @ApiPropertyOptional({ example: '性格不合', description: '解除原因（可选）' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}

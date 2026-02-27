@@ -1,10 +1,12 @@
-import { IsString, IsArray, ValidateNested, IsNotEmpty } from 'class-validator';
+import { IsString, IsArray, ValidateNested, IsNotEmpty, Allow } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AnswerItemDto {
   @ApiProperty() @IsString() questionId: string;
-  @ApiProperty({ description: '答案值：string | string[] | number' }) value: any;
+  @ApiProperty({ description: '答案值：string | string[] | number' })
+  @Allow()
+  value: any;
 }
 
 export class SubmitAnswersDto {

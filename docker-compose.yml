@@ -69,6 +69,17 @@ services:
       - api
     restart: unless-stopped
 
+  h5:
+    build:
+      context: ./apps/h5
+      dockerfile: Dockerfile
+    container_name: campus_love_h5
+    ports:
+      - "3002:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

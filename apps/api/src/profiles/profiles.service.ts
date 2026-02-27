@@ -21,10 +21,16 @@ export class ProfilesService {
   async upsertProfile(userId: string, dto: CreateProfileDto) {
     const completeness = calcCompleteness(dto);
 
+    const { socialLinks, ...rest } = dto as any;
+    const data: any = { ...rest, profileCompleteness: completeness };
+    if (socialLinks !== undefined) {
+      data.socialLinks = socialLinks;
+    }
+
     const profile = await this.prisma.profile.upsert({
       where: { userId },
-      update: { ...dto, profileCompleteness: completeness },
-      create: { userId, ...dto, profileCompleteness: completeness },
+      update: data,
+      create: { userId, ...data },
     });
     return profile;
   }
@@ -47,10 +53,30 @@ export class ProfilesService {
     const profile = await this.prisma.profile.findUnique({ where: { userId } });
     if (!profile) return null;
 
-    const result: any = {};
+    const result: any = { userId };
     publicFields.forEach((field) => {
       result[field] = (profile as any)[field];
     });
     return result;
+  }
+
+  // Full public profile with social links (for relationship partners)
+  async getFullPublicProfile(userId: string) {
+    const profile = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!profile) return null;
+
+    return {
+      userId,
+      nickname: profile.nickname,
+      school: profile.school,
+      grade: profile.grade,
+      age: profile.age,
+      city: profile.city,
+      interests: profile.interests,
+      bio: profile.bio,
+      avatarUrl: profile.avatarUrl,
+      socialLinks: profile.socialLinks,
+      relationshipScore: profile.relationshipScore,
+    };
   }
 }

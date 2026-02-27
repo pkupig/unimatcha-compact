@@ -10,6 +10,7 @@ import { QuestionnaireModule } from './questionnaire/questionnaire.module';
 import { AnswersModule } from './answers/answers.module';
 import { MatchingModule } from './matching/matching.module';
 import { AdminModule } from './admin/admin.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { AdminModule } from './admin/admin.module';
     AnswersModule,
     MatchingModule,
     AdminModule,
+    LeaderboardModule,
   ],
 })
 export class AppModule {}

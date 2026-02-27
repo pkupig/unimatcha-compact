@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProfilesService } from '../profiles/profiles.service';
+import { CreateProfileDto } from '../profiles/dto/profile.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private profilesService: ProfilesService,
+  ) {}
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -14,13 +19,24 @@ export class UsersService {
           select: {
             nickname: true, school: true, grade: true, gender: true,
             genderPref: true, age: true, city: true, interests: true,
-            bio: true, avatarUrl: true, profileCompleteness: true,
+            bio: true, avatarUrl: true, socialLinks: true,
+            relationshipScore: true, profileCompleteness: true,
           },
         },
       },
     });
     if (!user) throw new NotFoundException('用户不存在');
     return user;
+  }
+
+  async updateMyProfile(userId: string, dto: CreateProfileDto) {
+    return this.profilesService.upsertProfile(userId, dto);
+  }
+
+  async getPublicProfile(targetUserId: string) {
+    const profile = await this.profilesService.getPublicProfile(targetUserId);
+    if (!profile) throw new NotFoundException('用户不存在或资料未填写');
+    return profile;
   }
 
   async getMyMatchStatus(userId: string) {
@@ -39,9 +55,14 @@ export class UsersService {
     const activeMatch = await this.prisma.match.findFirst({
       where: {
         OR: [{ userAId: userId }, { userBId: userId }],
-        status: { in: ['MATCHED', 'RELATIONSHIP_MODE'] },
+        status: { in: ['PENDING_CONFIRM', 'MATCHED', 'RELATIONSHIP_MODE'] },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    // Check if there's a running/pending match job
+    const pendingJob = await this.prisma.matchJob.findFirst({
+      where: { status: { in: ['PENDING', 'RUNNING'] } },
     });
 
     return {
@@ -50,6 +71,7 @@ export class UsersService {
         ? { cronExpr: matchConfig.cronExpr, description: matchConfig.description }
         : null,
       currentMatch: activeMatch ? { id: activeMatch.id, status: activeMatch.status } : null,
+      isSearching: !!pendingJob,
     };
   }
 
@@ -75,7 +97,10 @@ export class UsersService {
         select: {
           id: true, email: true, mode: true, status: true, createdAt: true,
           profile: {
-            select: { nickname: true, school: true, profileCompleteness: true },
+            select: {
+              nickname: true, school: true, profileCompleteness: true,
+              socialLinks: true, relationshipScore: true,
+            },
           },
         },
       }),

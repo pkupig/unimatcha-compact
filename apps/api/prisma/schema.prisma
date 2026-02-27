@@ -70,8 +70,14 @@ model Profile {
   bio        String?   @db.Text
   avatarUrl  String?
 
+  // 社交联系方式（可扩展 JSON: { wechat, qq, xiaohongshu, weibo, instagram, ... }）
+  socialLinks Json?
+
   // 可公开字段由后台配置（此处存完整 Profile，匹配结果按配置过滤输出）
   extraData  Json?     // 预留扩展字段
+
+  // 恋爱分（由恋爱模式内容计算，暂默认0）
+  relationshipScore Float @default(0)
 
   profileCompleteness Int @default(0) // 0-100
 
@@ -217,9 +223,22 @@ model Match {
   userBId    String
   userB      User        @relation("MatchUserB", fields: [userBId], references: [id])
 
-  status     MatchStatus @default(MATCHED)
+  status     MatchStatus @default(PENDING_CONFIRM)
   score      Float?
   metadata   Json?       // AI 模型返回的原始数据
+
+  // 双方确认机制
+  userAConfirmed Boolean   @default(false)
+  userBConfirmed Boolean   @default(false)
+  confirmedAt    DateTime? // 双方都确认的时间
+
+  // 恋爱开始时间（用于计算恋爱时长排行）
+  relationshipStartedAt DateTime?
+
+  // 解除关系
+  dissolvedBy    String?   // 发起分手的用户 ID
+  dissolvedAt    DateTime?
+  dissolveReason String?   // 可选：分手原因
 
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -229,9 +248,12 @@ model Match {
 }
 
 enum MatchStatus {
-  MATCHED
-  RELATIONSHIP_MODE
-  DISSOLVED
+  PENDING_CONFIRM      // 等待双方确认
+  MATCHED              // 双方已确认（兼容旧数据）
+  RELATIONSHIP_MODE    // 进入恋爱模式
+  REJECTED             // 被拒绝
+  DISSOLVED            // 已解除关系
+  EXPIRED              // 超时未确认
 }
 
 // ─────────────────────────────────────────────

@@ -28,6 +28,22 @@ struct AuthResponse: Codable {
     let token: String
 }
 
+// MARK: - Social Links
+
+struct SocialLinks: Codable {
+    var wechat: String?
+    var qq: String?
+    var xiaohongshu: String?
+    var weibo: String?
+    var instagram: String?
+
+    init(wechat: String? = nil, qq: String? = nil, xiaohongshu: String? = nil,
+         weibo: String? = nil, instagram: String? = nil) {
+        self.wechat = wechat; self.qq = qq; self.xiaohongshu = xiaohongshu
+        self.weibo = weibo; self.instagram = instagram
+    }
+}
+
 // MARK: - Profile
 
 struct UserProfile: Codable {
@@ -43,6 +59,8 @@ struct UserProfile: Codable {
     var interests: [String]?
     var bio: String?
     var avatarUrl: String?
+    var socialLinks: SocialLinks?
+    var relationshipScore: Double?
     let profileCompleteness: Int?
 }
 
@@ -57,6 +75,7 @@ struct CreateProfileRequest: Codable {
     let interests: [String]
     let bio: String?
     let avatarUrl: String?
+    let socialLinks: SocialLinks?
 }
 
 // MARK: - Questionnaire
@@ -111,12 +130,46 @@ struct AnswerItemRaw: Codable {
     let value: AnyCodable
 }
 
-// MARK: - Matching
+// MARK: - Matching (Full Status from /matching/status)
 
+enum MatchState: String, Codable {
+    case idle
+    case searching
+    case matched
+    case relationship
+}
+
+struct FullMatchStatus: Codable {
+    let state: MatchState
+    let mode: UserMode
+    let matchConfig: MatchConfigInfo?
+    let match: MatchInfo?
+    let partner: PublicProfile?
+}
+
+struct MatchInfo: Codable {
+    let id: String?
+    let status: String?
+    let myConfirmed: Bool?
+    let partnerConfirmed: Bool?
+    let score: Double?
+    let matchedAt: String?
+    let confirmedAt: String?
+    let relationshipStartedAt: String?
+}
+
+struct MatchStartResponse: Codable {
+    let message: String
+    let jobId: String?
+    let status: String?
+}
+
+// Legacy — kept for backward compatibility
 struct MatchStatus: Codable {
     let mode: UserMode
     let matchConfig: MatchConfigInfo?
     let currentMatch: CurrentMatchInfo?
+    let isSearching: Bool?
 }
 
 struct MatchConfigInfo: Codable {
@@ -135,9 +188,16 @@ struct MatchResult: Codable {
     let status: String?
     let matchedAt: String?
     let partner: PublicProfile?
+    let myConfirmed: Bool?
+    let partnerConfirmed: Bool?
+    let confirmedAt: String?
+    let relationshipStartedAt: String?
+    let score: Double?
 }
 
-struct PublicProfile: Codable {
+struct PublicProfile: Codable, Identifiable {
+    var id: String { userId ?? UUID().uuidString }
+    let userId: String?
     let nickname: String?
     let school: String?
     let grade: String?
@@ -146,6 +206,28 @@ struct PublicProfile: Codable {
     let interests: [String]?
     let bio: String?
     let avatarUrl: String?
+    let socialLinks: SocialLinks?
+    let relationshipScore: Double?
+}
+
+// MARK: - Leaderboard
+
+struct LeaderboardEntry: Codable, Identifiable {
+    var id: String { "\(rank)" }
+    let rank: Int
+    let matchId: String?
+    let durationDays: Int?
+    let avgScore: Double?
+    let startedAt: String?
+    let coupleA: LeaderboardPerson
+    let coupleB: LeaderboardPerson
+}
+
+struct LeaderboardPerson: Codable {
+    let nickname: String
+    let avatarUrl: String?
+    let school: String?
+    let score: Double?
 }
 
 // MARK: - API Response wrapper
@@ -160,9 +242,9 @@ struct APIResponse<T: Codable>: Codable {
 
 struct AnyCodable: Codable {
     let value: Any
-    
+
     init(_ value: Any) { self.value = value }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let int = try? container.decode(Int.self) { value = int }
@@ -172,7 +254,7 @@ struct AnyCodable: Codable {
         else if let array = try? container.decode([AnyCodable].self) { value = array.map { $0.value } }
         else { value = "" }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         if let int = value as? Int { try container.encode(int) }
