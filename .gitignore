@@ -1,0 +1,49 @@
+# ---- dependencies / build artifacts ----
+node_modules/
+api/app/node_modules/
+dist/
+api/app/dist/
+.next/
+out/
+*.tsbuildinfo
+
+# ---- container filesystem export (api/ is a docker export; keep only api/app source) ----
+/api/bin
+/api/boot
+/api/dev
+/api/etc
+/api/home
+/api/lib
+/api/lib64
+/api/media
+/api/mnt
+/api/opt
+/api/proc
+/api/root
+/api/run
+/api/sbin
+/api/srv
+/api/sys
+/api/tmp
+/api/usr
+/api/var
+/api/.dockerenv
+
+# ---- python (matching-ml) ----
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ---- secrets / env (never commit real ones) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- editor / os ----
+.DS_Store
+.idea/
+.vscode/
+*.log

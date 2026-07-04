@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Love</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Be+Vietnam+Pro:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS with plugins -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Tailwind Config -->
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "neon": "#CCFF00",
+            "neon-pink": "#FF2EC4",
+            "on-secondary": "#ffffff",
+            "secondary-fixed": "#c8c6c6",
+            "error": "#ba1a1a",
+            "inverse-on-surface": "#f1f1f1",
+            "primary-fixed-dim": "#474747",
+            "primary": "#000000",
+            "tertiary-fixed": "#5d5f5f",
+            "secondary-container": "#d6d4d3",
+            "inverse-surface": "#303030",
+            "on-secondary-fixed": "#1b1c1c",
+            "on-background": "#1b1b1b",
+            "surface-container-lowest": "#ffffff",
+            "on-error-container": "#410002",
+            "tertiary": "#3a3c3c",
+            "on-surface": "#1b1b1b",
+            "tertiary-fixed-dim": "#454747",
+            "on-tertiary-fixed-variant": "#e2e2e2",
+            "error-container": "#ffdad6",
+            "background": "#f9f9f9",
+            "secondary-fixed-dim": "#acabab",
+            "on-surface-variant": "#474747",
+            "surface-container-low": "#f3f3f3",
+            "on-error": "#ffffff",
+            "on-primary": "#e2e2e2",
+            "outline": "#777777",
+            "surface-bright": "#f9f9f9",
+            "surface-dim": "#dadada",
+            "on-secondary-fixed-variant": "#3b3b3b",
+            "surface-container-high": "#e8e8e8",
+            "on-tertiary": "#e2e2e2",
+            "surface-tint": "#5e5e5e",
+            "surface-variant": "#e2e2e2",
+            "on-primary-container": "#ffffff",
+            "on-primary-fixed": "#ffffff",
+            "primary-container": "#3b3b3b",
+            "inverse-primary": "#c6c6c6",
+            "surface-container": "#eeeeee",
+            "secondary": "#5f5e5e",
+            "on-primary-fixed-variant": "#e2e2e2",
+            "surface-container-highest": "#e2e2e2",
+            "outline-variant": "#c6c6c6",
+            "on-tertiary-fixed": "#ffffff",
+            "surface": "#f9f9f9",
+            "primary-fixed": "#5e5e5e",
+            "on-tertiary-container": "#ffffff",
+            "tertiary-container": "#737575",
+            "on-secondary-container": "#1b1c1c"
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans"],
+            "display": ["Plus Jakarta Sans"],
+            "body": ["Be Vietnam Pro"],
+            "label": ["Be Vietnam Pro"],
+            "mono": ["JetBrains Mono"]
+          },
+          borderRadius: {
+            "none": "0px",
+            "sm": "10px",
+            "DEFAULT": "10px",
+            "md": "10px",
+            "lg": "10px",
+            "xl": "10px",
+            "2xl": "10px",
+            "3xl": "10px",
+            "full": "9999px"
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- QR generate + scan (扫码加好友) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <script type="module" crossorigin src="/assets/index-DyhA7yjF.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DM7ZMbdE.css">
+</head>
+
+<body class="bg-background text-on-surface font-body overflow-hidden">
+
+  <!-- Toast Notification -->
+  <div id="toast"></div>
+
+  <!-- Splash Screen (Ivory & Ink) -->
+  <div id="splash" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden">
+    <!-- Hairline inset frame (rounded) -->
+    <div class="absolute inset-4 md:inset-6 border border-outline-variant/30 rounded-[28px] pointer-events-none"></div>
+    <!-- Subtle academic geometry (concentric rings) -->
+    <div class="absolute -bottom-28 -left-28 w-80 h-80 border-[0.5px] border-outline-variant opacity-20 rounded-full pointer-events-none"></div>
+    <div class="absolute -top-28 -right-28 w-96 h-96 border-[0.5px] border-outline-variant opacity-[0.12] rounded-full pointer-events-none"></div>
+
+    <!-- Skip -->
+    <button class="absolute top-8 right-8 z-20 text-outline hover:text-primary transition-colors text-[10px] font-bold tracking-[0.3em] uppercase" onclick="hideSplash()">
+      Skip
+    </button>
+
+    <!-- Brand core -->
+    <section class="relative z-10 flex flex-col items-center text-center px-8">
+      <!-- Neon mark -->
+      <div class="w-12 h-12 bg-neon rounded-[10px] flex items-center justify-center mb-10 shadow-[0_10px_30px_-8px_rgba(204,255,0,0.65)]">
+        <span class="material-symbols-outlined text-black" style="font-variation-settings:'FILL' 1,'wght' 500; font-size:26px">auto_awesome</span>
+      </div>
+      <!-- Wordmark -->
+      <h1 class="font-headline text-6xl md:text-8xl font-extrabold tracking-tighter text-primary leading-[0.9]">Campus<br>Love</h1>
+      <!-- Neon accent rule -->
+      <div class="w-14 h-[3px] bg-neon mt-8 mb-7"></div>
+      <p class="font-body text-sm text-on-surface-variant tracking-wide max-w-[17rem] leading-relaxed">
+        Where intellectual sparks meet genuine connection.
+      </p>
+    </section>
+
+    <!-- Loader + footer mark -->
+    <div class="absolute bottom-16 z-10 flex flex-col items-center gap-8">
+      <div class="cl-dots idle scale-90">
+        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
+        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
+        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-px bg-outline-variant/50"></div>
+        <span class="text-[9px] font-bold uppercase tracking-[0.35em] text-outline">Est · MMXXIV</span>
+        <div class="w-8 h-px bg-outline-variant/50"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication Page -->
+  <div id="page-auth" class="page">
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center px-6 py-12 relative overflow-hidden">
+      <!-- Subtle Background -->
+      <div class="absolute bottom-0 left-0 w-full opacity-10 pointer-events-none select-none overflow-hidden h-64">
+        <img alt="minimalist university campus library sketch" class="w-full h-full object-cover object-bottom" src="/login_bg.png">
+      </div>
+
+      <div class="auth-container w-full z-10">
+        <!-- Tab Switcher -->
+        <nav class="flex justify-center mb-16 space-x-12">
+          <button class="font-headline text-xs font-bold tracking-[0.2em] border-b-2 border-primary pb-2 text-primary transition-all duration-300" data-tab="signin" onclick="switchAuthTab('signin', event)">
+            Sign In
+          </button>
+          <button class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant hover:text-primary pb-2 border-b-2 border-transparent transition-all duration-300" data-tab="register" onclick="switchAuthTab('register', event)">
+            Register
+          </button>
+        </nav>
+
+        <!-- Sign In Form -->
+        <form id="signin-form" class="auth-form active space-y-12">
+          <!-- Header -->
+          <div class="text-center space-y-2">
+            <h2 class="font-headline text-3xl font-extrabold tracking-tighter text-primary">Welcome Back</h2>
+            <p class="text-on-surface-variant text-sm tracking-wide">Enter your academic credentials</p>
+          </div>
+
+          <!-- Input Fields -->
+          <div class="space-y-8">
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Email Address</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">mail</span>
+                <input id="login-email" class="academic-input w-full font-body text-base placeholder:text-outline-variant" placeholder="student@campus.edu" type="email">
+              </div>
+            </div>
+
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Password</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">lock</span>
+                <input id="login-password" class="academic-input w-full font-body text-base placeholder:text-outline-variant" placeholder="••••••••" type="password">
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button class="font-headline text-[10px] font-bold tracking-widest text-outline hover:text-primary transition-colors" type="button">Forgot Password?</button>
+            </div>
+
+            <!-- CTA -->
+            <button class="btn-cta" type="button" onclick="doLogin()">
+              Sign In
+            </button>
+          </div>
+        </form>
+
+        <!-- Register Form (Hidden) -->
+        <form id="register-form" class="auth-form space-y-12">
+          <!-- Header -->
+          <div class="text-center space-y-2">
+            <h2 class="font-headline text-3xl font-extrabold tracking-tighter text-primary">Join Campus Love</h2>
+            <p class="text-on-surface-variant text-sm tracking-wide">Create your academic profile</p>
+          </div>
+
+          <!-- Input Fields -->
+          <div class="space-y-8">
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Email Address</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">mail</span>
+                <input id="register-email" class="academic-input w-full font-body text-base placeholder:text-outline-variant" placeholder="student@campus.edu" type="email">
+              </div>
+            </div>
+
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Password</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">lock</span>
+                <input id="register-password" class="academic-input w-full font-body text-base placeholder:text-outline-variant" placeholder="••••••••" type="password">
+              </div>
+            </div>
+
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Confirm Password</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">lock</span>
+                <input id="register-password-confirm" class="academic-input w-full font-body text-base placeholder:text-outline-variant" placeholder="••••••••" type="password">
+              </div>
+            </div>
+
+            <!-- CTA -->
+            <button class="btn-cta" type="button" onclick="doRegister()">
+              Register
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-8 px-6 flex flex-col items-center space-y-4 z-20">
+      <div class="flex space-x-6">
+        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+        <span class="text-outline-variant text-[10px]">/</span>
+        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+      </div>
+      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2024 Campus Love. All Rights Reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Banned Page -->
+  <div id="page-banned" class="page">
+    <main class="flex-grow flex items-center justify-center px-6 py-12 relative overflow-hidden">
+      <div class="auth-container w-full z-10">
+        <div class="text-center space-y-8">
+          <div class="w-20 h-20 mx-auto flex items-center justify-center rounded-full border-2 border-outline">
+            <span class="material-symbols-outlined text-4xl text-on-surface-variant">block</span>
+          </div>
+          <div class="space-y-3">
+            <h2 class="font-headline text-2xl font-extrabold tracking-tighter text-primary">Account Suspended</h2>
+            <p class="font-body text-on-surface-variant text-sm leading-relaxed max-w-xs mx-auto">Your account has been disabled for violating the community guidelines. If you believe this is a mistake, please contact support.</p>
+          </div>
+          <button class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.3em] hover:bg-neon-pink hover:text-black transition-all active:scale-95 duration-200" type="button" onclick="doLogout()">
+            Log Out
+          </button>
+        </div>
+      </div>
+    </main>
+    <footer class="w-full py-8 px-6 flex flex-col items-center space-y-4 z-20">
+      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2024 Campus Love. All Rights Reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Profile Setup Page -->
+  <div id="page-profile-setup" class="page">
+    <!-- TopAppBar -->
+    <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <div class="flex items-center gap-4">
+        <button class="p-2 -ml-2 hover:bg-surface-container-low transition-colors active:scale-95 duration-150" onclick="showPage('page-auth')">
+          <span class="material-symbols-outlined text-on-surface">arrow_back</span>
+        </button>
+      </div>
+      <h1 class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-on-surface text-base">Profile Setup</h1>
+      <div class="w-10"></div>
+    </header>
+
+    <!-- Content Canvas -->
+    <main class="pt-24 pb-12 px-6 max-w-2xl mx-auto space-y-16">
+      <!-- Avatar Section -->
+      <section class="flex flex-col items-center">
+        <div class="relative group">
+          <div id="setup-avatar" class="w-32 h-32 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center bg-surface-container-lowest transition-all hover:border-primary cursor-pointer" onclick="document.getElementById('avatar-file-input')?.click()">
+            <div class="flex flex-col items-center text-on-surface-variant group-hover:text-primary">
+              <span class="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
+              <span class="text-[10px] font-bold tracking-tighter font-headline">Upload</span>
+            </div>
+          </div>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarFile(event, 'setup')">
+        </div>
+        <p class="mt-4 text-xs font-label tracking-widest text-on-surface-variant">Your Academic Identity</p>
+      </section>
+
+      <!-- Form Section: Basic Info -->
+      <section class="space-y-10">
+        <div class="flex items-baseline justify-between">
+          <h2 class="font-headline font-bold text-xl tracking-tight">Basic Info</h2>
+          <div class="h-px bg-outline-variant flex-grow ml-6 opacity-30"></div>
+        </div>
+
+        <div class="space-y-8">
+          <!-- Nickname -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nickname</label>
+            <input id="setup-nickname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="The Scholar" type="text">
+          </div>
+
+          <!-- Real name (required, 姓 + 名 分开) -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Real name <span class="text-neon-pink">*</span> <span class="font-medium tracking-normal text-outline normal-case">· only shown to confirmed partners</span></label>
+            <div class="grid grid-cols-2 gap-4">
+              <input id="setup-givenname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Given name (名)" type="text">
+              <input id="setup-familyname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Family name (姓)" type="text">
+            </div>
+          </div>
+
+          <!-- School Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">University / School</label>
+            <div class="relative">
+              <select id="setup-school" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select Institution</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- City Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">City</label>
+            <div class="relative">
+              <select id="setup-city" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select City</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Major Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Major</label>
+            <div class="relative">
+              <select id="setup-major" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select Major</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MBTI Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">MBTI</label>
+            <div class="relative">
+              <select id="setup-mbti" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select MBTI</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Nationality Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nationality</label>
+            <div class="relative">
+              <select id="setup-nationality" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select Nationality</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Gender Selection -->
+          <div>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Gender</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="male" type="button" onclick="selectSetupGender(this)">Male</button>
+              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="female" type="button" onclick="selectSetupGender(this)">Female</button>
+              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="non_binary" type="button" onclick="selectSetupGender(this)">Non-Binary</button>
+              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="other" type="button" onclick="selectSetupGender(this)">Other</button>
+            </div>
+          </div>
+
+          <!-- Looking For (preferred gender) -->
+          <div>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Looking For</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="genderpref-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-genderpref="male" type="button" onclick="selectSetupGenderPref(this)">Men</button>
+              <button class="genderpref-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-genderpref="female" type="button" onclick="selectSetupGenderPref(this)">Women</button>
+              <button class="genderpref-btn py-3 px-4 rounded-[10px] bg-neon text-black text-sm font-label tracking-wider active:scale-95" data-genderpref="any" data-selected="true" type="button" onclick="selectSetupGenderPref(this)">Anyone</button>
+            </div>
+          </div>
+
+          <!-- Age Picker -->
+          <div class="group">
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Age</label>
+            <div class="relative">
+              <select id="setup-age" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+                <option value="">Select Age</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Grade Selection -->
+          <div>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Academic Year</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="freshman" type="button" onclick="selectYear(this)">Freshman</button>
+              <button class="segment-btn py-3 px-4 rounded-[10px] bg-neon text-black text-sm font-label tracking-wider active:scale-95" data-year="undergraduate" type="button" onclick="selectYear(this)">Undergraduate</button>
+              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="postgraduate" type="button" onclick="selectYear(this)">Postgraduate</button>
+              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="doctorate" type="button" onclick="selectYear(this)">Doctorate</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form Section: Interests -->
+      <section class="space-y-10">
+        <div class="flex items-baseline justify-between">
+          <h2 class="font-headline font-bold text-xl tracking-tight">Interests</h2>
+          <div class="h-px bg-outline-variant flex-grow ml-6 opacity-30"></div>
+        </div>
+
+        <div id="setup-tags-list" class="flex flex-wrap gap-2"></div>
+
+        <div class="flex flex-wrap gap-2">
+          <button class="px-4 py-2 rounded-[10px] border border-outline-variant text-xs font-label tracking-widest hover:border-primary transition-all" type="button" onclick="addSetupTagValue('Linguistics')">Linguistics</button>
+          <button class="px-4 py-2 rounded-[10px] border border-outline-variant text-xs font-label tracking-widest hover:border-primary transition-all" type="button" onclick="addSetupTagValue('Philosophy')">Philosophy</button>
+          <button class="px-4 py-2 rounded-[10px] border border-outline-variant text-xs font-label tracking-widest hover:border-primary transition-all" type="button" onclick="addSetupTagValue('Digital Art')">Digital Art</button>
+          <button class="px-4 py-2 rounded-[10px] border border-outline-variant text-xs font-label tracking-widest hover:border-primary transition-all" type="button" onclick="addSetupTagValue('Architecture')">Architecture</button>
+        </div>
+
+        <div class="relative">
+          <input id="setup-tag-input" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-dashed border-outline focus:border-b-2 focus:border-solid focus:border-primary focus:ring-0 px-0 py-3 text-sm font-body placeholder:text-outline-variant transition-all" placeholder="Add new interest..." onkeydown="if(event.key==='Enter'){event.preventDefault();addSetupTag();}">
+        </div>
+      </section>
+
+      <!-- Form Section: Bio -->
+      <section class="space-y-10">
+        <div class="flex items-baseline justify-between">
+          <h2 class="font-headline font-bold text-xl tracking-tight">Bio</h2>
+          <div class="h-px bg-outline-variant flex-grow ml-6 opacity-30"></div>
+        </div>
+
+        <div class="group">
+          <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Academic Manifesto</label>
+          <textarea id="setup-bio" class="w-full bg-surface-container-low border-none rounded-[10px] focus:ring-1 focus:ring-primary p-6 text-sm font-body leading-relaxed placeholder:text-outline italic resize-none" placeholder="Briefly describe your academic pursuits..." rows="4" maxlength="250"></textarea>
+          <div class="mt-2 text-[10px] text-right text-on-surface-variant tracking-widest"><span id="setup-bio-count">0</span> / 250 characters</div>
+        </div>
+      </section>
+
+      <!-- Final Action -->
+      <section class="pt-8 pb-12">
+        <button class="w-full bg-neon text-black py-5 rounded-[10px] font-headline font-extrabold text-sm tracking-[0.3em] active:scale-[0.98] transition-all hover:bg-primary-container" onclick="saveProfile()">
+          Confirm Profile
+        </button>
+        <p class="mt-6 text-center text-[10px] text-outline font-label tracking-widest">
+          By continuing, you agree to the Academic Code of Conduct.
+        </p>
+      </section>
+    </main>
+
+    <!-- Decorative Element -->
+    <div class="fixed top-1/4 -left-12 opacity-5 pointer-events-none select-none">
+      <svg fill="none" height="400" viewBox="0 0 200 400" width="200" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 10L190 390M190 10L10 390" stroke="currentColor" stroke-width="0.5"></path>
+        <circle cx="100" cy="200" r="80" stroke="currentColor" stroke-width="0.5"></circle>
+        <rect height="120" stroke="currentColor" stroke-width="0.5" width="120" x="40" y="140"></rect>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Questionnaire Page -->
+  <div id="page-questionnaire" class="page">
+    <!-- TopAppBar -->
+    <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex justify-between items-center px-6 h-16">
+      <button class="p-2 hover:bg-surface-container-low transition-colors" onclick="showPage('page-home'); switchTab('match')">
+        <span class="material-symbols-outlined text-on-surface">arrow_back</span>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-20 pb-24 px-6 max-w-2xl mx-auto w-full academic-grid">
+      <!-- Step Indicator -->
+      <div class="mb-12">
+        <!-- 问卷模式标识 (Romantic / Friend, §6.3) -->
+        <div id="q-mode-badge" class="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-[10px] bg-neon text-black font-headline font-bold text-[10px] tracking-[0.15em]">
+          <span class="material-symbols-outlined" style="font-size:14px">auto_awesome</span> Romantic
+        </div>
+        <div class="flex justify-between items-end mb-4">
+          <span class="font-headline font-bold text-xs tracking-[0.2em] text-on-surface-variant">Assessment Progress</span>
+          <span class="font-headline font-extrabold text-lg"><span id="q-progress-num">03</span><span class="text-outline-variant mx-1">/</span><span id="q-total">12</span></span>
+        </div>
+        <div class="h-[2px] w-full bg-surface-container-highest">
+          <div id="q-progress-bar" class="h-full bg-primary w-[25%] transition-all duration-500"></div>
+        </div>
+      </div>
+
+      <!-- Question Section -->
+      <section class="space-y-8">
+        <div class="relative">
+          <span id="q-watermark" class="absolute -top-10 -left-4 text-5xl font-headline font-black text-surface-container-highest select-none opacity-20">Q.03</span>
+          <h1 id="q-text" class="text-xl md:text-2xl font-headline font-bold tracking-tight text-on-surface relative z-10 leading-snug">
+            I usually take the initiative in social conversations.
+          </h1>
+        </div>
+
+        <!-- Likert Scale Options -->
+        <div id="q-options" class="space-y-4">
+          <label class="group flex items-center justify-between p-6 bg-surface-container-lowest border-b-2 border-transparent hover:border-primary cursor-pointer transition-all duration-200 active:scale-[0.99]">
+            <span class="font-body text-lg font-medium">Strongly Agree</span>
+            <input class="w-5 h-5 border-2 border-outline text-primary focus:ring-0 rounded-full" name="question" type="radio">
+          </label>
+          <label class="group flex items-center justify-between p-6 bg-surface-container-lowest border-b-2 border-transparent hover:border-primary cursor-pointer transition-all duration-200 active:scale-[0.99]">
+            <span class="font-body text-lg font-medium">Agree</span>
+            <input class="w-5 h-5 border-2 border-outline text-primary focus:ring-0 rounded-full" name="question" type="radio">
+          </label>
+          <label class="group flex items-center justify-between p-6 bg-surface-container-lowest border-b-2 border-transparent hover:border-primary cursor-pointer transition-all duration-200 active:scale-[0.99]">
+            <span class="font-body text-lg font-medium">Neutral</span>
+            <input class="w-5 h-5 border-2 border-outline text-primary focus:ring-0 rounded-full" name="question" type="radio">
+          </label>
+          <label class="group flex items-center justify-between p-6 bg-surface-container-lowest border-b-2 border-transparent hover:border-primary cursor-pointer transition-all duration-200 active:scale-[0.99]">
+            <span class="font-body text-lg font-medium">Disagree</span>
+            <input class="w-5 h-5 border-2 border-outline text-primary focus:ring-0 rounded-full" name="question" type="radio">
+          </label>
+          <label class="group flex items-center justify-between p-6 bg-surface-container-lowest border-b-2 border-transparent hover:border-primary cursor-pointer transition-all duration-200 active:scale-[0.99]">
+            <span class="font-body text-lg font-medium">Strongly Disagree</span>
+            <input class="w-5 h-5 border-2 border-outline text-primary focus:ring-0 rounded-full" name="question" type="radio">
+          </label>
+        </div>
+      </section>
+
+      <!-- Decorative Line Art -->
+      <div class="mt-24 flex justify-center opacity-10">
+        <svg fill="none" height="100" viewBox="0 0 200 100" width="200" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 90C40 70 60 10 100 50C140 90 160 30 190 10" stroke="black" stroke-width="0.5"></path>
+          <circle cx="100" cy="50" r="30" stroke="black" stroke-width="0.5"></circle>
+          <rect height="40" stroke="black" stroke-width="0.5" transform="rotate(45 100 50)" width="40" x="80" y="30"></rect>
+        </svg>
+      </div>
+    </main>
+
+    <!-- Navigation Footer -->
+    <footer class="fixed bottom-0 w-full bg-surface-container-lowest border-t border-surface-container-high px-6 py-6 md:px-12 z-50">
+      <div class="max-w-2xl mx-auto flex items-center justify-between">
+        <button id="q-prev-btn" class="flex items-center gap-2 px-6 py-3 text-sm font-headline font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-150" onclick="prevQuestion()">
+          <span class="material-symbols-outlined text-sm">arrow_back</span>
+          Previous
+        </button>
+        <button id="q-next-btn" class="flex items-center gap-4 bg-neon text-black px-10 py-4 rounded-[10px] font-headline font-extrabold tracking-[0.2em] transition-all hover:opacity-90 active:scale-95 duration-150" onclick="nextQuestion()">
+          Next
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Background Decoration -->
+    <div class="fixed top-1/2 right-0 -translate-y-1/2 w-64 h-96 pointer-events-none opacity-[0.03] hidden lg:block">
+      <img alt="Academic Background" class="w-full h-full object-cover grayscale" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+    </div>
+  </div>
+
+<!-- HOME PAGE (空 base 容器：真正内容在 #tab-match / #tab-square / #tab-profile 覆盖层渲染) -->
+<div id="page-home" class="page"></div>
+
+<!-- MATCH TAB (= 主页一级容器：顶部三切换 + Chat 列表 / 匹配界面) -->
+<div id="tab-match" class="tab-content">
+  <!-- (a) 顶部 bar：匹配设置 | 三切换 [Chat | 恋人 | 朋友] | 通知（一行 flex，避免重叠，§6.2） -->
+  <div class="fixed top-0 left-0 w-full z-40 bg-surface/80 backdrop-blur-xl pt-5 pb-3 px-4 flex items-center gap-2.5">
+    <button id="home-addfriend-btn" class="shrink-0 active:scale-95 duration-200 hover:opacity-70 transition-opacity" onclick="openFriendHub()" title="Chats">
+      <span class="material-symbols-outlined text-black" style="font-size:24px">chat</span>
+    </button>
+    <div id="home-mode-switch" class="home-mode-switch flex-1 min-w-0 max-w-[250px] mx-auto">
+      <button id="home-seg-chat" class="home-mode-seg active" data-view="chat" onclick="switchHomeView('chat')">
+        <span>Chat</span>
+      </button>
+      <button id="home-seg-romantic" class="home-mode-seg" data-view="romantic" onclick="switchHomeView('romantic')">
+        <span>Romantic</span>
+      </button>
+      <button id="home-seg-friend" class="home-mode-seg" data-view="friend" onclick="switchHomeView('friend')">
+        <span>Friend</span>
+      </button>
+    </div>
+    <button class="shrink-0 relative active:scale-95 duration-200 hover:opacity-70 transition-opacity" onclick="openNotifications()" title="Notifications">
+      <span class="material-symbols-outlined text-black" style="font-size:24px">notifications_none</span>
+      <span id="notif-badge" class="hidden absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 bg-neon-pink text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
+    </button>
+  </div>
+
+  <!-- (b1) Chat 列表视图（所有对话：临时 + 永久，§6.6） -->
+  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-6 pt-28 pb-28">
+    <!-- 退款 / 系统通知条挂载点（§6.6 J 规则 energy_refunded） -->
+    <div id="chat-banner" class="hidden mb-4"></div>
+    <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
+    <section id="chat-sessions-temp-section" class="mb-8">
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">TEMPORARY</h2>
+      <div id="chat-sessions-temp" class="space-y-3"></div>
+    </section>
+    <!-- 永久对话组（sessionType==='confirmed'） -->
+    <section id="chat-sessions-confirmed-section">
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">CONNECTIONS</h2>
+      <div id="chat-sessions-confirmed" class="space-y-3"></div>
+    </section>
+    <!-- 空状态挂载点 -->
+    <div id="chat-sessions-empty" class="hidden"></div>
+  </main>
+
+  <!-- (b2) 匹配界面（不含对话列表；恋人/朋友共用挂载点，§6.2/6.5） -->
+  <main id="home-match-view" class="min-h-screen w-full flex flex-col items-center justify-center px-6 pt-28 pb-28" style="display:none">
+    <!-- renderMatchTab 渲染入口（恋人/朋友分支都写进这里，沿用 #match-content） -->
+    <div id="match-content" class="w-full flex flex-col items-center justify-center"></div>
+  </main>
+</div>
+
+<!-- SQUARE TAB -->
+<div id="tab-square" class="tab-content" style="display: none;">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+    <div class="flex justify-center items-center h-16 px-4">
+      <!-- 两段切换 [推荐 | 校园墙]（§6.11 行2130）：选中态荧光绿/黑底白字沿用现有风格 -->
+      <div id="square-tabs" class="flex gap-8 overflow-x-auto hide-scrollbar">
+        <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-[10px] font-bold tracking-[0.2em] text-neutral-400 hover:text-black transition-colors pb-1 border-b-2 border-transparent">Recommend</button>
+        <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-[10px] font-bold tracking-[0.2em] text-neutral-400 hover:text-black transition-colors pb-1 border-b-2 border-transparent">Campus Wall</button>
+      </div>
+    </div>
+  </header>
+  <main class="pt-20 pb-24 px-4 max-w-2xl mx-auto">
+    <div class="relative mb-4">
+      <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">search</span>
+      <input id="square-search" type="search" oninput="window.onSquareSearch(this.value)" placeholder="Search posts" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-[10px] pl-12 pr-4 py-3 text-sm font-medium text-on-surface placeholder:text-outline-variant focus:outline-none focus:border-black transition-colors" />
+    </div>
+    <div id="square-feed" class="grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start">
+    </div>
+  </main>
+  <button onclick="openNewPost()" class="fixed bottom-24 right-6 w-14 h-14 bg-neon text-black rounded-[10px] flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-50">
+    <span class="material-symbols-outlined text-2xl">add</span>
+  </button>
+</div>
+
+<!-- PROFILE TAB -->
+<div id="tab-profile" class="tab-content" style="display: none;">
+  <!-- 学生认证按钮（右上角，状态由 renderVerifyButton 渲染：未认证=Verify / 审核中=Pending / 已认证=对号） -->
+  <button id="verify-btn" type="button" class="absolute top-6 right-6 z-30"></button>
+  <main class="pb-32 max-w-lg mx-auto">
+    <div class="relative w-full overflow-hidden h-[28rem] mb-[-18rem]">
+      <img id="profile-bg" alt="Campus Background" class="w-full h-full object-cover object-[center_22%]" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23e5e5e5'/%3E%3C/svg%3E"/>
+      <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(249,249,249,0) 35%, rgba(249,249,249,0.4) 55%, rgba(249,249,249,0.85) 72%, #f9f9f9 82%)"></div>
+      <div class="profile-blur-mask"></div>
+    </div>
+    <div id="profile-foreground" class="relative z-10 will-change-transform">
+    <section class="flex flex-col items-center px-6 relative z-10 mb-8">
+      <div class="relative mb-3">
+        <div id="profile-avatar" class="w-24 h-24 bg-surface-container-highest border-4 border-white shadow-lg overflow-hidden rounded-full">
+          <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23d4d4d4'/%3E%3C/svg%3E"/>
+        </div>
+      </div>
+      <h2 id="profile-name" class="font-headline text-xl font-bold tracking-tight mb-1 text-on-surface">Elara Vance</h2>
+      <div id="profile-meta" class="flex gap-2">
+        <span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">St. Jude's</span>
+      </div>
+      <div id="profile-photos-strip" class="flex gap-2 overflow-x-auto w-full px-6 mt-3"></div>
+      <div class="flex flex-col items-center w-full mt-4">
+        <div id="profile-match-info" class="w-full bg-surface-container-lowest border border-outline-variant/20 py-1.5 px-4 flex items-center justify-center rounded-[10px]">
+          <div class="flex items-center gap-2"><div class="status-orb status-orb--idle" style="--orb:#9aa0a6"></div><span class="text-[10px] tracking-wide text-on-surface-variant font-body">Not matching</span></div>
+        </div>
+      </div>
+    </section>
+    <div class="px-6 relative z-10 bg-background">
+      <section class="space-y-2">
+        <div class="flex flex-col">
+          <!-- ENERGY（§6.10 + §10.5(1)）：与下方列表项同层级，左标签 + 中能量格 + 右 Buy -->
+          <button id="profile-energy-section" onclick="openEnergyModal()" class="w-full flex items-center justify-between py-4 border-b border-outline-variant/20 gap-3 group text-left">
+            <div class="flex items-center gap-4 shrink-0">
+              <span class="material-symbols-outlined text-on-surface" style="font-variation-settings:'FILL' 1">flash_on</span>
+              <span class="text-sm font-medium tracking-wide">ENERGY</span>
+            </div>
+            <div id="energy-display" class="flex items-center gap-1 flex-1 flex-wrap justify-end"><!-- 动态渲染格子，最多 10 格，超出 +N --></div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
+          </button>
+          <!-- Edit Profile -->
+          <button onclick="openEditProfile()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-on-surface">person_outline</span>
+              <span class="text-sm font-medium tracking-wide">Edit Profile</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+          <!-- Contact Us -->
+          <button onclick="openContactUs()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-on-surface">mail_outline</span>
+              <span class="text-sm font-medium tracking-wide">Contact Us</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+          <!-- Settings -->
+          <button onclick="openSettings()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-on-surface">settings</span>
+              <span class="text-sm font-medium tracking-wide">Settings</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
+        </div>
+      </section>
+      <div class="mt-12 mb-20">
+        <button onclick="doLogout()" class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.3em] hover:bg-neon-pink hover:text-black transition-all active:scale-95 duration-200">
+          Log Out
+        </button>
+        <p class="text-center mt-6 text-[10px] text-outline font-medium tracking-widest">Campus Love v2.4.0 - Oxford Campus</p>
+      </div>
+    </div>
+    </div>
+  </main>
+</div>
+
+<!-- BOTTOM NAVIGATION BAR -->
+<nav id="bottom-nav" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-4 px-8">
+  <button onclick="switchTab('match')" data-tab="match" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
+    <span style="font-size:32px;line-height:0;display:inline-flex">
+      <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg>
+    </span>
+    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Match</span>
+  </button>
+  <button onclick="switchTab('square')" data-tab="square" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
+    <span class="material-symbols-outlined">grid_view</span>
+    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Square</span>
+  </button>
+  <button onclick="switchTab('profile')" data-tab="profile" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
+    <span class="material-symbols-outlined">person</span>
+    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Profile</span>
+  </button>
+</nav>
+
+<!-- PART 3: OVERLAYS & MODALS -->
+
+<!-- Filter/Preferences Overlay -->
+<div id="filter-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-center justify-end" onclick="if(event.target===this)closeFilterSheet()">
+  <div class="relative z-50 w-full max-w-md bg-white rounded-t-xl overflow-hidden shadow-2xl flex flex-col bottom-sheet-transition">
+    <header class="w-full flex flex-col items-center pt-3 pb-4 border-b border-stone-100 sticky top-0 bg-white z-10">
+      <div class="w-10 h-1 bg-stone-200 mb-4"></div>
+      <div class="flex justify-between items-center w-full px-6">
+        <button class="text-stone-400 hover:text-black transition-colors active:scale-95" onclick="hideOverlay('filter-overlay')">
+          <span class="material-symbols-outlined" data-icon="close">close</span>
+        </button>
+        <h1 class="font-headline font-bold tracking-tighter text-black">Preferences</h1>
+        <button class="font-headline font-bold tracking-tighter text-black hover:bg-stone-100 transition-colors px-3 py-1 active:scale-[0.98]" onclick="saveFilterPrefs()">Save</button>
+      </div>
+    </header>
+    <!-- 模式选项卡 Romantic / Friend（§6.4 行2033-2044）：偏好按模式分离 -->
+    <div class="px-8 pt-5 pb-1 sticky top-[57px] bg-white z-[9]">
+      <div class="flex border border-black p-1 rounded-[10px]">
+        <button id="pref-mode-romantic" class="pref-mode-tab flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="romantic" onclick="switchPrefMode('romantic')">Romantic</button>
+        <button id="pref-mode-friend" class="pref-mode-tab flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="friend" onclick="switchPrefMode('friend')">Friend</button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto max-h-[75vh] px-8 py-6 flex flex-col gap-8">
+      <!-- 恋人偏好区（仅 Target Gender + University Stage；年龄/同校/同城已移至下方共享区） -->
+      <div id="filter-romantic-section" class="space-y-12">
+      <section>
+        <div class="mb-6">
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
+        </div>
+        <div class="flex border border-black p-1 rounded-[10px]">
+          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectGenderSegment('male')">Male</button>
+          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectGenderSegment('female')">Female</button>
+          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectGenderSegment('all')">All</button>
+        </div>
+      </section>
+      <section>
+        <div class="mb-6">
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">University Stage</h2>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="stage-chip px-5 py-2.5 rounded-[10px] border border-outline-variant font-headline font-bold text-xs tracking-wider transition-all active:scale-[0.98]" data-value="undergraduate" onclick="toggleStage('undergraduate')">Undergraduate</button>
+          <button class="stage-chip px-5 py-2.5 rounded-[10px] border border-outline-variant font-headline font-bold text-xs tracking-wider transition-all active:scale-[0.98]" data-value="master" onclick="toggleStage('master')">Master</button>
+          <button class="stage-chip px-5 py-2.5 rounded-[10px] border border-outline-variant font-headline font-bold text-xs tracking-wider transition-all active:scale-[0.98]" data-value="doctor" onclick="toggleStage('doctor')">PhD</button>
+        </div>
+      </section>
+      </div><!-- /#filter-romantic-section -->
+
+      <!-- 朋友偏好区（仅 Target Gender + Interest Priority；年龄/同校/同城用下方共享区） -->
+      <div id="filter-friend-section" class="space-y-12" style="display:none">
+        <section>
+          <div class="mb-6">
+            <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
+          </div>
+          <div class="flex border border-black p-1 rounded-[10px]">
+            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectFriendGenderSegment('male')">Male</button>
+            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectFriendGenderSegment('female')">Female</button>
+            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectFriendGenderSegment('all')">All</button>
+          </div>
+        </section>
+        <!-- 兴趣优先级（从用户 profile 兴趣动态渲染 chip，最多选 3 个最高优先级，§9） -->
+        <section>
+          <div class="mb-3">
+            <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Interest Priority</h2>
+          </div>
+          <p class="font-body text-xs text-stone-500 mb-6">Pick up to 3 interests from your profile to prioritize when matching.</p>
+          <div id="friend-priority-interests" class="flex flex-wrap gap-2"><!-- JS 从 profile 兴趣动态渲染 chip，onclick=toggleFriendPriorityInterest(value) --></div>
+        </section>
+      </div><!-- /#filter-friend-section -->
+
+      <!-- 共享区（恋人/朋友共用，始终显示）：Age Range + School Filter。
+           控件 id 不变（#filter-age-min/max/any、age-range-display、#filter-same-school/#filter-same-city），
+           match.js fillRomanticPrefs/fillFriendPrefs/saveFilterPrefs 读取逻辑无需改。 -->
+      <div id="filter-shared-section" class="space-y-12">
+        <section>
+          <div class="space-y-4">
+            <div class="flex justify-between items-end">
+              <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Age Range</h2>
+              <span id="age-range-display" class="font-headline font-bold text-lg leading-none tracking-tighter">18 — 24</span>
+            </div>
+            <div class="relative pt-2">
+              <p class="font-label text-[9px] tracking-widest text-stone-400 mb-2">Min</p>
+              <input id="filter-age-min" class="ink-range" max="30" min="18" type="range" value="18" oninput="onAgeMinInput()"/>
+            </div>
+            <div class="relative pt-2">
+              <p class="font-label text-[9px] tracking-widest text-stone-400 mb-2">Max</p>
+              <input id="filter-age-max" class="ink-range" max="30" min="18" type="range" value="24" oninput="onAgeMaxInput()"/>
+              <div class="flex justify-between mt-3 text-[10px] font-medium text-stone-400">
+                <span>18</span>
+                <span>30</span>
+              </div>
+            </div>
+            <label class="flex items-center gap-3 pt-2 cursor-pointer select-none">
+              <input id="filter-age-any" type="checkbox" class="w-4 h-4" style="accent-color:#CCFF00" onchange="toggleAgeAny()"/>
+              <span class="font-label text-[10px] tracking-widest text-outline">Any age</span>
+            </label>
+          </div>
+        </section>
+        <section>
+          <div class="mb-6">
+            <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">School Filter</h2>
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between items-center py-5 border-b border-stone-100">
+              <div class="space-y-1">
+                <p class="font-headline font-bold text-sm tracking-tight">Only Same School</p>
+                <p class="font-body text-xs text-stone-500">Discover peers within your faculty</p>
+              </div>
+              <input id="filter-same-school" type="checkbox" class="ink-switch" />
+            </div>
+            <div class="flex justify-between items-center py-5 border-b border-stone-100">
+              <div class="space-y-1">
+                <p class="font-headline font-bold text-sm tracking-tight">Same City</p>
+                <p class="font-body text-xs text-stone-500">Prioritize local campus connections</p>
+              </div>
+              <input id="filter-same-city" type="checkbox" class="ink-switch" />
+            </div>
+          </div>
+        </section>
+      </div><!-- /#filter-shared-section -->
+
+      <div class="pt-4 flex justify-center opacity-5">
+        <svg fill="none" height="80" viewbox="0 0 100 100" width="80" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 50C10 27.9086 27.9086 10 50 10C72.0914 10 90 27.9086 90 50C90 72.0914 72.0914 90 50 90C27.9086 90 10 72.0914 10 50Z" stroke="black" stroke-width="0.5"></path>
+          <path d="M50 10V90" stroke="black" stroke-width="0.5"></path>
+          <path d="M10 50H90" stroke="black" stroke-width="0.5"></path>
+          <path d="M21.7 21.7L78.3 78.3" stroke="black" stroke-width="0.5"></path>
+          <path d="M78.3 21.7L21.7 78.3" stroke="black" stroke-width="0.5"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Post Overlay -->
+<div id="overlay-new-post" class="overlay fixed inset-0 z-[100] bg-surface-container-lowest flex flex-col overflow-hidden">
+  <header class="h-16 flex items-center justify-between px-6 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+    <button class="text-on-surface-variant font-medium text-base tracking-tight hover:opacity-70 transition-opacity" onclick="hideOverlay('overlay-new-post')">
+      Cancel
+    </button>
+    <button class="bg-neon text-black px-6 py-2 rounded-[10px] font-headline font-bold text-sm tracking-widest hover:bg-primary-container transition-colors duration-200" onclick="submitNewPost()">
+      Publish
+    </button>
+  </header>
+  <main class="flex-1 overflow-y-auto px-6 py-8">
+    <div class="space-y-8">
+      <!-- 发帖去向单选 [发到推荐 | 发到校园墙]（§6.11 行2132）：默认 recommend → S.newPostBoard -->
+      <div id="newpost-board" class="flex gap-1 border border-outline-variant p-1 rounded-[10px]">
+        <button type="button" class="newpost-board-seg flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] bg-neon text-black" data-board="recommend" onclick="selectNewPostBoard('recommend')">To Recommend</button>
+        <button type="button" class="newpost-board-seg flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] text-on-surface-variant" data-board="campus_wall" onclick="selectNewPostBoard('campus_wall')">To Campus Wall</button>
+      </div>
+      <!-- 匿名开关（§6.11 行2132 / 规则 7）：匿名仍标注学校 -->
+      <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">
+        <span class="font-body text-sm text-on-surface">Post anonymously<span class="text-xs text-on-surface-variant ml-2">Shown as "Anonymous", school still labeled</span></span>
+        <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
+      </label>
+      <input id="post-title" class="w-full text-2xl font-headline font-bold tracking-tight text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none" placeholder="Title" type="text"/>
+      <textarea id="post-content" class="w-full min-h-[160px] text-base font-body leading-relaxed text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none resize-none" placeholder="Capture the moment..."></textarea>
+      <div id="new-post-images" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+        <button type="button" onclick="document.getElementById('post-image-input').click()" class="w-20 h-20 border border-dashed border-outline-variant rounded-[10px] flex items-center justify-center text-outline hover:border-primary hover:text-primary transition-all">
+          <span class="material-symbols-outlined text-[24px] font-light">add</span>
+        </button>
+      </div>
+      <input id="post-image-input" type="file" accept="image/*" multiple onchange="handlePostImages(event)" class="hidden" />
+    </div>
+    <div class="mt-20 opacity-10 pointer-events-none select-none">
+      <svg class="stroke-primary stroke-[0.5px]" fill="none" height="100" viewbox="0 0 200 100" width="200" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 50C50 50 50 0 100 0C150 0 150 100 200 100"></path>
+        <circle cx="100" cy="50" r="40"></circle>
+        <line x1="0" x2="200" y1="0" y2="100"></line>
+      </svg>
+    </div>
+  </main>
+</div>
+
+<!-- Post Detail Overlay -->
+<div id="post-detail-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center px-6 h-16 w-full max-w-none">
+    <div class="flex items-center gap-4">
+      <button class="flex items-center gap-3 group" onclick="closePostDetail()">
+        <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
+        <h1 class="font-headline font-bold tracking-[0.15em] text-on-surface text-[10px] mt-0.5">Post</h1>
+      </button>
+    </div>
+  </header>
+  <main class="pt-16 w-full max-w-screen-md mx-auto">
+    <div id="pd-content"></div>
+    <section class="px-6 pb-16 bg-surface">
+      <div class="mt-12 pt-8 border-t border-primary">
+        <div id="pd-reply-bar" class="hidden items-center justify-between mb-3">
+          <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
+          <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex-1 border-b border-outline focus-within:border-primary transition-colors py-2">
+            <input id="comment-input" class="w-full bg-transparent border-none p-0 focus:ring-0 placeholder:text-outline-variant text-sm font-body" placeholder="Add an observation..." type="text"/>
+          </div>
+          <button class="font-headline font-bold text-xs tracking-widest active:scale-[0.98] transition-transform" onclick="submitPdComment()">Send</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Chat Overlay -->
+<div id="chat-overlay" class="overlay fixed inset-0 z-50 bg-background overflow-hidden flex flex-col">
+  <!-- #7 各自的聊天背景（模糊铺底） -->
+  <div id="chat-bg" class="absolute z-0 bg-cover bg-center pointer-events-none" style="display:none;top:-30px;left:-30px;right:-30px;bottom:-30px;filter:blur(9px) brightness(0.93);"></div>
+  <header class="bg-surface/80 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-outline-variant/20">
+    <div class="flex justify-between items-center px-6 h-16 w-full">
+      <div class="flex items-center gap-4">
+        <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity" onclick="closeChat()">arrow_back</span>
+        <div class="flex items-center gap-3">
+          <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-8 h-8 rounded-full object-cover cursor-pointer" src=""/>
+          <div>
+            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white">Chat Partner</h1>
+            <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400">Location</p>
+          </div>
+        </div>
+      </div>
+      <!-- 对话内确认/解除入口挂载点 (§6.6 D 规则；JS 按 sessionType/myConfirmed 渲染) -->
+      <div id="chat-header-actions" class="flex items-center gap-2"></div>
+    </div>
+  </header>
+  <main id="chat-messages" class="relative z-10 pt-24 pb-32 px-6 max-w-2xl mx-auto space-y-3 flex-1 overflow-y-auto">
+  </main>
+  <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-6 px-6 pb-safe z-50">
+    <p id="chat-dissolved-notice" class="hidden max-w-2xl mx-auto mb-3 text-center text-[10px] tracking-widest text-neutral-400 font-headline">This connection has ended. You can no longer send messages.</p>
+    <div id="chat-pending-image" class="hidden max-w-2xl mx-auto mb-2 flex justify-start">
+      <div class="relative w-20 h-20">
+        <img id="chat-pending-thumb" alt="" class="w-full h-full object-cover rounded-[10px] border border-outline-variant/40" src=""/>
+        <button type="button" onclick="clearChatPendingImage()" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neon-pink text-white flex items-center justify-center active:scale-90"><span class="material-symbols-outlined" style="font-size:14px">close</span></button>
+      </div>
+    </div>
+    <div class="max-w-2xl mx-auto flex items-end gap-4">
+      <div class="flex-grow flex items-center">
+        <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
+        <button class="mr-2 p-1 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">
+          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">add</span>
+        </button>
+        <textarea id="chat-input" class="w-full text-sm placeholder:text-neutral-400 resize-none overflow-hidden font-body bg-transparent border-0 border-b border-outline py-2 focus:ring-0 focus:outline-none focus:border-b-2 focus:border-primary" placeholder="Type your response..." rows="1"></textarea>
+      </div>
+      <button class="bg-neon text-black px-8 py-3 rounded-[10px] font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform" onclick="sendChatMessage()">
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Chat Image Viewer -->
+<div id="chat-image-viewer" class="overlay fixed inset-0 z-[80] bg-black/90 items-center justify-center cursor-pointer" onclick="closeOverlay('chat-image-viewer')">
+  <img id="chat-image-viewer-img" src="" alt="Preview" class="max-w-[92%] max-h-[85%] object-contain m-auto"/>
+</div>
+
+<!-- Partner Profile Overlay (全屏，本轮反馈2) -->
+<div id="partner-profile-overlay" class="overlay fixed inset-0 z-[70] bg-surface">
+  <div class="relative w-full max-w-[430px] mx-auto h-full bg-surface overflow-hidden flex flex-col">
+    <div id="partner-profile-content" class="flex-1 overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- Edit Profile Overlay -->
+<div id="edit-profile-overlay" class="overlay fixed inset-0 z-50 bg-surface items-center">
+  <div class="relative w-full max-w-[430px] mx-auto h-full bg-surface overflow-hidden flex flex-col">
+    <header class="flex justify-between items-center px-6 h-16 shrink-0 border-b border-outline-variant/20 bg-surface/80 backdrop-blur-xl z-30">
+      <button class="text-on-surface-variant font-medium tracking-tight hover:text-on-surface transition-colors" onclick="hideOverlay('edit-profile-overlay')">Cancel</button>
+      <h1 class="font-headline font-extrabold tracking-tight text-lg">Edit Profile</h1>
+      <button class="bg-neon text-black px-5 py-1.5 rounded-[10px] font-bold text-sm tracking-widest hover:bg-primary-container transition-all" onclick="saveEditProfile()">Save</button>
+    </header>
+    <div class="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-12">
+      <section class="relative space-y-6">
+        <div class="flex items-center justify-between gap-6">
+          <div class="relative group shrink-0">
+            <div id="edit-avatar" class="w-28 h-28 bg-surface-container-low border-4 border-outline-variant shadow-sm rounded-full flex items-center justify-center overflow-hidden cursor-pointer" onclick="document.getElementById('edit-avatar-file')?.click()">
+              <img alt="Profile photo" class="w-full h-full object-cover" src=""/>
+            </div>
+            <input id="edit-avatar-file" type="file" accept="image/*" class="hidden" onchange="handleAvatarFile(event, 'edit')"/>
+          </div>
+          <div class="flex-1">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2">Cover Selection</label>
+            <div id="edit-cover-preview" class="h-32 bg-surface-container-low border border-outline-variant rounded-[10px] relative overflow-hidden">
+              <img alt="Cover Photo" class="w-full h-full object-cover grayscale opacity-60" src=""/>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <button class="bg-surface/80 backdrop-blur-sm px-4 py-1.5 rounded-[10px] text-[10px] font-bold tracking-tighter border border-outline-variant hover:bg-surface transition-colors" onclick="document.getElementById('edit-cover-file').click()">Replace</button>
+                <input id="edit-cover-file" type="file" onchange="handleCoverFile(event)" class="hidden" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="text-[11px] font-bold tracking-widest text-on-surface underline decoration-outline-variant underline-offset-4" onclick="document.getElementById('edit-photo-grid')?.scrollIntoView({behavior:'smooth',block:'center'})">Change Photo Portfolio</button>
+      </section>
+      <section class="space-y-10">
+        <div class="space-y-2">
+          <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Nickname</label>
+          <input id="edit-nickname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-lg placeholder:text-surface-dim" type="text" value=""/>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Real name <span class="font-medium tracking-normal text-outline normal-case">· only shown to confirmed partners</span></label>
+          <div class="grid grid-cols-2 gap-4">
+            <input id="edit-givenname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-base placeholder:text-surface-dim" type="text" value="" placeholder="Given name (名)"/>
+            <input id="edit-familyname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-base placeholder:text-surface-dim" type="text" value="" placeholder="Family name (姓)"/>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between items-baseline">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Bio</label>
+            <span class="text-[10px] font-medium text-outline"><span id="edit-bio-count">0</span> / 250</span>
+          </div>
+          <textarea id="edit-bio" maxlength="250" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-body text-base leading-relaxed resize-none" rows="3"></textarea>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between items-baseline">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Description</label>
+            <span class="text-[10px] font-medium text-outline"><span id="edit-signature-count">0</span> / 100</span>
+          </div>
+          <textarea id="edit-signature" maxlength="100" placeholder="A short line about you" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-body text-base leading-relaxed resize-none placeholder:text-outline-variant" rows="2"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-8">
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">School</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-school" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select School</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Grade</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-grade" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select Grade</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">City</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-city" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select City</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Major</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-major" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select Major</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">MBTI</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-mbti" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select MBTI</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Nationality</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-nationality" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+                <option>Select Nationality</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="space-y-6">
+        <div class="flex justify-between items-center">
+          <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Interests</label>
+        </div>
+        <div id="edit-tags-list" class="flex flex-wrap gap-2">
+        </div>
+      </section>
+      <section class="space-y-3">
+        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Photo Portfolio</label>
+        <div id="edit-photo-grid" class="grid grid-cols-3 gap-2">
+        </div>
+      </section>
+      <section class="space-y-3">
+        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Gift jar <span class="font-medium tracking-normal text-outline normal-case">· up to 5 gifts you'd love — shown to your partner</span></label>
+        <div class="space-y-2">
+          <input id="edit-gift-0" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 1"/>
+          <input id="edit-gift-1" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 2"/>
+          <input id="edit-gift-2" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 3"/>
+          <input id="edit-gift-3" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 4"/>
+          <input id="edit-gift-4" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 5"/>
+        </div>
+      </section>
+      <div class="pt-12 pb-8 flex justify-center opacity-10">
+        <svg fill="none" height="60" viewbox="0 0 200 60" width="200" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 30H200" stroke="black" stroke-width="0.5"></path>
+          <circle cx="100" cy="30" r="20" stroke="black" stroke-width="0.5"></circle>
+        </svg>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 w-full h-24 bottom-sheet-gradient pointer-events-none"></div>
+  </div>
+</div>
+
+<!-- Add Interest popup (Edit Profile) -->
+<div id="add-interest-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-center justify-center" onclick="if(event.target===this)closeAddInterest()">
+  <div class="relative z-[60] w-full max-w-xs mx-6 bg-surface rounded-[10px] shadow-2xl p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-headline text-base font-bold tracking-tight text-on-surface">Add Interest</h3>
+      <button class="text-outline hover:text-primary transition-colors active:scale-95" onclick="closeAddInterest()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <input id="add-interest-input" type="text" maxlength="20" placeholder="e.g. Photography" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-base placeholder:text-outline-variant" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddInterest();}"/>
+    <button type="button" class="btn-cta w-full mt-6" onclick="confirmAddInterest()">Add</button>
+  </div>
+</div>
+
+<!-- Student Verification popup (profile 右上角 Verify 按钮触发) -->
+<div id="verify-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-center justify-center" onclick="if(event.target===this)closeVerify()">
+  <div class="relative z-[60] w-full max-w-sm mx-6 bg-surface rounded-[10px] shadow-2xl p-6 max-h-[88vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-headline text-base font-bold tracking-tight text-on-surface">Student Verification</h3>
+      <button type="button" class="text-outline hover:text-primary transition-colors active:scale-95" onclick="closeVerify()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <!-- 学生卡上传 -->
+    <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2">Student ID Card</label>
+    <div id="verify-card-preview" class="w-full aspect-[16/10] rounded-[10px] border border-dashed border-outline flex flex-col items-center justify-center text-outline cursor-pointer overflow-hidden mb-1" onclick="document.getElementById('verify-card-file')?.click()">
+      <span class="material-symbols-outlined text-3xl">add_a_photo</span>
+      <span class="text-[10px] font-bold tracking-widest mt-1">Tap to upload</span>
+    </div>
+    <input id="verify-card-file" type="file" accept="image/*" class="hidden" onchange="handleStudentCardFile(event)"/>
+    <p class="text-[10px] text-outline mb-5">Upload a clear photo of your student ID — an admin will review it.</p>
+    <!-- 学校邮箱 + 验证码 -->
+    <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2">School Email</label>
+    <div class="flex gap-2 mb-1 items-end">
+      <input id="verify-email" type="email" placeholder="you@university.ac.uk" class="flex-1 min-w-0 bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-outline-variant"/>
+      <button id="verify-sendcode-btn" type="button" class="btn-secondary text-[10px] px-3 py-2 whitespace-nowrap shrink-0" onclick="sendVerifyCode()">Send code</button>
+    </div>
+    <p id="verify-code-hint" class="text-[10px] text-neon-pink mb-3 hidden"></p>
+    <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2 mt-3">Verification Code</label>
+    <input id="verify-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-base tracking-[0.3em] placeholder:text-outline-variant mb-6"/>
+    <button type="button" class="btn-cta w-full" onclick="submitVerification()">Submit for review</button>
+  </div>
+</div>
+
+<!-- Add Friend (扫码加好友) popup -->
+<!-- Friend Hub Overlay（本轮反馈3：关系网 + 查找好友 + 扫码加好友，Match-Settings 侧边面板风格） -->
+<div id="friend-hub-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)closeFriendHub()">
+  <div class="slide-left relative z-[60] h-screen w-full max-w-md bg-white overflow-hidden shadow-2xl flex flex-col">
+    <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
+      <div class="flex items-center gap-6 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="friendHubBack()">
+          <span class="material-symbols-outlined text-black !text-2xl">arrow_back</span>
+        </button>
+        <h1 id="friend-hub-title" class="font-headline text-xl font-bold tracking-tight text-black">Friends</h1>
+      </div>
+    </header>
+    <div class="flex-1 overflow-y-auto px-8 py-8">
+      <!-- Menu（本轮反馈1：列出功能，点击进入对应卡片） -->
+      <div id="friend-hub-menu" class="space-y-4">
+        <button onclick="friendHubShow('graph')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
+          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">hub</span><span class="font-headline font-bold text-sm tracking-tight text-black">Relationship Network</span></div>
+          <span class="material-symbols-outlined text-black">chevron_right</span>
+        </button>
+        <button onclick="friendHubShow('search')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
+          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">search</span><span class="font-headline font-bold text-sm tracking-tight text-black">Search chats</span></div>
+          <span class="material-symbols-outlined text-black">chevron_right</span>
+        </button>
+        <button onclick="friendHubShow('qr')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
+          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">qr_code_2</span><span class="font-headline font-bold text-sm tracking-tight text-black">Add by QR</span></div>
+          <span class="material-symbols-outlined text-black">chevron_right</span>
+        </button>
+        <button onclick="toggleDarkMode()" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
+          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">dark_mode</span><span class="font-headline font-bold text-sm tracking-tight text-black">Dark mode</span></div>
+          <span class="material-symbols-outlined text-black">contrast</span>
+        </button>
+        <button onclick="toggleLang()" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
+          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">translate</span><span class="font-headline font-bold text-sm tracking-tight text-black">Language · 中/EN</span></div>
+          <span class="material-symbols-outlined text-black">chevron_right</span>
+        </button>
+      </div>
+      <!-- Panel: Relationship Network -->
+      <div id="friend-hub-panel-graph" class="hidden space-y-4">
+        <div id="friend-graph" class="w-full rounded-[10px] border border-outline-variant/30 bg-surface-container-lowest overflow-hidden flex items-center justify-center" style="min-height:300px"><span class="text-outline text-sm">Loading…</span></div>
+        <p class="text-[10px] text-outline tracking-wider leading-relaxed">Line thickness shows closeness (chats + post interaction). Tap a node to open the chat.</p>
+      </div>
+      <!-- Panel: Find Friends -->
+      <div id="friend-hub-panel-search" class="hidden space-y-4">
+        <div class="flex items-center gap-2 border-b border-black pb-1">
+          <span class="material-symbols-outlined text-outline">search</span>
+          <input id="friend-search-input" type="text" placeholder="Search your chats" class="flex-1 bg-transparent border-0 py-1.5 text-sm text-black focus:ring-0 focus:outline-none placeholder:text-outline" oninput="onFriendSearchInput()"/>
+        </div>
+        <div id="friend-search-results" class="space-y-2"></div>
+      </div>
+      <!-- Panel: Add by QR -->
+      <div id="friend-hub-panel-qr" class="hidden space-y-4">
+        <div class="flex border border-black p-1 rounded-[10px]">
+          <button id="af-seg-qr" type="button" class="af-seg flex-1 py-2 rounded-[10px] font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('qr')">My QR</button>
+          <button id="af-seg-scan" type="button" class="af-seg flex-1 py-2 rounded-[10px] font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('scan')">Scan</button>
+        </div>
+        <div id="af-view-qr" class="flex flex-col items-center">
+          <div id="addfriend-qr" class="w-[180px] h-[180px] bg-white rounded-[10px] border border-outline-variant/40 flex items-center justify-center overflow-hidden"></div>
+          <p class="mt-3 text-[10px] tracking-widest text-outline">YOUR CODE</p>
+          <p id="addfriend-mycode" class="font-mono text-sm font-bold tracking-widest text-on-surface select-all">—</p>
+          <p class="mt-3 text-[10px] text-outline text-center leading-relaxed">Let a friend scan this — or share the code — to connect and chat instantly.</p>
+        </div>
+        <div id="af-view-scan" class="hidden">
+          <div id="addfriend-reader" class="w-full aspect-square bg-black/80 rounded-[10px] overflow-hidden mb-2"></div>
+          <p id="addfriend-cam-error" class="hidden text-[10px] text-neon-pink mb-2">Camera unavailable — enter the code manually below.</p>
+          <p class="text-[10px] text-outline mb-2 text-center">Point at your friend's QR — or enter their code:</p>
+          <div class="flex gap-2 items-end">
+            <input id="addfriend-code-input" type="text" placeholder="CLXXXXXXXX" class="flex-1 min-w-0 bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm uppercase tracking-widest placeholder:text-outline-variant" onkeydown="if(event.key==='Enter'){event.preventDefault();submitConnectCode();}"/>
+            <button type="button" class="btn-cta px-4 py-2 text-xs shrink-0" onclick="submitConnectCode()">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications Overlay -->
+<div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)closeNotifications()">
+  <div class="slide-right relative z-50 h-screen w-full max-w-md bg-surface overflow-y-auto shadow-2xl flex flex-col">
+    <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <div class="flex justify-between items-center px-6 h-16 w-full">
+        <div class="flex items-center gap-6">
+          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
+            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
+          </button>
+          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
+        </div>
+        <div></div>
+      </div>
+    </header>
+    <main id="notifications-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
+    </main>
+  </div>
+</div>
+
+<!-- Notification Detail Overlay -->
+<div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
+  <div class="slide-right relative z-[60] h-screen w-full max-w-md bg-surface overflow-y-auto shadow-2xl flex flex-col">
+    <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <div class="flex justify-between items-center px-6 h-16 w-full">
+        <div class="flex items-center gap-6">
+          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
+            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
+          </button>
+          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
+        </div>
+        <div></div>
+      </div>
+    </header>
+    <main id="notif-detail-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
+    </main>
+  </div>
+</div>
+
+<!-- Settings Overlay -->
+<div id="settings-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
+    <div class="flex justify-between items-center px-6 h-16 w-full">
+      <div class="flex items-center gap-4">
+        <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="hideOverlay('settings-overlay')">arrow_back</span>
+        <h1 class="text-on-surface font-headline text-xl font-bold tracking-tight">Settings</h1>
+      </div>
+    </div>
+    <div class="bg-outline-variant/20 h-[1px]"></div>
+  </header>
+  <main class="pt-24 pb-20 px-5">
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Account</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Phone</span>
+            <span class="text-on-surface-variant text-sm">+1 (555) 012-3456</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Email</span>
+            <span id="settings-email" class="text-on-surface-variant text-sm">user@university.edu</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="showChangePassword()">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Password</span>
+            <span class="text-on-surface-variant text-sm">Tap to change password</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Nudge</h3>
+      </div>
+      <div class="space-y-2">
+        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">When someone pats you, it reads:</label>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-on-surface-variant shrink-0">…拍了拍我</span>
+          <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="的头" class="flex-1 bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary text-on-surface"/>
+          <button onclick="saveNudgeSuffix()" class="px-4 py-2 rounded-[10px] bg-neon text-black text-[10px] font-bold tracking-widest active:scale-95 shrink-0">Save</button>
+        </div>
+        <p class="text-[10px] text-outline">e.g. 拍了拍我的头 / 拍了拍我并说晚安</p>
+      </div>
+    </section>
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Privacy</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Visibility</span>
+            <span class="text-on-surface-variant text-sm">Visible to your school only</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">visibility</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Blocked</span>
+            <span class="text-on-surface-variant text-sm">12 accounts restricted</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">block</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Show my profile</span>
+            <span class="text-on-surface-variant text-sm">Allow others to view your profile</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showProfile" onclick="toggleSetting('privacy.showProfile')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Show online status</span>
+            <span class="text-on-surface-variant text-sm">Let your match see when you are active</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showOnline" onclick="toggleSetting('privacy.showOnline')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Show my moments</span>
+            <span class="text-on-surface-variant text-sm">Display your moments to others</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showMoments" onclick="toggleSetting('privacy.showMoments')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Notifications</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Push Notifications</span>
+            <span class="text-on-surface-variant text-sm">Match results, messages and likes</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="pushEnabled" onclick="toggleSetting('pushEnabled')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
+    <!-- Support Section -->
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Support</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('help')">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">help_outline</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Help Center</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('safety')">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">shield</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Safety Tips</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openReportProblem()">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">flag</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Report a Problem</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
+    <!-- Legal Section -->
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Legal</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('terms')">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">gavel</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Terms of Service</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('privacy')">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">policy</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Privacy Policy</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
+    <!-- Actions -->
+    <section class="mt-20 space-y-8">
+      <button class="w-full bg-neon text-black py-5 rounded-[10px] font-headline font-bold text-sm tracking-widest active:scale-[0.98] transition-all" onclick="savePreferences()">
+        Save Preferences
+      </button>
+      <button class="w-full border-2 border-neon-pink text-neon-pink py-5 rounded-[10px] font-headline font-bold text-sm tracking-widest hover:bg-neon-pink hover:text-black transition-all" onclick="doLogout()">
+        Log Out
+      </button>
+      <div class="text-center pt-8 pb-12">
+        <p class="text-[10px] text-outline tracking-[0.3em]">Campus Love v2.4.0 - Built for Academia</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Match Settings Overlay -->
+<div id="match-settings-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)hideOverlay('match-settings-overlay')">
+  <div class="slide-left relative z-50 h-screen w-full max-w-md bg-white overflow-hidden shadow-2xl flex flex-col">
+    <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
+      <div class="flex items-center gap-6 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('match-settings-overlay')">
+          <span class="material-symbols-outlined text-black !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-black">Match Settings</h1>
+      </div>
+    </header>
+    <div class="flex-1 overflow-y-auto px-8 py-8 space-y-10">
+      <!-- (a) Retake Questionnaire -->
+      <section>
+        <button class="group w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]" onclick="retakeQuestionnaire()">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-black">tune</span>
+            <span class="font-headline font-bold text-sm tracking-tight text-black">Retake Questionnaire</span>
+          </div>
+          <span class="material-symbols-outlined text-black">chevron_right</span>
+        </button>
+      </section>
+      <!-- (b) Match basis -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-4">
+          <span class="h-[1px] w-8 bg-black"></span>
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Match Basis</h2>
+        </div>
+        <div class="flex border border-black p-1 rounded-[10px]">
+          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="questionnaire" onclick="setMatchBasis('questionnaire')">Questionnaire</button>
+          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="profile" onclick="setMatchBasis('profile')">Profile</button>
+          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="both" onclick="setMatchBasis('both')">Both</button>
+        </div>
+      </section>
+      <!-- (c) Extra info -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-4">
+          <span class="h-[1px] w-8 bg-black"></span>
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Extra Info</h2>
+        </div>
+        <textarea id="match-extra-info" maxlength="500" rows="4" placeholder="Anything else to help matching..." class="w-full bg-white border border-black rounded-[10px] px-4 py-3 text-sm font-medium text-black placeholder:text-stone-400 focus:outline-none focus:border-black resize-none"></textarea>
+      </section>
+      <!-- (d) 增强模式（从 Modify Preferences 移入；恋人/朋友分别放，§6.4 J 规则） -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-4">
+          <span class="h-[1px] w-8 bg-black"></span>
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Enhanced Mode</h2>
+        </div>
+        <!-- 恋人增强：固定消耗 3 格能量（仅恋爱模式 match setting 显示，§本轮反馈3） -->
+        <div id="romantic-enhance-item" class="match-setting-item border-b border-stone-100 pb-4">
+          <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
+            <span class="font-body text-sm text-on-surface leading-relaxed">Romantic Enhance<span class="block text-xs text-stone-500 mt-0.5">Costs 3 energy cells. Prioritized matching with a guarantee — energy is refunded if no match this round.</span></span>
+            <input id="romantic-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('romantic')" />
+          </label>
+        </div>
+        <!-- 朋友增强：1–5 格保底滑块（仅朋友模式 match setting 显示，§本轮反馈3） -->
+        <div id="friend-enhance-item" class="match-setting-item pt-1">
+          <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
+            <span class="font-body text-sm text-on-surface leading-relaxed">Friend Enhance<span class="block text-xs text-stone-500 mt-0.5">Guarantee N friend matches — energy is refunded if not enough this round.</span></span>
+            <input id="friend-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('friend')" />
+          </label>
+          <div id="friend-cells-wrap" class="mt-5 hidden">
+            <div class="flex justify-between items-end mb-2">
+              <label class="font-label text-[10px] tracking-widest text-outline">GUARANTEE: <span id="friend-cells-display" class="font-headline font-bold text-black">1</span> friends</label>
+              <span class="font-label text-[10px] tracking-widest text-outline">Cost: <span id="friend-cells-cost" class="font-headline font-bold text-black">1</span> cells</span>
+            </div>
+            <input id="friend-cells-slider" class="ink-range w-full" type="range" min="1" max="5" value="1" oninput="updateFriendCells(this.value)" />
+            <div class="flex justify-between mt-2 text-[10px] font-medium text-stone-400">
+              <span>1</span>
+              <span>5</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <button class="w-full bg-neon text-black py-4 font-headline font-bold text-sm tracking-widest rounded-[10px] active:scale-[0.98] transition-all" onclick="saveMatchSettings()">Save</button>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Milestone Overlay -->
+<div id="milestone-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
+  <!-- Prominent campus background (design: milestone_with_prominent_background) -->
+  <div class="milestone-bg"></div>
+  <nav class="fixed top-0 w-full px-6 h-16 flex items-center justify-between bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 z-50">
+    <div class="flex items-center hover:opacity-70 transition-opacity cursor-pointer active:scale-95 duration-200" onclick="hideOverlay('milestone-overlay')">
+      <span class="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
+    </div>
+    <h1 class="font-['Plus_Jakarta_Sans'] font-bold tracking-tight text-sm text-on-surface absolute left-1/2 -translate-x-1/2">
+      Milestone
+    </h1>
+    <div class="w-6"></div>
+  </nav>
+  <main id="milestone-content" class="pt-24 pb-32 px-6 max-w-2xl mx-auto relative overflow-hidden">
+  </main>
+</div>
+
+<!-- Content Page Overlay (Help / Safety / Terms / Privacy) -->
+<div id="content-overlay" class="overlay fixed inset-0 z-[60] bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
+    <div class="flex items-center gap-4 px-6 h-16 w-full">
+      <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="hideOverlay('content-overlay')">arrow_back</span>
+      <h1 id="content-title" class="text-on-surface font-headline text-xl font-bold tracking-tight"></h1>
+    </div>
+    <div class="bg-outline-variant/20 h-[1px]"></div>
+  </header>
+  <main id="content-body" class="pt-24 pb-20 px-6 max-w-3xl mx-auto w-full"></main>
+</div>
+
+<!-- Contact Us Overlay -->
+<div id="contact-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-center justify-center px-8">
+  <div class="w-full max-w-sm bg-white shadow-2xl p-8 text-center rounded-[10px]">
+    <span class="material-symbols-outlined text-primary text-4xl mb-4">mail_outline</span>
+    <h2 class="font-headline text-lg font-bold tracking-tight mb-3">Contact Us</h2>
+    <p class="text-sm text-on-surface-variant mb-1">Questions, feedback or partnership inquiries:</p>
+    <p class="text-sm font-bold mb-8">support@campuslove.app</p>
+    <a href="mailto:support@campuslove.app" class="block w-full bg-neon text-black py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] active:scale-[0.98] transition-all mb-3">Send Email</a>
+    <button class="w-full border border-outline-variant py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] hover:bg-surface-container-low transition-all" onclick="hideOverlay('contact-overlay')">Close</button>
+  </div>
+</div>
+
+<!-- Report a Problem Overlay -->
+<div id="report-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-center justify-center px-6">
+  <div class="w-full max-w-md bg-white shadow-2xl p-8 max-h-[85vh] overflow-y-auto rounded-[10px]">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="font-headline text-lg font-bold tracking-tight">Report a Problem</h2>
+      <button class="text-stone-400 hover:text-black transition-colors" onclick="hideOverlay('report-overlay')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="space-y-6">
+      <div class="space-y-2">
+        <label class="font-label text-[10px] tracking-widest text-outline">Category</label>
+        <select id="report-category" class="w-full border border-outline-variant rounded-[10px] bg-transparent py-3 px-3 text-sm focus:ring-0 focus:border-primary">
+          <option value="bug">App bug</option>
+          <option value="user">Report a user</option>
+          <option value="content">Inappropriate content</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="space-y-2">
+        <label class="font-label text-[10px] tracking-widest text-outline">Description</label>
+        <textarea id="report-content" rows="4" placeholder="Tell us what happened..." class="w-full border border-outline-variant rounded-[10px] bg-transparent py-3 px-3 text-sm focus:ring-0 focus:border-primary resize-none"></textarea>
+      </div>
+      <div class="space-y-2">
+        <label class="font-label text-[10px] tracking-widest text-outline">Contact (optional)</label>
+        <input id="report-contact" type="text" placeholder="Email or phone for follow-up" class="w-full border border-outline-variant rounded-[10px] bg-transparent py-3 px-3 text-sm focus:ring-0 focus:border-primary"/>
+      </div>
+      <button id="report-submit" class="w-full bg-neon text-black py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] active:scale-[0.98] transition-all disabled:opacity-50" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+<!-- 注册后 / 首次进主页：问卷两张卡片引导 (§6.3 G 规则，全部选填) -->
+<div id="questionnaire-cards" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-center justify-center px-6">
+  <div class="w-full max-w-md bg-white shadow-2xl rounded-[10px] overflow-hidden">
+    <header class="px-6 pt-7 pb-4 text-center">
+      <h2 class="font-headline text-xl font-extrabold tracking-tight text-black">Complete Your Match Profile</h2>
+      <p class="mt-2 text-xs text-on-surface-variant tracking-wide leading-relaxed">Both questionnaires are optional. Complete one to unlock matching in that mode. Fill in just one, or do it later.</p>
+    </header>
+    <div class="px-6 pb-6 space-y-3">
+      <!-- 恋人问卷卡 -->
+      <div id="q-card-romantic" class="q-card flex items-center justify-between gap-4 border border-black rounded-[10px] p-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="material-symbols-outlined" style="font-size:22px;line-height:1">auto_awesome</span>
+          <div class="min-w-0">
+            <p class="font-headline font-bold text-sm tracking-tight text-black">Romantic Questionnaire</p>
+            <p class="text-[11px] text-on-surface-variant tracking-wide truncate">Build your profile for romantic matches</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="q-card-check material-symbols-outlined hidden" data-icon="check_circle" style="font-size:24px">check_circle</span>
+          <button class="q-card-fill bg-neon text-black px-4 py-2 rounded-[10px] font-headline font-bold text-[11px] tracking-widest active:scale-95 transition-all" onclick="startQuestionnaire('romantic')">Start</button>
+        </div>
+      </div>
+      <!-- 朋友问卷卡 -->
+      <div id="q-card-friend" class="q-card flex items-center justify-between gap-4 border border-black rounded-[10px] p-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="material-symbols-outlined" style="font-size:22px;line-height:1">group</span>
+          <div class="min-w-0">
+            <p class="font-headline font-bold text-sm tracking-tight text-black">Friend Questionnaire</p>
+            <p class="text-[11px] text-on-surface-variant tracking-wide truncate">Build your profile for like-minded friends</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="q-card-check material-symbols-outlined hidden" data-icon="check_circle" style="font-size:24px">check_circle</span>
+          <button class="q-card-fill bg-neon text-black px-4 py-2 rounded-[10px] font-headline font-bold text-[11px] tracking-widest active:scale-95 transition-all" onclick="startQuestionnaire('friend')">Start</button>
+        </div>
+      </div>
+    </div>
+    <div class="px-6 pb-7">
+      <button class="w-full border border-outline-variant py-3.5 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] text-on-surface-variant hover:bg-surface-container-low transition-all" onclick="dismissQuestionnaireCards()">Maybe Later</button>
+    </div>
+  </div>
+</div>
+
+<!-- 能量充值购买 overlay（§6.10 行2116 + §10.5(2)）：三档卡片 + 支付方式（本期 mock） -->
+<div id="modal-energy-purchase" class="overlay fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm items-center justify-center px-6" onclick="if(event.target===this)closeEnergyModal()">
+  <div class="w-full max-w-sm bg-white shadow-2xl rounded-[10px] overflow-hidden">
+    <header class="flex items-center justify-between px-6 pt-6 pb-4">
+      <h2 class="font-headline text-xl font-extrabold tracking-tight text-black">Get Energy</h2>
+      <button class="text-stone-400 hover:text-black transition-colors active:scale-95" onclick="closeEnergyModal()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="px-6 pb-2">
+      <p class="text-xs text-on-surface-variant tracking-wide mb-4 leading-relaxed">Energy powers Enhanced matching (Romantic: 3 cells flat / Friend: 1 cell per guaranteed match).</p>
+      <!-- 三档卡片：cells / priceCny 由 JS 用 /energy/packages 回填，data-pkg 兜底默认档 -->
+      <div id="energy-packages" class="grid grid-cols-3 gap-3">
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_30" onclick="selectEnergyPackage('pkg_30', this)">
+          <span class="text-2xl font-headline font-extrabold text-black">30</span>
+          <span class="text-[10px] tracking-widest text-outline">cells</span>
+          <span class="text-xs font-bold text-black mt-1">¥30</span>
+        </button>
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_60" onclick="selectEnergyPackage('pkg_60', this)">
+          <span class="text-2xl font-headline font-extrabold text-black">60</span>
+          <span class="text-[10px] tracking-widest text-outline">cells</span>
+          <span class="text-xs font-bold text-black mt-1">¥58</span>
+        </button>
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_100" onclick="selectEnergyPackage('pkg_100', this)">
+          <span class="text-2xl font-headline font-extrabold text-black">100</span>
+          <span class="text-[10px] tracking-widest text-outline">cells</span>
+          <span class="text-xs font-bold text-black mt-1">¥88</span>
+        </button>
+      </div>
+    </div>
+    <div id="payment-methods" class="px-6 pt-5 pb-7 space-y-2">
+      <p class="font-label text-[10px] tracking-widest text-outline mb-1">Payment Method</p>
+      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('wechat')">
+        <span class="material-symbols-outlined text-[18px]">chat</span> WeChat Pay
+      </button>
+      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('alipay')">
+        <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span> Alipay
+      </button>
+      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('stripe')">
+        <span class="material-symbols-outlined text-[18px]">credit_card</span> Stripe
+      </button>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

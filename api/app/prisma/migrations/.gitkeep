@@ -1,0 +1,2 @@
+# Prisma 迁移文件目录
+# 首次运行 `npx prisma migrate dev --name init` 后会在此生成迁移文件

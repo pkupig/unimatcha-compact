@@ -1,0 +1,43 @@
+// Feedback-loop tables for the NestJS backend (algorithm.md §9, §10.1).
+// Paste into api/app/prisma/schema.prisma and run `prisma migrate dev`.
+// The backend logs MatchExposure right after a match job and MatchBehaviorEvent on each
+// user action; a daily job attributes them into training samples the matching-ml
+// feedback/ pipeline reads (or export exposures/events to JSONL for feedback/train_ranker.py).
+
+model MatchExposure {
+  id                 String   @id @default(cuid())
+  matchId            String?
+  mode               String   // "romantic" | "friend"
+  userAId            String
+  userBId            String
+  shownToUserId      String
+  position           Int      @default(0)
+  algorithmVersion   String   @default("")
+  constitutionVersion String  @default("")
+  modelVersions      Json     @default("{}")
+  featureSnapshot    Json     // frozen features at show-time — DO NOT recompute later (§9.4)
+  finalScore         Float    @default(0)
+  shownAt            DateTime @default(now())
+
+  @@index([mode, shownAt])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([matchId])
+}
+
+model MatchBehaviorEvent {
+  id         String   @id @default(cuid())
+  matchId    String?
+  exposureId String?
+  mode       String
+  userAId    String
+  userBId    String
+  actorId    String
+  type       String   // viewed|openedProfile|firstMessage|message|confirmed|rejected|dissolved|reported|blocked
+  meta       Json     @default("{}")
+  at         DateTime @default(now())
+
+  @@index([mode, at])
+  @@index([actorId])
+  @@index([matchId])
+}
