@@ -11,7 +11,9 @@ from peft import PeftModel
 from app.llm.prompts import EXTRACTOR_SYSTEM, extractor_user_message
 
 BASE = "/root/.cache/modelscope/hub/models/Qwen/Qwen2___5-7B-Instruct"
-ADAPTERS = {"v1": "train_out/rom-extractor-lora", "v2": "train_out/rom-extractor-lora-v2"}
+ADAPTERS = {"v1": "train_out/rom-extractor-lora",
+            "v2": "train_out/rom-extractor-lora-v2",
+            "v3": "train_out/rom-extractor-lora-v3"}
 
 CASES = [
     ("玩笑+真底线", {"age":22,"gender":"female","school":"LSE","city":"London","interests":["露营"],

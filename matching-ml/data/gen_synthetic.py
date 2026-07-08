@@ -70,6 +70,14 @@ JOKE_CLAUSES = [
     "没车没房别理我，玩笑玩笑，我不看这些",
     "月薪不过万勿扰，逗你玩的哈哈",
     "属狗的不聊，开个玩笑，我不信这个",
+    # strong rejection VERBS wrapped in a joke — same verbs real dealbreakers use,
+    # so the model must let the joke marker override 受不了/接受不了/绝对不行/拉黑.
+    "我可受不了矮个子——哈哈开玩笑的，身高其实无所谓啦",
+    "接受不了不会打游戏的，逗你的其实随便",
+    "矮于一米七绝对不行……假的假的，我不在意这些",
+    "抠门的直接拉黑，玩笑玩笑，钱这事我看得开",
+    "不刷牙的我真的接受不了——开个玩笑哈，逗你玩的",
+    "追不上我三公里的就拜拜，哈哈说着玩的",
 ]
 # genuine dealbreakers that CAN co-occur with a joke, to teach the contrast.
 GENUINE_DB = [
