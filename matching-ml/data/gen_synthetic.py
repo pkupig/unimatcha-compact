@@ -54,6 +54,30 @@ PETS = [("猫", "pet"), ("狗", "pet")]
 SERIOUS_BIO = {5: "奔着结婚去的", 4: "想认真长期发展", 3: "看感觉顺其自然",
                2: "先聊聊看缘分", 1: "就想随便认识玩玩"}
 
+# --- Hard-case augmentation (fixes eval_rom_harsh findings) ---------------- #
+# 1) minimal/empty profiles -> truth is EMPTY prefs + low_information, so the
+#    extractor learns to ABSTAIN instead of hallucinating hobbies (S4).
+MINIMAL_BIOS = ["。", "。。。", "……", "随便看看", "在吗", "hi", "hello", "不知道写啥",
+                "先这样吧", "试试", "路过", "无", "占个位", "看看再说", "emmm", "?", "。 "]
+# 2) joke / sarcasm -> the joked-about trait must NOT become a dealbreaker (S1).
+#    Each: (joke clause rendered into the bio). The joked trait is dropped entirely.
+JOKE_CLAUSES = [
+    "哈哈开玩笑的，矮一点也完全没关系啦",
+    "不会做饭的绕道——逗你的，其实无所谓",
+    "游戏打得菜就分手，开玩笑别当真哈",
+    "追星女孩慎入……骗你的，随便啦",
+    "非一米八不可，假的假的，看眼缘就行",
+    "没车没房别理我，玩笑玩笑，我不看这些",
+    "月薪不过万勿扰，逗你玩的哈哈",
+    "属狗的不聊，开个玩笑，我不信这个",
+]
+# genuine dealbreakers that CAN co-occur with a joke, to teach the contrast.
+GENUINE_DB = [
+    ("异地", "distance", "不过说真的，异地我是真的接受不了"),
+    ("抽烟", "smoking", "但对方抽烟是真的不行"),
+    ("出轨", "loyalty", "出轨这种事我绝对零容忍"),
+]
+
 
 def _pref(topic, group, polarity, target, strength, flexibility, evidence):
     return Preference(topic=topic, topicGroup=group, polarity=polarity, target=target,
@@ -137,6 +161,69 @@ def make_user(rng: random.Random, uid: str, mode: str):
     return candidate, semantic
 
 
+def make_minimal_user(rng: random.Random, uid: str, mode: str):
+    """Near-empty profile. Truth = NO preferences + low_information (teach abstention)."""
+    bio = rng.choice(MINIMAL_BIOS)
+    candidate = CandidateProfile(
+        userId=uid, gender=rng.choice(["male", "female"]),
+        genderPref=rng.choice(["male", "female", "any"]),
+        age=rng.randint(19, 27), city=rng.choice(CITIES), school=rng.choice(SCHOOLS),
+        major=rng.choice(MAJORS), grade=rng.choice(GRADES), interests=[],
+        bio=bio, answers=[], _prefs={"extraMatchInfo": ""},
+    )
+    semantic = UserSemanticProfile(
+        version="profile-extractor-synth-v1",
+        relationshipIntent=RelationshipIntent(
+            mode=mode, seriousness=3, longTermOrientation=3, opennessToDifferentBackground=3),
+        traits=Traits(socialEnergy=3, emotionalExpression=3),
+        preferences=[], dealbreakers=[], summaryForMatching="",
+        riskFlags=[RiskFlag(type="low_information", severity=3, evidence="资料过少，信息不足")],
+    )
+    return candidate, semantic
+
+
+def make_joke_user(rng: random.Random, uid: str, mode: str):
+    """Bio wraps a JOKE (must be dropped) + maybe one GENUINE dealbreaker (kept). Teach S1."""
+    seriousness = rng.randint(1, 5)
+    social, express = rng.randint(1, 5), rng.randint(1, 5)
+    prefs: list[Preference] = []
+    interests: list[str] = []
+    bio_bits = [SERIOUS_BIO[seriousness]]
+
+    for topic, group in rng.sample(HOBBIES, k=rng.randint(1, 2)):
+        prefs.append(_pref(topic, group, "like", "self", 3, 4, topic))
+        interests.append(topic)
+
+    bio_bits.append(rng.choice(JOKE_CLAUSES))  # joked trait -> intentionally NOT extracted
+
+    dealbreakers: list[Preference] = []
+    if rng.random() < 0.5:  # half also carry a real boundary, to teach the contrast
+        topic, group, clause = rng.choice(GENUINE_DB)
+        dealbreakers.append(_pref(topic, group, "reject", "partner", 5, 1, clause))
+        bio_bits.append(clause)
+
+    bio = "，".join(bio_bits)
+    extra = "，".join(bio_bits[1:])
+    candidate = CandidateProfile(
+        userId=uid, gender=rng.choice(["male", "female"]),
+        genderPref=rng.choice(["male", "female", "any"]),
+        age=rng.randint(19, 27), city=rng.choice(CITIES), school=rng.choice(SCHOOLS),
+        major=rng.choice(MAJORS), grade=rng.choice(GRADES), interests=interests,
+        bio=bio, answers=[], _prefs={"extraMatchInfo": extra},
+    )
+    semantic = UserSemanticProfile(
+        version="profile-extractor-synth-v1",
+        relationshipIntent=RelationshipIntent(
+            mode=mode, seriousness=seriousness, longTermOrientation=seriousness,
+            opennessToDifferentBackground=rng.randint(2, 4)),
+        traits=Traits(socialEnergy=social, emotionalExpression=express),
+        preferences=prefs, dealbreakers=dealbreakers, summaryForMatching=bio[:120],
+        riskFlags=[RiskFlag(type="low_information", severity=2, evidence="资料较少")]
+        if len(interests) <= 1 else [],
+    )
+    return candidate, semantic
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=800, help="number of profiles")
@@ -144,20 +231,38 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out", default=str(Path(__file__).parent / "out"))
     ap.add_argument("--mode", default="romantic", choices=["romantic", "friend"])
+    ap.add_argument("--empty", type=int, default=0,
+                    help="extra near-empty profiles (truth = no prefs + low_information)")
+    ap.add_argument("--joke", type=int, default=0,
+                    help="extra joke/sarcasm profiles (joked trait must NOT become a dealbreaker)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    profiles, sem = [], {}
+    # Normal profiles feed BOTH the extractor and the pair pool.
+    pair_pool, sem = [], {}
     for i in range(args.n):
         c, s = make_user(rng, f"syn{i:04d}", args.mode)
-        profiles.append(c)
+        pair_pool.append(c)
         sem[c.userId] = s
 
+    # Hard cases feed the EXTRACTOR ONLY (kept out of pairs so judge data is untouched).
+    extra_profiles = []
+    for i in range(args.empty):
+        c, s = make_minimal_user(rng, f"min{i:04d}", args.mode)
+        extra_profiles.append(c); sem[c.userId] = s
+    for i in range(args.joke):
+        c, s = make_joke_user(rng, f"jok{i:04d}", args.mode)
+        extra_profiles.append(c); sem[c.userId] = s
+
+    # Shuffle so hard cases spread across the sequential train/val/test split.
+    all_profiles = pair_pool + extra_profiles
+    rng.shuffle(all_profiles)
+
     with (out / "profiles.jsonl").open("w", encoding="utf-8") as f:
-        for p in profiles:
+        for p in all_profiles:
             f.write(json.dumps({
                 "mode": args.mode,
                 "raw": raw_profile_dict(p),
@@ -169,7 +274,7 @@ def main() -> None:
         attempts = 0
         while written < args.pairs and attempts < args.pairs * 20:
             attempts += 1
-            a, b = rng.sample(profiles, 2)
+            a, b = rng.sample(pair_pool, 2)
             if not passes_hard_gate(a, b, args.mode):
                 continue
             diff = structured_diff(a, b)
@@ -182,7 +287,7 @@ def main() -> None:
             }, ensure_ascii=False) + "\n")
             written += 1
 
-    print(f"wrote {len(profiles)} profiles -> {out/'profiles.jsonl'}")
+    print(f"wrote {len(all_profiles)} profiles ({len(extra_profiles)} hard-case) -> {out/'profiles.jsonl'}")
     print(f"wrote {written} pairs      -> {out/'pairs.jsonl'}")
     print("NOTE: score is a reasoned prior, not truth — replace with real feedback (§4.1.C).")
 
