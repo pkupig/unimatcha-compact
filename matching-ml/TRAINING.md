@@ -67,29 +67,38 @@
 
 ### A.3 这些 `assistant` 答案从哪来（关键！）
 
-冷启动阶段没有真人标注，我们**先用规则弱标注**生成 `assistant`（`data/gen_synthetic.py` 用规则版 extractor/judge 跑出画像和判断）。但——
+冷启动阶段没有真人标注。现在 `data/gen_synthetic.py` **不再回过头学规则抽取器**，而是：
 
-> ⚠️ **纪律（algorithm.md §4.1.C，务必遵守）**：合成弱标注**只是种子**，作用是①教模型稳定输出 schema、②覆盖稀有场景（强 dealbreaker、否定语义）。**它不是"什么是好匹配"的真值。**
-> 上线前必须：**抽样人工修正**一批 `assistant` 答案，并尽快混入**真人标注**（运营/种子用户对 pair 打 1-5 分 + 写理由）。真人标注才是 Pair Judge 质量的主来源。
+- **Extractor 的 `assistant`**：生成器从一个丰富的结构化 spec **直接构造语义画像真值**，再渲染出匹配的 bio 文本。所以模型学的是"文本→正确画像"，而不是"复刻规则版 extractor"（否则等于白训）。这部分是**可判定的真值**（否定语义、self/partner、topicGroup），Extractor 放心用。
+- **Pair Judge 的 `assistant`**：由 `data/autolabel_pairs.py` 的 **mode-aware 判断**生成——通用 dealbreaker 碰撞（含宠物 group 级）、异地/作息/关系目标、社交能量互补，恋爱=硬冲突 / 交友=软冲突。**硬冲突、维度、理由这些可判定的部分是真值**。
 
-四类数据来源（按可靠度）：专家/运营人工标注 > 种子用户双向盲测 > 合成画像（本仓库） > 早期线上反馈。
+> ⚠️ **仍要守的纪律（algorithm.md §4.1.C）**：兼容分 `llmScore` 是**有依据的先验，不是真值**——"这两人 78 还是 65"没有任何 LLM/规则算得出，只有真实反馈知道。合成数据作用是①教模型稳定输出 schema、②覆盖真冲突/稀有场景、③给 V2 一个合理起点。
+> 上线后**尽快混入真人标注**（运营/种子用户对 pair 打 1-5 分 + 写理由）与真实反馈，才是 Pair Judge 分数质量的主来源。混真人标注时用 `data/export_for_annotation.py`（导出可读 CSV）+ `data/merge_annotation.py`（标完合并回 pairs.jsonl）。
+
+四类数据来源（按可靠度）：专家/运营人工标注 > 种子用户双向盲测 > 合成真值（本仓库，schema/冲突为真、分数为先验） > 早期线上反馈。
 
 ### A.4 怎么生成训练数据（命令）
 
-```bash
-# 1) 生成合成画像 + pair（弱标注）
-python data/gen_synthetic.py --n 800 --pairs 2500 --out data/out
-#    -> data/out/profiles.jsonl  (每行: 一个用户的 raw + semantic 画像)
-#    -> data/out/pairs.jsonl     (每行: 两个画像 + diff + label)
+**两个 mode 分开生成**（问卷/权重不同；不同 seed 避免两批雷同）：
 
-# 2) 转成微调用的 chat JSONL，并切 train/val/test = 8:1:1
+```bash
+# 1) 生成合成画像 + pair（画像=真值, pair label=mode-aware 判断; 见 A.3）
+python data/gen_synthetic.py --n 800 --pairs 2500 --mode romantic --seed 42 --out data/out
+python data/gen_synthetic.py --n 800 --pairs 2500 --mode friend   --seed 7  --out data/out_friend
+#    -> <out>/profiles.jsonl  (每行: 一个用户的 raw + semantic 真值画像)
+#    -> <out>/pairs.jsonl     (每行: 两个画像 + diff + label)
+
+# 2) 转成微调用的 chat JSONL，并切 train/val/test = 8:1:1（对两个 out 目录各跑一遍）
 python data/build_extractor_dataset.py --in data/out/profiles.jsonl --out data/out/extractor.sft.jsonl
 python data/build_judge_dataset.py     --in data/out/pairs.jsonl    --out data/out/judge.sft.jsonl
 #    -> data/out/extractor.sft.{train,val,test}.jsonl
 #    -> data/out/judge.sft.{train,val,test}.jsonl
+
+# (可选) 想给已有 pairs.jsonl 重打 mode-aware 标注（不重新生成画像）：
+python data/autolabel_pairs.py --in data/out/pairs.jsonl --out data/out/pairs.autolabeled.jsonl --mode romantic
 ```
 
-规模建议（algorithm.md §7.3 第一阶段）：Extractor 和 Judge 各 **1000–3000 条**，其中相当比例经人工修正。
+规模建议（algorithm.md §7.3 第一阶段）：Extractor 和 Judge 各 **1000–3000 条**。合成已能撑起 schema/真冲突/多样性；分数质量靠上线后混入真人标注与真实反馈提升（A.3）。
 
 ### A.5 怎么训练（LLaMA-Factory，基座推荐 Qwen2.5-7B-Instruct）
 

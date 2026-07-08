@@ -1,0 +1,26 @@
+{
+  "uspark_rom_extractor": {
+    "file_name": "out/extractor.sft.train.jsonl",
+    "formatting": "sharegpt",
+    "columns": {"messages": "messages"},
+    "tags": {"role_tag": "role", "content_tag": "content", "user_tag": "user", "assistant_tag": "assistant", "system_tag": "system"}
+  },
+  "uspark_rom_judge": {
+    "file_name": "out/judge.sft.train.jsonl",
+    "formatting": "sharegpt",
+    "columns": {"messages": "messages"},
+    "tags": {"role_tag": "role", "content_tag": "content", "user_tag": "user", "assistant_tag": "assistant", "system_tag": "system"}
+  },
+  "uspark_friend_extractor": {
+    "file_name": "out_friend/extractor.sft.train.jsonl",
+    "formatting": "sharegpt",
+    "columns": {"messages": "messages"},
+    "tags": {"role_tag": "role", "content_tag": "content", "user_tag": "user", "assistant_tag": "assistant", "system_tag": "system"}
+  },
+  "uspark_friend_judge": {
+    "file_name": "out_friend/judge.sft.train.jsonl",
+    "formatting": "sharegpt",
+    "columns": {"messages": "messages"},
+    "tags": {"role_tag": "role", "content_tag": "content", "user_tag": "user", "assistant_tag": "assistant", "system_tag": "system"}
+  }
+}
