@@ -18,8 +18,10 @@ from app.llm.prompts import (
 )
 
 BASE = "/root/.cache/modelscope/hub/models/Qwen/Qwen2___5-7B-Instruct"
-EXT_LORA = "train_out/friend-extractor-lora"
-JUDGE_LORA = "train_out/friend-judge-lora"
+# override via env to eval a specific versioned run (train_all.sh prints these):
+#   EXT_LORA=train_out/friend-extractor-lora-v2 JUDGE_LORA=train_out/friend-judge-lora-v2 python eval_friend_harsh.py
+EXT_LORA = os.environ.get("EXT_LORA", "train_out/friend-extractor-lora")
+JUDGE_LORA = os.environ.get("JUDGE_LORA", "train_out/friend-judge-lora")
 
 print(">> loading base…", flush=True)
 tok = AutoTokenizer.from_pretrained(BASE, trust_remote_code=True)
