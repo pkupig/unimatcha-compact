@@ -99,12 +99,27 @@ def make_user(rng: random.Random, uid: str, mode: str):
     seriousness = rng.randint(1, 5)
     social = rng.randint(1, 5)
     express = rng.randint(1, 5)
+    # attachment (drives the S2 anxious-vs-avoidant conflict) — grounded with a bio cue
+    # so BOTH extractor (text->trait) and judge (trait->conflict) can learn it.
+    attach = rng.choices(["unknown", "secure", "anxious", "avoidant", "mixed"],
+                         weights=[3, 3, 2, 2, 1])[0]
+    plan = rng.choices(["mixed", "structured", "flexible", "spontaneous"],
+                      weights=[3, 2, 2, 2])[0]
 
     prefs: list[Preference] = []
     dealbreakers: list[Preference] = []
     bio_bits = [SERIOUS_BIO[seriousness]]
     interests: list[str] = []
     self_pos: set[str] = set()   # topics the user is positive about -> can't also dealbreak them
+
+    if attach == "anxious":
+        bio_bits.append(rng.choice(["很需要安全感", "希望能常联系着"]))
+    elif attach == "avoidant":
+        bio_bits.append(rng.choice(["需要不少个人空间", "不太喜欢黏太紧"]))
+    if plan == "structured":
+        bio_bits.append("喜欢提前规划")
+    elif plan == "spontaneous":
+        bio_bits.append("比较随性，说走就走")
 
     # hobbies / pets -> positive self-preferences (+ interests list)
     for topic, group in rng.sample(HOBBIES, k=rng.randint(1, 3)):
@@ -160,7 +175,8 @@ def make_user(rng: random.Random, uid: str, mode: str):
         relationshipIntent=RelationshipIntent(
             mode=mode, seriousness=seriousness, longTermOrientation=seriousness,
             opennessToDifferentBackground=rng.randint(2, 4)),
-        traits=Traits(socialEnergy=social, emotionalExpression=express),
+        traits=Traits(socialEnergy=social, emotionalExpression=express,
+                      attachmentSignal=attach, planningStyle=plan),
         preferences=prefs, dealbreakers=dealbreakers,
         summaryForMatching=bio[:120],
         riskFlags=[RiskFlag(type="low_information", severity=2, evidence="资料较少")]

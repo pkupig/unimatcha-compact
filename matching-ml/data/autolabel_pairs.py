@@ -80,6 +80,16 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     socA = a.get("traits", {}).get("socialEnergy") or 3
     socB = b.get("traits", {}).get("socialEnergy") or 3
     soc_gap = abs(socA - socB)
+    exprA = a.get("traits", {}).get("emotionalExpression") or 3
+    exprB = b.get("traits", {}).get("emotionalExpression") or 3
+    expr_gap = abs(exprA - exprB)
+    attA = a.get("traits", {}).get("attachmentSignal") or "unknown"
+    attB = b.get("traits", {}).get("attachmentSignal") or "unknown"
+    # S2: 焦虑 vs 回避 不是互补，是冲突（一方要安全感，一方要空间，互相拉扯）。
+    attach_clash = {attA, attB} == {"anxious", "avoidant"}
+    planA = a.get("traits", {}).get("planningStyle") or "mixed"
+    planB = b.get("traits", {}).get("planningStyle") or "mixed"
+    plan_complement = {planA, planB} in ({"structured", "flexible"}, {"structured", "spontaneous"})
     hard, soft, pos, caution = [], [], [], []
 
     # --- dealbreaker collisions ---
@@ -121,6 +131,34 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
         soft.append({"topic": "作息", "severity": 2, "reason": "一方熬夜一方早睡，作息不同步"})
         caution.append("作息差异（熬夜 vs 早睡）")
 
+    # --- attachment style (S2: anxious vs avoidant is a CONFLICT, not complementary) ---
+    if attach_clash:
+        if romantic:
+            soft.append({"topic": "依恋风格", "severity": 3,
+                         "reason": "一方焦虑型很需要安全感，一方回避型需要空间，情感需求易互相拉扯"})
+            caution.append("依恋风格冲突（焦虑 vs 回避）")
+        else:
+            soft.append({"topic": "相处节奏", "severity": 2,
+                         "reason": "一方偏黏、一方偏独立，交友影响有限"})
+
+    # --- complementarity: graded across social energy / expression / planning ---
+    # (adequate difference = complement; anxious-avoidant is explicitly NOT credited)
+    comp = 55.0
+    comp_axes: list[str] = []
+    if 1 <= soc_gap <= 2:
+        comp += 20; comp_axes.append("社交能量")
+    elif soc_gap == 3:
+        comp += 10; comp_axes.append("社交能量")
+    elif soc_gap >= 4:
+        comp -= 5
+    if 2 <= expr_gap <= 3:
+        comp += 8; comp_axes.append("表达欲（健谈×倾听）")
+    if plan_complement:
+        comp += 8; comp_axes.append("计划性（规划×随性）")
+    if attach_clash:
+        comp = min(comp, 45.0); comp_axes = []  # not complementary
+    comp = max(30.0, min(90.0, comp))
+
     # --- positives ---
     if shared:
         pos.append("共同兴趣：" + "、".join(shared[:3]))
@@ -128,8 +166,8 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
         pos.append("同校")
     if diff.get("sameCity"):
         pos.append("同城")
-    if 1 <= soc_gap <= 2:
-        pos.append("社交能量互补（一方带动一方参与）")
+    if comp_axes and comp >= 65:
+        pos.append("性格互补（" + "、".join(comp_axes) + "）")
 
     # --- score ---
     score = 52.0
@@ -139,10 +177,7 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     score += min(len(shared) * (8 if not romantic else 6), 24 if not romantic else 18)
     score += (5 if diff.get("sameSchool") else 0) + (5 if diff.get("sameCity") else 0)
     score -= min(diff.get("ageDiff", 0), 5) * 2
-    if 1 <= soc_gap <= 2:
-        score += 5
-    elif soc_gap >= 4:
-        score -= 4
+    score += (comp - 55) * 0.2   # graded complementarity nudges the score both ways
     score -= 4 * len(soft)
     if any(h["severity"] >= 5 for h in hard):
         score = min(score, 15)
@@ -153,16 +188,22 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     align = lambda gap, per: max(10, 100 - gap * per)
     interest_dim = min(30 + len(shared) * 20, 95) if shared else 30
     n_hard = len(hard)
+    # emotionalNeeds: secure×secure meshes; anxious×avoidant clashes.
+    if attach_clash:
+        emo_needs = 30
+    elif attA == "secure" and attB == "secure":
+        emo_needs = 75
+    else:
+        emo_needs = 55
     dims = {
         "values": align(ser_gap, 18) if romantic else 65,
         "lifestyle": 70 - 20 * _schedule_clash(a, b) - 10 * sum(
             1 for t in _collisions(a, b) if t in ("抽烟", "喝酒")),
-        "communication": max(45, 70 - abs((a.get("traits", {}).get("emotionalExpression") or 3)
-                                          - (b.get("traits", {}).get("emotionalExpression") or 3)) * 5),
-        "emotionalNeeds": 55,
+        "communication": max(45, 70 - expr_gap * 5),
+        "emotionalNeeds": emo_needs,
         "interests": interest_dim,
         "longTermPlan": align(ser_gap, 18),
-        "complementarity": 75 if 1 <= soc_gap <= 2 else (45 if soc_gap >= 3 else 55),
+        "complementarity": comp,
         "conflictRisk": min(90, 20 + 25 * n_hard + 10 * len(soft)),
     }
 
