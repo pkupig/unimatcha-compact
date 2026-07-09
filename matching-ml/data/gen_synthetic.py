@@ -51,16 +51,22 @@ HOBBIES = [("摄影", "hobby"), ("音乐", "hobby"), ("读书", "hobby"), ("旅�
            ("运动", "sport"), ("健身", "sport"), ("游戏", "gaming"), ("咖啡", "food")]
 PETS = [("猫", "pet"), ("狗", "pet")]
 
+# --- intent/seriousness bio ladder (mode-aware) --------------------------- #
+# romantic: relationship seriousness; friend: how much you invest in the friendship.
 SERIOUS_BIO = {5: "奔着结婚去的", 4: "想认真长期发展", 3: "看感觉顺其自然",
                2: "先聊聊看缘分", 1: "就想随便认识玩玩"}
+FRIEND_INTENT_BIO = {5: "想找能长期交心的好朋友", 4: "想认识志同道合、一起成长的伙伴",
+                     3: "随缘交朋友，处得来最重要", 2: "找个一起玩的搭子就行",
+                     1: "随便扩列加个好友"}
 
-# --- Hard-case augmentation (fixes eval_rom_harsh findings) ---------------- #
+# --- Hard-case augmentation (fixes eval_*_harsh findings) ------------------ #
 # 1) minimal/empty profiles -> truth is EMPTY prefs + low_information, so the
-#    extractor learns to ABSTAIN instead of hallucinating hobbies (S4).
+#    extractor learns to ABSTAIN instead of hallucinating hobbies (S4). Mode-agnostic.
 MINIMAL_BIOS = ["。", "。。。", "……", "随便看看", "在吗", "hi", "hello", "不知道写啥",
                 "先这样吧", "试试", "路过", "无", "占个位", "看看再说", "emmm", "?", "。 "]
 # 2) joke / sarcasm -> the joked-about trait must NOT become a dealbreaker (S1).
 #    Each: (joke clause rendered into the bio). The joked trait is dropped entirely.
+#    Romantic jokes lean on 择偶 tropes (身高/月薪/车房); friend jokes lean on 交友 tropes.
 JOKE_CLAUSES = [
     "哈哈开玩笑的，矮一点也完全没关系啦",
     "不会做饭的绕道——逗你的，其实无所谓",
@@ -79,12 +85,37 @@ JOKE_CLAUSES = [
     "不刷牙的我真的接受不了——开个玩笑哈，逗你玩的",
     "追不上我三公里的就拜拜，哈哈说着玩的",
 ]
+FRIEND_JOKE_CLAUSES = [
+    "不组队上分的直接删好友——逗你的，青铜也一起玩啦",
+    "社恐勿扰……骗你的，慢热也完全没问题",
+    "不请我喝奶茶就绝交，哈哈说着玩的",
+    "i人别加我，假的假的，i人e人都欢迎",
+    "只找同校的，开玩笑啦，哪个学校都能处",
+    "不追同一部剧的不聊，逗你玩的哈哈",
+    # rejection VERBS wrapped in a joke (friend domain) — joke marker must override.
+    "受不了半天不回消息的——哈哈开玩笑，随缘啦",
+    "不爱运动的直接拉黑，逗你玩的，宅家也行",
+    "话少的我真的接受不了……假的假的，安静的朋友也很好",
+    "不熬夜的绝对处不来，开玩笑哈，早睡星人也欢迎",
+]
 # genuine dealbreakers that CAN co-occur with a joke, to teach the contrast.
 GENUINE_DB = [
     ("异地", "distance", "不过说真的，异地我是真的接受不了"),
     ("抽烟", "smoking", "但对方抽烟是真的不行"),
     ("出轨", "loyalty", "出轨这种事我绝对零容忍"),
 ]
+FRIEND_GENUINE_DB = [
+    ("借钱不还", "trust", "但借钱不还的我真处不来"),
+    ("放鸽子", "reliability", "老放鸽子爽约的是真的受不了"),
+    ("背后说人", "values", "背后编排朋友的没法深交"),
+]
+
+
+def _mode_content(mode: str):
+    """(intent_bio_ladder, joke_clauses, genuine_dealbreakers) for the given mode."""
+    if mode == "friend":
+        return FRIEND_INTENT_BIO, FRIEND_JOKE_CLAUSES, FRIEND_GENUINE_DB
+    return SERIOUS_BIO, JOKE_CLAUSES, GENUINE_DB
 
 
 def _pref(topic, group, polarity, target, strength, flexibility, evidence):
@@ -106,14 +137,17 @@ def make_user(rng: random.Random, uid: str, mode: str):
     plan = rng.choices(["mixed", "structured", "flexible", "spontaneous"],
                       weights=[3, 2, 2, 2])[0]
 
+    intent_bio, _, _ = _mode_content(mode)
     prefs: list[Preference] = []
     dealbreakers: list[Preference] = []
-    bio_bits = [SERIOUS_BIO[seriousness]]
+    bio_bits = [intent_bio[seriousness]]
     interests: list[str] = []
     self_pos: set[str] = set()   # topics the user is positive about -> can't also dealbreak them
 
     if attach == "anxious":
-        bio_bits.append(rng.choice(["很需要安全感", "希望能常联系着"]))
+        bio_bits.append(rng.choice(
+            ["希望朋友能常联系着", "喜欢时常一起约"] if mode == "friend"
+            else ["很需要安全感", "希望能常联系着"]))
     elif attach == "avoidant":
         bio_bits.append(rng.choice(["需要不少个人空间", "不太喜欢黏太紧"]))
     if plan == "structured":
@@ -210,19 +244,20 @@ def make_joke_user(rng: random.Random, uid: str, mode: str):
     """Bio wraps a JOKE (must be dropped) + maybe one GENUINE dealbreaker (kept). Teach S1."""
     seriousness = rng.randint(1, 5)
     social, express = rng.randint(1, 5), rng.randint(1, 5)
+    intent_bio, jokes, genuine_db = _mode_content(mode)
     prefs: list[Preference] = []
     interests: list[str] = []
-    bio_bits = [SERIOUS_BIO[seriousness]]
+    bio_bits = [intent_bio[seriousness]]
 
     for topic, group in rng.sample(HOBBIES, k=rng.randint(1, 2)):
         prefs.append(_pref(topic, group, "like", "self", 3, 4, topic))
         interests.append(topic)
 
-    bio_bits.append(rng.choice(JOKE_CLAUSES))  # joked trait -> intentionally NOT extracted
+    bio_bits.append(rng.choice(jokes))  # joked trait -> intentionally NOT extracted
 
     dealbreakers: list[Preference] = []
     if rng.random() < 0.5:  # half also carry a real boundary, to teach the contrast
-        topic, group, clause = rng.choice(GENUINE_DB)
+        topic, group, clause = rng.choice(genuine_db)
         dealbreakers.append(_pref(topic, group, "reject", "partner", 5, 1, clause))
         bio_bits.append(clause)
 
