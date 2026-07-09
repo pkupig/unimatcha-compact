@@ -180,6 +180,18 @@ def make_user(rng: random.Random, uid: str, mode: str):
         t = rng.choice(["熬夜", "早睡"])
         prefs.append(_pref(t, "schedule", "like", "self", 3, 4, t))
         bio_bits.append("经常熬夜" if t == "熬夜" else "习惯早睡")
+    # friend-mode "unreliable side": some users own up to the very traits others set as
+    # flex=1 boundaries (放鸽子/借钱不还) — so those absolute boundaries actually COLLIDE in
+    # pairs and the judge learns flex=1 -> hardConflict as a general rule, not just for 抽烟.
+    if mode == "friend":
+        if "放鸽子" not in self_pos and rng.random() < 0.22:
+            prefs.append(_pref("放鸽子", "reliability", "like", "self", 3, 4, "常临时放鸽子"))
+            self_pos.add("放鸽子")
+            bio_bits.append("比较随性，偶尔会临时放鸽子")
+        if "借钱不还" not in self_pos and rng.random() < 0.12:
+            prefs.append(_pref("借钱不还", "trust", "like", "self", 3, 4, "花钱大手大脚常借钱"))
+            self_pos.add("借钱不还")
+            bio_bits.append("花钱大手大脚，偶尔跟朋友周转")
 
     # partner dealbreakers (the negative side) — never on a topic the user embraces
     if "抽烟" not in self_pos and rng.random() < 0.3:
@@ -194,6 +206,20 @@ def make_user(rng: random.Random, uid: str, mode: str):
     if rng.random() < 0.2:
         dealbreakers.append(_pref("异地", "distance", "reject", "partner", 4, 2, "不能接受异地"))
         bio_bits.append("不能接受异地")
+
+    # friend-mode partner boundaries: expectations ABOUT the friend (target=partner), grounded
+    # in reliability / communication / trust — teaches the extractor NOT to collapse them onto
+    # the self and to keep flexibility low, and gives the judge more flex=1 friend collisions.
+    if mode == "friend":
+        if "放鸽子" not in self_pos and rng.random() < 0.3:
+            dealbreakers.append(_pref("放鸽子", "reliability", "reject", "partner", 5, 1, "受不了老放鸽子爽约的"))
+            bio_bits.append("受不了老放鸽子爽约的")
+        if rng.random() < 0.25:
+            dealbreakers.append(_pref("不回消息", "communication", "reject", "partner", 4, 2, "受不了朋友半天不回消息"))
+            bio_bits.append("受不了朋友半天不回消息")
+        if "借钱不还" not in self_pos and rng.random() < 0.2:
+            dealbreakers.append(_pref("借钱不还", "trust", "reject", "partner", 5, 1, "借钱不还的没法深交"))
+            bio_bits.append("借钱不还的没法深交")
 
     bio = "，".join(bio_bits)
     extra = "，".join(b for b in bio_bits[1:] if b)  # everything except the seriousness lead

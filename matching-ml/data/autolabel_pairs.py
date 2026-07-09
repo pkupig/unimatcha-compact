@@ -27,15 +27,19 @@ _NEG = ("reject", "dislike")
 _PET_GROUP = "pet"
 
 
-def _neg_items(sem: dict) -> set[tuple[str, str]]:
-    """(topic, group) the user is negative about (dealbreaker or reject/dislike pref)."""
+def _neg_items(sem: dict) -> set[tuple[str, str, int]]:
+    """(topic, group, flexibility) the user is negative about (dealbreaker or reject/dislike
+    pref). flexibility<=1 marks an ABSOLUTE, non-negotiable boundary that stays HARD even in
+    friend mode (信任/可靠性底线，如放鸽子/借钱不还); softer clashes relax to soft in friend."""
     out = set()
     for p in (sem.get("dealbreakers") or []):
-        out.add((p.get("topic"), p.get("topicGroup")))
+        fx = p.get("flexibility")
+        out.add((p.get("topic"), p.get("topicGroup"), 3 if fx is None else fx))
     for p in (sem.get("preferences") or []):
         if p.get("polarity") in _NEG:
-            out.add((p.get("topic"), p.get("topicGroup")))
-    return {(t, g) for t, g in out if t}
+            fx = p.get("flexibility")
+            out.add((p.get("topic"), p.get("topicGroup"), 3 if fx is None else fx))
+    return {(t, g, fx) for t, g, fx in out if t}
 
 
 def _pos_items(sem: dict) -> set[tuple[str, str]]:
@@ -43,23 +47,23 @@ def _pos_items(sem: dict) -> set[tuple[str, str]]:
             if p.get("polarity") == "like" and p.get("topic")}
 
 
-def _collisions(a: dict, b: dict) -> list[str]:
-    """Topics where A is negative and B is positive (or vice versa)."""
-    hits = set()
+def _collisions(a: dict, b: dict) -> list[tuple[str, int]]:
+    """Topics where A is negative and B is positive (or vice versa), each paired with the
+    STRICTEST (min) flexibility on the negative side — so the labeler can tell an absolute
+    boundary (flex=1) apart from a mere 讨厌但能忍 preference clash."""
+    hits: dict[str, int] = {}
     for x, y in ((a, b), (b, a)):
         neg, pos = _neg_items(x), _pos_items(y)
         pos_topics = {t for t, _ in pos}
         pos_groups = {g for _, g in pos}
-        for t, g in neg:
-            if t in pos_topics:
-                hits.add(t)
-            elif g == _PET_GROUP and _PET_GROUP in pos_groups:  # 讨厌宠物 vs 喜欢猫/狗
-                hits.add(t)
-    return sorted(hits)
+        for t, g, fx in neg:
+            if t in pos_topics or (g == _PET_GROUP and _PET_GROUP in pos_groups):  # 讨厌宠物 vs 喜欢猫/狗
+                hits[t] = min(hits.get(t, 9), fx)
+    return sorted(hits.items())
 
 
 def _has_neg_topic(sem: dict, topic: str) -> bool:
-    return any(t == topic for t, _ in _neg_items(sem))
+    return any(t == topic for t, _, _ in _neg_items(sem))
 
 
 def _schedule_clash(a: dict, b: dict) -> bool:
@@ -92,12 +96,20 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     plan_complement = {planA, planB} in ({"structured", "flexible"}, {"structured", "spontaneous"})
     hard, soft, pos, caution = [], [], [], []
 
-    # --- dealbreaker collisions ---
-    for t in _collisions(a, b):
+    # --- dealbreaker collisions (flexibility-aware) ---
+    # An absolute boundary (flexibility<=1: 放鸽子/借钱不还/背叛信任) that the other side
+    # actually triggers is HARD in BOTH modes — friend leniency applies only to negotiable
+    # preference clashes (香菜/宠物 flex>=2), never to a stated non-negotiable.
+    for t, flex in _collisions(a, b):
+        absolute = flex <= 1
         if romantic:
             hard.append({"topic": t, "severity": 5,
                          "reason": f"一方将「{t}」列为底线，另一方明确喜欢，触发一票否决"})
             caution.append(f"{t}：一方底线 vs 一方喜欢")
+        elif absolute:
+            hard.append({"topic": t, "severity": 4,
+                         "reason": f"一方把「{t}」列为不可退让的底线（flexibility=1），另一方恰好如此，交友也难长久"})
+            caution.append(f"{t}：一方绝对底线 vs 一方如此")
         else:
             soft.append({"topic": t, "severity": 2,
                          "reason": f"「{t}」偏好相反，交友影响有限"})
@@ -186,11 +198,16 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
 
     # --- dimensions ---
     align = lambda gap, per: max(10, 100 - gap * per)
-    interest_dim = min(30 + len(shared) * 20, 95) if shared else 30
+    # Shared interests are the STRONGEST friend signal -> weight them harder in friend mode
+    # (1 shared -> 65, 2 -> 90) than romantic (1 -> 50, 2 -> 70).
+    interest_dim = (min((40 if not romantic else 30) + len(shared) * (25 if not romantic else 20), 95)
+                    if shared else 30)
     n_hard = len(hard)
-    # emotionalNeeds: secure×secure meshes; anxious×avoidant clashes.
+    # emotionalNeeds: secure×secure meshes; anxious×avoidant clashes. In FRIEND mode an
+    # attachment/pace mismatch is only a light relating-rhythm difference, not the heavy
+    # emotional strain it is romantically -> penalize far less (50 vs 30).
     if attach_clash:
-        emo_needs = 30
+        emo_needs = 30 if romantic else 50
     elif attA == "secure" and attB == "secure":
         emo_needs = 75
     else:

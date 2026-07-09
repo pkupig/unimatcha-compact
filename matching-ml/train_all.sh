@@ -10,8 +10,11 @@
 #   friend-*-lora       ->  friend-*-lora-v2
 #
 # Usage:
-#   bash train_all.sh --bg     # detach; survives SSH disconnect  (recommended)
-#   bash train_all.sh          # run in the foreground
+#   bash train_all.sh --bg            # all 4 LoRAs, detached (survives SSH disconnect)
+#   bash train_all.sh --bg friend     # only the 2 friend LoRAs (romantic unchanged)
+#   bash train_all.sh romantic        # only the 2 romantic LoRAs, foreground
+#   bash train_all.sh                 # all 4, foreground
+# Mode filter [romantic|friend|all] defaults to all; combine with --bg in any order.
 # Then:
 #   tail -f  train_out/train-*.log            # watch progress
 #   kill -- -$(cat train_out/train.pid)       # stop the whole run cleanly
@@ -21,13 +24,25 @@ ODIR=/root/autodl-tmp/unipia/matching-ml/train_out
 DDIR=/root/autodl-tmp/unipia/matching-ml/data
 mkdir -p "$ODIR"
 
+# ---- arg parsing: [--bg] [_run] [romantic|friend|all], any order ------------ #
+BG=0; RUN=0; MODE=all
+for a in "$@"; do
+  case "$a" in
+    --bg)                 BG=1 ;;
+    _run)                 RUN=1 ;;
+    romantic|friend|all)  MODE="$a" ;;
+    *) echo "unknown arg: $a  (expected --bg | romantic | friend | all)" >&2; exit 1 ;;
+  esac
+done
+
 # ---- background launcher: own session => immune to SSH SIGHUP --------------- #
-if [[ "${1:-}" == "--bg" ]]; then
+if [[ "$BG" == 1 && "$RUN" == 0 ]]; then
   LOG="$ODIR/train-$(date +%Y%m%d-%H%M%S).log"
   # setsid => new session, survives disconnect. NOTE: $! is the setsid wrapper,
-  # NOT the worker — so the worker records its OWN pgid below (see _run).
-  setsid nohup bash "$0" _run >"$LOG" 2>&1 </dev/null &
-  echo "✅ training detached — safe to close SSH now."
+  # NOT the worker — so the worker records its OWN pgid below (see _run). MODE is
+  # forwarded so the detached worker trains the same subset the user asked for.
+  setsid nohup bash "$0" _run "$MODE" >"$LOG" 2>&1 </dev/null &
+  echo "✅ training detached ($MODE) — safe to close SSH now."
   echo "   watch:  tail -f $LOG"
   echo "   stop :  kill -- -\$(cat $ODIR/train.pid)   # pid file appears within ~1s"
   exit 0
@@ -35,7 +50,7 @@ fi
 
 # worker records its own process-group id ($$ == PGID under setsid) so the whole
 # run — bash loop + the running llamafactory child — is killable as a group.
-[[ "${1:-}" == "_run" ]] && echo $$ > "$ODIR/train.pid"
+[[ "$RUN" == 1 ]] && echo $$ > "$ODIR/train.pid"
 
 export USE_MODELSCOPE_HUB=1        # 走 ModelScope 下载 (hf-mirror 文件接口不稳)
 export DISABLE_VERSION_CHECK=1
@@ -68,15 +83,25 @@ train () {  # $1=dataset  $2=base-name
 }
 
 : > "$ODIR/last_run_dirs.txt"
-train uspark_rom_extractor     rom-extractor-lora
-train uspark_rom_judge         rom-judge-lora
-train uspark_friend_extractor  friend-extractor-lora
-train uspark_friend_judge      friend-judge-lora
+if [[ "$MODE" == all || "$MODE" == romantic ]]; then
+  train uspark_rom_extractor     rom-extractor-lora
+  train uspark_rom_judge         rom-judge-lora
+fi
+if [[ "$MODE" == all || "$MODE" == friend ]]; then
+  train uspark_friend_extractor  friend-extractor-lora
+  train uspark_friend_judge      friend-judge-lora
+fi
 
-echo "ALL DONE. new LoRAs:"
+echo "ALL DONE ($MODE). new LoRAs:"
 cat "$ODIR/last_run_dirs.txt"
 mapfile -t D < "$ODIR/last_run_dirs.txt"
 echo
 echo "evaluate the NEW models (evals read \$EXT_LORA / \$JUDGE_LORA overrides):"
-echo "  EXT_LORA=${D[0]} JUDGE_LORA=${D[1]} python eval_rom_harsh.py    2>/dev/null"
-echo "  EXT_LORA=${D[2]} JUDGE_LORA=${D[3]} python eval_friend_harsh.py 2>/dev/null"
+i=0
+if [[ "$MODE" == all || "$MODE" == romantic ]]; then
+  echo "  EXT_LORA=${D[i]} JUDGE_LORA=${D[i+1]} python eval_rom_harsh.py    2>/dev/null"
+  i=$((i+2))
+fi
+if [[ "$MODE" == all || "$MODE" == friend ]]; then
+  echo "  EXT_LORA=${D[i]} JUDGE_LORA=${D[i+1]} python eval_friend_harsh.py 2>/dev/null"
+fi
