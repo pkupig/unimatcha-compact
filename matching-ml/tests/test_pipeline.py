@@ -142,10 +142,49 @@ def test_feedback_ranker_learns_signal(tmp_path=None):
     assert hi > lo, "ranker must learn that higher desirability -> higher rank score"
 
 
+def test_dealbreaker_guardrail_overrides_soft_llm():
+    """H1 dealbreakers are CODE-enforced: a flex<=1 partner-reject collision must become a
+    hardConflict + capped score even when the (fine-tuned) model wrongly returns it as soft.
+    This is the guarantee that lets us stop retraining the judge to learn flex<=1->hard."""
+    from app.pipeline.pair_judge import _enforce_dealbreakers, _dealbreaker_collisions
+    from app.schemas import (UserSemanticProfile, Preference, PairCompatibility,
+                             PairDimensions, Conflict)
+
+    def _prof(prefs, deals):
+        return UserSemanticProfile(
+            relationshipIntent={"mode": "friend", "seriousness": 3,
+                                "longTermOrientation": 3, "opennessToDifferentBackground": 3},
+            preferences=prefs, dealbreakers=deals)
+    def _p(topic, pol, tgt, f):
+        return Preference(topic=topic, topicGroup="reliability", polarity=pol,
+                          target=tgt, strength=6 - f, flexibility=f)
+
+    a = _prof([], [_p("放鸽子", "reject", "partner", 1)])
+    b = _prof([_p("放鸽子", "like", "self", 4)], [])
+    assert _dealbreaker_collisions(a, b) == ["放鸽子"]
+
+    # model wrongly downgrades the absolute boundary to a soft conflict (the observed v4 failure)
+    soft_llm = PairCompatibility(
+        llmScore=68.0, confidence=4, dimensions=PairDimensions(conflictRisk=40.0),
+        hardConflicts=[], softConflicts=[Conflict(topic="放鸽子", severity=3, reason="soft")],
+        positiveReasons=[], cautionReasons=[])
+    fixed = _enforce_dealbreakers(soft_llm, a, b)
+    assert [(c.topic, c.severity) for c in fixed.hardConflicts] == [("放鸽子", 5)]
+    assert fixed.llmScore <= 15.0
+    assert fixed.dimensions.conflictRisk >= 90.0
+    # idempotent, and flex=2 must NOT be force-promoted
+    assert len(_enforce_dealbreakers(fixed, a, b).hardConflicts) == 1
+    a2 = _prof([], [_p("夜店", "reject", "partner", 2)])
+    b2 = _prof([_p("夜店", "like", "self", 4)], [])
+    assert _dealbreaker_collisions(a2, b2) == []
+    print("✓ dealbreaker guardrail: flex<=1 forced hard, score capped; flex=2 left soft")
+
+
 if __name__ == "__main__":
     test_cilantro_hard_conflict()
     test_cat_vs_dog_not_conflict()
     test_full_job_shape()
     test_stable_beats_greedy_on_blocking_pairs()
     test_feedback_ranker_learns_signal()
+    test_dealbreaker_guardrail_overrides_soft_llm()
     print("\nAll smoke tests passed.")

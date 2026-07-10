@@ -34,6 +34,55 @@ def _by_group(prefs: list[Preference]) -> dict[str, list[Preference]]:
     return out
 
 
+_PET_GROUP = "pet"
+
+
+def _dealbreaker_collisions(
+    a: UserSemanticProfile, b: UserSemanticProfile
+) -> list[str]:
+    """Topics where one side holds an ABSOLUTE boundary (reject + target=partner +
+    flexibility<=1) that the other side actually triggers (like + target=self). Matched at
+    topic level, and at group level for pets (讨厌宠物 vs 喜欢猫). This is the constitution-H1
+    dealbreaker: it is CODE-enforced, never left to the model — same class as gender/age/city."""
+    hits: list[str] = []
+    for x, y in ((a, b), (b, a)):
+        x_all = x.preferences + x.dealbreakers
+        y_all = y.preferences + y.dealbreakers
+        y_pos_topics = {p.topic for p in y_all if p.polarity in _LIKE and p.target in _SELF}
+        y_pos_groups = {p.topicGroup for p in y_all if p.polarity in _LIKE and p.target in _SELF}
+        for xp in x_all:
+            if not (xp.polarity == "reject" and xp.target in _PARTNER and xp.flexibility <= 1):
+                continue
+            if xp.topic in y_pos_topics or (
+                xp.topicGroup == _PET_GROUP and _PET_GROUP in y_pos_groups
+            ):
+                hits.append(xp.topic)
+    return hits
+
+
+def _enforce_dealbreakers(
+    result: PairCompatibility, a: UserSemanticProfile, b: UserSemanticProfile
+) -> PairCompatibility:
+    """Overlay the deterministic H1 dealbreaker rule on ANY judge output (LLM or rule). A
+    triggered flex<=1 boundary MUST be a hardConflict(sev5) with the score capped — regardless
+    of what the model decided. Idempotent: skips topics already flagged hard. This is why we no
+    longer need the model to learn flex<=1->hard (it repeatedly couldn't); code guarantees it."""
+    collisions = _dealbreaker_collisions(a, b)
+    if not collisions:
+        return result
+    flagged = {c.topic for c in result.hardConflicts}
+    for topic in collisions:
+        if topic not in flagged:
+            result.hardConflicts.append(Conflict(
+                topic=topic, severity=5,
+                reason=f"一方把「{topic}」设为不可退让的底线（flexibility<=1），另一方恰好触发 → 一票否决"))
+            result.cautionReasons = ([f"{topic}：底线被触发"] + list(result.cautionReasons))[:5]
+            flagged.add(topic)
+    result.llmScore = min(result.llmScore, 15.0)
+    result.dimensions.conflictRisk = max(result.dimensions.conflictRisk, 90.0)
+    return result
+
+
 def _clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
 
@@ -170,9 +219,11 @@ class LlmJudge:
             a.relationshipIntent.mode, a.model_dump(), b.model_dump(), diff)
         try:
             data = await self._client.chat_json(self._model, PAIR_JUDGE_SYSTEM, msg)
-            return PairCompatibility.model_validate(data)
+            result = PairCompatibility.model_validate(data)
         except (LLMError, ValueError):
-            return self._fallback.judge(a, b, diff)
+            result = self._fallback.judge(a, b, diff)
+        # H1 dealbreakers are code-enforced, never trusted to the model (see _enforce_dealbreakers).
+        return _enforce_dealbreakers(result, a, b)
 
 
 def build_judge(settings: Settings, client: OllamaClient | None):
