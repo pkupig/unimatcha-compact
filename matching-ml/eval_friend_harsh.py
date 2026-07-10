@@ -148,6 +148,27 @@ JUDGE_CASES = [
      P(relationshipIntent={"mode":"friend","seriousness":4,"longTermOrientation":4,"opennessToDifferentBackground":5},
        preferences=[pref("篮球","sport",s=4),pref("读书","hobby",s=3)], summaryForMatching="本地生，也爱打球爱读书"),
      {"ageDiff": 2, "sameSchool": False, "sameCity": True, "sharedInterests": ["篮球","读书"]}),
+
+    # --- GENERALIZATION: held-out topics NOT in the synthetic pool. If the model learned the
+    # rule (flexibility -> severity) rather than memorizing topics, an unseen topic must be
+    # judged purely by its flexibility: flex1 -> hard, flex2 -> medium, flex3 -> mild. ---
+    ("泛化·未见话题硬底线（抠门 flex=1）",
+     "泛化: '抠门'不在训练话题里。A 对 partner reject flexibility=1 被 B 触发 → 必须 hardConflict(sev5)；证明学到的是 flex 规则而非话题",
+     P(dealbreakers=[pref("抠门","money",pol="reject",tgt="partner",s=5,f=1)], summaryForMatching="最受不了抠门斤斤计较的"),
+     P(preferences=[pref("抠门","money",pol="like",tgt="self",s=4,f=4)], summaryForMatching="花钱很省，AA算得很清"),
+     {"ageDiff": 1, "sameSchool": False, "sameCity": True, "sharedInterests": []}),
+
+    ("泛化·未见话题中等（夜店 flex=2）",
+     "泛化: '夜店'未见。A flexibility=2 较强介意 → softConflict medium(sev3)，既不是 hard 也不是 mild",
+     P(dealbreakers=[pref("夜店","lifestyle",pol="reject",tgt="partner",s=4,f=2)], summaryForMatching="挺介意天天泡夜店的"),
+     P(preferences=[pref("夜店","lifestyle",pol="like",tgt="self",s=4,f=4)], summaryForMatching="超爱蹦迪泡吧"),
+     {"ageDiff": 1, "sameSchool": True, "sameCity": True, "sharedInterests": []}),
+
+    ("泛化·未见话题可协商（纹身 flex=3）",
+     "泛化: '纹身'未见。A flexibility=3 轻度不喜欢 → soft mild(sev2)，绝不该 hard 淘汰",
+     P(preferences=[pref("纹身","appearance",pol="dislike",tgt="partner",s=3,f=3)], summaryForMatching="不太喜欢对方纹身"),
+     P(preferences=[pref("纹身","appearance",pol="like",tgt="self",s=4,f=4)], summaryForMatching="很喜欢纹身，纹了好几个"),
+     {"ageDiff": 1, "sameSchool": True, "sameCity": True, "sharedInterests": []}),
 ]
 for title, kd, pa, pb, diff in JUDGE_CASES:
     out = gen(PAIR_JUDGE_SYSTEM, pair_judge_user_message("friend", pa, pb, diff))

@@ -51,6 +51,55 @@ HOBBIES = [("摄影", "hobby"), ("音乐", "hobby"), ("读书", "hobby"), ("旅�
            ("运动", "sport"), ("健身", "sport"), ("游戏", "gaming"), ("咖啡", "food")]
 PETS = [("猫", "pet"), ("狗", "pet")]
 
+# --- generalization pool: DEcorrelate topic <-> severity ------------------- #
+# The judge's hard/medium/soft call must come from flexibility (§constitution H1 &
+# prompts.PAIR_JUDGE_SYSTEM: reject+flex<=1 triggered -> hardConflict), NOT from the
+# topic. If每个话题的 flexibility 写死，模型就记住"话题->severity"抄近路。So we draw a
+# WIDE topic set and randomize flexibility per instance: the SAME topic shows up hard
+# (flex1) in one profile and soft (flex3) in another, leaving flexibility as the only
+# consistent severity signal. Extractor phrasing is tiered to match (see REJECT_PHRASING),
+# so text->flexibility (extractor) then flexibility->severity (judge) both generalize.
+#
+# COLLIDABLE = topics a user can BOTH set as a partner boundary AND self-own, so pairs
+# actually collide. (topic, group, self-embrace bio clause, reject-target noun).
+COLLIDABLE = [
+    ("抽烟",   "smoking",       "平时会抽烟",           "抽烟"),
+    ("喝酒",   "drinking",      "挺爱喝酒的",           "酗酒"),
+    ("放鸽子", "reliability",   "比较随性偶尔放鸽子",   "老放鸽子爽约"),
+    ("迟到",   "reliability",   "没什么时间观念常迟到", "总是迟到"),
+    ("熬夜",   "schedule",      "习惯熬夜",             "天天熬夜作息乱"),
+    ("香菜",   "food",          "无香菜不欢",           "吃香菜"),
+    ("大手大脚","money",         "花钱大手大脚",         "乱花钱不攒钱"),
+    ("不回消息","communication", "回消息比较慢",         "半天不回消息"),
+    ("查手机", "boundary",      "没安全感会想看对方手机","查我手机翻隐私"),
+    ("控制欲", "boundary",      "占有欲比较强",         "控制欲太强"),
+    ("邋遢",   "hygiene",       "生活比较随意不太整洁", "邋遢不讲卫生"),
+    ("游戏",   "gaming",        "重度游戏爱好者",       "沉迷游戏"),
+    ("追星",   "hobby",         "重度追星",             "过度追星"),
+    ("工作狂", "lifestyle",     "是个工作狂",           "只顾工作没时间"),
+    ("借钱不还","trust",         "花钱大手大脚常跟朋友周转","借钱不还"),
+]
+# BOUNDARY_ONLY = grave boundaries nobody self-endorses positively — they never collide,
+# but they widen the range of topics the EXTRACTOR must handle at varying flexibility.
+BOUNDARY_ONLY = [
+    ("撒谎",     "trust",         "撒谎骗人"),
+    ("劈腿",     "loyalty",       "劈腿脚踏两条船"),
+    ("背后说人", "values",        "背后编排朋友"),
+    ("歧视",     "values",        "地域或性别歧视"),
+    ("冷暴力",   "communication", "冷暴力"),
+    ("情绪勒索", "boundary",      "情绪勒索"),
+    ("没礼貌",   "values",        "对服务员没礼貌"),
+    ("赌博",     "lifestyle",     "赌博"),
+    ("啃老",     "values",        "啃老不上进"),
+]
+# Reject phrasing tiered by flexibility -> teaches the extractor phrasing->flexibility.
+# {x} is filled with the reject-target noun. flex1 = 绝对底线, flex2 = 较强介意, flex3 = 轻度不喜欢.
+REJECT_PHRASING = {
+    1: ["绝对不能接受对方{x}", "最受不了{x}的，直接拉黑", "{x}是我的死穴零容忍", "碰到{x}的立刻拜拜"],
+    2: ["挺介意对方{x}的", "很难接受{x}", "{x}的话基本处不来", "不太能忍对方{x}"],
+    3: ["不太喜欢对方{x}", "对方{x}会扣点分", "有点介意{x}", "{x}的话看情况吧"],
+}
+
 # --- intent/seriousness bio ladder (mode-aware) --------------------------- #
 # romantic: relationship seriousness; friend: how much you invest in the friendship.
 SERIOUS_BIO = {5: "奔着结婚去的", 4: "想认真长期发展", 3: "看感觉顺其自然",
@@ -123,6 +172,18 @@ def _pref(topic, group, polarity, target, strength, flexibility, evidence):
                       strength=strength, flexibility=flexibility, evidence=evidence)
 
 
+def _make_boundary(rng, topic, group, reject_noun):
+    """Sample a partner boundary at a RANDOM flexibility tier with intensity-matched phrasing.
+    flex1/2 -> a reject dealbreaker; flex3 -> a mild dislike preference. Randomizing flex per
+    instance is what DEcorrelates topic from severity, forcing the model to key off flexibility.
+    Returns (Preference, bio_clause, is_dealbreaker)."""
+    flex = rng.choices([1, 2, 3], weights=[4, 3, 3])[0]
+    clause = rng.choice(REJECT_PHRASING[flex]).format(x=reject_noun)
+    polarity = "reject" if flex <= 2 else "dislike"
+    pref = _pref(topic, group, polarity, "partner", 6 - flex, flex, clause)  # flex1->s5 … flex3->s3
+    return pref, clause, flex <= 2
+
+
 def make_user(rng: random.Random, uid: str, mode: str):
     """Return (CandidateProfile, UserSemanticProfile-ground-truth)."""
     gender = rng.choice(["male", "female"])
@@ -167,59 +228,35 @@ def make_user(rng: random.Random, uid: str, mode: str):
         self_pos.update({topic, "宠物"})
         bio_bits.append(f"喜欢{topic}")
 
-    # divisive self-habits (create the OTHER side of a real conflict)
-    if rng.random() < 0.25:
-        prefs.append(_pref("抽烟", "smoking", "like", "self", 3, 4, "抽烟"))
-        self_pos.add("抽烟")
-        bio_bits.append("平时会抽烟")
-    if rng.random() < 0.2:
-        prefs.append(_pref("香菜", "food", "like", "self", 4, 4, "香菜"))
-        self_pos.add("香菜")
-        bio_bits.append("无香菜不欢")
-    if rng.random() < 0.5:
-        t = rng.choice(["熬夜", "早睡"])
-        prefs.append(_pref(t, "schedule", "like", "self", 3, 4, t))
-        bio_bits.append("经常熬夜" if t == "熬夜" else "习惯早睡")
-    # friend-mode "unreliable side": some users own up to the very traits others set as
-    # flex=1 boundaries (放鸽子/借钱不还) — so those absolute boundaries actually COLLIDE in
-    # pairs and the judge learns flex=1 -> hardConflict as a general rule, not just for 抽烟.
-    if mode == "friend":
-        if "放鸽子" not in self_pos and rng.random() < 0.22:
-            prefs.append(_pref("放鸽子", "reliability", "like", "self", 3, 4, "常临时放鸽子"))
-            self_pos.add("放鸽子")
-            bio_bits.append("比较随性，偶尔会临时放鸽子")
-        if "借钱不还" not in self_pos and rng.random() < 0.12:
-            prefs.append(_pref("借钱不还", "trust", "like", "self", 3, 4, "花钱大手大脚常借钱"))
-            self_pos.add("借钱不还")
-            bio_bits.append("花钱大手大脚，偶尔跟朋友周转")
+    # self-owned collidable habits (the EMBRACE side — the other half of a potential conflict).
+    # Drawn from the wide COLLIDABLE pool so the "positive" side spans many topics too.
+    for topic, group, embrace, _rej in rng.sample(COLLIDABLE, k=rng.randint(0, 3)):
+        if topic in self_pos:
+            continue
+        prefs.append(_pref(topic, group, "like", "self", rng.randint(3, 4), 4, embrace))
+        self_pos.add(topic)
+        bio_bits.append(embrace)
 
-    # partner dealbreakers (the negative side) — never on a topic the user embraces
-    if "抽烟" not in self_pos and rng.random() < 0.3:
-        dealbreakers.append(_pref("抽烟", "smoking", "reject", "partner", 5, 1, "受不了对方抽烟"))
-        bio_bits.append("受不了对方抽烟")
-    if "香菜" not in self_pos and rng.random() < 0.25:
-        dealbreakers.append(_pref("香菜", "food", "reject", "partner", 4, 2, "讨厌对方吃香菜"))
-        bio_bits.append("我讨厌他吃香菜")
-    if "宠物" not in self_pos and rng.random() < 0.15:
-        dealbreakers.append(_pref("宠物", "pet", "dislike", "self", 4, 2, "不喜欢宠物"))
-        bio_bits.append("不太能接受宠物")
+    # partner boundaries drawn from the WIDE pool at RANDOM flexibility (via _make_boundary):
+    # the same topic appears hard (flex1) in some profiles and soft (flex3) in others, so the
+    # judge cannot shortcut on topic and must learn flexibility -> hard/medium/soft. target is
+    # always partner (a requirement ABOUT the other person), so the extractor won't collapse it
+    # onto self. Never boundary a topic the user just embraced.
+    cand = ([(t, g, rej) for t, g, _e, rej in COLLIDABLE if t not in self_pos]
+            + [(t, g, rej) for t, g, rej in BOUNDARY_ONLY])
+    for topic, group, rej in rng.sample(cand, k=min(len(cand), rng.randint(0, 3))):
+        pref, clause, is_db = _make_boundary(rng, topic, group, rej)
+        (dealbreakers if is_db else prefs).append(pref)
+        bio_bits.append(clause)
+
+    # 异地 keeps its dedicated long-distance path (labeler cross-checks sameCity).
     if rng.random() < 0.2:
         dealbreakers.append(_pref("异地", "distance", "reject", "partner", 4, 2, "不能接受异地"))
         bio_bits.append("不能接受异地")
-
-    # friend-mode partner boundaries: expectations ABOUT the friend (target=partner), grounded
-    # in reliability / communication / trust — teaches the extractor NOT to collapse them onto
-    # the self and to keep flexibility low, and gives the judge more flex=1 friend collisions.
-    if mode == "friend":
-        if "放鸽子" not in self_pos and rng.random() < 0.3:
-            dealbreakers.append(_pref("放鸽子", "reliability", "reject", "partner", 5, 1, "受不了老放鸽子爽约的"))
-            bio_bits.append("受不了老放鸽子爽约的")
-        if rng.random() < 0.25:
-            dealbreakers.append(_pref("不回消息", "communication", "reject", "partner", 4, 2, "受不了朋友半天不回消息"))
-            bio_bits.append("受不了朋友半天不回消息")
-        if "借钱不还" not in self_pos and rng.random() < 0.2:
-            dealbreakers.append(_pref("借钱不还", "trust", "reject", "partner", 5, 1, "借钱不还的没法深交"))
-            bio_bits.append("借钱不还的没法深交")
+    # 宠物 keeps its special GROUP-level collision path (讨厌宠物 vs 喜欢猫/狗).
+    if "宠物" not in self_pos and rng.random() < 0.12:
+        dealbreakers.append(_pref("宠物", "pet", "dislike", "self", 4, 2, "不太能接受宠物"))
+        bio_bits.append("不太能接受宠物")
 
     bio = "，".join(bio_bits)
     extra = "，".join(b for b in bio_bits[1:] if b)  # everything except the seriousness lead

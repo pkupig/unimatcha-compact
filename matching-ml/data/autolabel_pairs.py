@@ -96,23 +96,25 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     plan_complement = {planA, planB} in ({"structured", "flexible"}, {"structured", "spontaneous"})
     hard, soft, pos, caution = [], [], [], []
 
-    # --- dealbreaker collisions (flexibility-aware) ---
-    # An absolute boundary (flexibility<=1: 放鸽子/借钱不还/背叛信任) that the other side
-    # actually triggers is HARD in BOTH modes — friend leniency applies only to negotiable
-    # preference clashes (香菜/宠物 flex>=2), never to a stated non-negotiable.
+    # --- dealbreaker collisions: severity from FLEXIBILITY, not the topic ---
+    # This is the rule the model must generalize to UNSEEN topics (constitution H1 &
+    # prompts.PAIR_JUDGE_SYSTEM): a triggered reject+flexibility<=1 boundary is a hardConflict
+    # (sev5) in BOTH modes — no topic list, no mode leniency. flex==2 is a medium soft conflict
+    # (sev3); flex>=3 a mild, negotiable one (sev2). Labels state it topic-agnostically so the
+    # judge keys off flexibility, and the extractor's phrasing->flexibility mapping carries the
+    # generalization to topics never seen in training.
     for t, flex in _collisions(a, b):
-        absolute = flex <= 1
-        if romantic:
+        if flex <= 1:
             hard.append({"topic": t, "severity": 5,
-                         "reason": f"一方将「{t}」列为底线，另一方明确喜欢，触发一票否决"})
-            caution.append(f"{t}：一方底线 vs 一方喜欢")
-        elif absolute:
-            hard.append({"topic": t, "severity": 4,
-                         "reason": f"一方把「{t}」列为不可退让的底线（flexibility=1），另一方恰好如此，交友也难长久"})
-            caution.append(f"{t}：一方绝对底线 vs 一方如此")
+                         "reason": f"一方把「{t}」设为不可退让的底线（flexibility=1），另一方恰好触发 → 一票否决"})
+            caution.append(f"{t}：底线被触发")
+        elif flex == 2:
+            soft.append({"topic": t, "severity": 3,
+                         "reason": f"一方较强排斥「{t}」（flexibility=2），另一方却如此 → 中等冲突"})
+            caution.append(f"{t}：较强排斥 vs 对方如此")
         else:
             soft.append({"topic": t, "severity": 2,
-                         "reason": f"「{t}」偏好相反，交友影响有限"})
+                         "reason": f"「{t}」偏好相反但可协商（flexibility>=3），影响有限"})
             caution.append(f"{t}偏好相反")
 
     # --- long distance ---
@@ -190,7 +192,7 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     score += (5 if diff.get("sameSchool") else 0) + (5 if diff.get("sameCity") else 0)
     score -= min(diff.get("ageDiff", 0), 5) * 2
     score += (comp - 55) * 0.2   # graded complementarity nudges the score both ways
-    score -= 4 * len(soft)
+    score -= 2 * sum(s.get("severity", 2) for s in soft)   # medium(sev3) bites harder than mild(sev2)
     if any(h["severity"] >= 5 for h in hard):
         score = min(score, 15)
     elif any(h["severity"] >= 4 for h in hard):
@@ -215,13 +217,13 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     dims = {
         "values": align(ser_gap, 18) if romantic else 65,
         "lifestyle": 70 - 20 * _schedule_clash(a, b) - 10 * sum(
-            1 for t in _collisions(a, b) if t in ("抽烟", "喝酒")),
+            1 for tt, _f in _collisions(a, b) if tt in ("抽烟", "喝酒")),
         "communication": max(45, 70 - expr_gap * 5),
         "emotionalNeeds": emo_needs,
         "interests": interest_dim,
         "longTermPlan": align(ser_gap, 18),
         "complementarity": comp,
-        "conflictRisk": min(90, 20 + 25 * n_hard + 10 * len(soft)),
+        "conflictRisk": min(90, 20 + 25 * n_hard + 5 * sum(s.get("severity", 2) for s in soft)),
     }
 
     return {
