@@ -96,25 +96,25 @@ def label_pair(mode: str, a: dict, b: dict, diff: dict) -> dict:
     plan_complement = {planA, planB} in ({"structured", "flexible"}, {"structured", "spontaneous"})
     hard, soft, pos, caution = [], [], [], []
 
-    # --- dealbreaker collisions: severity from FLEXIBILITY, not the topic ---
-    # This is the rule the model must generalize to UNSEEN topics (constitution H1 &
+    # --- dealbreaker collisions: BINARY severity from FLEXIBILITY, not the topic ---
+    # The rule the model must generalize to UNSEEN topics (constitution H1 &
     # prompts.PAIR_JUDGE_SYSTEM): a triggered reject+flexibility<=1 boundary is a hardConflict
-    # (sev5) in BOTH modes — no topic list, no mode leniency. flex==2 is a medium soft conflict
-    # (sev3); flex>=3 a mild, negotiable one (sev2). Labels state it topic-agnostically so the
-    # judge keys off flexibility, and the extractor's phrasing->flexibility mapping carries the
-    # generalization to topics never seen in training.
+    # (sev5) in BOTH modes — no topic list, no mode leniency; anything more negotiable
+    # (flex>=2) is a softConflict (sev2). We deliberately DON'T grade a middle tier: a 3-way
+    # split keyed on a single flexibility integer (1 vs 2) over shared topics proved
+    # unlearnable for the LoRA — flex=1 collapsed into the medium tier (v2/v3/v4 all missed it).
+    # A sharp hard/soft boundary with a big severity gap (5 vs 2) is what the judge can learn,
+    # and it matches the actual product spec (dealbreaker => eliminate). Stated topic-agnostically
+    # so the judge keys off flexibility; the extractor's phrasing->flexibility mapping carries
+    # the generalization to topics never seen in training.
     for t, flex in _collisions(a, b):
         if flex <= 1:
             hard.append({"topic": t, "severity": 5,
                          "reason": f"一方把「{t}」设为不可退让的底线（flexibility=1），另一方恰好触发 → 一票否决"})
             caution.append(f"{t}：底线被触发")
-        elif flex == 2:
-            soft.append({"topic": t, "severity": 3,
-                         "reason": f"一方较强排斥「{t}」（flexibility=2），另一方却如此 → 中等冲突"})
-            caution.append(f"{t}：较强排斥 vs 对方如此")
         else:
             soft.append({"topic": t, "severity": 2,
-                         "reason": f"「{t}」偏好相反但可协商（flexibility>=3），影响有限"})
+                         "reason": f"「{t}」偏好相反但可协商（flexibility>=2），影响有限"})
             caution.append(f"{t}偏好相反")
 
     # --- long distance ---

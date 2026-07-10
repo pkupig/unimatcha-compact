@@ -176,8 +176,12 @@ def _make_boundary(rng, topic, group, reject_noun):
     """Sample a partner boundary at a RANDOM flexibility tier with intensity-matched phrasing.
     flex1/2 -> a reject dealbreaker; flex3 -> a mild dislike preference. Randomizing flex per
     instance is what DEcorrelates topic from severity, forcing the model to key off flexibility.
-    Returns (Preference, bio_clause, is_dealbreaker)."""
-    flex = rng.choices([1, 2, 3], weights=[4, 3, 3])[0]
+    flex1 is up-weighted so the HARD class (labeler: flex<=1 -> hardConflict sev5) isn't a
+    minority the LoRA can ignore — the earlier equal split let flex=1 collapse into soft. flex2
+    stays present but small: under the binary labeler it now maps to soft(sev2), so a flex1(hard5)
+    vs flex2(soft2) pair on the SAME topic is exactly the big-gap contrast that teaches the judge
+    the flexibility integer is the signal. Returns (Preference, bio_clause, is_dealbreaker)."""
+    flex = rng.choices([1, 2, 3], weights=[6, 2, 4])[0]
     clause = rng.choice(REJECT_PHRASING[flex]).format(x=reject_noun)
     polarity = "reject" if flex <= 2 else "dislike"
     pref = _pref(topic, group, polarity, "partner", 6 - flex, flex, clause)  # flex1->s5 … flex3->s3
