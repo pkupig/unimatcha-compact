@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: campus_love_postgres
+    container_name: unimatcha_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-campuslove}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campuslove_secret}
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: campus_love_redis
+    container_name: unimatcha_redis
     ports:
       - "6379:6379"
     volumes:
@@ -33,7 +33,8 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: campus_love_api
+    image: unimatcha-api
+    container_name: unimatcha_api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-campuslove}:${POSTGRES_PASSWORD:-campuslove_secret}@postgres:5432/${POSTGRES_DB:-campuslove}
       REDIS_URL: redis://redis:6379
@@ -45,8 +46,12 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin@123456}
       PORT: 3001
       NODE_ENV: production
-    ports:
-      - "3001:3001"
+    # Behind Caddy: reachable on the internal network + via api.<domain>.
+    # (was "3001:3001" — switch back to `ports` if you need direct host access.)
+    expose:
+      - "3001"
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,13 +63,18 @@ services:
     build:
       context: ./apps/admin-web
       dockerfile: Dockerfile
-    container_name: campus_love_admin
+    image: unimatcha-admin-web
+    container_name: unimatcha_admin
     environment:
+      # In production point these at the public domain, e.g.
+      #   NEXT_PUBLIC_API_URL=https://api.unimatcha.com
+      #   NEXTAUTH_URL=https://admin.unimatcha.com
       NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:3001}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change_this_secret}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-    ports:
-      - "3000:3000"
+    # Behind Caddy → admin.<domain>. (was "3000:3000")
+    expose:
+      - "3000"
     depends_on:
       - api
     restart: unless-stopped
@@ -73,13 +83,47 @@ services:
     build:
       context: ./apps/h5
       dockerfile: Dockerfile
-    container_name: campus_love_h5
-    ports:
-      - "3002:80"
+    image: unimatcha-h5
+    container_name: unimatcha_h5
+    # Behind Caddy → app.<domain>. (was "3002:80")
+    expose:
+      - "80"
     depends_on:
       - api
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: unimatcha-web
+    container_name: unimatcha_web
+    # Marketing site, behind Caddy → root domain (unimatcha.com).
+    expose:
+      - "3003"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: unimatcha_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+      - admin-web
+      - h5
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
+  caddy_data:
+  caddy_config:
