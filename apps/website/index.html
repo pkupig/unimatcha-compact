@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Unimatcha — 大学生长期恋爱匹配协议</title>
+<meta name="description" content="面向大学生的长期恋爱匹配平台。每一轮持续整整一周，周五 17:00 统一公布匹配结果。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --neon:#CCFF00;
+  --neon-dark:#B8E600;
+  --lemon:#EEFFA8;
+  --ink:#0a0a0a;
+  --ink-2:#1b1b1b;
+  --ivory:#F5F5F5;
+  --white:#ffffff;
+  --stone:#E3E3E3;
+  --warm:#ECEAE2;
+  --wash:#F3FAD9;
+  --muted:#666666;
+  --muted-2:#8d8d86;
+  --line:#D6D6D2;
+  --line-soft:rgba(10,10,10,.08);
+  --r:12px;
+  --r-sm:10px;
+  --display:"Plus Jakarta Sans",system-ui,sans-serif;
+  --sans:"Be Vietnam Pro",system-ui,sans-serif;
+  --mono:"JetBrains Mono",monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--ivory);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+::selection{background:var(--neon);color:#000}
+a{color:inherit;text-decoration:none}
+.material-symbols-rounded{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+
+/* ---------- scroll progress ---------- */
+.progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--neon);z-index:200;transition:width .1s linear}
+
+/* ---------- nav ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:100;transition:transform .4s var(--ease),background .3s,border-color .3s}
+header.hide{transform:translateY(-100%)}
+.nav{max-width:1320px;margin:0 auto;padding:20px 40px;display:flex;align-items:center;justify-content:space-between}
+header.scrolled{background:rgba(245,245,245,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line-soft)}
+header.scrolled .nav{padding:14px 40px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em}
+.brand .blip{width:11px;height:11px;border-radius:50%;background:var(--neon);box-shadow:0 0 0 4px rgba(204,255,0,.28);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(204,255,0,.28)}50%{box-shadow:0 0 0 9px rgba(204,255,0,0)}}
+.navlinks{display:flex;gap:36px;font-size:14px;font-weight:500}
+.navlinks a{position:relative;color:var(--muted);transition:color .25s}
+.navlinks a:hover{color:var(--ink)}
+.navlinks a::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:2px;background:var(--neon);transition:width .3s var(--ease)}
+.navlinks a:hover::after{width:100%}
+.nav-cta{display:flex;align-items:center;gap:16px}
+.lang{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:7px 12px;background:transparent;transition:.25s}
+.lang:hover{border-color:var(--ink);color:var(--ink)}
+.lang .material-symbols-rounded{font-size:16px}
+.btn{font-family:var(--display);font-weight:700;font-size:14px;border-radius:var(--r-sm);cursor:pointer;border:0;transition:.25s var(--ease);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn .material-symbols-rounded{font-size:18px;transition:transform .25s var(--ease)}
+.btn-neon{background:var(--neon);color:#000;padding:12px 22px}
+.btn-neon:hover{background:var(--neon-dark);box-shadow:0 8px 22px -8px rgba(204,255,0,.85)}
+.btn-neon:hover .material-symbols-rounded{transform:translateX(3px)}
+.btn-ghost{background:transparent;color:var(--ink);padding:12px 20px;border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--ink);background:rgba(10,10,10,.03)}
+.btn-lg{padding:16px 30px;font-size:15.5px}
+@media(max-width:920px){.navlinks{display:none}}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1320px;margin:0 auto;padding:0 40px;position:relative}
+section{position:relative}
+.sec{padding:148px 0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#565654;display:inline-flex;align-items:center;gap:9px;font-weight:500}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--neon);flex-shrink:0}
+.sec-head{max-width:760px;margin:0 auto 72px;text-align:center}
+.sec-head .eyebrow{justify-content:center}
+.sec-head h2{font-family:var(--display);font-weight:800;font-size:clamp(30px,4vw,46px);line-height:1.12;letter-spacing:-.03em;margin-top:20px}
+.sec-head p{margin-top:22px;color:var(--muted);font-size:17px;line-height:1.65}
+
+/* section backgrounds (each distinct) */
+.bg-ivory{background:var(--ivory)}
+.bg-white{background:var(--white)}
+.bg-stone{background:var(--stone)}
+.bg-wash{background:var(--wash)}
+.bg-warm{background:var(--warm)}
+.bg-ink{background:var(--ink);color:#fff}
+
+/* ---------- hero ---------- */
+.hero{min-height:100vh;display:flex;align-items:center;padding:120px 0 60px;background:var(--ivory);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(circle 400px at 75% 50%,transparent 0,transparent 56%,#000 92%);-webkit-mask-image:radial-gradient(circle 400px at 75% 50%,transparent 0,transparent 56%,#000 92%);opacity:.6;pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:stretch;width:100%;position:relative}
+.h-left{max-width:620px;display:flex;flex-direction:column;justify-content:space-between}
+h1.title{font-family:var(--display);font-weight:800;font-size:clamp(44px,6.2vw,78px);line-height:1.03;letter-spacing:-.035em}
+h1.title .mark{position:relative;white-space:nowrap}
+h1.title .mark span{position:relative;z-index:2}
+h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:.07em;height:.4em;background:var(--neon);z-index:1;transform:scaleX(0);transform-origin:left;animation:swipe 1s .55s var(--ease) forwards}
+@keyframes swipe{to{transform:scaleX(1)}}
+.hero p.lede{margin-top:40px;font-size:clamp(16px,1.5vw,19px);color:var(--muted);max-width:31em;line-height:1.65}
+.hero p.lede b{color:var(--ink);font-weight:600}
+.hero-cta{margin-top:38px;display:flex;gap:14px;flex-wrap:wrap}
+.hero-meta{margin-top:46px;display:flex;gap:38px;flex-wrap:wrap}
+.hm .n{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hm .l{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-top:4px}
+
+/* hero globe */
+.h-right{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:20px;padding:6px 0}
+.h-right .hero-meta{margin-top:8px;justify-content:center;gap:38px}
+.h-right .hm{text-align:center}
+.globe-wrap{position:relative;width:100%;max-width:430px;aspect-ratio:1/1}
+#globe{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.globe-tip{position:absolute;z-index:3;pointer-events:none;min-width:152px;max-width:200px;background:#ffffff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:0 18px 40px -16px rgba(10,10,10,.5);opacity:0;visibility:hidden;transition:opacity .2s var(--ease);top:0;left:0}
+.globe-tip .gt-name{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-.01em}
+.globe-tip ul{list-style:none;margin:11px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+.globe-tip li{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.globe-tip li .material-symbols-rounded{font-size:14px;color:var(--neon-dark)}
+.globe-tip li.gt-etc{padding-left:20px;color:var(--muted);font-style:italic;font-weight:400;font-size:12px}
+@keyframes breathe{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:.95;transform:scale(1.07)}}
+@keyframes breatheSoft{0%,100%{opacity:.35}50%{opacity:.85}}
+.globe-chip{width:100%;max-width:430px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:15px 20px}
+.globe-chip .gc-top{display:flex;align-items:center;justify-content:space-between;gap:30px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.globe-chip .live{display:inline-flex;align-items:center;gap:7px;color:var(--ink);font-weight:500}
+.globe-chip .live i{width:7px;height:7px;border-radius:50%;background:var(--neon-dark);box-shadow:0 0 7px var(--neon-dark);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.globe-chip .gc-cd{display:flex;gap:8px;margin-top:12px}
+.gc-cell{text-align:center;min-width:48px}
+.gc-cell .v{font-family:var(--display);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.gc-cell .k{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted);margin-top:5px;text-transform:uppercase}
+.gc-sep{font-family:var(--display);font-weight:800;font-size:22px;color:var(--line);align-self:flex-start;margin-top:1px}
+.scrollcue{position:absolute;bottom:26px;left:40px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--muted);display:flex;align-items:center;gap:12px;text-transform:uppercase}
+/* organic particle field (decorative, lightweight DOM particles) */
+.hero{position:relative}
+.hero .wrap,.hero .scrollcue{z-index:1}
+.pfield{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.pfield span{position:absolute;border-radius:50%;background:var(--neon);opacity:var(--o,.35);filter:blur(.4px);will-change:transform,opacity;animation:pdrift var(--dur,13s) ease-in-out infinite alternate}
+@keyframes pdrift{from{transform:translate(0,0) scale(1)}to{transform:translate(var(--dx,20px),var(--dy,-18px)) scale(1.45)}}
+.pfield--rise span{animation-name:prise;animation-direction:normal;animation-timing-function:ease-in}
+@keyframes prise{0%{transform:translate(0,0) scale(.7);opacity:0}12%{opacity:var(--o,.4)}82%{opacity:var(--o,.4)}100%{transform:translate(var(--dx,10px),calc(-1 * var(--rise,300px))) scale(1.15);opacity:0}}
+@media(prefers-reduced-motion:reduce){.pfield span{animation:none!important}}
+/* organic dot-lattice loaders (from "Organic Loaders — Particles"), recoloured neon */
+.ldr{position:absolute;z-index:1;pointer-events:none;opacity:.5}
+@media(max-width:760px){.ldr{display:none}}
+/* campus-wall: a loader sits behind the phone as a backdrop */
+#wall .show-phone{position:relative}
+#wall .show-phone .phone{z-index:1}
+/* get-the-app: one full-bleed morphing-blob background */
+#ga-bg{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:.34;-webkit-mask-image:radial-gradient(ellipse 41% 55% at 50% 50%,transparent 0,transparent 68%,#000 100%);mask-image:radial-gradient(ellipse 41% 55% at 50% 50%,transparent 0,transparent 68%,#000 100%)}
+@media(max-width:760px){#ga-bg{display:none}}
+/* matching section: dotted-grid background (::after, so it coexists with the ::before glow) */
+#features{position:relative}
+#features::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
+#features .wrap{position:relative;z-index:1}
+.scrollcue .ln{width:46px;height:1px;background:var(--ink);opacity:.3;position:relative;overflow:hidden}
+.scrollcue .ln::after{content:"";position:absolute;left:-46px;top:0;width:46px;height:100%;background:var(--neon-dark);animation:slide 2s infinite}
+@keyframes slide{to{left:46px}}
+@media(max-width:920px){.hero-grid{grid-template-columns:1fr;gap:24px}.h-right{order:-1}.globe-wrap{max-width:360px}.scrollcue{display:none}}
+
+/* ---------- stats band ---------- */
+.statband{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.statband .st{padding:38px 30px;border-right:1px solid var(--line)}
+.statband .st:last-child{border-right:0}
+.statband .st .n{font-family:var(--display);font-weight:800;font-size:clamp(30px,3.4vw,44px);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.statband .st .n .material-symbols-rounded{font-size:.7em;color:var(--neon-dark);vertical-align:1px}
+.statband .st .c{margin-top:8px;font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+@media(max-width:760px){.statband{grid-template-columns:1fr 1fr}.statband .st:nth-child(2){border-right:0}.statband .st:nth-child(1),.statband .st:nth-child(2){border-bottom:1px solid var(--line)}}
+
+/* ---------- features (2 core) ---------- */
+#features{overflow:hidden}
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:30px;max-width:1020px;margin:0 auto;position:relative}
+.feat{background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:30px;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.feat:hover{transform:translateY(-5px);box-shadow:0 22px 44px -26px rgba(10,10,10,.4)}
+.feat .ficon{width:52px;height:52px;border-radius:var(--r-sm);background:var(--ink);color:var(--neon);display:flex;align-items:center;justify-content:center}
+.feat .ficon .material-symbols-rounded{font-size:28px;font-variation-settings:'FILL' 0,'wght' 400}
+.feat h3{font-family:var(--display);font-weight:700;font-size:22px;margin-top:22px;letter-spacing:-.02em}
+.feat p{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.62}
+.feat-tags{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.ftag{display:inline-flex;align-items:center;gap:5px;font-family:var(--display);font-weight:600;font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.ftag .material-symbols-rounded{font-size:15px}
+.ftag-on{background:var(--neon);color:#000;border-color:var(--neon)}
+/* showcase sections (one feature each) */
+.showcase{padding:148px 0;overflow:hidden}
+.show-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center}
+.showcase.reverse .show-text{order:2}
+.show-badge{width:54px;height:54px;border-radius:var(--r-sm);background:var(--ink);color:var(--neon);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+.show-badge .material-symbols-rounded{font-size:28px}
+.show-text .eyebrow{margin-bottom:18px}
+.show-idx{font-family:var(--mono);color:var(--muted-2);margin-left:4px}
+.show-text h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,4.4vw,54px);letter-spacing:-.03em;line-height:1.04}
+.show-text>p{margin-top:20px;color:var(--muted);font-size:17px;line-height:1.65;max-width:30em}
+.show-list{list-style:none;margin:28px 0 0;padding:0;display:flex;flex-direction:column;gap:15px}
+.show-list li{display:flex;align-items:flex-start;gap:12px;font-size:15.5px;color:var(--ink-2);line-height:1.5}
+.show-list li .ic{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:var(--lemon);display:flex;align-items:center;justify-content:center;margin-top:1px}
+.show-list li .ic .material-symbols-rounded{font-size:16px;color:var(--ink)}
+.show-text .feat-tags{margin-top:28px}
+.show-phone{display:flex;justify-content:center}
+@media(max-width:860px){.show-grid{grid-template-columns:1fr;gap:36px}.showcase.reverse .show-text{order:0}.show-phone{order:-1}}
+/* phone mockup frame + media placeholder (drop your own img/video into .screen) */
+.phone{width:248px;margin:0 auto;border-radius:30px;background:var(--ink);padding:4px;position:relative;box-shadow:0 40px 74px -34px rgba(10,10,10,.62);transition:transform .4s var(--ease)}
+.phone::before{content:"";position:absolute;top:11px;left:50%;transform:translateX(-50%);width:52px;height:12px;border-radius:99px;background:#000;z-index:5}
+.screen{aspect-ratio:9/19.5;border-radius:26px;overflow:hidden;position:relative;background:#0f0f0f}
+.screen .ph-media{width:100%;height:100%;object-fit:cover;display:block}
+.ph-placeholder{position:absolute;inset:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:2px dashed rgba(10,10,10,.16);border-radius:18px;text-align:center;padding:22px;background:linear-gradient(150deg,#fafafa,#eef0e8)}
+.ph-placeholder .material-symbols-rounded{font-size:42px;color:var(--neon-dark)}
+.ph-placeholder span:last-child{font-family:var(--mono);font-size:11px;letter-spacing:.04em;line-height:1.55;color:var(--muted)}
+/* showcase 3-column (left desc · center phone · right steps) */
+.showcase3{padding:150px 0;overflow:hidden}
+.show3-grid{display:grid;grid-template-columns:1fr minmax(320px,360px) 1fr;gap:46px;align-items:center}
+.showcase3 .show-text h2{font-size:clamp(34px,3.9vw,54px)}
+.showcase3 .st-top>p{font-size:16.5px;line-height:1.66;color:var(--muted);margin-top:28px;max-width:31em}
+.showcase3 .show-badge{width:48px;height:48px;margin-bottom:18px}
+.show-center{display:flex;justify-content:center}
+.show-center .phone{width:340px}
+.show-steps .eyebrow{margin-bottom:14px}
+.show-steps h3{font-family:var(--display);font-weight:800;font-size:25px;letter-spacing:-.02em;line-height:1.12;margin-bottom:26px;text-align:center}
+.ss-timeline{position:relative;padding:6px 0}
+.ss-timeline::before{content:"";position:absolute;left:50%;top:14px;bottom:14px;width:2px;transform:translateX(-50%);background:repeating-linear-gradient(#c4c4bf 0 5px,transparent 5px 10px)}
+.ss-step{position:relative;width:50%;margin-bottom:16px;box-sizing:border-box}
+.ss-step:last-child{margin-bottom:0}
+.ss-step:nth-child(odd){padding-right:24px}
+.ss-step:nth-child(even){margin-left:50%;padding-left:24px}
+.ss-n{position:absolute;top:10px;z-index:2;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--neon);font-family:var(--mono);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px var(--ivory)}
+.ss-step:nth-child(odd) .ss-n{right:-16px}
+.ss-step:nth-child(even) .ss-n{left:-16px}
+.ss-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:15px 18px;transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.ss-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -18px rgba(10,10,10,.35)}
+.ss-step:nth-child(odd) .ss-card{text-align:right}
+.ss-card b{display:block;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.01em}
+.ss-card span{display:block;color:var(--muted);font-size:13.5px;line-height:1.45;margin-top:3px}
+/* desktop: side columns match the phone's height, content distributed top↕bottom */
+@media(min-width:981px){
+  .show3-grid{align-items:center}
+  .showcase3 .show-text{display:flex;flex-direction:column;justify-content:space-between;height:80%}
+  .show-steps{display:flex;flex-direction:column;height:80%}
+  .show-steps .ss-timeline{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+  .show-steps .ss-timeline .ss-step{margin-bottom:0}
+}
+@media(max-width:980px){.show3-grid{grid-template-columns:1fr;gap:38px;max-width:430px;margin:0 auto}.show-center{order:-1}.ss-timeline::before{left:15px}.ss-step{width:100%;margin-left:0!important;padding-left:42px!important;padding-right:0!important;margin-bottom:14px}.ss-step:nth-child(odd) .ss-card,.ss-step:nth-child(even) .ss-card{text-align:left}.ss-step:nth-child(odd) .ss-n,.ss-step:nth-child(even) .ss-n{left:1px;right:auto}}
+/* ---------- more: culture + product bento ---------- */
+.more-bento{display:grid;grid-template-columns:repeat(5,1fr);grid-auto-rows:minmax(188px,auto);gap:20px;max-width:1240px;margin:0 auto;
+  grid-template-areas:
+    "hero hero neon long spon"
+    "hero hero neon wall spon"
+    "edu  edu  dark stat spon";}
+.mb-hero{grid-area:hero}.mb-neon{grid-area:neon}.mb-long{grid-area:long}.mb-wall{grid-area:wall}.mb-edu{grid-area:edu}.mb-stat{grid-area:stat}.mb-dark{grid-area:dark}.mb-spon{grid-area:spon}
+.more-card{position:relative;background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:28px;display:flex;flex-direction:column;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.more-card:hover{transform:translateY(-3px);box-shadow:0 18px 38px -24px rgba(10,10,10,.35)}
+.more-card .mb-ic{width:40px;height:40px;border-radius:var(--r-sm);background:var(--lemon);color:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.more-card .mb-ic .material-symbols-rounded{font-size:22px}
+.more-card h3{font-family:var(--display);font-weight:800;letter-spacing:-.02em;line-height:1.16;color:var(--ink);font-size:clamp(18px,1.5vw,21px);margin-top:16px}
+.more-card p{color:var(--muted);font-size:14.5px;line-height:1.6;margin-top:10px}
+.mb-hero{padding:34px}
+.mb-hero h3{font-size:clamp(24px,2.4vw,32px);line-height:1.14;margin-top:18px}
+.mb-hero p{font-size:15px;line-height:1.64;margin-top:14px}
+.mb-neon{background:var(--neon);border-color:transparent;color:#000}
+.mb-neon .mb-ic{background:rgba(10,10,10,.09);color:var(--ink)}
+.mb-neon .mb-big{font-family:var(--display);font-weight:800;font-size:clamp(30px,3.2vw,44px);letter-spacing:-.03em;line-height:1;margin-top:auto;padding-top:24px}
+.mb-neon p{color:rgba(10,10,10,.72);font-weight:500;margin-top:12px}
+.mb-edu{flex-direction:row;align-items:center;gap:24px}
+.mb-edu>div{flex:1}
+.mb-edu h3{margin-top:0}
+.mb-stat .mb-num{font-family:var(--display);font-weight:800;font-size:clamp(34px,4vw,50px);letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:auto}
+.mb-stat .mb-k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.mb-dark{background:var(--ink);border-color:transparent}
+.mb-dark .mb-quote{font-family:var(--display);font-weight:800;font-size:44px;line-height:.6;color:var(--neon-dark)}
+.mb-dark h3{color:#f5f5f5;font-weight:700;margin-top:16px;font-size:clamp(17px,1.4vw,20px)}
+.mb-dark p{color:#d6d6cf;margin-top:10px}
+/* sponsor-culture column (tall, lemon, ink text) */
+.mb-spon{background:var(--lemon);border-color:transparent}
+.mb-spon .mb-ic{background:var(--ink);color:var(--neon)}
+.mb-spon h3{color:var(--ink);font-size:clamp(19px,1.7vw,23px)}
+.mb-spon p{color:#4a4f3a}
+.mb-spon .mb-points{margin-top:22px;display:flex;flex-direction:column;gap:13px}
+.mb-spon .mb-point{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;line-height:1.5;color:#3c4030;font-weight:500}
+.mb-spon .mb-point .material-symbols-rounded{font-size:18px;color:var(--ink);flex-shrink:0;margin-top:1px;font-variation-settings:'FILL' 1}
+.mb-spon .mb-link{margin-top:auto;padding-top:24px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--ink);font-weight:600;text-decoration:none;transition:opacity .2s var(--ease)}
+.mb-spon .mb-link:hover{opacity:.62}
+@media(max-width:980px){
+  .more-bento{grid-template-columns:repeat(2,1fr);grid-template-areas:"hero hero" "neon long" "wall stat" "edu edu" "spon spon" "dark dark";}
+}
+@media(max-width:600px){
+  .more-bento{grid-template-columns:1fr;grid-auto-rows:minmax(150px,auto);grid-template-areas:"hero" "neon" "long" "wall" "edu" "stat" "spon" "dark";}
+  .mb-edu{flex-direction:column;align-items:flex-start;gap:0}
+}
+@media(max-width:760px){.feat-grid{grid-template-columns:1fr;max-width:420px;margin:0 auto}}
+
+/* ---------- how it works (zigzag) ---------- */
+.steps{max-width:980px;margin:0 auto;position:relative}
+.steps::before{content:"";position:absolute;left:50%;top:10px;bottom:10px;width:2px;background:repeating-linear-gradient(var(--line) 0 6px,transparent 6px 12px);transform:translateX(-50%)}
+.step{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;margin-bottom:60px;position:relative}
+.step:last-child{margin-bottom:0}
+.step .s-num{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--neon);font-family:var(--mono);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 0 0 6px var(--ivory)}
+.step .s-card{background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:28px;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.step .s-card:hover{transform:translateY(-3px);box-shadow:0 18px 38px -24px rgba(10,10,10,.35)}
+.step .s-card .si{display:inline-flex;width:42px;height:42px;border-radius:var(--r-sm);background:var(--lemon);color:var(--ink);align-items:center;justify-content:center;margin-bottom:16px}
+.step .s-card .si .material-symbols-rounded{font-size:24px}
+.step .s-card h3{font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:-.02em}
+.step .s-card p{margin-top:10px;color:var(--muted);font-size:14.5px;line-height:1.6}
+.step:nth-child(odd) .s-card{grid-column:1}
+.step:nth-child(odd) .s-side{grid-column:2}
+.step:nth-child(even) .s-card{grid-column:2}
+.step:nth-child(even) .s-side{grid-column:1;text-align:right}
+.s-side{font-family:var(--display);font-weight:800;font-size:clamp(20px,2.4vw,30px);color:var(--ink);letter-spacing:-.02em;opacity:.14;line-height:1.1}
+@media(max-width:760px){.steps::before{left:21px}.step{grid-template-columns:1fr;gap:0;padding-left:54px;margin-bottom:30px}.step .s-num{left:21px;transform:translateX(-50%);top:6px;box-shadow:0 0 0 6px var(--stone)}.step .s-card,.step:nth-child(even) .s-card{grid-column:1}.s-side{display:none}}
+
+/* ---------- reviews: stacked "bookmark" deck of testimonials ---------- */
+/* #more (bento) + #reviews share the warm bg → collapse the seam so they read as ONE section */
+#more{padding-bottom:52px}
+#reviews{background:var(--warm);position:relative;overflow:hidden;padding-top:110px}
+.rvw2{display:grid;grid-template-columns:minmax(290px,360px) 1fr;gap:56px;align-items:center;max-width:1240px;margin:0 auto}
+.rvw2-intro .eyebrow{margin-bottom:16px}
+.rvw2-intro h2{font-family:var(--display);font-weight:800;font-size:clamp(30px,3.2vw,46px);letter-spacing:-.03em;line-height:1.06;color:var(--ink)}
+.rvw2-intro p{margin-top:16px;color:var(--muted);font-size:16px;line-height:1.6;max-width:30em}
+.rvw2-ctrl{display:flex;align-items:center;gap:16px;margin-top:34px}
+.rvw2-btn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease),transform .2s var(--ease),border-color .2s var(--ease)}
+.rvw2-btn:hover{background:var(--ink);color:var(--neon);border-color:var(--ink);transform:translateY(-2px)}
+.rvw2-btn .material-symbols-rounded{font-size:22px}
+.rvw2-count{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--muted);min-width:70px;text-align:center}
+.rvw2-deck{position:relative;height:375px}
+.rvw2-card{position:absolute;top:0;left:auto;right:0;margin:0;width:min(100%,560px);background:var(--white);border:1px solid var(--line);border-radius:18px;padding:46px 42px 40px;box-shadow:0 40px 74px -36px rgba(10,10,10,.55),0 5px 16px -8px rgba(10,10,10,.22);transform-origin:center bottom;transition:transform .55s var(--ease),opacity .45s var(--ease);cursor:pointer;will-change:transform,opacity}
+.rvw2-ribbon{position:absolute;top:-12px;right:40px;width:32px;height:48px;background:var(--neon);clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);box-shadow:0 6px 12px -5px rgba(10,10,10,.45)}
+.rvw2-card .rvw-stars{display:flex;gap:3px;color:var(--neon-dark);margin-bottom:22px}
+.rvw2-card .rvw-stars .material-symbols-rounded{font-size:21px;font-variation-settings:'FILL' 1}
+.rvw-q{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.5;letter-spacing:-.015em;color:var(--ink);margin:0 0 30px}
+.rvw-by{display:flex;align-items:center;gap:13px}
+.cr-av{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:13px;background:var(--ink);color:var(--neon);font-family:var(--display);font-weight:800;font-size:19px;box-shadow:inset 0 0 0 1px rgba(204,255,0,.18)}
+.rvw-who{display:flex;flex-direction:column;line-height:1.25}
+.rvw-nm{font-family:var(--display);font-weight:700;font-size:16px;color:var(--ink)}
+.rvw-ro{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:3px}
+@media(max-width:860px){
+  .rvw2{grid-template-columns:1fr;gap:32px}
+  .rvw2-deck{height:370px;max-width:470px;margin:0 auto;width:100%}
+}
+@media(prefers-reduced-motion:reduce){.rvw2-card{transition:none}}
+
+/* ---------- partners ---------- */
+.logos{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;max-width:1100px;margin:0 auto}
+.logo{height:84px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--white);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:16px;color:var(--muted);letter-spacing:-.01em;transition:.25s var(--ease)}
+/* ===== #partners → Sponsor (neon poster billboard) — all text ink-dark on neon ===== */
+.sponsor-neon{background:#CCFF00;color:#0a0a0a;position:relative;overflow:hidden}
+.sponsor-neon .wrap{position:relative;z-index:2}
+.sponsor-neon::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.12) 1.2px,transparent 1.3px);background-size:26px 26px;-webkit-mask-image:radial-gradient(120% 80% at 50% 0,#000 40%,transparent 86%);mask-image:radial-gradient(120% 80% at 50% 0,#000 40%,transparent 86%);opacity:.55}
+.sponsor-neon .sponsor-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+.sponsor-neon .eyebrow{color:#0a0a0a;font-weight:600}
+.sponsor-neon .eyebrow .dot{background:#0a0a0a}
+.sponsor-neon .sponsor-badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--display,"Plus Jakarta Sans",system-ui,sans-serif);font-weight:800;font-size:15px;letter-spacing:.02em;color:#CCFF00;background:#0a0a0a;padding:11px 18px;border-radius:999px;transform:rotate(6deg);transform-origin:center;flex-shrink:0;box-shadow:0 8px 0 -2px rgba(10,10,10,.18)}
+.sponsor-neon .sponsor-badge .material-symbols-rounded{font-size:20px}
+.sponsor-neon .sponsor-hero{margin-top:40px;max-width:1000px}
+.sponsor-neon .sponsor-h2{font-family:var(--display,"Plus Jakarta Sans",system-ui,sans-serif);font-weight:800;font-size:clamp(48px,9vw,118px);line-height:.94;letter-spacing:-.04em;color:#0a0a0a;margin:0}
+.sponsor-neon .sh-line{display:block}
+.sponsor-neon .sh-hi{margin-top:.06em}
+.sponsor-neon .sponsor-h2 mark{background:transparent;color:#0a0a0a;position:relative;display:inline-block;padding:0 .06em;border-bottom:.14em solid #0a0a0a;text-shadow:3px 3px 0 rgba(10,10,10,.14)}
+.sponsor-neon .sponsor-lede{margin-top:30px;max-width:34em;font-family:var(--sans,"Be Vietnam Pro",system-ui,sans-serif);font-size:clamp(17px,1.8vw,21px);line-height:1.6;font-weight:500;color:#111}
+.sponsor-neon .sponsor-cta{margin-top:40px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.sponsor-neon .sponsor-btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--display,"Plus Jakarta Sans",system-ui,sans-serif);font-weight:800;font-size:17px;letter-spacing:-.01em;background:#0a0a0a;color:#fff;padding:19px 34px;border-radius:12px;text-decoration:none;box-shadow:0 10px 0 -2px rgba(10,10,10,.22),0 22px 40px -18px rgba(10,10,10,.6);transition:transform .22s var(--ease,cubic-bezier(.2,.7,.2,1)),box-shadow .22s var(--ease,cubic-bezier(.2,.7,.2,1))}
+.sponsor-neon .sponsor-btn .material-symbols-rounded{font-size:20px;transition:transform .22s var(--ease,cubic-bezier(.2,.7,.2,1))}
+.sponsor-neon .sponsor-btn:hover{transform:translateY(-3px);box-shadow:0 13px 0 -2px rgba(10,10,10,.22),0 28px 50px -18px rgba(10,10,10,.7)}
+.sponsor-neon .sponsor-btn:hover .material-symbols-rounded{transform:translateX(4px)}
+.sponsor-neon .sponsor-btn:focus-visible{outline:3px solid #0a0a0a;outline-offset:4px}
+.sponsor-neon .sponsor-note{font-family:var(--mono,"JetBrains Mono",monospace);font-size:13px;letter-spacing:.02em;color:#0a0a0a;font-weight:500;opacity:.82}
+.sponsor-neon .sponsor-chips{margin-top:52px;display:flex;flex-wrap:wrap;gap:14px}
+.sponsor-neon .s-chip{display:inline-flex;align-items:center;gap:9px;font-family:var(--display,"Plus Jakarta Sans",system-ui,sans-serif);font-weight:700;font-size:15.5px;letter-spacing:-.01em;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:999px;padding:11px 20px;background:transparent;transition:background .2s var(--ease,cubic-bezier(.2,.7,.2,1)),color .2s var(--ease,cubic-bezier(.2,.7,.2,1)),transform .2s var(--ease,cubic-bezier(.2,.7,.2,1))}
+.sponsor-neon .s-chip .material-symbols-rounded{font-size:19px}
+.sponsor-neon .s-chip:hover{background:#0a0a0a;color:#CCFF00;transform:translateY(-2px)}
+.sponsor-neon .sponsor-marquee{position:relative;z-index:2;margin-top:104px;border-top:2px solid #0a0a0a;border-bottom:2px solid #0a0a0a;padding:7px 0;overflow:hidden;white-space:nowrap}
+/* marquees frame the section top & bottom — drop the vertical padding so both sit flush at the edges */
+#partners{padding-top:0;padding-bottom:0}
+.sponsor-neon .sponsor-marquee.top{margin-top:0;margin-bottom:104px}
+.sponsor-neon .sponsor-marquee.top .sm-track{animation-direction:reverse}
+.sponsor-neon .sm-track{display:inline-flex;align-items:center;gap:20px;padding-left:20px;animation:sponsor-scroll 26s linear infinite;will-change:transform}
+.sponsor-neon .sm-item{font-family:var(--display,"Plus Jakarta Sans",system-ui,sans-serif);font-weight:800;font-size:clamp(12px,1.5vw,16px);letter-spacing:-.01em;color:#0a0a0a;text-transform:uppercase}
+.sponsor-neon .sm-star{font-size:clamp(11px,1.3vw,14px);color:#0a0a0a}
+@keyframes sponsor-scroll{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.sponsor-neon .sm-track{animation:none}}
+@media (max-width:720px){.sponsor-neon .sponsor-top{flex-direction:row;align-items:center}.sponsor-neon .sponsor-badge{transform:rotate(6deg) scale(.92)}.sponsor-neon .sponsor-hero{margin-top:32px}.sponsor-neon .sponsor-cta{gap:16px}.sponsor-neon .sponsor-btn{width:100%;justify-content:center}.sponsor-neon .sponsor-note{text-align:center;width:100%}.sponsor-neon .sponsor-chips{margin-top:40px}.sponsor-neon .sponsor-marquee{margin-top:56px}}
+.logo:hover{color:var(--ink);border-color:var(--ink);transform:translateY(-3px);box-shadow:0 14px 28px -18px rgba(10,10,10,.3)}
+.partner-cta{max-width:1100px;margin:70px auto 0;background:var(--ink);border-radius:18px;padding:54px 56px;display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap;position:relative;overflow:hidden}
+.partner-cta::before{content:"";position:absolute;top:-60px;right:-40px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(204,255,0,.22),transparent 65%);animation:breatheSoft 6s ease-in-out infinite}
+.partner-cta .pc-text{position:relative;max-width:560px}
+.partner-cta h3{font-family:var(--display);font-weight:800;font-size:clamp(24px,3vw,34px);color:#fff;letter-spacing:-.02em;line-height:1.15}
+.partner-cta h3 em{font-style:normal;color:var(--neon)}
+.partner-cta p{margin-top:14px;color:#bdbdb7;font-size:15.5px;line-height:1.6}
+.partner-cta .pc-btn{position:relative}
+@media(max-width:920px){.logos{grid-template-columns:repeat(3,1fr)}.partner-cta{padding:40px 32px}}
+@media(max-width:520px){.logos{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- campus wall (dark) ---------- */
+#wall{position:relative;background:#101311;isolation:isolate;overflow:hidden}
+#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.4px);background-size:26px 26px;background-position:-13px -13px;-webkit-mask-image:radial-gradient(120% 90% at 50% 0%,#000 35%,transparent 88%);mask-image:radial-gradient(120% 90% at 50% 0%,#000 35%,transparent 88%);opacity:.6}
+#wall::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(204,255,0,.022),transparent 30%,transparent 75%,rgba(0,0,0,.25))}
+#wall .wrap{position:relative;z-index:1}
+#wall .eyebrow{color:#9aa39a}
+#wall .eyebrow .dot{background:var(--neon);box-shadow:0 0 0 4px rgba(204,255,0,.12),0 0 8px rgba(204,255,0,.55)}
+#wall .show-idx{color:#838c82}
+#wall .show-text h2{color:#f4f6f2}
+#wall .show-text h2 .accent,#wall .show-text h2 em{color:var(--neon);font-style:normal}
+#wall .show-text>p{color:#c2c8c0}
+/* === Campus Wall right-column theme cards (Aleo-style, dark) — scoped to #wall === */
+#wall .wall-lead{margin:16px 0 0;font-size:16px;line-height:1.6;color:#c2c8c0;max-width:44ch}
+/* folder / tabbed card: bookmark tabs switch between two theme pages */
+#wall .wall-folder{margin-top:26px;max-width:560px}
+#wall .wall-tabs{display:flex;gap:0;padding-left:0;position:relative;z-index:2}
+#wall .wall-tab{
+  display:inline-flex;align-items:center;
+  padding:12px 24px;
+  border:1px solid rgba(255,255,255,.4);border-bottom:none;
+  border-radius:0;
+  background:rgba(255,255,255,.68);
+  color:#5f5f5a;
+  font-family:var(--display),"Plus Jakarta Sans",system-ui,sans-serif;font-weight:700;font-size:14.5px;
+  cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease;
+}
+#wall .wall-tab:first-child{border-radius:14px 0 0 0}
+#wall .wall-tab:last-child{border-radius:0 14px 0 0}
+#wall .wall-tab+.wall-tab{border-left:none}
+#wall .wall-tab:hover{color:#0a0a0a;background:rgba(255,255,255,.85)}
+#wall .wall-tab.is-active{
+  background:#ffffff;border-color:rgba(0,0,0,.06);color:#0a0a0a;
+  margin-bottom:-1px;padding-bottom:13px;
+}
+#wall .wall-tab:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+#wall .wall-panel{
+  position:relative;z-index:1;
+  background:#ffffff;
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:0 18px 18px 18px;
+  padding:30px 32px;min-height:230px;
+  box-shadow:0 26px 60px -32px rgba(0,0,0,.7);
+}
+#wall .wall-page{display:none}
+#wall .wall-page.is-active{display:block;animation:wpfade .32s var(--ease)}
+@keyframes wpfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#wall .wall-page-title{
+  font-family:var(--display),"Plus Jakarta Sans",system-ui,sans-serif;
+  font-size:26px;font-weight:800;line-height:1.25;letter-spacing:-.01em;color:#0f0f0f;
+}
+#wall .wall-page-desc{margin-top:18px;font-size:17px;line-height:1.9;color:#4a4a4a;max-width:40ch}
+#wall .wall-explore{
+  display:inline-flex;align-items:center;gap:6px;margin-top:24px;
+  font-family:var(--mono),"JetBrains Mono",ui-monospace,monospace;
+  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:#9aa39a;text-decoration:none;transition:color .2s ease;
+}
+#wall .wall-explore .material-symbols-rounded{font-size:16px;transition:transform .2s ease}
+#wall .wall-explore:hover{color:var(--neon)}
+#wall .wall-explore:hover .material-symbols-rounded{transform:translate(2px,-2px)}
+/* enrich: quick-point list inside each panel + "popular boards" chips below the folder */
+#wall .wall-points{margin-top:20px;display:flex;flex-direction:column;gap:11px}
+#wall .wall-point{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;line-height:1.45;color:#3a3a3a;font-weight:500}
+#wall .wall-point .material-symbols-rounded{font-size:19px;color:var(--neon-dark);flex-shrink:0;margin-top:1px;font-variation-settings:'FILL' 1}
+#wall .wall-topics{margin-top:30px;max-width:560px}
+#wall .wall-topics-label{font-family:var(--mono),ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#838c82;margin-bottom:14px}
+#wall .wall-chips{display:flex;flex-wrap:wrap;gap:9px}
+#wall .wall-chip{display:inline-flex;align-items:center;font-family:var(--display),system-ui,sans-serif;font-weight:600;font-size:13.5px;letter-spacing:-.01em;color:#1b1b1b;background:var(--ivory);border:1px solid transparent;border-radius:999px;padding:8px 16px;transition:transform .22s var(--ease),background .22s var(--ease),color .22s var(--ease)}
+#wall .wall-chip:hover{background:var(--neon);color:#0a0a0a;transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){
+  #wall .wall-page.is-active{animation:none}
+  #wall .wall-tab,#wall .wall-explore .material-symbols-rounded{transition:none}
+}
+@media (max-width:860px){
+  #wall .wall-folder{max-width:none;margin-top:22px}
+  #wall .wall-panel{padding:22px;min-height:0}
+  #wall .wall-page-title{font-size:20px}
+}
+#wall .phone{width:340px;background:#0a0a0a;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 0 0 6px rgba(204,255,0,.07),0 30px 70px -28px rgba(0,0,0,.85),0 0 50px -12px rgba(204,255,0,.18)}
+#wall .screen{background:#0d0f0d}
+#wall .ph-placeholder{inset:6px;border:2px dashed rgba(204,255,0,.22);border-radius:18px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
+#wall .ph-placeholder .material-symbols-rounded{color:var(--neon-dark)}
+#wall .ph-placeholder span:last-child{color:#9aa39a}
+
+/* countdown (now lives inside the merged get-the-app section) */
+.big-cd{display:inline-flex;gap:16px;margin-top:44px;flex-wrap:wrap;justify-content:center}
+.bc{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:32px 38px;min-width:158px}
+.bc .v{font-family:var(--display);font-weight:800;font-size:clamp(56px,7.2vw,92px);line-height:1;font-variant-numeric:tabular-nums}
+.bc .v.flash{color:var(--neon)}
+.bc .k{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:#cbcbc4;margin-top:16px;text-transform:uppercase}
+.getapp .ga-sub{margin-top:38px}
+
+/* ---------- get the app (dark) ---------- */
+.getapp{position:relative;background:#070707;color:#fff;padding:220px 0;min-height:118vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.getapp>.wrap{width:100%}
+.getapp .ga-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle at 50% 38%,#000,transparent 76%);-webkit-mask-image:radial-gradient(circle at 50% 38%,#000,transparent 76%)}
+.getapp::before{content:"";position:absolute;left:50%;top:-40px;transform:translateX(-50%);width:760px;height:380px;background:radial-gradient(ellipse at 50% 0,rgba(204,255,0,.18),transparent 68%);pointer-events:none;animation:breatheSoft 6.5s ease-in-out infinite}
+.ga-ring{position:absolute;top:44px;right:7%;width:150px;height:150px;border:1px solid rgba(204,255,0,.22);border-radius:50%;animation:breatheSoft 7s ease-in-out infinite}
+.ga-ring::after{content:"";position:absolute;inset:24px;border:1px solid rgba(204,255,0,.12);border-radius:50%}
+.getapp .wrap>*{position:relative}
+.ga-eyebrow{color:#d6d6cf;justify-content:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:7px 15px}
+.ga-h{font-family:var(--display);font-weight:800;font-size:clamp(40px,6.4vw,86px);line-height:.96;letter-spacing:-.04em;margin-top:26px}
+.ga-h em{font-style:normal;color:var(--neon)}
+.ga-sub{margin:28px auto 0;max-width:32em;color:#bdbdb7;font-size:16px;line-height:1.65}
+.ga-badges{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:44px}
+.ga-badge{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:15px 22px;min-width:282px;transition:.25s var(--ease)}
+.ga-badge:hover{border-color:rgba(204,255,0,.5);background:rgba(204,255,0,.05);transform:translateY(-3px)}
+.ga-bi{width:32px;height:32px;flex-shrink:0}
+.ga-bi svg{width:100%;height:100%;fill:var(--neon)}
+.ga-bt{text-align:left;flex:1}
+.ga-bt small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#b8b8b0;text-transform:uppercase}
+.ga-bt b{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.01em}
+.ga-soon{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;background:var(--neon);color:#000;padding:4px 9px;border-radius:7px;white-space:nowrap}
+.ga-wait{display:inline-block;margin-top:36px;font-family:var(--display);font-weight:700;font-size:15px;color:var(--neon);border-bottom:1px solid transparent;transition:border-color .2s}
+.ga-wait:hover{border-bottom-color:var(--neon)}
+
+/* ---------- final cta ---------- */
+.final{padding:140px 0;text-align:center;background:var(--ivory);position:relative;overflow:hidden}
+.final::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:680px;height:380px;background:radial-gradient(ellipse,rgba(204,255,0,.18),transparent 70%);filter:blur(20px);animation:breatheSoft 6s ease-in-out infinite}
+.final .wrap{position:relative;z-index:2}
+.final h2{font-family:var(--display);font-weight:800;font-size:clamp(32px,5vw,60px);line-height:1.06;letter-spacing:-.035em}
+.final h2 .u{position:relative;display:inline-block}
+.final h2 .u::after{content:"";position:absolute;left:-2px;right:-2px;bottom:.05em;height:.2em;background:var(--neon);z-index:-1}
+.final p{margin-top:22px;color:var(--muted);font-size:18px}
+.final .btns{margin-top:42px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+/* FAQ accordion */
+/* Compact so FAQ + footer together ≈ one hero screen (100vh). */
+#faq{padding:70px 0}
+#faq .sec-head{margin-bottom:30px}
+#faq .faq-q{padding:17px 6px}
+.faq-list{max-width:840px;margin:0 auto;border-top:1px solid var(--line)}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px;background:none;border:0;cursor:pointer;padding:24px 6px;text-align:left;font-family:var(--display);font-weight:700;font-size:clamp(17px,1.7vw,21px);letter-spacing:-.01em;color:var(--ink);transition:color .2s}
+.faq-q:hover{color:#000}
+.faq-ic{font-size:26px;color:var(--muted);flex-shrink:0;transition:transform .3s var(--ease)}
+.faq-item.open .faq-ic{transform:rotate(180deg);color:var(--neon-dark)}
+.faq-a{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.faq-item.open .faq-a{grid-template-rows:1fr}
+.faq-a>div{overflow:hidden}
+.faq-a p{padding:0 6px 26px;color:var(--muted);font-size:16px;line-height:1.72;max-width:64ch}
+
+/* ---------- footer ---------- */
+footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 40px}
+.foot{display:flex;justify-content:space-between;gap:48px;flex-wrap:wrap}
+.foot .brand{font-size:22px;margin-bottom:14px}
+.foot .desc{color:var(--muted);font-size:14px;max-width:25em;line-height:1.6}
+.foot-cols{display:flex;gap:64px;flex-wrap:wrap}
+.fcol h5{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);margin-bottom:16px}
+.fcol a{display:block;font-size:14px;color:var(--muted);margin-bottom:11px;transition:color .2s}
+.fcol a:hover{color:var(--ink)}
+.foot-bot{margin-top:54px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* ---------- responsive ---------- */
+@media(max-width:760px){
+  .nav-cta{gap:10px}
+  .sec{padding:92px 0}
+  .foot-cols{gap:36px}
+  .rev-card{width:clamp(280px,84vw,380px)}
+}
+@media(max-width:560px){
+  .wrap{padding:0 20px}
+  .nav{padding:14px 20px}
+  header.scrolled .nav{padding:10px 20px}
+  .brand{font-size:16px}
+  #langLabel{display:none}
+  .lang{padding:7px 9px}
+  .nav-cta{gap:10px}
+  .nav-cta .btn-neon{padding:10px 14px;font-size:13px}
+  .hero{padding:92px 0 40px}
+  .globe-wrap{max-width:280px}
+  h1.title{font-size:clamp(34px,9vw,50px)}
+  .hero p.lede{margin-top:30px}
+  .hero-meta{gap:26px;margin-top:36px}
+  .sec{padding:72px 0}
+  .sec-head{margin-bottom:44px}
+  .sec-head p{font-size:15.5px}
+  .feat{padding:24px}
+  .phone .screen{height:280px}
+  .big-cd{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:380px;margin-left:auto;margin-right:auto}
+  .bc{min-width:0;padding:26px 14px}
+  .bc .v{font-size:54px}
+  .partner-cta{padding:34px 26px}
+  .partner-cta .pc-btn{width:100%;justify-content:center}
+  .getapp{padding:90px 0}
+  .ga-badges{flex-direction:column;align-items:stretch}
+  .ga-badge{min-width:0;width:100%}
+  .ga-ring{display:none}
+  .foot{gap:32px}
+  .foot-cols{gap:28px}
+}
+
+/* ---------- reveal ---------- */
+.reveal{opacity:0;transform:translateY(46px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.l{transform:translateX(-72px)}.reveal.r{transform:translateX(72px)}
+.reveal.l.in,.reveal.r.in{transform:none}
+.reveal.pop{transform:translateY(30px) scale(.92)}.reveal.pop.in{transform:none}
+.reveal.d1{transition-delay:.1s}.reveal.d2{transition-delay:.2s}.reveal.d3{transition-delay:.3s}.reveal.d4{transition-delay:.4s}
+/* staggered children: the container gets .in (via the observer) and its children cascade */
+.reveal-seq>*{opacity:0;transform:translateY(34px) scale(.985);transition:opacity .68s var(--ease),transform .68s var(--ease)}
+.reveal-seq.in>*{opacity:1;transform:none}
+.reveal-seq.in>*:nth-child(1){transition-delay:.04s}
+.reveal-seq.in>*:nth-child(2){transition-delay:.1s}
+.reveal-seq.in>*:nth-child(3){transition-delay:.16s}
+.reveal-seq.in>*:nth-child(4){transition-delay:.22s}
+.reveal-seq.in>*:nth-child(5){transition-delay:.28s}
+.reveal-seq.in>*:nth-child(6){transition-delay:.34s}
+.reveal-seq.in>*:nth-child(7){transition-delay:.4s}
+.reveal-seq.in>*:nth-child(8){transition-delay:.46s}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}.reveal,.reveal-seq>*{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<!-- nav -->
+<header id="hdr">
+  <nav class="nav">
+    <div class="brand"><span class="blip"></span>UNIMATCHA</div>
+    <div class="navlinks">
+      <a href="#features" data-i18n="nav.features">功能</a>
+      <a href="#wall" data-i18n="feat.wall.t">校园墙</a>
+      <a href="#reviews" data-i18n="nav.reviews">评价</a>
+      <a href="#partners" data-i18n="nav.partners">合作伙伴</a>
+      <a href="#faq" data-i18n="faq.label">常见问题</a>
+    </div>
+    <div class="nav-cta">
+      <button class="lang" id="langBtn"><span class="material-symbols-rounded">translate</span><span id="langLabel">EN</span></button>
+      <a class="btn btn-neon" href="#getapp"><span data-i18n="nav.cta">进入应用</span><span class="material-symbols-rounded">arrow_forward</span></a>
+    </div>
+  </nav>
+</header>
+
+<!-- hero -->
+<section class="hero">
+  <div class="pfield" data-particles="18" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="h-left">
+        <div class="h-top">
+          <div class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">大学生 · 校园生活平台</span></div>
+          <h1 class="title" style="margin-top:24px" data-i18n-html="hero.title">点亮你的<br><span class="mark"><span>校园生活</span></span>。</h1>
+          <p class="lede" data-i18n-html="hero.lede">抹茶是为大学生打造的校园生活平台：认真的<b>匹配</b>，真实的<b>校园墙</b>，让每一段校园缘分都被认真对待。</p>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-neon btn-lg" href="#getapp"><span data-i18n="hero.cta1">立即开始</span><span class="material-symbols-rounded">arrow_forward</span></a>
+          <a class="btn btn-ghost btn-lg" href="#features" data-i18n="hero.cta2">了解功能</a>
+        </div>
+      </div>
+      <div class="h-right">
+        <div class="globe-wrap"><canvas id="globe" aria-hidden="true"></canvas><div class="globe-tip" id="globe-tip"></div></div>
+        <div class="hero-meta">
+          <div class="hm"><div class="n" data-count="42137">0</div><div class="l" data-i18n="stat.users">在册用户</div></div>
+          <div class="hm"><div class="n" data-count="8460">0</div><div class="l" data-i18n="stat.matches">成功配对</div></div>
+          <div class="hm"><div class="n" data-count="32" data-suffix="+">0</div><div class="l" data-i18n="stat.campuses">覆盖院校</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scrollcue"><span data-i18n="hero.scroll">下滑探索</span><span class="ln"></span></div>
+</section>
+
+<!-- stats band -->
+<section class="bg-white">
+  <div class="wrap" style="padding-top:0;padding-bottom:0">
+    <div class="statband">
+      <div class="st reveal"><div class="n" data-count="42137">0</div><div class="c" data-i18n="stat.users">在册用户</div></div>
+      <div class="st reveal d1"><div class="n" data-count="8460">0</div><div class="c" data-i18n="stat.matches">成功配对</div></div>
+      <div class="st reveal d2"><div class="n" data-count="32" data-suffix="+">0</div><div class="c" data-i18n="stat.campuses">覆盖院校</div></div>
+      <div class="st reveal d3"><div class="n" data-count="118" data-suffix="+">0</div><div class="c" data-i18n="stat.rounds">已运行轮次</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- features -->
+<section class="sec showcase3 bg-ivory" id="features">
+  <div class="wrap">
+    <div class="show3-grid">
+      <!-- left: description + live countdown -->
+      <div class="show-text reveal l">
+        <div class="st-top">
+          <div class="eyebrow"><span class="dot"></span><span data-i18n="feat.match.eyebrow">核心功能 · 匹配</span><span class="show-idx">/ 01</span></div>
+          <h2 data-i18n="feat.match.headline">认真的人，值得一次认真的匹配。</h2>
+          <p data-i18n="feat.match.d2">每周五 17:00 统一公布。在这里，遇见对的那个人，也遇见同频的挚友。</p>
+        </div>
+        <div class="globe-chip" style="margin-top:30px">
+          <div class="gc-top">
+            <span class="live"><i></i><span data-i18n="hero.live">匹配进行中</span></span>
+            <span id="roundTag">ROUND —</span>
+          </div>
+          <div class="gc-cd">
+            <div class="gc-cell"><div class="v" data-cd="d">00</div><div class="k" data-i18n="cd.d">天</div></div>
+            <div class="gc-sep">:</div>
+            <div class="gc-cell"><div class="v" data-cd="h">00</div><div class="k" data-i18n="cd.h">时</div></div>
+            <div class="gc-sep">:</div>
+            <div class="gc-cell"><div class="v" data-cd="m">00</div><div class="k" data-i18n="cd.m">分</div></div>
+            <div class="gc-sep">:</div>
+            <div class="gc-cell"><div class="v" data-cd="s">00</div><div class="k" data-i18n="cd.s">秒</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- center: phone only (bigger, thin bezel) -->
+      <div class="show-center reveal">
+        <div class="phone">
+          <div class="screen">
+            <!-- 替换为你的内容：图片 <img class="ph-media" src="你的图片.jpg" alt="">  或视频 <video class="ph-media" src="你的视频.mp4" autoplay muted loop playsinline></video> -->
+            <div class="ph-placeholder">
+              <span class="material-symbols-rounded">add_photo_alternate</span>
+              <span data-i18n="ph.match">匹配界面 · 放置图片 / 视频</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- right: four steps as connected cards -->
+      <div class="show-steps">
+        <h3 data-i18n="how.head">四步，开启一段关系</h3>
+        <div class="ss-timeline reveal-seq">
+          <div class="ss-step"><div class="ss-n">1</div><div class="ss-card"><b data-i18n="how.s1.t">完善资料</b><span data-i18n="how.s1.d2">填写资料与问卷。</span></div></div>
+          <div class="ss-step"><div class="ss-n">2</div><div class="ss-card"><b data-i18n="how.s2.t">加入匹配池</b><span data-i18n="how.s2.d2">一键加入本周匹配。</span></div></div>
+          <div class="ss-step"><div class="ss-n">3</div><div class="ss-card"><b data-i18n="how.s3.t">等待一轮</b><span data-i18n="how.s3.d2">算法整周为你优化。</span></div></div>
+          <div class="ss-step"><div class="ss-n">4</div><div class="ss-card"><b data-i18n="how.s4.t">周五 17:00 公布</b><span data-i18n="how.s4.d2">结果统一推送，解锁聊天。</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- campus wall -->
+<section class="sec showcase reverse" id="wall">
+  <div class="wrap">
+    <div class="show-grid">
+      <div class="show-text reveal r">
+        <div class="eyebrow"><span class="dot"></span><span data-i18n="feat.label">核心功能</span><span class="show-idx">/ 02</span></div>
+        <h2 data-i18n-html="feat.wall.slogan">一面墙，装下<em>整个校园</em>。</h2>
+        <p class="wall-lead" data-i18n="feat.wall.lead">两个你会天天打开它的理由——一面真实的校园墙，和一个可以匿名说话的角落。</p>
+
+        <div class="wall-folder">
+          <div class="wall-tabs" role="tablist" aria-label="校园墙">
+            <button type="button" class="wall-tab is-active" role="tab" aria-selected="true" data-wtab="0">
+              <span data-i18n="feat.wall.t">校园墙</span>
+            </button>
+            <button type="button" class="wall-tab" role="tab" aria-selected="false" data-wtab="1">
+              <span data-i18n="feat.card.anon.tab">匿名</span>
+            </button>
+          </div>
+          <div class="wall-panel">
+            <div class="wall-page is-active" data-wpage="0" role="tabpanel">
+              <h3 class="wall-page-title" data-i18n="feat.card.wall.title">组织活动，讨论校园</h3>
+              <p class="wall-page-desc" data-i18n="feat.card.wall.desc">发起线下活动、讨论校园话题、分享日常点滴、互相答疑解惑——以本校为中心，也能遇见跨校的有趣灵魂。</p>
+              <div class="wall-points">
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.wall.p1">发起线下活动，一起组局</span></div>
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.wall.p2">讨论课程、热点与校园八卦</span></div>
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.wall.p3">失物招领、二手闲置、求助答疑</span></div>
+              </div>
+            </div>
+            <div class="wall-page" data-wpage="1" role="tabpanel">
+              <h3 class="wall-page-title" data-i18n="feat.card.anon.title">匿名发帖，自在表达</h3>
+              <p class="wall-page-desc" data-i18n="feat.card.anon.desc">想说又不好意思署名？开启匿名身份发帖、评论、互动，把真实想法说出口，不暴露你是谁。</p>
+              <div class="wall-points">
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.anon.p1">开启匿名身份，隐藏你是谁</span></div>
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.anon.p2">树洞倾诉，说出压在心里的话</span></div>
+                <div class="wall-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="feat.card.anon.p3">匿名评论互动，也能被温柔接住</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wall-topics reveal">
+          <div class="wall-topics-label" data-i18n="feat.wall.boards">常见板块</div>
+          <div class="wall-chips reveal-seq">
+            <span class="wall-chip" data-i18n="feat.wall.t1">表白墙</span>
+            <span class="wall-chip" data-i18n="feat.wall.t2">树洞</span>
+            <span class="wall-chip" data-i18n="feat.wall.t3">失物招领</span>
+            <span class="wall-chip" data-i18n="feat.wall.t4">二手闲置</span>
+            <span class="wall-chip" data-i18n="feat.wall.t5">拼车拼单</span>
+            <span class="wall-chip" data-i18n="feat.wall.t6">组队搭子</span>
+            <span class="wall-chip" data-i18n="feat.wall.t7">求助答疑</span>
+            <span class="wall-chip" data-i18n="feat.wall.t8">活动组局</span>
+          </div>
+        </div>
+      </div>
+      <div class="show-phone reveal l">
+        <canvas class="ldr" data-loader="rings" aria-hidden="true" style="top:50%;left:50%;width:580px;height:580px;transform:translate(-50%,-50%);z-index:0;opacity:.4"></canvas>
+        <div class="phone">
+          <div class="screen">
+            <!-- 替换为你的内容：图片 <img class="ph-media" src="你的图片.jpg" alt="">  或视频 <video class="ph-media" src="你的视频.mp4" autoplay muted loop playsinline></video> -->
+            <div class="ph-placeholder">
+              <span class="material-symbols-rounded">add_photo_alternate</span>
+              <span data-i18n="ph.wall">校园墙界面 · 放置图片 / 视频</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- more: culture + product bento -->
+<section class="sec bg-warm" id="more">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow center"><span class="dot"></span><span data-i18n="more.label">不止于此 · MORE</span></div>
+      <h2 data-i18n="more.head">我们在认真做一件事</h2>
+      <p data-i18n="more.sub">把产品，和我们相信的事，都摆在这里。</p>
+    </div>
+    <div class="more-bento reveal-seq">
+      <div class="more-card mb-hero">
+        <div class="mb-ic"><span class="material-symbols-rounded">diversity_3</span></div>
+        <h3 data-i18n="more.c1.t">每一次连接，都值得被认真对待</h3>
+        <p data-i18n="more.c1.b">抹茶为校园而生、由学生打造。我们不做快餐式约会——只信少而精，只认真实、安全、彼此尊重。把缘分交给时间，也交给一群同样认真的人。</p>
+      </div>
+      <div class="more-card mb-neon">
+        <div class="mb-ic"><span class="material-symbols-rounded">schedule</span></div>
+        <div class="mb-big" data-i18n="more.c2.t">周五 17:00</div>
+        <p data-i18n="more.c2.b">匹配结果每周统一揭晓。没有无尽滑动，只有值得等待的那一刻。</p>
+      </div>
+      <div class="more-card mb-long">
+        <div class="mb-ic"><span class="material-symbols-rounded">favorite</span></div>
+        <h3 data-i18n="more.c3.t">长期关系 + 同频朋友</h3>
+        <p data-i18n="more.c3.b">不只是恋爱。遇见对的人，也遇见对的朋友。</p>
+      </div>
+      <div class="more-card mb-wall">
+        <div class="mb-ic"><span class="material-symbols-rounded">forum</span></div>
+        <h3 data-i18n="more.c4.t">校园墙</h3>
+        <p data-i18n="more.c4.b">以本校为中心的真实校园生活，也能匿名自在表达。</p>
+      </div>
+      <div class="more-card mb-edu">
+        <div class="mb-ic"><span class="material-symbols-rounded">verified</span></div>
+        <div>
+          <h3 data-i18n="more.c5.t">.edu 认证 · 真实学生</h3>
+          <p data-i18n="more.c5.b">每个人都是通过校园邮箱认证的真实同学。配对成功后，聊天自然解锁——不必尬聊开场。</p>
+        </div>
+      </div>
+      <div class="more-card mb-stat">
+        <div class="mb-ic"><span class="material-symbols-rounded">school</span></div>
+        <div class="mb-num">120+</div>
+        <div class="mb-k" data-i18n="more.stat.k">所高校 · 持续扩张</div>
+      </div>
+      <div class="more-card mb-spon">
+        <div class="mb-ic"><span class="material-symbols-rounded">volunteer_activism</span></div>
+        <h3 data-i18n="more.c8.t">我们赞助学生会</h3>
+        <p data-i18n="more.c8.b">最好的校园，由学生自己点亮。我们把资源交给真正组织校园的人。</p>
+        <div class="mb-points">
+          <div class="mb-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="more.c8.p1">免费定制运营平台</span></div>
+          <div class="mb-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="more.c8.p2">共建校园生态</span></div>
+          <div class="mb-point"><span class="material-symbols-rounded" aria-hidden="true">check_circle</span><span data-i18n="more.c8.p3">长期同行，而非一次性</span></div>
+        </div>
+        <a class="mb-link" href="#partners" data-i18n="more.c8.link">了解赞助计划 →</a>
+      </div>
+      <div class="more-card mb-dark">
+        <div class="mb-quote" aria-hidden="true">&ldquo;</div>
+        <h3 data-i18n="more.c7.t">少而精，而非无尽滑动</h3>
+        <p data-i18n="more.c7.b">宁愿你少遇见几个，也要让每一个都对。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- reviews -->
+<section class="sec" id="reviews">
+  <div class="wrap">
+    <div class="rvw2">
+      <div class="rvw2-intro reveal l">
+        <div class="eyebrow"><span class="dot"></span><span data-i18n="rev.label">学生怎么说 · REVIEWS</span></div>
+        <h2 data-i18n="rev.head">他们在这里，遇见了对的人</h2>
+        <p data-i18n="rev.sub">来自不同院校的同学，讲述他们的真实体验。</p>
+        <div class="rvw2-ctrl">
+          <button class="rvw2-btn" id="rvwPrev" type="button" aria-label="上一条"><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button>
+          <span class="rvw2-count" id="rvwCount">01 / 06</span>
+          <button class="rvw2-btn" id="rvwNext" type="button" aria-label="下一条"><span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span></button>
+        </div>
+      </div>
+      <div class="rvw2-deck reveal r" id="rvwDeck" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- partners -->
+<section class="sec sponsor-neon" id="partners">
+  <div class="sponsor-marquee top" aria-hidden="true">
+    <div class="sm-track">
+      <span class="sm-item" data-i18n="par.m1">我们赞助学生会</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m2">活动我们买单</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m3">周边我们出</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m4">奖品管够</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m1">我们赞助学生会</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m2">活动我们买单</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m3">周边我们出</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m4">奖品管够</span><span class="sm-star material-symbols-rounded">bolt</span>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sponsor-top reveal">
+      <div class="eyebrow"><span class="dot"></span><span data-i18n="par.label">赞助计划 · SPONSORSHIP</span></div>
+      <div class="sponsor-badge" aria-hidden="true">
+        <span class="material-symbols-rounded">volunteer_activism</span>
+        <span data-i18n="par.badge">赞助中</span>
+      </div>
+    </div>
+
+    <div class="sponsor-hero reveal">
+      <h2 class="sponsor-h2">
+        <span class="sh-line" data-i18n="par.h1">抹茶</span>
+        <span class="sh-line sh-hi"><mark data-i18n="par.h2">赞助学生会</mark></span>
+      </h2>
+      <p class="sponsor-lede" data-i18n="par.lede">我们真金白银地支持学生会——活动经费、周边、奖品、场地，我们买单。把想法交给我们，让校园热闹起来。</p>
+      <div class="sponsor-cta">
+        <a class="sponsor-btn" href="#get-sponsored">
+          <span data-i18n="par.cta.btn">申请赞助</span>
+          <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+        </a>
+        <span class="sponsor-note" data-i18n="par.cta.note">学生会 / 社团均可申请 · 一周内回复</span>
+      </div>
+    </div>
+
+    <div class="sponsor-chips reveal-seq">
+      <span class="s-chip"><span class="material-symbols-rounded" aria-hidden="true">dashboard_customize</span><span data-i18n="par.b1">免费定制运营平台</span></span>
+      <span class="s-chip"><span class="material-symbols-rounded" aria-hidden="true">diversity_3</span><span data-i18n="par.b2">共建校园生态</span></span>
+      <span class="s-chip"><span class="material-symbols-rounded" aria-hidden="true">handshake</span><span data-i18n="par.b3">长期赞助同行</span></span>
+      <span class="s-chip"><span class="material-symbols-rounded" aria-hidden="true">trending_up</span><span data-i18n="par.b4">托举学生领导力</span></span>
+    </div>
+  </div>
+
+  <div class="sponsor-marquee" aria-hidden="true">
+    <div class="sm-track">
+      <span class="sm-item" data-i18n="par.m1">我们赞助学生会</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m2">活动我们买单</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m3">周边我们出</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m4">奖品管够</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m1">我们赞助学生会</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m2">活动我们买单</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m3">周边我们出</span><span class="sm-star material-symbols-rounded">bolt</span>
+      <span class="sm-item" data-i18n="par.m4">奖品管够</span><span class="sm-star material-symbols-rounded">bolt</span>
+    </div>
+  </div>
+</section>
+
+<!-- get the app -->
+<section class="getapp" id="getapp">
+  <div class="ga-grid"></div>
+  <div class="ga-ring"></div>
+  <canvas id="ga-bg" data-blob data-blob-color="#CCFF00" aria-hidden="true"></canvas>
+  <div class="wrap" style="position:relative;z-index:2;text-align:center">
+    <div class="reveal"><span class="eyebrow ga-eyebrow"><span class="dot"></span><span data-i18n="epo.label">下一轮匹配 · NEXT ROUND</span></span></div>
+    <h2 class="ga-h reveal" data-i18n-html="epo.head">每周五 17:00，<br><em>缘分统一结算。</em></h2>
+    <div class="big-cd reveal-seq">
+      <div class="bc"><div class="v" data-cd="d">00</div><div class="k" data-i18n="cd.days">天</div></div>
+      <div class="bc"><div class="v" data-cd="h">00</div><div class="k" data-i18n="cd.hours">小时</div></div>
+      <div class="bc"><div class="v" data-cd="m">00</div><div class="k" data-i18n="cd.mins">分钟</div></div>
+      <div class="bc"><div class="v" data-cd="s">00</div><div class="k" data-i18n="cd.secs">秒</div></div>
+    </div>
+    <p class="ga-sub reveal d1" data-i18n="ga.sub">iOS 与 Android 预计 2026 春季上线。加入候补名单，抢先体验并解锁校园专属福利。</p>
+    <div class="ga-badges reveal d1">
+      <a class="ga-badge" href="#">
+        <span class="ga-bi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.23-3.91-1.22-1.78-3.11-2.02-3.78-2.05-1.61-.16-3.14.94-3.96.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.81 1.3 10.37.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.55 0 2 .83 3.36.81 1.39-.03 2.27-1.27 3.12-2.53.98-1.45 1.39-2.85 1.41-2.92-.03-.01-2.7-1.04-2.73-4.13zM14.62 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-3 1.54-.66.76-1.24 1.98-1.08 3.15 1.14.09 2.31-.58 3.02-1.44z"/></svg></span>
+        <div class="ga-bt"><small data-i18n="ga.ios.k">即将上线 APP STORE</small><b>App Store</b></div>
+        <span class="ga-soon" data-i18n="ga.soon">敬请期待</span>
+      </a>
+      <a class="ga-badge" href="#">
+        <span class="ga-bi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3l13 9-13 9V3z"/></svg></span>
+        <div class="ga-bt"><small data-i18n="ga.gp.k">即将上线 GOOGLE PLAY</small><b>Google Play</b></div>
+        <span class="ga-soon" data-i18n="ga.soon">敬请期待</span>
+      </a>
+    </div>
+    <a class="ga-wait reveal d2" href="mailto:hello@unimatcha.com" data-i18n="ga.wait">→ 加入候补名单 · 抢先体验</a>
+  </div>
+</section>
+
+<!-- final cta -->
+<section class="sec bg-ivory" id="faq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow"><span class="dot"></span><span data-i18n="faq.label">常见问题</span></div>
+      <h2 data-i18n="faq.head">你想问的，都在这里。</h2>
+    </div>
+    <div class="faq-list reveal-seq">
+      <div class="faq-item">
+        <button class="faq-q" type="button" aria-expanded="false"><span data-i18n="faq.q1">抹茶免费吗？</span><span class="material-symbols-rounded faq-ic" aria-hidden="true">expand_more</span></button>
+        <div class="faq-a"><div><p data-i18n="faq.a1">核心体验完全免费。我们也在为深度用户打造 Pro 版本，带来更高级的筛选和活动特权。</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button" aria-expanded="false"><span data-i18n="faq.q2">支持哪些学校？</span><span class="material-symbols-rounded faq-ic" aria-hidden="true">expand_more</span></button>
+        <div class="faq-a"><div><p data-i18n="faq.a2">首批覆盖美国、英国、欧洲、印度和日本的 120+ 所高校，并持续每周新增。</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button" aria-expanded="false"><span data-i18n="faq.q3">和交友/约会软件有什么不同？</span><span class="material-symbols-rounded faq-ic" aria-hidden="true">expand_more</span></button>
+        <div class="faq-a"><div><p data-i18n="faq.a3">抹茶追求真实的连接，而不是无止境地划走。每周五 17:00 统一公布新一轮——遇见对的那个人，也遇见同频的挚友，还有属于本校的校园墙。</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button" aria-expanded="false"><span data-i18n="faq.q4">如何验证学生身份？</span><span class="material-symbols-rounded faq-ic" aria-hidden="true">expand_more</span></button>
+        <div class="faq-a"><div><p data-i18n="faq.a4">每位用户都需用有效的 .edu（或同等）邮箱注册，并通过应用内的真实校验。</p></div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" type="button" aria-expanded="false"><span data-i18n="faq.q5">什么时候上线？</span><span class="material-symbols-rounded faq-ic" aria-hidden="true">expand_more</span></button>
+        <div class="faq-a"><div><p data-i18n="faq.a5">正式上线定于 2026 年春季。加入候补名单，今秋抢先体验。</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- footer -->
+<footer>
+  <div class="wrap">
+    <div class="foot reveal">
+      <div>
+        <div class="brand"><span class="blip"></span>UNIMATCHA</div>
+        <p class="desc" data-i18n="foot.desc">大学生长期恋爱匹配平台 · v2.0。每周五 17:00，公平、专注地公布每一轮匹配结果。</p>
+      </div>
+      <div class="foot-cols">
+        <div class="fcol"><h5 data-i18n="foot.c1">产品</h5>
+          <a href="#features" data-i18n="feat.match.t">匹配</a>
+          <a href="#wall" data-i18n="feat.wall.t">校园墙</a>
+          <a href="#getapp" data-i18n="ga.label">获取 App</a>
+          <a href="#features" data-i18n="nav.how">如何使用</a>
+        </div>
+        <div class="fcol"><h5 data-i18n="foot.c2">平台</h5>
+          <a href="#" data-i18n="foot.h5">H5 移动端</a>
+          <a href="#" data-i18n="foot.ios">iOS 客户端</a>
+          <a href="#" data-i18n="foot.admin">管理后台</a>
+        </div>
+        <div class="fcol"><h5 data-i18n="foot.c3">关于</h5>
+          <a href="#partners" data-i18n="nav.partners">合作伙伴</a>
+          <a href="#" data-i18n="foot.privacy">隐私协议</a>
+          <a href="mailto:hello@unimatcha.com" data-i18n="foot.contact">联系我们</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bot reveal">
+      <span data-i18n="foot.copy">© 2026 UNIMATCHA · 长期恋爱匹配协议</span>
+      <span data-i18n="foot.tag">为认真的人而造 · ◆ #CCFF00</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ===================== i18n ===================== */
+const I18N={
+  zh:{
+    'nav.features':'功能','nav.how':'如何使用','nav.reviews':'评价','nav.partners':'合作伙伴','nav.cta':'进入应用',
+    'hero.eyebrow':'大学生 · 校园生活平台',
+    'hero.title':'点亮你的<br><span class="mark"><span>校园生活</span></span>。',
+    'hero.lede':'抹茶是为大学生打造的校园生活平台：认真的<b>匹配</b>，真实的<b>校园墙</b>，让每一段校园缘分都被认真对待。',
+    'hero.cta1':'立即开始','hero.cta2':'了解功能','hero.live':'匹配进行中','hero.scroll':'下滑探索',
+    'stat.users':'在册用户','stat.matches':'成功配对','stat.campuses':'覆盖院校','stat.rounds':'已运行轮次',
+    'cd.d':'天','cd.h':'时','cd.m':'分','cd.s':'秒','cd.days':'天','cd.hours':'小时','cd.mins':'分钟','cd.secs':'秒',
+    'feat.label':'核心功能','feat.head':'两件事，把校园缘分做到极致','feat.sub':'不堆功能，只把最重要的体验打磨好：认真的匹配（恋爱 + 朋友），与以本校为中心的校园墙。',
+    'feat.match.t':'匹配','feat.match.eyebrow':'核心功能 · 匹配','feat.match.headline':'认真的人，值得一次认真的匹配。','feat.match.d':'面向大学生的长期匹配——每一轮持续整整一周，周五 17:00 统一公布结果，把缘分交给一个公平、专注、有期待的算法。不只是恋爱，也能匹配同频的朋友。',
+    'feat.match.tag1':'恋爱匹配','feat.match.tag2':'朋友匹配',
+    'feat.match.b1':'周期匹配制：每周五 17:00 统一公布，营造仪式感。','feat.match.b2':'恋爱 + 朋友双模式，遇见对的人，也遇见对的朋友。','feat.match.b3':'AI 为长期关系优化，而非一时心动。',
+    'feat.wall.t':'校园墙','feat.wall.d':'以本校为中心的内容墙——优先看到同校同学的真实校园生活，也能发现跨校的有趣灵魂。',
+    'feat.wall.tag1':'本校优先','feat.wall.tag2':'跨校发现',
+    'feat.wall.b1':'本校优先：先看到同校同学的真实动态。','feat.wall.b2':'跨校发现：遇见其他学校的有趣灵魂。','feat.wall.b3':'图文瀑布流，呈现真实的校园生活。',
+    'feat.wall.slogan':'一面墙，装下<em>整个校园</em>。',
+    'feat.wall.lead':'两个你会天天打开它的理由——一面真实的校园墙，和一个可以匿名说话的角落。',
+    'feat.card.explore':'了解更多',
+    'feat.card.wall.label':'校园墙 · CAMPUS WALL','feat.card.wall.title':'组织活动，讨论校园',
+    'feat.card.wall.desc':'发起线下活动、讨论校园话题、分享日常点滴、互相答疑解惑——以本校为中心，也能遇见跨校的有趣灵魂。',
+    'feat.card.wall.chip1':'组织活动','feat.card.wall.chip2':'讨论校园','feat.card.wall.chip3':'分享日常','feat.card.wall.chip4':'答疑解惑',
+    'feat.card.anon.tab':'匿名','feat.card.anon.label':'匿名 · ANONYMOUS','feat.card.anon.title':'匿名发帖，自在表达',
+    'feat.card.anon.desc':'想说又不好意思署名？开启匿名身份发帖、评论、互动，把真实想法说出口，不暴露你是谁。',
+    'feat.card.wall.p1':'发起线下活动，一起组局','feat.card.wall.p2':'讨论课程、热点与校园八卦','feat.card.wall.p3':'失物招领、二手闲置、求助答疑',
+    'feat.card.anon.p1':'开启匿名身份，隐藏你是谁','feat.card.anon.p2':'树洞倾诉，说出压在心里的话','feat.card.anon.p3':'匿名评论互动，也能被温柔接住',
+    'feat.wall.boards':'常见板块','feat.wall.t1':'表白墙','feat.wall.t2':'树洞','feat.wall.t3':'失物招领','feat.wall.t4':'二手闲置','feat.wall.t5':'拼车拼单','feat.wall.t6':'组队搭子','feat.wall.t7':'求助答疑','feat.wall.t8':'活动组局',
+    'ph.match':'匹配界面 · 放置图片 / 视频','ph.wall':'校园墙界面 · 放置图片 / 视频',
+    'mock.matching':'匹配中 · 等待周五公布','mock.join':'加入匹配池','mock.wall':'校园墙','mock.wall.t1':'推荐','mock.wall.t2':'校园墙',
+    'mock.chat.name':'晚晴','mock.chat.role':'Cambridge · 已配对','mock.chat.b1':'嗨，看到我们都喜欢爬山 ⛰️','mock.chat.b2':'是啊！周末有空一起去吗？','mock.chat.b3':'好呀，那就说定了～','mock.chat.input':'发条消息…',
+    'how.label':'如何使用','how.head':'四步，开启你的一段关系','how.sub':'像一轮一轮推进的赛季，每一步都简单清晰。',
+    'how.s1.t':'完善资料','how.s1.d':'填写资料与问卷，让算法读懂真实的你——价值观、兴趣与对长期关系的期待。','how.s1.s':'Profile',
+    'how.s2.t':'加入匹配池','how.s2.d':'一键加入本周匹配池，进入"匹配中"状态，并看到距周五 17:00 的倒计时。','how.s2.s':'Join Pool',
+    'how.s3.t':'等待一轮','how.s3.d':'算法在整整一周内综合资料与偏好，为长期关系优化，而非一时心动。','how.s3.s':'One Round',
+    'how.s4.t':'周五 17:00 公布','how.s4.d':'结果统一推送。配对成功即解锁专属聊天与校园墙；未配则自动进入下一轮。','how.s4.s':'Reveal',
+    'how.s1.d2':'填写资料与问卷。','how.s2.d2':'一键加入本周匹配。','how.s3.d2':'算法整周为你优化。','how.s4.d2':'结果统一推送，解锁聊天。',
+    'feat.match.d2':'每周五 17:00 统一公布。在这里，遇见对的那个人，也遇见同频的挚友。',
+    'more.label':'不止于此 · MORE','more.head':'我们在认真做一件事','more.sub':'把产品，和我们相信的事，都摆在这里。',
+    'more.c1.t':'每一次连接，都值得被认真对待','more.c1.b':'抹茶为校园而生、由学生打造。我们不做快餐式约会——只信少而精，只认真实、安全、彼此尊重。把缘分交给时间，也交给一群同样认真的人。',
+    'more.c2.t':'周五 17:00','more.c2.b':'匹配结果每周统一揭晓。没有无尽滑动，只有值得等待的那一刻。',
+    'more.c3.t':'长期关系 + 同频朋友','more.c3.b':'不只是恋爱。遇见对的人，也遇见对的朋友。',
+    'more.c4.t':'校园墙','more.c4.b':'以本校为中心的真实校园生活，也能匿名自在表达。',
+    'more.c5.t':'.edu 认证 · 真实学生','more.c5.b':'每个人都是通过校园邮箱认证的真实同学。配对成功后，聊天自然解锁——不必尬聊开场。',
+    'more.stat.k':'所高校 · 持续扩张',
+    'more.c7.t':'少而精，而非无尽滑动','more.c7.b':'宁愿你少遇见几个，也要让每一个都对。',
+    'more.c8.t':'我们赞助学生会','more.c8.b':'最好的校园，由学生自己点亮。我们把资源交给真正组织校园的人。','more.c8.p1':'免费定制运营平台','more.c8.p2':'共建校园生态','more.c8.p3':'长期同行，而非一次性','more.c8.link':'了解赞助计划 →',
+    'rev.label':'学生怎么说 · REVIEWS','rev.head':'他们在这里，遇见了对的人','rev.sub':'来自不同院校的同学，讲述他们的真实体验。','rev.note':'真实校园反馈 · 每周持续更新','rev.matches':'匹配','rev.matched':'已匹配 · 周五','rev.input':'配对后解锁聊天','rev.sys':'你们互相喜欢了 · 周五 17:00','rev.now':'现正显示','rev.auto':'自动轮播',
+    'par.label':'赞助计划 · SPONSORSHIP','par.badge':'官方赞助','par.h1':'我们赞助真正重要的','par.h2':'学生力量','par.lede':'抹茶正式赞助各校学生会，与你们一同共建校园生态。我们为每一个合作学生会免费搭建一套定制运营平台，让优秀的组织者被真正看见、被稳稳托举。',
+    'par.cta.btn':'申请赞助','par.cta.note':'仅面向学生会开放 · 我们会尽快回复每一份申请',
+    'par.b1':'免费定制运营平台','par.b2':'共建校园生态','par.b3':'长期赞助同行','par.b4':'托举学生领导力',
+    'par.m1':'赞助真正重要的社群','par.m2':'与学生会共建生态','par.m3':'托举学生领导力','par.m4':'长期同行，而非一次性',
+    'epo.label':'下一轮匹配 · NEXT ROUND','epo.head':'每周五 17:00，<br><em>缘分统一结算。</em>','epo.sub':'所有人在同一时刻见证结果。这一周，好好准备你的资料——下一个周五，或许就是故事的开始。','epo.btn':'加入下一轮',
+    'ga.label':'获取 App','ga.head':'即将装进<br><em>你的口袋。</em>','ga.sub':'iOS 与 Android 预计 2026 春季上线。加入候补名单，抢先体验并解锁校园专属福利。','ga.ios.k':'即将上线 APP STORE','ga.gp.k':'即将上线 GOOGLE PLAY','ga.soon':'敬请期待','ga.wait':'→ 加入候补名单 · 抢先体验',
+    'cta.label':'准备好了吗','cta.head':'下一个周五 17:00，<br>会不会是 <span class="u">你的故事</span> 开始？','cta.sub':'加入匹配池，把这一周交给认真。','cta.btn1':'立即加入匹配','cta.btn2':'先了解机制',
+    'faq.label':'常见问题','faq.head':'你想问的，都在这里。','faq.q1':'抹茶免费吗？','faq.a1':'核心体验完全免费。我们也在为深度用户打造 Pro 版本，带来更高级的筛选和活动特权。','faq.q2':'支持哪些学校？','faq.a2':'首批覆盖美国、英国、欧洲、印度和日本的 120+ 所高校，并持续每周新增。','faq.q3':'和交友/约会软件有什么不同？','faq.a3':'抹茶追求真实的连接，而不是无止境地划走。每周五 17:00 统一公布新一轮——遇见对的那个人，也遇见同频的挚友，还有属于本校的校园墙。','faq.q4':'如何验证学生身份？','faq.a4':'每位用户都需用有效的 .edu（或同等）邮箱注册，并通过应用内的真实校验。','faq.q5':'什么时候上线？','faq.a5':'正式上线定于 2026 年春季。加入候补名单，今秋抢先体验。',
+    'foot.desc':'大学生长期恋爱匹配平台 · v2.0。每周五 17:00，公平、专注地公布每一轮匹配结果。','foot.c1':'产品','foot.c2':'平台','foot.c3':'关于','foot.h5':'H5 移动端','foot.ios':'iOS 客户端','foot.admin':'管理后台','foot.privacy':'隐私协议','foot.contact':'联系我们','foot.copy':'© 2026 UNIMATCHA · 长期恋爱匹配协议','foot.tag':'为认真的人而造 · ◆ #CCFF00',
+  },
+  en:{
+    'nav.features':'Features','nav.how':'How it works','nav.reviews':'Reviews','nav.partners':'Partners','nav.cta':'Open App',
+    'hero.eyebrow':'For students · A campus life platform',
+    'hero.title':'Spark your<br><span class="mark"><span>campus life</span></span>.',
+    'hero.lede':'Unimatcha is a campus-life platform for university students: serious <b>matching</b> and a real <b>campus wall</b>, so every campus connection is taken seriously.',
+    'hero.cta1':'Get started','hero.cta2':'Explore features','hero.live':'Round in progress','hero.scroll':'Scroll',
+    'stat.users':'Registered users','stat.matches':'Matches made','stat.campuses':'Campuses','stat.rounds':'Rounds run',
+    'cd.d':'D','cd.h':'H','cd.m':'M','cd.s':'S','cd.days':'Days','cd.hours':'Hours','cd.mins':'Mins','cd.secs':'Secs',
+    'feat.label':'Core features','feat.head':'Two things, done exceptionally well','feat.sub':'No feature bloat — just the experiences that matter most: serious matching (dating + friends), and a campus wall centred on your own school.',
+    'feat.match.t':'Matching','feat.match.eyebrow':'Core feature · Matching','feat.match.headline':'Serious people deserve a serious match.','feat.match.d':'Long-term matching for university students — every round runs a full week and settles at Friday 17:00, handing your fate to an algorithm that is fair, focused and worth the wait. Not just dating — match with like-minded friends too.',
+    'feat.match.tag1':'Dating','feat.match.tag2':'Friends',
+    'feat.match.b1':'A weekly round — results revealed together every Friday 17:00.','feat.match.b2':'Two modes, dating + friends — meet the right partner and the right friends.','feat.match.b3':'AI optimised for the long term, not a fleeting spark.',
+    'feat.wall.t':'Campus Wall','feat.wall.d':'A wall centred on your own campus — see real student life from your school first, and still discover interesting people across campuses.',
+    'feat.wall.tag1':'Your campus first','feat.wall.tag2':'Cross-campus',
+    'feat.wall.b1':'Your campus first — real posts from people at your own school.','feat.wall.b2':'Cross-campus discovery — find interesting souls from other universities.','feat.wall.b3':'A photo-rich feed showing real student life.',
+    'feat.wall.slogan':'One wall. <em>Your whole campus.</em>',
+    'feat.wall.lead':'Two reasons you’ll open it every day — a real campus wall, and a corner where you can speak anonymously.',
+    'feat.card.explore':'EXPLORE',
+    'feat.card.wall.label':'CAMPUS WALL','feat.card.wall.title':'Organize, discuss, share, ask',
+    'feat.card.wall.desc':'Start activities, discuss campus topics, share daily life, and help each other with Q&A — centred on your own school, with interesting people across campuses too.',
+    'feat.card.wall.chip1':'Activities','feat.card.wall.chip2':'Discuss','feat.card.wall.chip3':'Share','feat.card.wall.chip4':'Q&A',
+    'feat.card.anon.tab':'Anonymous','feat.card.anon.label':'ANONYMOUS','feat.card.anon.title':'Post anonymously, speak freely',
+    'feat.card.anon.desc':'Got something to say but don’t want your name on it? Turn on an anonymous identity to post, comment, and interact — share what you really think without revealing who you are.',
+    'feat.card.wall.p1':'Rally people for offline events','feat.card.wall.p2':'Talk courses, campus news & gossip','feat.card.wall.p3':'Lost & found, resale, quick Q&A',
+    'feat.card.anon.p1':'Post with a hidden identity','feat.card.anon.p2':'Vent freely in the tree-hole','feat.card.anon.p3':'Comment anonymously, land softly',
+    'feat.wall.boards':'Popular boards','feat.wall.t1':'Confessions','feat.wall.t2':'Tree-hole','feat.wall.t3':'Lost & found','feat.wall.t4':'Resale','feat.wall.t5':'Carpool & group-buy','feat.wall.t6':'Find a buddy','feat.wall.t7':'Q&A / help','feat.wall.t8':'Events',
+    'ph.match':'Matching screen · drop image / video','ph.wall':'Campus wall · drop image / video',
+    'mock.matching':'Matching · waiting for Friday','mock.join':'Join pool','mock.wall':'Campus Wall','mock.wall.t1':'For You','mock.wall.t2':'Campus',
+    'mock.chat.name':'Wanqing','mock.chat.role':'Cambridge · Matched','mock.chat.b1':'Hey — we both love hiking ⛰️','mock.chat.b2':'We do! Free to go this weekend?','mock.chat.b3':'Sure, it’s a date~','mock.chat.input':'Message…',
+    'how.label':'How it works','how.head':'Four steps to start a relationship','how.sub':'Like a season that advances round by round — every step simple and clear.',
+    'how.s1.t':'Build your profile','how.s1.d':'Fill in your profile and questionnaire so the algorithm understands the real you — values, interests and what you want long-term.','how.s1.s':'Profile',
+    'how.s2.t':'Join the pool','how.s2.d':'Join this week’s pool in one tap, enter the "matching" state, and watch the countdown to Friday 17:00.','how.s2.s':'Join Pool',
+    'how.s3.t':'Wait one round','how.s3.d':'Over a full week the algorithm weighs profiles and preferences, optimising for the long term — not a fleeting spark.','how.s3.s':'One Round',
+    'how.s4.t':'Friday 17:00 reveal','how.s4.d':'Results are pushed together. Match and you unlock private chat and the campus wall; no match and you roll into the next round.','how.s4.s':'Reveal',
+    'how.s1.d2':'Fill in your profile & questionnaire.','how.s2.d2':'Join this week’s pool in one tap.','how.s3.d2':'The algorithm optimises all week.','how.s4.d2':'Results revealed, chat unlocks.',
+    'feat.match.d2':'Revealed together every Friday 17:00. Meet the right partner here — and the right kind of close friends.',
+    'more.label':'Beyond matching · MORE','more.head':'We’re building this on purpose','more.sub':'The product, and the things we believe in.',
+    'more.c1.t':'Every connection deserves to be taken seriously','more.c1.b':'Built for campus, by students. Not fast-food dating — we believe in quality over quantity, in connections that are real, safe and mutually respected. We hand your story to time, and to people who take it as seriously as you do.',
+    'more.c2.t':'Fridays, 17:00','more.c2.b':'Matches revealed together, once a week. No endless swiping — just one moment worth the wait.',
+    'more.c3.t':'Long-term + same-frequency','more.c3.b':'Not just dating. Meet the right partner — and the right friends.',
+    'more.c4.t':'Campus Wall','more.c4.b':'Real campus life, home-school first — with an anonymous corner to speak freely.',
+    'more.c5.t':'.edu verified · real students','more.c5.b':'Everyone is a real student, verified by campus email. After a match, chat unlocks naturally — no awkward cold opens.',
+    'more.stat.k':'campuses · and growing',
+    'more.c7.t':'Quality over quantity — not endless swiping','more.c7.b':'We’d rather you meet fewer people, as long as each one is right.',
+    'more.c8.t':'We sponsor student unions','more.c8.b':'The best campuses are lit up by students themselves — so we back the people who run them.','more.c8.p1':'Free custom ops platform','more.c8.p2':'Co-building the campus ecosystem','more.c8.p3':'A partnership, not a one-off','more.c8.link':'Explore sponsorship →',
+    'rev.label':'What students say · REVIEWS','rev.head':'They met the right person here','rev.sub':'Students from different campuses share their real experience.','rev.note':'Real campus voices · updated weekly','rev.matches':'Matches','rev.matched':'Matched · Fri','rev.input':'Chat unlocks after matching','rev.sys':'It’s a match · Fri 17:00','rev.now':'Now showing','rev.auto':'auto-playing',
+    'par.label':'Sponsorship program · SPONSORSHIP','par.badge':'Sponsor','par.h1':'We back the unions that','par.h2':'move campus','par.lede':'Unimatcha proudly sponsors student unions to co-build the campus ecosystem, side by side. Every partner union receives a free, custom-built operations platform — so the people who lead their community are seen, supported, and set up to win.',
+    'par.cta.btn':'Get sponsored','par.cta.note':'Open to student unions only — we reply to every application, fast.',
+    'par.b1':'Free custom ops platform','par.b2':'Co-build the campus ecosystem','par.b3':'A long-term sponsor','par.b4':'Backing student leadership',
+    'par.m1':'Sponsoring the communities that matter','par.m2':'Co-building the ecosystem with unions','par.m3':'Backing student leadership','par.m4':'A partnership, not a one-off',
+    'epo.label':'Next round · NEXT ROUND','epo.head':'Every Friday 17:00,<br><em>matches settle together.</em>','epo.sub':'Everyone witnesses the result at the same moment. Spend this week perfecting your profile — next Friday could be where your story begins.','epo.btn':'Join the next round',
+    'ga.label':'Get the app','ga.head':'Coming soon to<br><em>your pocket.</em>','ga.sub':'iOS & Android launching Spring 2026. Join the waitlist for early access and exclusive campus drops.','ga.ios.k':'COMING TO APP STORE','ga.gp.k':'COMING TO GOOGLE PLAY','ga.soon':'SOON','ga.wait':'→ Join the waitlist · early access',
+    'cta.label':'Ready?','cta.head':'Next Friday 17:00 —<br>could it be where <span class="u">your story</span> begins?','cta.sub':'Join the pool, and give this week to something real.','cta.btn1':'Join matching now','cta.btn2':'See how it works',
+    'faq.label':'FAQ','faq.head':'Everything you wanted to ask.','faq.q1':'Is Unimatcha free?','faq.a1':'Yes — the core experience is free. We’re working on a Pro tier for power users with advanced filters and event perks.','faq.q2':'Which universities are supported?','faq.a2':'We’re launching with 120+ universities across the US, UK, Europe, India and Japan. More added weekly.','faq.q3':'How is this different from dating apps?','faq.a3':'Unimatcha is about real connection, not endless swiping. Every Friday at 17:00 a new round is revealed — meet the right partner and like-minded friends, plus a real campus wall for your school.','faq.q4':'How do you verify students?','faq.a4':'Every user must register with a valid .edu (or equivalent) email and pass an in-app vibe check.','faq.q5':'When does the app launch?','faq.a5':'Public launch is Spring 2026. Join the waitlist for early access this fall.',
+    'foot.desc':'Long-term matching for university students · v2.0. Every Friday 17:00 we reveal each round fairly and with focus.','foot.c1':'Product','foot.c2':'Platform','foot.c3':'About','foot.h5':'H5 Mobile','foot.ios':'iOS App','foot.admin':'Admin','foot.privacy':'Privacy','foot.contact':'Contact us','foot.copy':'© 2026 UNIMATCHA · Long-term matching protocol','foot.tag':'Built for people who are serious · ◆ #CCFF00',
+  }
+};
+let LANG=localStorage.getItem('um_lang')||'zh';
+function applyLang(l){
+  LANG=l;document.documentElement.lang=l;localStorage.setItem('um_lang',l);
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(I18N[l][k]!=null)el.textContent=I18N[l][k];});
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{const k=el.getAttribute('data-i18n-html');if(I18N[l][k]!=null)el.innerHTML=I18N[l][k];});
+  document.getElementById('langLabel').textContent=(l==='zh'?'EN':'中');
+  buildReviews();
+}
+document.getElementById('langBtn').addEventListener('click',()=>applyLang(LANG==='zh'?'en':'zh'));
+
+/* ===================== reviews data ===================== */
+const REVIEWS={
+  zh:[
+    {q:'本来只是抱着试试的心态，结果真的遇到了聊得来的人。周五公布那一刻太有仪式感了。',n:'晓彤',r:'UCL · 大三',op:'嗨，你也是周五这轮匹配的吧？',rp:'是啊，很开心是你',t:'17:03'},
+    {q:'不用一直刷，一周等一次结果，反而更认真地对待每一次匹配。',n:'子谦',r:'Imperial · 研一',op:'等了一整周，还挺期待今天的',rp:'完全同感',t:'17:01'},
+    {q:'校园墙让我发现了好多有意思的同学，氛围很真实不油腻。',n:'安然',r:'LSE · 大二',op:'在校园墙刷到你，感觉很有意思',rp:'哈哈被你发现了',t:'17:05'},
+    {q:'配对后直接能聊天，第一句话就很自然，没有尬聊。',n:'南风',r:'KCL · 大四',op:'第一句其实有点不知道说什么',rp:'那就从这句开始吧',t:'17:00'},
+    {q:'专注长期关系这点真的戳到我，不是那种快餐式的。',n:'知意',r:'Oxford · 研二',op:'感觉你也是认真找人的那种',rp:'嗯，想好好试试',t:'17:07'},
+    {q:'界面好看又干净，用起来很舒服，推荐给了全宿舍。',n:'清和',r:'Edinburgh · 大三',op:'这个界面是真的好看',rp:'我已经安利全宿舍了',t:'17:02'},
+  ],
+  en:[
+    {q:'I joined just to try it — and actually met someone I click with. The Friday reveal feels genuinely special.',n:'Tina',r:'UCL · Year 3',op:'Hey, you’re in the Friday round too?',rp:'Yeah — so glad it’s you',t:'17:03'},
+    {q:'No endless scrolling. Waiting a week for one result makes me take every match seriously.',n:'Ziqian',r:'Imperial · PG',op:'Waited all week — kind of excited for today',rp:'Couldn’t agree more',t:'17:01'},
+    {q:'The campus wall helped me find so many interesting people. The vibe is real, not sleazy.',n:'Anran',r:'LSE · Year 2',op:'Saw you on the campus wall — you seem fun',rp:'Ha, you found me',t:'17:05'},
+    {q:'Chat unlocks right after matching, so the first message feels natural — no awkward openers.',n:'Nanfeng',r:'KCL · Year 4',op:'Honestly wasn’t sure how to open this',rp:'Let’s just start right here',t:'17:00'},
+    {q:'The focus on long-term relationships is exactly what I wanted. Not fast-food dating.',n:'Zhiyi',r:'Oxford · PG',op:'You’re here to actually find someone too?',rp:'Yeah — for real this time',t:'17:07'},
+    {q:'Beautiful, clean interface that’s a joy to use. I recommended it to my whole flat.',n:'Qinghe',r:'Edinburgh · Year 3',op:'This interface is genuinely gorgeous',rp:'Already told my whole flat',t:'17:02'},
+  ]
+};
+function revStars(){return '<span class="material-symbols-rounded" aria-hidden="true">star</span>'.repeat(5);}
+var rvwOrder=[0,1,2,3,4,5];
+var rvwReduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+var rvwAuto=null,rvwOn=false;
+function rvwLayout(){
+  var deck=document.getElementById('rvwDeck');if(!deck)return;var cards=deck.children,N=cards.length;
+  for(var k=0;k<N;k++){
+    var p=rvwOrder.indexOf(k),c=cards[k],tf,op=1;
+    if(p===0)tf='translate(0,0) rotate(0deg) scale(1)';
+    else if(p===1)tf='translate(-18px,14px) rotate(-3.5deg) scale(.965)';
+    else if(p===2){tf='translate(-36px,26px) rotate(4deg) scale(.93)';op=.92;}
+    else if(p===3){tf='translate(-20px,38px) rotate(-6deg) scale(.9)';op=.5;}
+    else {tf='translate(0,46px) rotate(-2deg) scale(.88)';op=0;}
+    c.style.transform=tf;c.style.opacity=op;c.style.zIndex=60-p;c.style.pointerEvents=p===0?'auto':'none';
+  }
+  var cnt=document.getElementById('rvwCount');if(cnt)cnt.textContent='0'+(rvwOrder[0]+1)+' / 0'+N;
+}
+function rvwNext(){rvwOrder.push(rvwOrder.shift());rvwLayout();}
+function rvwPrev(){rvwOrder.unshift(rvwOrder.pop());rvwLayout();}
+function rvwStart(){if(rvwReduce)return;rvwStop();rvwAuto=setInterval(rvwNext,5500);}
+function rvwStop(){if(rvwAuto){clearInterval(rvwAuto);rvwAuto=null;}}
+function rvwRestart(){rvwStop();if(rvwOn)rvwStart();}
+function buildReviews(){
+  var deck=document.getElementById('rvwDeck');if(!deck)return;
+  deck.innerHTML=REVIEWS[LANG].map(function(t){return `<article class="rvw2-card"><span class="rvw2-ribbon" aria-hidden="true"></span><div class="rvw-stars">${revStars()}</div><blockquote class="rvw-q">${t.q}</blockquote><div class="rvw-by"><span class="cr-av">${t.n[0]}</span><span class="rvw-who"><span class="rvw-nm">${t.n}</span><span class="rvw-ro">${t.r}</span></span></div></article>`;}).join('');
+  Array.prototype.forEach.call(deck.children,function(c){c.addEventListener('click',function(){rvwNext();rvwRestart();});});
+  rvwLayout();
+}
+(function(){
+  var prev=document.getElementById('rvwPrev'),next=document.getElementById('rvwNext'),deck=document.getElementById('rvwDeck'),sec=document.getElementById('reviews');
+  if(prev)prev.addEventListener('click',function(){rvwPrev();rvwRestart();});
+  if(next)next.addEventListener('click',function(){rvwNext();rvwRestart();});
+  if(deck){deck.addEventListener('pointerenter',rvwStop);deck.addEventListener('pointerleave',function(){if(rvwOn)rvwStart();});}
+  if(sec){
+    sec.addEventListener('keydown',function(e){if(e.key==='ArrowRight'){e.preventDefault();rvwNext();rvwRestart();}else if(e.key==='ArrowLeft'){e.preventDefault();rvwPrev();rvwRestart();}});
+    new IntersectionObserver(function(es){es.forEach(function(e){rvwOn=e.isIntersecting;if(e.isIntersecting)rvwStart();else rvwStop();});},{threshold:.3}).observe(sec);
+  }
+})();
+
+/* ===================== nav scroll / progress ===================== */
+const hdr=document.getElementById('hdr'),progress=document.getElementById('progress');
+let lastY=0;
+addEventListener('scroll',()=>{
+  const y=scrollY;
+  hdr.classList.toggle('scrolled',y>40);
+  hdr.classList.toggle('hide',y>lastY&&y>400);
+  lastY=y;
+  const h=document.documentElement.scrollHeight-innerHeight;
+  progress.style.width=(h>0?(y/h*100):0)+'%';
+},{passive:true});
+
+/* ===================== reveal ===================== */
+const io=new IntersectionObserver(es=>es.forEach(e=>{e.target.classList.toggle('in',e.isIntersecting);}),{threshold:.14});
+document.querySelectorAll('.reveal, .reveal-seq').forEach(el=>io.observe(el));
+
+/* ===================== campus-wall folder tabs ===================== */
+(function(){
+  const tabs=document.querySelectorAll('#wall .wall-tab');
+  const pages=document.querySelectorAll('#wall .wall-page');
+  if(!tabs.length)return;
+  tabs.forEach(tab=>tab.addEventListener('click',()=>{
+    const i=tab.getAttribute('data-wtab');
+    tabs.forEach(t=>{const on=t===tab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on);});
+    pages.forEach(p=>p.classList.toggle('is-active',p.getAttribute('data-wpage')===i));
+  }));
+})();
+
+/* ===================== organic particles ===================== */
+(function(){
+  var fields=document.querySelectorAll('.pfield');
+  if(!fields.length)return;
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function rnd(a,b){return a+Math.random()*(b-a);}
+  fields.forEach(function(f){
+    var rise=f.classList.contains('pfield--rise');
+    var n=parseInt(f.getAttribute('data-particles'),10)||20;
+    var frag=document.createDocumentFragment();
+    for(var i=0;i<n;i++){
+      var p=document.createElement('span');
+      var size=rnd(2,7);
+      p.style.width=p.style.height=size.toFixed(1)+'px';
+      p.style.left=rnd(0,100).toFixed(2)+'%';
+      p.style.top=(rise?rnd(58,100):rnd(0,100)).toFixed(2)+'%';
+      p.style.setProperty('--o',rnd(.14,.45).toFixed(2));
+      p.style.setProperty('--dx',rnd(-48,48).toFixed(0)+'px');
+      if(rise)p.style.setProperty('--rise',rnd(180,340).toFixed(0)+'px');
+      else p.style.setProperty('--dy',rnd(-48,48).toFixed(0)+'px');
+      if(reduce){p.style.animation='none';p.style.opacity=rnd(.12,.3).toFixed(2);}
+      else{p.style.setProperty('--dur',rnd(rise?10:11,rise?17:20).toFixed(1)+'s');p.style.animationDelay=(-rnd(0,14)).toFixed(1)+'s';}
+      frag.appendChild(p);
+    }
+    f.appendChild(frag);
+  });
+})();
+
+/* ===================== count up ===================== */
+function countUp(el){
+  const target=+el.dataset.count,suffix=el.dataset.suffix||'';const dur=1500,t0=performance.now();
+  function tick(now){const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.floor(target*e).toLocaleString('en-US')+suffix;if(p<1)requestAnimationFrame(tick);else el.textContent=target.toLocaleString('en-US')+suffix;}
+  requestAnimationFrame(tick);
+}
+const cio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>=.55){countUp(e.target);}else if(e.intersectionRatio===0){e.target.textContent='0'+(e.target.dataset.suffix||'');}}),{threshold:[0,.6]});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+
+/* ===================== countdown to next Fri 17:00 ===================== */
+function nextFriday17(){const now=new Date(),d=new Date(now),day=d.getDay();let add=(5-day+7)%7;d.setHours(17,0,0,0);if(add===0&&now>d)add=7;d.setDate(d.getDate()+add);return d;}
+function roundNumber(){const epoch=new Date('2024-01-05T17:00:00'),now=new Date();return Math.max(1,Math.floor((now-epoch)/(7*864e5))+1);}
+document.getElementById('roundTag').textContent='ROUND '+String(roundNumber()).padStart(3,'0');
+const pad=n=>String(n).padStart(2,'0');
+const cdD=document.querySelectorAll('[data-cd="d"]'),cdH=document.querySelectorAll('[data-cd="h"]'),cdM=document.querySelectorAll('[data-cd="m"]'),cdS=document.querySelectorAll('[data-cd="s"]');
+const cdMini=document.querySelectorAll('[data-cd-mini]');
+let lastS=-1;
+function tickCD(){
+  const tgt=nextFriday17(),now=new Date();let diff=Math.max(0,tgt-now);
+  const d=Math.floor(diff/864e5);diff-=d*864e5;const h=Math.floor(diff/36e5);diff-=h*36e5;const m=Math.floor(diff/6e4);diff-=m*6e4;const s=Math.floor(diff/1e3);
+  cdD.forEach(x=>x.textContent=pad(d));cdH.forEach(x=>x.textContent=pad(h));cdM.forEach(x=>x.textContent=pad(m));
+  cdS.forEach(x=>{x.textContent=pad(s);if(s!==lastS){x.classList.add('flash');setTimeout(()=>x.classList.remove('flash'),130);}});
+  cdMini.forEach(x=>x.textContent=pad(h)+':'+pad(m)+':'+pad(s));
+  lastS=s;
+}
+tickCD();setInterval(tickCD,1000);
+
+/* ===================== rotating dotted Earth (continents only) ===================== */
+(function () {
+  'use strict';
+  var canvas = document.getElementById('globe');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d', { alpha: true });
+  if (!ctx) return;
+  var CONFIG = { gridStep: 2, radiusFrac: 0.47, perspective: 3.0, rotSpeed: -0.12, tiltX: 0.4, baseDot: 1.05,
+    latLines: [-60,-30,0,30,60], lonCount: 6,
+    colors: { dot:'170,205,0', grid:'20,20,20', hi:'204,255,0' } };
+  // Real Natural Earth land mask (ne_110m_land, 360x180, 1 bit/cell, base64) — rasterised from naturalearthdata.com
+  var MASK_W=360, MASK_H=180, maskBits=null;
+  var MASK_B64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABf//4AAP///gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB////D//////z+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/3f/w////////gAAAAABAAABAAAAAAAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAf7/8A///////+AAAAB/rAAAAAAAAAAAD8AAAAAAAAAAAAAAAAAAAAAAAAcDnHn/w////////8AAAAA/gAAAAAAAAAAAAD4AAAAAAAAAAAAAAAAAAAAAAAIAAgP+AP///////+AAAAAPAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAADgCAMmPcAP///////4AAAAAAAAAAAAAAwAAAAB/8AAAAAAAAAAAAAAAAAAAAAH/wc354AAAf/////8AAAAAAAAAAAADwAAAA////AAAB/AAAAAAAAAAAAAAAAAQAAAcAAAAH/////8AAAAAAAAAAAAeAAAAP///wAAAAAAAAAAAAAAAAAAAAP8AYe+ITAAAD/////4AAAAAAAAAAAA4AAAH/////+DAAOAAAAAAAAAAAAAAAfv+4ew/5gAAB/////gAAAAAAAAAAABwAHAH///////4APgAAAAAgAAAAAAAAOf/4E4//8AAA/////wAAAAAAAAAAADwAPL////////4m//gAAAAAAAP+AAAAAH/+A8f//4AA////+AAAAAAAA/AAAAAAfv/////////////8AAAAAB///+C/3D//HeBwf8AAn///+AAAAAAAf/4AAAAcfv/////////////+8H8gAP///////+A4CPzwD8AAP///wAAAAAAB///wABCfnn/////////////////8AD////////+///34Z/gA///4AAAAAAAH///+Mf///v//////////////////4A/////////////AD/8Af//gAAAAAAAf//88P////f/////////////////Hwf////////////6AH8YAP/wAAf8AAAA/8f+D///////////////////////AgAf///////////zw7/AAP/gAAP4AAAB/4/+f//////////////////////8AAAf//////////+CAA/gAH/gAAAAAAAH/j/////////////////////////+AAH///////////4AwAHAAD+AAAAAAAA//H///////////////////////v/6AAP///////////wAA/AAAB+AAAAAAAB/+D//////////////////////jP+AAAH/9z////////wAA/wAAAGAAAAAAAB//Dz////////////////////+AfYAAAA/6AD///////gAA/wwAAAAAAAAAAB//AL///////////////////+cBgAAAAABwAAf//////4AA/84AAAAAAAAAQAx+A///////////////////4AAHAAAAAADcAAD//////4AAf/8AAAAAAAAA8AA+C///////////////////gAAfgAAAAAMAAAA///////wAf/8AAAAAAAAA4AM8H///////////////////AAA/gAAAAAgAAAA///////8Af//AAAAAAAAAcANwH//////////////////8AAA/AAAAAAAAAAAP///////x///wAAAAAAADGAEBv//////////////////+AAA+AAAAAAAAAABH///////x///8AAAAAAAHHAf/////////////////////6AA8AAAAAAAAAAAD///////x///8AAAAAAAGfj//////////////////////+AAwAAAAAAAAAAAD///////5///8AAAAAAAAPj//////////////////////6AAAAAAAAAAAAAAD///////////EAAAAAAAAYf//////////////////////zAAAAAAAAAAAAAAAv////////8MOAAAAAAAAA///////////////////////zAAAAAAAAAAAAAAAX////////7gfgAAAAAAAP///////////////////////yAAAAAAAAAAAAAAAP/////////gCgAAAAAAAH///////////////////////iAAAAAAAAAAAAAAAP/////////wAAAAAAAAAB/////uP/h//////////////AAAAAAAAAAAAAAAAP/////////+AAAAAAAAAB//v//Gf/B/////////////+AAAAAAAAAAAAAAAAP////////8wAAAAAAAAAB//H/+AP+H/////////////8CAAAAAAAAAAAAAAAP////////wAAAAAAAAADj/jj/8AD/H/////////////4HgAAAAAAAAAAAAAAP////////gAAAAAAAAAH/4Bwf8AB/B////////////+APAAAAAAAAAAAAAAAP////////AAAAAAAAAAH/wAcf8PB/g////////////8AAAAAAAAAAAAAAAAAP///////8AAAAAAAAAAH/AEGPB///x///////////P4AMAAAAAAAAAAAAAAAP///////8AAAAAAAAAAH/AICOH///h//////////+BwAMAAAAAAAAAAAAAAAH///////4AAAAAAAAAAH/AAAGH///g//////////8BwAIAAAAAAAAAAAAAAAD///////wAAAAAAAAAAH+AAYGH///w//////////+wYA4AAAAAAAAAAAAAAAD///////wAAAAAAAAAAAgP+AABM//////////////g4D4AAAAAAAAAAAAAAAB///////wAAAAAAAAAAAh/+AAAA//////////////AYbwAAAAAAAAAAAAAAAA///////gAAAAAAAAAAB//8AAAA//////////////AB+AAAAAAAAAAAAAAAAAP/////+AAAAAAAAAAAD//+AAAB//////////////gDQAAAAAAAAAAAAAAAAAH/////8AAAAAAAAAAAH///wGAB//////////////gDAAAAAAAAAAAAAAAAAAG/////4AAAAAAAAAAAP///8P4D//////////////wCAAAAAAAAAAAAAAAAAACf////wAAAAAAAAAAAP////P////////////////gAAAAAAAAAAAAAAAAABP//hAYAAAAAAAAAAAP/////////H///////////wAAAAAAAAAAAAAAAAAAAAv//AAYAAAAAAAAAAAf/////////H///////////wAAAAAAAAAAAAAAAAAAAAj/+AAcAAAAAAAAAAB///////4//h///////////gAAAAAAAAAAAAAAAAAAAAT/+AANAAAAAAAAAAD///////8//wH//////////AAAAAAAAAAAAAAAAAAAAAJ/+AAEAAAAAAAAAAH///////+f/0B/////////+AAAAAAAAAAAAAAAAAAAAAA/8AAAAAAAAAAAAAH///////+P/84Af///////8QAAAAAAAAAAAAAAAAAAAAAP8AAAAAAAAAAAAAP///////+H//+AH///////4gAAAAAAAAAAAAAAAAAAAAAP8AAsAAAAAAAAAAP////////H//+AD///v///AgAAAAAAAAAAAAAAAAAAAAAH+AABgAAAAAAAAAf////////n//+AD//4P//YAAAAAAAAAAAAAAAAAAAAAAAP+A4AYAAAAAAAAAP////////j//8AAf/4H/+AAAAAAAAAAAAAAAAgAAAAAAAH/BwABwAAAAAAAAP////////h//8AAf/gD/8YAAAAAAAAAAAAAAAAAAAAAAAB/jwAA4AAAAAAAAP////////x//4AAf/AD/8QAAAAAAAAAAAAAAAAAAAAAAAAf/wAAAAAAAAAAAP////////4//gAAf+AB/+AAwAAAAAAAAAAAAAAAAAAAAAAH/wAAAAAAAAAAAP////////4f+AAAP8ADf+AAwAAAAAAAAAAAAAAAAAAAAAAAH/AAAAAAAAAAAf////////8f8AAAPwAAP/gAwAAAAAAAAAAAAAAAAAAAAAAAD/gAAAAAAAAAAf////////+fgAAAHwAAP/gAQAAAAAAAAAAAAAAAAAAAAAAAAfAAAAAAAAAAAf/////////eAAAAHwAAP/gAkAAAAAAAAAAAAAAAAAAAAAAAAHAAAAAAAAAAAf/////////gAAAAHwAAE/gAAAAAAAAAAAAAAAAAAAAAAAAAADABIAAAAAAAAP/////////gIAAADwAAEfgAIAAAAAAAAAAAAAAAAAAAAAAAADgHdKAAAAAAAH/////////34AAADwAAAOAAEAAAAAAAAAAAAAAAAAAAAAAAAAgPf+AAAAAAAD//////////4AAADoAAIEAAAAAAAAAAAAAAAAAAAAAAAAAAAAd///AAAAAAAB//////////wAAABIAAMAAADAAAAAAAAAAAAAAAAAAAAAAAAAA///gAAAAAAA//////////wAAAAMAAGAAALAAAAAAAAAAAAAAAAAAAAAAAAAAf//wAAAAAAAf/////////gAAAAMAADAAADAAAAAAAAAAAAAAAAAAAAAAAAAAf///gAAAAAAP/B///////gAAAAAAADgAOAAAAAAAAAAAAAAAAAAAAAAAAAAAf///wAAAAAAAAAn//////AAAAAAAAxgA8AAAAAAAAAAAAAAAAAAAAAAAAAAAf///4AAAAAAAAAD/////+AAAAAAAAZgB4AAAAAAAAAAAAAAAAAAAAAAAAAAA////4AAAAAAAAAD/////8AAAAAAAAMwD8AAAAAAAAAAAAAAAAAAAAAAAAAAB////8AAAAAAAAAH/////4AAAAAAAAHwf8AAAAAAAAAAAAAAAAAAAAAAAAAAD////8AAAAAAAAAH/////gAAAAAAAAHgf80AAAAAAAAAAAAAAAAAAAAAAAAAD////+AAAAAAAAAH/////AAAAAAAAADwf4AAAAAAAAAAAAAAAAAAAAAAAAAAH/////4AAAAAAAAH/////AAAAAAAAABwP5wBwAAAAAAAAAAAAAAAAAAAAAAAD/////8AAAAAAAAD////8AAAAAAAAAB4PxwAzwAAAAAAAAAAAAAAAAAAAAAAD//////4AAAAAAAB////8AAAAAAAAAA8AxQgf+AAAAAAAAAAAAAAAAAAAAAAH//////8AAAAAAAA////4AAAAAAAAAAcAAIAD/gAAAAAAAAAAAAAAAAAAAAAH///////gAAAAAAA////4AAAAAAAAAAEAAAAI/wwAAAAAAAAAAAAAAAAAAAAD///////gAAAAAAAf///4AAAAAAAAAADAAAAIf4AAAAAAAAAAAAAAAAAAAAAD///////gAAAAAAAf///4AAAAAAAAAAB+AAAA/4AIAAAAAAAAAAAAAAAAAAAB///////gAAAAAAAf///4AAAAAAAAAAAAggAAGMAAAAAAAAAAAAAAAAAAAAAA///////AAAAAAAAf///8AAAAAAAAAAAABCAAAGACAAAAAAAAAAAAAAAAAAAA//////+AAAAAAAAP///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/////+AAAAAAAAP///8AAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAf/////8AAAAAAAAf///8AAAAAAAAAAAAAAB+CAAAAAAAAAAAAAAAAAAAAAAAP/////4AAAAAAAAf///+AwAAAAAAAAAAAAD8DAAAAAAAAAAAAAAAAAAAAAAAP/////4AAAAAAAA////+AwAAAAAAAAAAAAz8DgAAAAAAAAAAAAAAAAAAAAAAH/////4AAAAAAAA////8BwAAAAAAAAAAAB/8DgAAAAAAAAAAAAAAAAAAAAAAB/////4AAAAAAAA////8HwAAAAAAAAAAAD//HwAABAAAAAAAAAAAAAAAAAAAAf////4AAAAAAAA////gPgAAAAAAAAAAAP//nwAAAAAAAAAAAAAAAAAAAAAAAP////wAAAAAAAA////APgAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAAAP////wAAAAAAAAf//+APgAAAAAAAAAAAf///4AAAAAAAAAAAAAAAAAAAAAAAP////gAAAAAAAAf//+APAAAAAAAAAAAB////+AAIAAAAAAAAAAAAAAAAAAAAP////gAAAAAAAAP//+APAAAAAAAAAAAP////+AAEAAAAAAAAAAAAAAAAAAAAP////AAAAAAAAAP//+AfAAAAAAAAAAA//////AAAAAAAAAAAAAAAAAAAAAAAP///4AAAAAAAAAP//+AOAAAAAAAAAAA//////gAAAAAAAAAAAAAAAAAAAAAAf///gAAAAAAAAAH//+AOAAAAAAAAAAA//////wAAAAAAAAAAAAAAAAAAAAAAf///AAAAAAAAAAH//4AAAAAAAAAAAAA//////4AAAAAAAAAAAAAAAAAAAAAAf//+AAAAAAAAAAH//4AAAAAAAAAAAAA//////4AAAAAAAAAAAAAAAAAAAAAAf//+AAAAAAAAAAD//4AAAAAAAAAAAAA//////4AAAAAAAAAAAAAAAAAAAAAAf//+AAAAAAAAAAD//wAAAAAAAAAAAAAf/////4AAAAAAAAAAAAAAAAAAAAAAf//8AAAAAAAAAAB//gAAAAAAAAAAAAAf/////4AAAAAAAAAAAAAAAAAA///8AAAAAAAAAAA//AAAAAAAAAAAAAAf/////4AAAAAAAAAAAAAAAAAAAAAAf//4AAAAAAAAAAA//AAAAAAAAAAAAAAP/9///4AAAAAAAAAAAAAAAAAAAAAAf//wAAAAAAAAAAA/8AAAAAAAAAAAAAAP+AP//wAAAAAAAAAAAAAAAAAAAAAA///gAAAAAAAAAAA/wAAAAAAAAAAAAAAf8AG//gAAAAAAAAAAAAAAAAAAAAAA//3AAAAAAAAAAAAQAAAAAAAAAAAAAAAOAAB//gAAAAAAAAAAAAAAAAAAAAAB//4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/AAAAAAAAAAAAAAAAAAAAAAB//4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/AAAAgAAAAAAAAAAAAAAAAAB//4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/AAAAQAAAAAAAAAAAAAAAAAB//gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABYAAAAcAAAAAAAAAAAAAAAAAB/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAAAAD/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAD/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAAADAAAAAAAAAAAAAAAAAAD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAAAHAAAAAAAAAAAAAAAAAAB/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAOAAAAAAAAAAAAAAAAAAD/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAAAAAH+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4AAAAAAAAAAAAAAAAAAH+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAH/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH8AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH4AwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAD4AAAAAAA4HgAB8AAAAAAAAAAAAAAAAAAAAAAAAADgAAAAAAAAAAAAAAAAAA//AAAD//////////wAAAAAAAAAAAAAAAAAAAAAAADgAAAAAAAAAAAAAAAAAP///4Af///////////AAAAAAAAAAAAAAAAAAAAAAAz4AAAAAAAAAAAAAAAHz////4A/////////////wAAAAAAAAAAAAAAAAAAAAA78AAAAAAAAAAAc/8D//////wf/////////////+AAAAAAAAAAAAAAAAAAAAH58AAAAAAAAJ+f//////////w////////////////4AAAAAAAAAAAAAA4AAAAD+AAAAAAAA//////////////////////////////wAAAAAAAAABiAAB8P+GB/+AAAAAAAP//////////////////////////////gAAAAAAAAPnAfgAP/////4AAAAAAAP/////////////////////////////8AAAAAAADf////////////AAAAAAAA//////////////////////////////wAAAAAAAH////////////gAAAAAAD///////////////////////////////gAAAAAD7////////////4AAAAAAB////////////////////////////////wAAAABh/////////////AAAAB8A/////////////////////////////////8AAAAAQAf///////////gAAAH+AA///////////////////////////////+AAAAAAAAH///////////+ATA/gAA///////////////////////////////8AAAAAAAf//////////////AAAAf////////////////////////////////+AAAAAAAH///////////////A////////////////////////////////////wAAAAAAH/////////////////////////////////////////////////////gAf/gAAA/////////////////////////////////////////////////////8/////n//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////";
+  function buildLand(){var bin=atob(MASK_B64);maskBits=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)maskBits[i]=bin.charCodeAt(i);}
+  function isLand(lon,lat){var px=((lon+180)/360*MASK_W)|0,py=((90-lat)/180*MASK_H)|0;if(px<0)px=0;if(px>=MASK_W)px=MASK_W-1;if(py<0)py=0;if(py>=MASK_H)py=MASK_H-1;var idx=py*MASK_W+px;return (maskBits[idx>>3]&(1<<(7-(idx&7))))!==0;}
+  var dpr=1,cssW=0,cssH=0,points=[],grat=[],reduceMotion=false;
+  var CONTI={
+    namerica:{zh:'北美洲',en:'North America',u:[['哈佛大学','Harvard'],['麻省理工学院','MIT'],['斯坦福大学','Stanford'],['多伦多大学','U. Toronto']]},
+    samerica:{zh:'南美洲',en:'South America',u:[['圣保罗大学','U. São Paulo'],['布宜诺斯艾利斯大学','U. Buenos Aires'],['智利天主教大学','PUC Chile']]},
+    europe:{zh:'欧洲',en:'Europe',u:[['牛津大学','Oxford'],['剑桥大学','Cambridge'],['苏黎世联邦理工','ETH Zürich'],['帝国理工学院','Imperial']]},
+    africa:{zh:'非洲',en:'Africa',u:[['开普敦大学','U. Cape Town'],['开罗大学','Cairo U.'],['金山大学','Witwatersrand']]},
+    asia:{zh:'亚洲',en:'Asia',u:[['清华大学','Tsinghua'],['北京大学','Peking U.'],['新加坡国立大学','NUS'],['东京大学','U. Tokyo']]},
+    oceania:{zh:'大洋洲',en:'Oceania',u:[['墨尔本大学','U. Melbourne'],['澳大利亚国立','ANU'],['悉尼大学','U. Sydney']]}
+  };
+  var lift={namerica:0,samerica:0,europe:0,africa:0,asia:0,oceania:0};
+  var mouseX=-999,mouseY=-999,hoverC=null,tip=document.getElementById('globe-tip');
+  // Real per-cell continent map (Natural Earth admin_0 by CONTINENT, 360x180, RLE) — Siberia reassigned Europe→Asia
+  var CW=360,CH=180,contGrid=null,CMAP=['','namerica','samerica','europe','africa','asia','oceania'];
+  var CONT_RLE="0,2259|1,14|0,22|1,21|0,294|1,29|0,1|1,6|0,2|1,4|0,1|1,26|0,286|1,83|0,106|5,3|0,166|1,82|0,32|3,11|0,17|3,7|0,39|5,9|0,154|1,3|0,6|1,26|0,3|1,50|0,28|3,18|0,64|5,12|0,143|1,4|0,3|1,6|0,1|1,4|0,1|1,19|0,2|1,54|0,30|3,13|0,71|5,11|0,133|1,5|0,2|1,4|0,9|1,1|0,2|1,5|0,4|1,11|0,5|1,54|0,32|3,6|0,1|3,5|0,76|5,6|0,130|1,10|0,2|1,3|0,5|1,12|0,1|1,12|0,6|1,52|0,35|3,3|0,42|5,9|0,25|5,20|0,23|5,5|0,100|1,13|0,2|1,23|0,19|1,42|0,74|3,5|5,7|0,20|5,27|0,23|5,8|0,1|5,5|0,84|1,8|0,3|1,6|0,7|1,1|0,3|1,17|0,21|1,40|0,73|3,6|5,1|0,25|5,27|0,24|5,8|0,2|5,4|0,84|1,11|0,5|1,5|0,2|1,5|0,1|1,10|0,1|1,9|0,19|1,37|0,73|3,5|0,22|5,39|0,4|5,6|0,10|5,5|0,90|1,21|0,2|1,10|0,3|1,15|0,19|1,34|0,73|3,6|0,11|5,5|0,1|5,2|0,1|5,52|0,10|5,11|0,30|3,3|0,19|1,3|0,29|1,6|0,1|1,15|0,3|1,9|0,1|1,20|0,15|1,34|0,48|3,3|0,22|3,6|0,10|5,85|0,26|5,2|3,2|0,15|1,17|0,1|1,2|0,12|1,4|0,3|1,1|0,4|1,18|0,2|1,1|0,1|1,6|0,1|1,22|0,13|1,33|0,42|3,12|0,21|3,5|0,8|5,7|0,1|5,86|0,18|5,2|0,16|1,26|0,2|1,35|0,1|1,11|0,3|1,6|0,1|1,12|0,12|1,32|0,40|3,19|0,24|5,6|0,1|5,102|0,1|5,10|3,3|0,10|1,65|0,3|1,11|0,2|1,5|0,4|1,10|0,14|1,27|0,41|3,25|0,3|3,4|0,3|3,10|5,120|3,6|0,8|1,85|0,3|1,3|0,1|1,10|0,10|1,22|0,45|3,29|0,1|3,4|0,1|3,12|5,120|3,10|0,3|1,85|0,8|1,12|0,8|1,20|0,10|3,3|0,1|3,6|0,26|3,48|5,120|3,10|0,2|1,84|0,6|1,11|0,1|1,3|0,9|1,17|0,12|3,12|0,24|3,24|0,2|3,1|0,1|3,21|5,120|0,4|3,4|0,5|1,86|0,2|1,14|0,12|1,13|0,16|3,10|0,23|3,13|0,1|3,37|5,120|0,8|1,4|0,3|1,75|0,3|1,7|0,7|1,9|0,12|1,11|0,18|3,7|0,23|3,53|5,120|0,14|1,75|0,6|1,6|0,1|1,5|0,1|1,7|0,14|1,9|0,47|3,14|0,2|3,39|5,120|0,14|1,73|0,12|1,2|0,1|1,8|0,20|1,8|0,47|3,13|0,3|3,39|5,115|0,17|1,74|0,16|1,9|0,4|1,1|0,15|1,6|0,48|3,14|0,2|3,39|5,96|0,4|5,12|0,21|1,14|0,1|1,3|0,7|1,48|0,16|1,9|0,3|1,3|0,68|3,14|0,3|3,38|5,95|0,5|5,5|0,1|5,1|0,31|1,9|0,14|1,46|0,14|1,17|0,56|3,3|0,8|3,13|0,5|3,37|5,82|0,9|5,2|0,5|5,5|0,38|1,7|0,18|1,44|0,12|1,17|0,54|3,5|0,10|3,9|0,4|3,39|5,81|0,15|5,8|0,35|1,4|0,2|1,2|0,19|1,47|0,10|1,16|0,54|3,5|0,10|3,3|0,1|3,5|0,4|3,39|5,79|0,16|5,9|0,32|1,5|0,26|1,51|0,3|1,20|0,51|3,7|0,9|3,7|0,5|3,40|5,77|0,18|5,7|0,33|1,2|0,30|1,1|0,1|1,49|0,2|1,23|0,47|3,10|0,8|3,52|5,77|0,1|5,2|0,2|5,1|0,12|5,7|0,64|1,3|0,1|1,48|0,3|1,24|0,45|3,4|0,1|3,6|0,3|3,56|5,84|0,11|5,6|0,66|1,2|0,1|1,49|0,2|1,24|0,45|3,12|0,2|3,56|5,84|0,12|5,3|0,73|1,73|0,45|3,3|0,1|3,66|5,84|0,12|5,2|0,73|1,70|0,1|1,3|0,49|3,56|5,4|3,3|5,1|3,2|5,81|0,1|5,2|0,88|1,67|0,2|1,6|0,51|3,51|5,92|0,1|5,3|0,89|1,62|0,5|1,7|0,47|3,52|5,97|0,91|1,60|0,5|1,8|0,47|3,54|5,91|0,1|5,3|0,91|1,65|0,4|1,1|0,1|1,1|0,50|3,52|5,90|0,2|5,3|0,92|1,64|0,58|3,33|0,1|3,17|0,2|5,87|0,3|5,2|0,93|1,57|0,1|1,3|0,61|3,32|0,3|3,3|0,1|3,11|0,2|5,87|0,4|5,5|0,89|1,56|0,2|1,2|0,55|3,19|0,1|3,4|0,1|3,14|0,10|3,9|0,3|5,85|0,4|5,6|0,89|1,55|0,60|3,14|0,4|3,8|0,1|3,11|0,13|5,2|3,6|0,3|5,82|0,5|5,5|0,91|1,55|0,60|3,13|0,5|3,2|0,1|3,7|0,1|3,8|5,12|0,1|5,6|3,3|5,1|0,2|5,78|0,9|5,3|0,93|1,53|0,63|3,10|0,7|3,2|0,3|3,14|5,24|0,1|5,78|0,9|5,3|0,94|1,50|0,64|3,11|0,7|3,2|0,5|3,9|0,2|5,24|0,3|5,67|0,1|5,7|0,11|5,3|0,94|1,49|0,65|3,11|0,11|3,5|0,3|3,5|0,1|5,24|0,3|5,65|0,6|5,5|0,10|5,3|0,95|1,48|0,66|3,9|0,8|4,3|0,1|3,4|0,5|3,4|0,1|5,25|0,2|5,70|0,2|5,5|0,6|5,5|0,96|1,48|0,66|3,7|0,2|4,12|0,2|3,2|0,5|3,3|0,3|5,95|0,4|5,4|0,6|5,5|0,97|1,47|0,68|4,18|0,12|3,4|0,5|5,89|0,5|5,4|0,2|5,9|0,98|1,45|0,69|4,18|0,21|5,2|0,1|5,86|0,5|5,3|0,1|5,10|0,101|1,41|0,69|4,21|0,23|5,86|0,8|5,8|0,105|1,38|0,70|4,26|0,4|4,4|0,10|5,88|0,7|5,5|0,109|1,36|0,71|4,28|0,1|4,16|5,87|0,8|5,2|0,111|1,3|0,1|1,32|0,71|4,45|5,87|0,122|1,27|0,3|1,1|0,1|1,3|0,70|4,46|5,14|0,1|5,72|0,123|1,20|0,12|1,3|0,67|4,48|5,14|0,1|5,72|0,123|1,3|0,1|1,14|0,14|1,3|0,66|4,49|5,15|0,1|5,70|0,125|1,3|0,1|1,13|0,14|1,3|0,1|1,2|0,62|4,50|0,1|5,15|0,2|5,68|0,126|1,16|0,15|1,2|0,2|1,1|0,62|4,50|0,1|5,16|0,3|5,65|0,1|5,1|0,126|1,2|0,2|1,11|0,18|1,2|0,61|4,52|0,1|5,21|0,8|5,53|0,1|5,2|0,127|1,2|0,2|1,10|0,14|1,2|0,3|1,1|0,60|4,53|0,2|5,22|0,7|5,51|0,2|5,2|0,78|1,1|0,53|1,9|0,12|1,7|0,61|4,54|0,1|5,22|0,9|5,48|0,3|5,2|0,78|1,4|0,50|1,9|0,7|1,4|0,1|1,1|0,3|1,5|0,58|4,56|0,1|5,21|0,9|5,44|0,90|1,2|0,49|1,10|0,5|1,4|0,8|1,5|0,57|4,55|0,1|5,20|0,11|5,17|0,5|5,16|0,1|5,2|0,93|1,2|0,48|1,10|0,5|1,4|0,9|1,3|0,2|1,4|0,52|4,55|0,2|5,18|0,14|5,14|0,6|5,14|0,2|5,3|0,145|1,17|0,8|1,3|0,1|1,7|0,1|1,2|0,48|4,56|0,2|5,17|0,14|5,13|0,8|5,14|0,1|5,3|0,9|5,3|0,135|1,14|0,10|1,1|0,5|1,1|0,54|4,56|0,2|5,15|0,17|5,11|0,10|5,14|0,12|5,3|0,137|1,12|0,71|4,57|0,2|5,13|0,18|5,10|0,11|5,15|0,10|5,4|0,140|1,1|0,2|1,11|0,65|4,59|0,1|5,11|0,20|5,8|0,13|5,2|0,1|5,12|0,10|5,3|0,145|1,10|0,65|4,60|5,9|0,23|5,7|0,16|5,13|0,10|5,4|0,144|1,9|0,66|4,60|5,5|0,26|5,7|0,17|5,12|0,10|5,5|0,147|1,5|0,11|2,1|0,1|2,1|0,52|4,61|5,2|0,28|5,7|0,17|5,12|0,10|5,2|0,1|5,3|0,147|1,4|0,9|2,6|0,51|4,61|0,3|4,5|0,23|5,5|0,18|5,2|0,2|5,8|0,9|5,1|0,1|5,5|0,148|1,3|0,7|2,14|1,2|0,45|4,67|0,23|5,5|0,18|5,2|0,3|5,6|0,9|5,2|0,1|5,5|0,148|1,4|0,1|1,3|0,1|2,17|0,46|4,65|0,25|5,5|0,17|5,2|0,4|5,3|0,10|5,2|0,3|5,2|0,1|5,2|0,149|1,7|2,18|0,45|4,65|0,25|5,6|0,16|5,3|0,3|5,2|0,11|5,2|0,3|5,5|0,151|1,2|0,1|1,2|2,19|0,45|4,64|0,28|5,3|0,16|5,3|0,21|5,5|0,155|2,21|0,45|4,62|0,29|5,3|0,17|5,4|0,13|5,2|0,5|5,4|0,155|2,24|3,2|0,41|4,12|0,3|4,45|0,46|5,3|0,2|5,4|0,10|5,6|0,4|5,2|0,156|2,24|3,2|2,1|0,41|4,5|0,2|4,2|0,6|4,44|0,46|5,4|0,1|5,4|0,9|5,6|0,163|2,24|3,1|2,2|0,60|4,39|0,48|5,8|0,9|5,5|0,163|2,29|0,59|4,38|0,50|5,8|0,6|5,7|0,9|5,1|0,152|2,30|0,59|4,37|0,52|5,7|0,4|5,10|0,1|5,2|0,2|5,2|0,1|5,2|0,151|2,30|0,59|4,35|0,55|5,5|0,4|5,17|0,2|5,2|0,150|2,34|0,55|4,35|0,56|5,5|0,5|5,9|0,1|5,5|0,3|5,2|0,1|5,5|0,144|2,37|0,52|4,34|0,58|5,5|0,4|5,9|0,1|5,4|0,7|5,5|0,2|5,2|0,140|2,41|0,49|4,32|0,59|5,7|0,3|5,7|0,1|5,5|0,5|5,3|0,1|5,9|6,1|0,8|6,2|0,127|2,43|0,48|4,31|0,60|5,6|0,4|5,6|0,1|5,5|0,3|5,5|0,1|5,9|6,4|0,6|6,2|0,125|2,45|0,48|4,29|0,62|5,4|0,13|5,5|0,10|5,8|6,4|0,5|6,3|0,125|2,46|0,46|4,29|0,63|5,3|0,13|5,2|0,1|5,2|0,10|5,1|0,2|5,5|6,11|0,1|6,2|0,123|2,46|0,47|4,28|0,65|5,8|0,21|5,1|0,3|5,4|6,6|0,1|6,2|0,3|6,4|0,122|2,46|0,46|4,28|0,66|5,9|0,22|5,5|6,6|0,8|6,4|0,120|2,45|0,48|4,27|0,70|5,13|0,2|5,3|0,9|5,5|6,2|0,2|6,3|0,10|6,3|0,119|2,44|0,47|4,28|0,79|5,2|0,2|5,3|0,15|6,3|0,2|6,5|0,8|6,3|0,120|2,42|0,49|4,28|0,78|5,2|0,2|5,2|0,17|6,1|0,4|6,4|0,10|6,2|0,119|2,41|0,50|4,28|0,91|6,2|0,2|6,1|0,5|6,1|0,140|2,40|0,50|4,28|0,7|4,2|0,80|6,7|0,4|6,3|0,139|2,39|0,50|4,29|0,6|4,4|0,75|6,2|0,1|6,8|0,4|6,3|0,139|2,39|0,50|4,29|0,6|4,4|0,74|6,11|0,5|6,5|0,20|6,1|0,117|2,38|0,49|4,30|0,4|4,6|0,73|6,14|0,3|6,5|0,20|6,2|0,12|6,1|0,105|2,35|0,50|4,29|0,4|4,6|0,72|6,17|0,2|6,5|0,21|6,1|0,10|6,2|0,108|2,33|0,50|4,28|0,4|4,7|0,72|6,25|0,30|6,2|0,110|2,32|0,50|4,26|0,7|4,6|0,71|6,26|0,30|6,2|0,110|2,32|0,51|4,24|0,8|4,5|0,71|6,28|0,141|2,31|0,53|4,22|0,8|4,6|0,67|6,33|0,15|6,2|0,123|2,31|0,53|4,23|0,7|4,6|0,65|6,36|0,14|6,3|0,122|2,30|0,55|4,22|0,7|4,6|0,64|6,38|0,14|6,3|0,121|2,27|0,58|4,22|0,7|4,5|0,65|6,39|0,137|2,25|0,60|4,22|0,7|4,5|0,65|6,40|0,136|2,23|0,62|4,20|0,10|4,3|0,66|6,40|0,136|2,23|0,63|4,18|0,80|6,41|0,135|2,23|0,63|4,18|0,81|6,40|0,134|2,24|0,63|4,18|0,81|6,40|0,134|2,23|0,65|4,16|0,82|6,40|0,134|2,22|0,67|4,14|0,84|6,39|0,134|2,21|0,68|4,14|0,84|6,38|0,135|2,20|0,69|4,13|0,85|6,13|0,5|6,20|0,135|2,19|0,71|4,10|0,87|6,10|0,9|6,18|0,135|2,20|0,71|4,4|0,93|6,5|0,15|6,16|0,21|6,2|0,113|2,16|0,194|6,14|0,21|6,3|0,112|2,17|0,195|6,12|0,22|6,3|0,110|2,17|0,196|6,11|0,24|6,5|0,107|2,16|0,199|6,7|0,26|6,5|0,107|2,12|0,235|6,6|0,107|2,12|0,206|6,2|0,1|6,2|0,23|6,1|0,1|6,3|0,109|2,9|0,1|2,1|0,207|6,5|0,22|6,6|0,108|2,12|0,208|6,4|0,21|6,4|0,111|2,10|0,210|6,3|0,21|6,5|0,111|2,10|0,232|6,5|0,113|2,8|0,233|6,6|0,112|2,9|0,233|6,5|0,113|2,11|0,349|2,10|0,350|2,9|0,351|2,8|0,352|2,8|0,7|2,3|0,343|2,7|0,7|2,2|0,344|2,8|0,353|2,9|0,354|2,6|0,12485";
+  function initCont(){var runs=CONT_RLE.split('|'),g=new Uint8Array(CW*CH),p=0;for(var i=0;i<runs.length;i++){var c=runs[i].split(','),v=+c[0],ct=+c[1];for(var j=0;j<ct;j++)g[p++]=v;}contGrid=g;}
+  function continentOf(lon,lat){var px=((lon+180)/360*CW)|0,py=((90-lat)/180*CH)|0;if(px<0)px=0;if(px>=CW)px=CW-1;if(py<0)py=0;if(py>=CH)py=CH-1;var v=contGrid[py*CW+px];if(v)return CMAP[v];for(var r=1;r<=8;r++){for(var dy=-r;dy<=r;dy++){for(var dx=-r;dx<=r;dx++){if(Math.abs(dx)!==r&&Math.abs(dy)!==r)continue;var nx=px+dx,ny=py+dy;if(nx<0||nx>=CW||ny<0||ny>=CH)continue;var vv=contGrid[ny*CW+nx];if(vv)return CMAP[vv];}}}return 'asia';}
+  function buildPoints(){points=[];var step=CONFIG.gridStep,D=Math.PI/180;for(var lat=-58;lat<=84;lat+=step){var latR=lat*D,cyv=Math.sin(latR),rr=Math.cos(latR);for(var lon=-180;lon<180;lon+=step){if(isLand(lon,lat)){var lonR=lon*D;points.push({x:rr*Math.cos(lonR),y:cyv,z:rr*Math.sin(lonR),c:continentOf(lon,lat)});}}}}
+  function updateTip(cont,sx,sy){if(!tip)return;if(!cont){tip.style.opacity='0';tip.style.visibility='hidden';return;}var lang=(typeof LANG!=='undefined'&&LANG)?LANG:'zh',d=CONTI[cont];if(tip.dataset.c!==cont||tip.dataset.l!==lang){tip.dataset.c=cont;tip.dataset.l=lang;var h='<div class="gt-name">'+(lang==='zh'?d.zh:d.en)+'</div><ul>';for(var i=0;i<d.u.length;i++){h+='<li><span class="material-symbols-rounded">school</span>'+(lang==='zh'?d.u[i][0]:d.u[i][1])+'</li>';}h+='<li class="gt-etc">'+(lang==='zh'?'等等…':'etc.')+'</li></ul>';tip.innerHTML=h;}var tw=tip.offsetWidth||178,th=tip.offsetHeight||130,px=sx+24,py=sy-th/2;if(px+tw>cssW)px=sx-24-tw;if(px<4)px=4;if(py<4)py=4;if(py+th>cssH)py=cssH-th-4;tip.style.left=px+'px';tip.style.top=py+'px';tip.style.opacity='1';tip.style.visibility='visible';}
+  function buildGraticule(){grat=[];var i,j,line;for(i=0;i<CONFIG.latLines.length;i++){var lat=CONFIG.latLines[i]*Math.PI/180,cyv=Math.sin(lat),rr=Math.cos(lat);line=[];for(j=0;j<=64;j++){var a=j/64*Math.PI*2;line.push({x:rr*Math.cos(a),y:cyv,z:rr*Math.sin(a)});}grat.push(line);}for(i=0;i<CONFIG.lonCount;i++){var lon=i/CONFIG.lonCount*Math.PI;line=[];for(j=0;j<=64;j++){var a2=j/64*Math.PI*2;line.push({x:Math.sin(a2)*Math.cos(lon),y:Math.cos(a2),z:Math.sin(a2)*Math.sin(lon)});}grat.push(line);}}
+  function resize(){var rect=canvas.getBoundingClientRect();cssW=Math.max(1,rect.width||300);cssH=Math.max(1,rect.height||300);dpr=Math.min(window.devicePixelRatio||1,2.5);canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(reduceMotion)renderFrame(2.4);}
+  function renderFrame(yaw){
+    ctx.clearRect(0,0,cssW,cssH);
+    var cx=cssW/2,cy=cssH/2,R=Math.min(cssW,cssH)*CONFIG.radiusFrac,C=CONFIG.colors;
+    var cosY=Math.cos(yaw),sinY=Math.sin(yaw),cosT=Math.cos(CONFIG.tiltX),sinT=Math.sin(CONFIG.tiltX),persp=CONFIG.perspective;
+    for(var k in lift){lift[k]+=((hoverC===k?1:0)-lift[k])*0.18;}
+    // faint lat/long lines
+    ctx.lineWidth=0.8;ctx.lineCap='round';
+    for(var g=0;g<grat.length;g++){var line=grat[g],prev=null;
+      for(var s=0;s<line.length;s++){var q=line[s];
+        var qx1=q.x*cosY+q.z*sinY, qz1=-q.x*sinY+q.z*cosY, qy2=q.y*cosT-qz1*sinT, qz2=q.y*sinT+qz1*cosT;
+        var qsc=persp/(persp-qz2), cur={sx:cx-qx1*R*qsc,sy:cy-qy2*R*qsc,d:qz2};
+        if(prev){var md=(prev.d+cur.d)*0.5,tt=(md+1)*0.5,al=0.025+0.12*tt;ctx.beginPath();ctx.strokeStyle='rgba('+C.grid+','+al.toFixed(3)+')';ctx.moveTo(prev.sx,prev.sy);ctx.lineTo(cur.sx,cur.sy);ctx.stroke();}
+        prev=cur;
+      }
+    }
+    // continent dots + hover detection (front hemisphere only)
+    var bestD=20*20,newHover=null,hx=0,hy=0;
+    for(var i=0;i<points.length;i++){var p=points[i];
+      var lf=lift[p.c],gs=1+lf*0.12, px=p.x*gs,py=p.y*gs,pz=p.z*gs;
+      var x1=px*cosY+pz*sinY, z1=-px*sinY+pz*cosY;
+      var y2=py*cosT-z1*sinT, z2=py*sinT+z1*cosT;
+      var scale=persp/(persp-z2), sx=cx-x1*R*scale, sy=cy-y2*R*scale, t=(z2+1)*0.5, rad, al, col=C.dot;
+      if(z2<-0.04){ rad=CONFIG.baseDot*0.6*scale; al=0.06+0.10*t; }
+      else { rad=CONFIG.baseDot*(0.6+0.7*t)*scale; al=0.42+0.55*t;
+        if(lf>0.01){ rad*=1+lf*0.75; al=Math.min(1,al+lf*0.45); col=C.hi; }
+        if(mouseX>-900){var ddx=sx-mouseX,ddy=sy-mouseY,dd=ddx*ddx+ddy*ddy;if(dd<bestD){bestD=dd;newHover=p.c;hx=sx;hy=sy;}}
+      }
+      ctx.beginPath();ctx.fillStyle='rgba('+col+','+al.toFixed(3)+')';ctx.arc(sx,sy,Math.max(0.3,rad),0,6.2832);ctx.fill();
+    }
+    hoverC=newHover;
+    updateTip(newHover,hx,hy);
+  }
+  var rafId=null,lastTs=0,yawAcc=2.4;
+  function tick(ts){if(!lastTs)lastTs=ts;var dt=Math.min(0.05,(ts-lastTs)/1000);lastTs=ts;yawAcc+=dt*CONFIG.rotSpeed*(hoverC?0:1);renderFrame(yawAcc);rafId=window.requestAnimationFrame(tick);}
+  function start(){stop();lastTs=0;rafId=window.requestAnimationFrame(tick);}
+  function stop(){if(rafId!=null){window.cancelAnimationFrame(rafId);rafId=null;}}
+  function applyMotionPref(){var mq=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;reduceMotion=!!(mq&&mq.matches);}
+  function init(){applyMotionPref();buildLand();initCont();buildPoints();buildGraticule();resize();if(reduceMotion)renderFrame(2.4);else start();}
+  if(typeof ResizeObserver!=='undefined'){new ResizeObserver(function(){resize();}).observe(canvas);}else{window.addEventListener('resize',resize);}
+  document.addEventListener('visibilitychange',function(){if(document.hidden)stop();else if(!reduceMotion)start();});
+  canvas.addEventListener('mousemove',function(e){var r=canvas.getBoundingClientRect();mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;});
+  canvas.addEventListener('mouseleave',function(){mouseX=-999;mouseY=-999;hoverC=null;updateTip(null);});
+  init();
+})();
+
+/* ===================== organic dot-lattice loaders (neon) ===================== */
+(function(){
+  var els=document.querySelectorAll('.ldr[data-loader]');
+  if(!els.length)return;
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var mobile=window.matchMedia&&matchMedia('(max-width:760px)').matches;
+  if(mobile)return;
+  var TAU=Math.PI*2,NEON='#CCFF00',DPR=Math.min(window.devicePixelRatio||1,2);
+  var GN=34,SPAN=178,ORIGIN=11,STEP=SPAN/(GN-1),MAXR=1.7,TIME=0.33;
+  var LAT=[];for(var j=0;j<GN;j++)for(var i=0;i<GN;i++){var x=ORIGIN+i*STEP,y=ORIGIN+j*STEP;LAT.push({x:x,y:y,dx:x-100,dy:y-100});}
+  function clamp01(v){return v<0?0:v>1?1:v;}
+  function smooth(e0,e1,x){var t=clamp01((x-e0)/(e1-e0));return t*t*(3-2*t);}
+  function radial(dist,R,edge){edge=edge||7;return 1-smooth(R-edge,R+edge,dist);}
+  function meta(dx,dy,cs){var m=0;for(var k=0;k<cs.length;k++){var c=cs[k],ex=dx-c.x,ey=dy-c.y;m+=(c.r*c.r)/(ex*ex+ey*ey+0.01);}return smooth(0.8,1.25,m);}
+  var LOADERS={
+    blob:{field:function(dx,dy,t){var a=Math.atan2(dy,dx),d=Math.hypot(dx,dy);var R=44+7*Math.sin(3*a+t*1.3)+4*Math.sin(2*a-t);return radial(d,R);}},
+    pair:{pre:function(t){var d=13+17*(0.5+0.5*Math.sin(t*1.3));return[{x:-d,y:0,r:20},{x:d,y:0,r:20}];},field:function(dx,dy,t,c){return meta(dx,dy,c);}},
+    orbit:{pre:function(t){var c=[];for(var k=0;k<3;k++){var a=t*1.1+k*2.0944;c.push({x:34*Math.cos(a),y:34*Math.sin(a),r:15});}return c;},field:function(dx,dy,t,c){return meta(dx,dy,c);}},
+    worm:{pre:function(t){var c=[];for(var k=0;k<8;k++){var s=t*1.3-k*0.34;c.push({x:34*Math.cos(s),y:26*Math.sin(s*1.6),r:14-k*1.1});}return c;},field:function(dx,dy,t,c){return meta(dx,dy,c);}},
+    lava:{pre:function(t){var yA=-38+48*Math.sin(t*0.9),yB=38-48*Math.sin(t*0.9);return[{x:0,y:yA,r:22},{x:0,y:yB,r:22}];},field:function(dx,dy,t,c){return meta(dx,dy,c);}},
+    shell:{field:function(dx,dy,t){var a=Math.atan2(dy,dx),d=Math.hypot(dx,dy);var r0=20+22*(0.5+0.5*Math.sin(t*1.4))+4*Math.sin(5*a+t);return 1-smooth(8,13,Math.abs(d-r0));}},
+    rings:{field:function(dx,dy,t){var d=Math.hypot(dx,dy),best=0;for(var k=0;k<3;k++){var ph=((t*0.5+k/3)%1+1)%1,r=ph*72,fade=Math.sin(ph*Math.PI);best=Math.max(best,(1-smooth(4,9,Math.abs(d-r)))*fade);}return best;}}
+  };
+  var sys=[];
+  els.forEach(function(el){
+    var cfg=LOADERS[el.getAttribute('data-loader')];if(!cfg)return;
+    var css=el.clientWidth||parseInt(el.style.width,10)||148;
+    el.width=Math.round(css*DPR);el.height=Math.round(css*DPR);
+    var ctx=el.getContext('2d');var sc=css/200*DPR;ctx.scale(sc,sc);
+    sys.push({cfg:cfg,ctx:ctx});
+  });
+  if(!sys.length)return;
+  function draw(t){
+    for(var s=0;s<sys.length;s++){var cfg=sys[s].cfg,ctx=sys[s].ctx;
+      ctx.clearRect(0,0,200,200);ctx.fillStyle=NEON;
+      var st=cfg.pre?cfg.pre(t):null;
+      for(var n=0;n<LAT.length;n++){var d=LAT[n];var amt=cfg.field(d.dx,d.dy,t,st);if(amt<=0.06)continue;var r=MAXR*(amt>1?1:amt);ctx.beginPath();ctx.arc(d.x,d.y,r,0,TAU);ctx.fill();}
+    }
+  }
+  draw(2.4);                 // synchronous first frame (visible even before RAF starts)
+  if(reduce)return;          // reduced-motion: keep the single static frame
+  function loop(now){draw(now/1000*TIME);requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+})();
+
+/* ===================== get-the-app: full-bleed morphing-blob background (contained to #getapp) ===================== */
+(function(){
+  var cvs=[].slice.call(document.querySelectorAll('canvas[data-blob]'));
+  if(!cvs.length)return;
+  if(window.matchMedia&&matchMedia('(max-width:760px)').matches)return;
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var TAU=Math.PI*2,DPR=Math.min(window.devicePixelRatio||1,2),GAP=18,TIME=0.33,MAXR=GAP*0.34;
+  function clamp01(v){return v<0?0:v>1?1:v;}
+  function smooth(e0,e1,x){var t=clamp01((x-e0)/(e1-e0));return t*t*(3-2*t);}
+  function radial(dist,R){return 1-smooth(R-7,R+7,dist);}
+  function blob(dx,dy,t){var a=Math.atan2(dy,dx),d=Math.hypot(dx,dy);var R=44+7*Math.sin(3*a+t*1.3)+4*Math.sin(2*a-t);return radial(d,R);}
+  /* field anchored on the getapp blob's centre in page coords (kept generic, but only #ga-bg uses it) */
+  var ax=0,ay=0,fill=1;
+  function anchor(){
+    var ga=document.getElementById('ga-bg');if(!ga)return;
+    var r=ga.getBoundingClientRect();
+    ax=r.left+window.pageXOffset+r.width/2;
+    ay=r.top+window.pageYOffset+r.height/2;
+    fill=Math.max(r.width,r.height)/2/48;
+  }
+  function make(cv){
+    var ctx=cv.getContext('2d');
+    var color=cv.getAttribute('data-blob-color')||'#CCFF00',W=0,H=0,pts=[];
+    function build(){
+      var r=cv.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);
+      if(!W||!H)return;
+      cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
+      var px0=r.left+window.pageXOffset,py0=r.top+window.pageYOffset;   // this canvas' origin in page coords
+      var sx=Math.ceil(px0/GAP)*GAP-px0,sy=Math.ceil(py0/GAP)*GAP-py0;  // snap lattice onto one global grid
+      pts=[];
+      for(var y=sy;y<=H;y+=GAP){var dy=(py0+y-ay)/fill;
+        for(var x=sx;x<=W;x+=GAP){var dx=(px0+x-ax)/fill;pts.push({x:x,y:y,dx:dx,dy:dy});}}
+    }
+    function draw(t){ctx.clearRect(0,0,W,H);ctx.fillStyle=color;for(var i=0;i<pts.length;i++){var p=pts[i];var amt=blob(p.dx,p.dy,t);if(amt<=0.06)continue;var rr=MAXR*(amt>1?1:amt);ctx.beginPath();ctx.arc(p.x,p.y,rr,0,TAU);ctx.fill();}}
+    return {build:build,draw:draw};
+  }
+  var insts=cvs.map(make);
+  function buildAll(){anchor();for(var i=0;i<insts.length;i++)insts[i].build();}
+  buildAll();addEventListener('resize',buildAll);
+  for(var i=0;i<insts.length;i++)insts[i].draw(2.4);   // synchronous first frame
+  if(reduce)return;
+  function loop(now){var t=now/1000*TIME;for(var k=0;k<insts.length;k++)insts[k].draw(t);requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+})();
+
+/* ===================== FAQ accordion ===================== */
+(function(){
+  var qs=document.querySelectorAll('#faq .faq-q');
+  if(!qs.length)return;
+  qs.forEach(function(b){
+    b.addEventListener('click',function(){
+      var item=b.parentElement;
+      var open=item.classList.contains('open');
+      document.querySelectorAll('#faq .faq-item').forEach(function(i){i.classList.remove('open');var q=i.querySelector('.faq-q');if(q)q.setAttribute('aria-expanded','false');});
+      if(!open){item.classList.add('open');b.setAttribute('aria-expanded','true');}
+    });
+  });
+})();
+
+/* ===================== init ===================== */
+applyLang(LANG);
+</script>
+</body>
+</html>
