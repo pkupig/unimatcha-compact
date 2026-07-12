@@ -1,0 +1,143 @@
+{
+  "version": "questionnaire-v2",
+  "notes": "One spec, two businesses. Each section has a `mode` (romantic | friend | both). The two frontends render different question sets, but both feed the SAME pipeline — only the ModeProfile (app/mode_profile.py) differs. Group names & order ranges align with each mode's category_weights so questionnaire_score() works unchanged. Every item carries matchSemantics + hardness so scoring knows HOW to use it.",
+  "matchSemantics": {
+    "filter": "hard/soft gate. self-fact + partner-requirement pair. NOT similarity-scored.",
+    "similar": "closer answers = higher score (物以类聚). Likert or forced-choice.",
+    "complement": "moderate difference can score higher (互补). Scored by pair judge.",
+    "freeform": "free text -> Profile Extractor LLM. Where '讨厌香菜' / '喜欢猫' live."
+  },
+  "hardness": {
+    "hard": "'不能容忍' — dealbreaker (reject, flexibility=1). MUST be satisfied. Enforced in code.",
+    "soft": "'希望' — best-effort preference. Optimized but never guaranteed."
+  },
+  "sections": [
+    {
+      "id": "S0_facts", "mode": "both",
+      "title": "基础事实（白盒，用于硬过滤与人口学分）",
+      "items": [
+        {"id": "age", "type": "NUMBER", "prompt": "你的年龄", "matchSemantics": "filter", "hardness": "soft", "target": "self"},
+        {"id": "gender", "type": "SINGLE_CHOICE", "prompt": "你的性别", "options": ["male", "female", "other"], "matchSemantics": "filter", "hardness": "soft", "target": "self"},
+        {"id": "city", "type": "TEXT", "prompt": "常驻城市", "matchSemantics": "filter", "hardness": "soft", "target": "self"},
+        {"id": "school", "type": "TEXT", "prompt": "学校", "matchSemantics": "filter", "hardness": "soft", "target": "self"},
+        {"id": "grade", "type": "SINGLE_CHOICE", "prompt": "年级阶段", "options": ["undergraduate", "master", "doctor"], "matchSemantics": "filter", "hardness": "soft", "target": "self"}
+      ]
+    },
+    {
+      "id": "S1_dealbreakers", "mode": "both",
+      "title": "底线：你【绝对不能接受】对方…（硬约束，一票否决）",
+      "note": "全 hard，进 dealbreakers -> passes_hard_gate。恋爱模式性别偏好是硬约束(gender_pref_required)，交友模式只在填了才生效。",
+      "items": [
+        {"id": "db_gender_pref", "type": "SINGLE_CHOICE", "prompt": "希望对方性别", "options": ["male", "female", "any"], "matchSemantics": "filter", "hardness": "hard", "target": "partner"},
+        {"id": "db_age_range", "type": "RANGE", "prompt": "能接受的对方年龄范围", "matchSemantics": "filter", "hardness": "hard", "target": "partner"},
+        {"id": "db_distance", "type": "SINGLE_CHOICE", "prompt": "对异地/距离的态度", "options": ["必须同城", "可短期异地", "都行"], "matchSemantics": "filter", "hardness": "hard", "target": "partner"},
+        {"id": "db_other", "type": "TEXT", "prompt": "还有什么是你完全无法接受的？", "matchSemantics": "freeform", "hardness": "hard", "target": "partner"}
+      ]
+    },
+    {
+      "id": "S3_values", "mode": "both",
+      "title": "价值观（两模式共有；越相似越好）",
+      "orderRange": [11, 20], "group": "价值观",
+      "items": [
+        {"id": "val_family", "type": "SCALE", "prompt": "家庭/事业优先度：家庭(1)—事业(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "val_openness", "type": "SCALE", "prompt": "对不同背景的开放程度(1-5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"}
+      ]
+    },
+
+    {
+      "id": "R_seriousness", "mode": "romantic",
+      "title": "关系认真度（恋爱观 / 21-30，越相似越关键）",
+      "orderRange": [21, 30], "group": "恋爱观",
+      "items": [
+        {"id": "ser_intent", "type": "SINGLE_CHOICE", "prompt": "你想找的关系是", "options": ["认真长期", "先了解看发展", "轻松随意"], "matchSemantics": "similar", "hardness": "soft", "weight": 1.5, "target": "self", "note": "认真 vs 随意是价值冲突不是互补"},
+        {"id": "ser_pace", "type": "SCALE", "prompt": "关系推进节奏：慢慢来(1)—很快确定(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "ser_exclusive", "type": "SCALE", "prompt": "对忠诚/排他的看重程度(1-5)", "matchSemantics": "similar", "hardness": "soft", "weight": 1.3, "target": "self"}
+      ]
+    },
+    {
+      "id": "R_lifestyle", "mode": "romantic",
+      "title": "生活习惯（1-10，相似为主）",
+      "orderRange": [1, 10], "group": "生活习惯",
+      "items": [
+        {"id": "life_schedule", "type": "SCALE", "prompt": "作息：早睡早起(1)—夜猫子(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "life_clean", "type": "SCALE", "prompt": "整洁程度(1-5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "life_smoking", "type": "SINGLE_CHOICE", "prompt": "对方吸烟你…", "options": ["绝对不能接受", "不喜欢但能接受", "无所谓"], "matchSemantics": "filter", "hardness": "hard", "target": "partner"}
+      ]
+    },
+    {
+      "id": "R_communication", "mode": "romantic",
+      "title": "沟通（31-40，部分互补）",
+      "orderRange": [31, 40], "group": "沟通",
+      "items": [
+        {"id": "com_expression", "type": "SCALE", "prompt": "表达欲：倾听为主(1)—健谈(5)", "matchSemantics": "complement", "hardness": "soft", "target": "self"},
+        {"id": "com_conflict", "type": "SINGLE_CHOICE", "prompt": "吵架时你会", "options": ["当场说清", "先冷静再谈", "回避不谈"], "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "com_frequency", "type": "SCALE", "prompt": "希望的联系频率：给彼此空间(1)—高频黏(5)", "matchSemantics": "similar", "hardness": "soft", "weight": 1.2, "target": "self"}
+      ]
+    },
+    {
+      "id": "R_finance", "mode": "romantic",
+      "title": "金钱观（41-50，相似为主）",
+      "orderRange": [41, 50], "group": "财务观",
+      "items": [
+        {"id": "fin_style", "type": "SCALE", "prompt": "消费观：精打细算(1)—享受当下(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "fin_aa", "type": "SINGLE_CHOICE", "prompt": "约会花费倾向", "options": ["AA", "轮流请", "谁方便谁来"], "matchSemantics": "similar", "hardness": "soft", "target": "self"}
+      ]
+    },
+
+    {
+      "id": "F_social_style", "mode": "friend",
+      "title": "社交风格（1-5，部分互补）",
+      "orderRange": [1, 5], "group": "社交风格",
+      "items": [
+        {"id": "soc_energy", "type": "SCALE", "prompt": "社交能量：安静(1)—活跃(5)", "matchSemantics": "complement", "hardness": "soft", "target": "self", "note": "一动一静可互补"},
+        {"id": "soc_initiative", "type": "SCALE", "prompt": "你更愿意：参与别人组织的(1)—自己张罗(5)", "matchSemantics": "complement", "hardness": "soft", "target": "self"}
+      ]
+    },
+    {
+      "id": "F_interest_activity", "mode": "friend",
+      "title": "兴趣活动（6-10，交友核心，权重最高 0.25）",
+      "orderRange": [6, 10], "group": "兴趣活动",
+      "items": [
+        {"id": "act_types", "type": "MULTIPLE_CHOICE", "prompt": "常参加的活动", "options": ["运动", "游戏", "音乐", "影视", "美食", "旅行", "读书", "摄影", "桌游", "露营"], "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "act_style", "type": "SINGLE_CHOICE", "prompt": "更喜欢的相处方式", "options": ["一起出门玩", "线上开黑聊天", "都可以"], "matchSemantics": "similar", "hardness": "soft", "target": "self"}
+      ]
+    },
+    {
+      "id": "F_personality_pace", "mode": "friend",
+      "title": "人格节奏（11-15，相似为主）",
+      "orderRange": [11, 15], "group": "人格节奏",
+      "items": [
+        {"id": "pace_plan", "type": "SCALE", "prompt": "做事风格：随性(1)—计划性强(5)", "matchSemantics": "complement", "hardness": "soft", "target": "self"},
+        {"id": "pace_reply", "type": "SCALE", "prompt": "消息回复：随缘(1)—秒回(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"}
+      ]
+    },
+    {
+      "id": "F_life_planning", "mode": "friend",
+      "title": "生活规划（21-25，相似为主）",
+      "orderRange": [21, 25], "group": "生活规划",
+      "items": [
+        {"id": "plan_stage", "type": "SINGLE_CHOICE", "prompt": "当前阶段重心", "options": ["学业科研", "实习求职", "社团玩乐", "创业搞钱"], "matchSemantics": "similar", "hardness": "soft", "target": "self"},
+        {"id": "plan_future", "type": "SCALE", "prompt": "毕业后打算：回国(1)—留外(5)", "matchSemantics": "similar", "hardness": "soft", "target": "self"}
+      ]
+    },
+
+    {
+      "id": "S7_aspiration", "mode": "both",
+      "title": "期待：你【希望】对方是怎样的？（软偏好，尽力满足）",
+      "note": "与 S1 对称，全 soft，进 preferences(target=partner)，只影响分数不淘汰。",
+      "items": [
+        {"id": "asp_traits", "type": "TEXT", "prompt": "一句话形容你想认识的人", "matchSemantics": "freeform", "hardness": "soft", "target": "partner"},
+        {"id": "asp_shared", "type": "MULTIPLE_CHOICE", "prompt": "希望有共同的", "options": ["运动", "游戏", "音乐", "影视", "美食", "旅行", "读书", "摄影", "宠物"], "matchSemantics": "similar", "hardness": "soft", "target": "both"}
+      ]
+    },
+    {
+      "id": "S8_freeform", "mode": "both",
+      "title": "自由备注（黑盒，交给 Profile Extractor）",
+      "note": "'我讨厌他吃香菜''喜欢猫' 等细腻/否定语义在这里被 LLM 抽成结构化 preference。",
+      "items": [
+        {"id": "bio", "type": "TEXT", "prompt": "个性签名 / 自我介绍", "matchSemantics": "freeform", "hardness": "soft", "target": "self"},
+        {"id": "extraMatchInfo", "type": "TEXT", "prompt": "还有什么想让我们知道的？", "matchSemantics": "freeform", "hardness": "soft", "target": "both"}
+      ]
+    }
+  ]
+}

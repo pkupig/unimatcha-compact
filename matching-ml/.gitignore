@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/out/
+data/out_friend/
+feedback/store/
+*.gguf
+out/
+train_out/
+train.log
