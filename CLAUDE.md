@@ -10,8 +10,12 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 - `apps/web` — Web 端
 - `apps/website` — 官网（Aleo 风格，霓虹绿主题，双语）
 - `apps/ios` — iOS 端
+- `matching-ml` — 匹配模型服务（Python/FastAPI，规则+微调 LLM 混合，见 [matching-ml/README.md](matching-ml/README.md)）
+- `api/`、`h5/`、`admin-web/`（根目录）— 服务器部署快照（来自 unipia 仓库，Docker 导出/构建产物），源码以 `apps/` 为准
 
-详细架构、API 文档、快速开始见 [README.md](README.md)。
+项目待办总表见 [BACKLOG.md](BACKLOG.md)，匹配调度方案见 [SCHEDULING.md](SCHEDULING.md)。详细架构、API 文档、快速开始见 [README.md](README.md)。
+
+同步说明：GitHub 远程 `unipia`（https://github.com/pkupig/unipia）为当前项目仓库，本地 main 已与其合并（2026-07-13），推送用 `git push unipia main`。旧远程 `origin`（campus-love）暂未同步。
 
 ## 每日日志规则
 
