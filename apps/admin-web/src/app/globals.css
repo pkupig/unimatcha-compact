@@ -4,24 +4,112 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+  /* Material Symbols Rounded (icon font shared with H5) */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Rounded';
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    white-space: nowrap;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer components {
+  /* ── Buttons ─────────────────────────────────────────── */
+  /* Hero CTA — neon block, black text（每屏只允许一个主 CTA） */
+  .btn-cta {
+    @apply inline-flex items-center justify-center gap-2 bg-neon hover:bg-neon-dark text-black px-4 py-2.5 rounded-lg font-display font-bold text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  /* Primary secondary-action — ink block, white text */
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 bg-ink hover:bg-on-surface text-white px-4 py-2.5 rounded-lg font-display font-bold text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
   }
+  /* Secondary — outlined ink, inverts on hover */
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 bg-white hover:bg-ink hover:text-white text-ink border border-ink px-4 py-2.5 rounded-lg font-display font-bold text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
   }
+  /* Danger — neon-pink outline */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 bg-transparent hover:bg-neon-pink text-neon-pink hover:text-black border border-neon-pink px-4 py-2.5 rounded-lg font-display font-bold text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  /* Size modifier — compose: "btn-secondary btn-sm" */
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  /* ── Surfaces ────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-xl border border-gray-100 shadow-sm p-6;
+    @apply bg-white rounded-lg border border-outline-variant/40 shadow-sm p-6;
   }
+
+  /* ── Forms ───────────────────────────────────────────── */
   .input {
-    @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full bg-white border border-outline-variant/60 rounded-lg px-3 py-2 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink transition-colors disabled:bg-surface-low disabled:text-outline;
   }
+  .select {
+    @apply input cursor-pointer;
+  }
+  .label {
+    @apply block text-[11px] font-bold tracking-[0.2em] uppercase text-on-surface-variant mb-1.5 font-display;
+  }
+  /* Tiny uppercase tracked caption（页面/卡片小标签） */
+  .caption {
+    @apply text-[11px] font-bold tracking-[0.2em] uppercase text-on-surface-variant font-display;
+  }
+
+  /* ── Badges ──────────────────────────────────────────── */
+  /* Neutral gray by default; modifiers add tone */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold tracking-wide bg-surface-high text-on-surface whitespace-nowrap;
+  }
+  .badge-neon {
+    @apply bg-neon text-black;
+  }
+  .badge-ink {
+    @apply bg-ink text-white;
+  }
+  .badge-pink {
+    @apply bg-neon-pink/10 text-neon-pink border border-neon-pink/60;
+  }
+  .badge-outline {
+    @apply bg-white text-on-surface-variant border border-outline-variant;
+  }
+
+  /* ── Tables ──────────────────────────────────────────── */
+  .table-base {
+    @apply w-full text-sm border-collapse;
+  }
+  .table-base thead th {
+    @apply text-left px-4 py-3 text-[11px] font-display font-bold uppercase tracking-[0.15em] text-on-surface-variant bg-surface-low border-b border-outline-variant/40 whitespace-nowrap;
+  }
+  .table-base tbody td {
+    @apply px-4 py-3 align-middle text-on-surface;
+  }
+  .table-base tbody tr {
+    @apply border-b border-outline-variant/20 transition-colors;
+  }
+  .table-base tbody tr:last-child {
+    @apply border-b-0;
+  }
+  .table-base tbody tr:hover {
+    @apply bg-surface-low/50;
+  }
+
+  /* ── Sidebar navigation ──────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-on-surface-variant transition-all hover:bg-surface-low hover:text-ink;
+  }
+  .nav-item-active {
+    @apply bg-neon text-black font-bold hover:bg-neon hover:text-black;
   }
 }

@@ -1,19 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getMatchConfig, updateMatchConfig, triggerMatchJob, getMatchJobs, retryMatchJob } from '@/lib/api';
-import { Zap, RefreshCw, Settings, CheckCircle, XCircle, Clock, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
-import clsx from 'clsx';
+import {
+  Zap,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader,
+  PauseCircle,
+} from 'lucide-react';
+import { getMatchConfig, updateMatchConfig, triggerMatchJob, getMatchJobs, retryMatchJob } from '@/lib/api';
+import {
+  PageHeader,
+  Card,
+  Badge,
+  DataTable,
+  EmptyState,
+  Field,
+  Input,
+  RoleGate,
+  type BadgeVariant,
+  type Column,
+} from '@/components/ui';
+import { formatDateTime } from '@/lib/format';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  PENDING: { label: '等待中', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  RUNNING: { label: '执行中', color: 'bg-blue-100 text-blue-700', icon: Loader },
-  COMPLETED: { label: '已完成', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  FAILED: { label: '已失败', color: 'bg-red-100 text-red-700', icon: XCircle },
+/** 任务状态 → 徽章（ink=进行中、neon=成功、pink=失败、neutral=等待） */
+const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant; icon: any }> = {
+  PENDING: { label: '等待中', variant: 'neutral', icon: Clock },
+  RUNNING: { label: '运行中', variant: 'ink', icon: Loader },
+  COMPLETED: { label: '已完成', variant: 'neon', icon: CheckCircle },
+  FAILED: { label: '失败', variant: 'pink', icon: XCircle },
 };
 
-export default function MatchingPage() {
+function MatchingInner() {
   const [config, setConfig] = useState<any>(null);
   const [jobs, setJobs] = useState<any[]>([]);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -47,7 +68,7 @@ export default function MatchingPage() {
     e.preventDefault();
     try {
       await updateMatchConfig(configForm);
-      toast.success('匹配配置已更新');
+      toast.success('匹配计划已更新');
       setEditingConfig(false);
       loadConfig();
     } catch (err: any) { toast.error(err?.message || '更新失败'); }
@@ -71,119 +92,182 @@ export default function MatchingPage() {
     } catch (err: any) { toast.error(err?.message || '重试失败'); }
   };
 
+  const jobColumns: Column<any>[] = [
+    {
+      key: 'status',
+      title: '状态',
+      render: (job) => {
+        const cfg = STATUS_CONFIG[job.status] || STATUS_CONFIG.PENDING;
+        const Icon = cfg.icon;
+        return (
+          <Badge variant={cfg.variant}>
+            <Icon size={11} className={job.status === 'RUNNING' ? 'animate-spin' : ''} />
+            {cfg.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'summary',
+      title: '任务详情',
+      render: (job) => (
+        <span className="text-on-surface">
+          <span className="font-mono">{job.totalCandidates}</span> 位候选 ·{' '}
+          <span className="font-mono">{job.totalMatched}</span> 对配对
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      title: '触发时间',
+      render: (job) => (
+        <span className="font-mono text-xs text-on-surface-variant">{formatDateTime(job.createdAt)}</span>
+      ),
+    },
+    {
+      key: 'triggeredBy',
+      title: '触发方',
+      render: (job) => <span className="text-on-surface-variant text-xs">{job.triggeredBy || '-'}</span>,
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      align: 'right',
+      render: (job) =>
+        job.status === 'FAILED' ? (
+          <button onClick={() => handleRetry(job.id)} className="btn-secondary btn-sm">
+            <RefreshCw size={12} /> 重试
+          </button>
+        ) : (
+          <span className="text-outline">-</span>
+        ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">匹配管理</h1>
-        <p className="text-sm text-gray-500 mt-0.5">配置匹配时间策略，管理匹配任务</p>
-      </div>
+      <PageHeader caption="MATCHING" title="匹配管理" sub="配置匹配计划与管理匹配任务" />
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Config Card */}
-        <div className="card space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Settings size={16} /> 匹配时间配置</h2>
-            {!editingConfig && <button onClick={() => setEditingConfig(true)} className="btn-secondary text-xs py-1.5 px-3">编辑</button>}
-          </div>
-
+        <Card
+          caption="SCHEDULE"
+          title="匹配计划"
+          actions={
+            !editingConfig && (
+              <button onClick={() => setEditingConfig(true)} className="btn-secondary btn-sm">
+                编辑
+              </button>
+            )
+          }
+        >
           {editingConfig ? (
             <form onSubmit={handleSaveConfig} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Cron 表达式</label>
-                <input type="text" className="input" placeholder="0 20 * * 3 (每周三 20:00)" value={configForm.cronExpr}
-                  onChange={(e) => setConfigForm({ ...configForm, cronExpr: e.target.value })} required />
-                <p className="text-xs text-gray-400 mt-1">示例：0 20 * * 3 = 每周三晚20:00</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">描述</label>
-                <input type="text" className="input" placeholder="如：每周三晚上20:00" value={configForm.description}
-                  onChange={(e) => setConfigForm({ ...configForm, description: e.target.value })} />
-              </div>
+              <Field label="Cron 表达式" hint="示例：0 20 * * 3 = 每周三 20:00" required>
+                <Input
+                  type="text"
+                  className="font-mono"
+                  placeholder="0 20 * * 3（每周三 20:00）"
+                  value={configForm.cronExpr}
+                  onChange={(e) => setConfigForm({ ...configForm, cronExpr: e.target.value })}
+                  required
+                />
+              </Field>
+              <Field label="描述">
+                <Input
+                  type="text"
+                  placeholder="例如：每周三晚 8 点匹配"
+                  value={configForm.description}
+                  onChange={(e) => setConfigForm({ ...configForm, description: e.target.value })}
+                />
+              </Field>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="isEnabled" checked={configForm.isEnabled}
-                  onChange={(e) => setConfigForm({ ...configForm, isEnabled: e.target.checked })} />
-                <label htmlFor="isEnabled" className="text-sm text-gray-700">启用定时匹配</label>
+                <input
+                  type="checkbox"
+                  id="isEnabled"
+                  className="accent-ink"
+                  checked={configForm.isEnabled}
+                  onChange={(e) => setConfigForm({ ...configForm, isEnabled: e.target.checked })}
+                />
+                <label htmlFor="isEnabled" className="text-sm text-on-surface">启用定时匹配</label>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setEditingConfig(false)} className="btn-secondary text-xs">取消</button>
-                <button type="submit" className="btn-primary text-xs">保存</button>
+                <button type="button" onClick={() => setEditingConfig(false)} className="btn-secondary btn-sm">
+                  取消
+                </button>
+                <button type="submit" className="btn-primary btn-sm">保存</button>
               </div>
             </form>
           ) : loadingConfig ? (
-            <p className="text-gray-400 text-sm">加载中...</p>
+            <p className="text-outline text-sm">加载中…</p>
           ) : config ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
-                <span className="text-sm text-gray-500">Cron 表达式</span>
-                <code className="text-sm bg-gray-100 px-2 py-0.5 rounded">{config.cronExpr}</code>
+              <div className="flex items-center justify-between py-1.5 border-b border-outline-variant/20">
+                <span className="text-sm text-on-surface-variant">Cron 表达式</span>
+                <code className="text-sm font-mono bg-surface-low px-2 py-0.5 rounded-md text-on-surface">
+                  {config.cronExpr}
+                </code>
               </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-gray-50">
-                <span className="text-sm text-gray-500">描述</span>
-                <span className="text-sm text-gray-700">{config.description || '-'}</span>
+              <div className="flex items-center justify-between py-1.5 border-b border-outline-variant/20">
+                <span className="text-sm text-on-surface-variant">描述</span>
+                <span className="text-sm text-on-surface">{config.description || '-'}</span>
               </div>
               <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-gray-500">定时状态</span>
-                <span className={clsx('badge', config.isEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500')}>
-                  {config.isEnabled ? '✅ 已启用' : '⏸ 已停用'}
-                </span>
+                <span className="text-sm text-on-surface-variant">计划状态</span>
+                <Badge variant={config.isEnabled ? 'neon' : 'neutral'}>
+                  {config.isEnabled ? <CheckCircle size={12} /> : <PauseCircle size={12} />}
+                  {config.isEnabled ? '已启用' : '已停用'}
+                </Badge>
               </div>
             </div>
           ) : (
-            <p className="text-gray-400 text-sm">暂无配置，请点击编辑创建</p>
+            <p className="text-outline text-sm">暂无配置，点击「编辑」创建。</p>
           )}
-        </div>
+        </Card>
 
         {/* Manual trigger */}
-        <div className="card space-y-4">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2"><Zap size={16} /> 手动触发</h2>
-          <p className="text-sm text-gray-500">立即对所有处于匹配模式、已完善资料的用户执行一次匹配。</p>
-          <button onClick={handleTrigger} disabled={triggering} className="btn-primary w-full flex items-center justify-center gap-2">
+        <Card caption="TRIGGER" title="手动触发">
+          <p className="text-sm text-on-surface-variant mb-4">
+            立即为所有处于匹配模式且已完善资料的用户执行一次匹配。
+          </p>
+          <button onClick={handleTrigger} disabled={triggering} className="btn-cta w-full">
             <Zap size={16} />
-            {triggering ? '触发中...' : '立即执行匹配'}
+            {triggering ? '触发中…' : '立即匹配'}
           </button>
-        </div>
+        </Card>
       </div>
 
       {/* Jobs list */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">最近匹配任务</h2>
-          <button onClick={loadJobs} className="text-gray-400 hover:text-gray-600"><RefreshCw size={15} /></button>
-        </div>
-        {loadingJobs ? (
-          <p className="text-center py-8 text-gray-400">加载中...</p>
-        ) : jobs.length === 0 ? (
-          <p className="text-center py-8 text-gray-400">暂无匹配任务记录</p>
-        ) : (
-          <div className="space-y-2">
-            {jobs.map((job) => {
-              const statusCfg = STATUS_CONFIG[job.status] || STATUS_CONFIG.PENDING;
-              const Icon = statusCfg.icon;
-              return (
-                <div key={job.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
-                  <span className={clsx('badge flex items-center gap-1', statusCfg.color)}>
-                    <Icon size={11} className={job.status === 'RUNNING' ? 'animate-spin' : ''} />
-                    {statusCfg.label}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 truncate">
-                      候选 {job.totalCandidates} 人 · 匹配 {job.totalMatched} 对
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(job.createdAt).toLocaleString('zh-CN')} · {job.triggeredBy || ''}
-                    </p>
-                  </div>
-                  {job.status === 'FAILED' && (
-                    <button onClick={() => handleRetry(job.id)} className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1">
-                      <RefreshCw size={12} /> 重试
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <Card
+        caption="RECENT JOBS"
+        title="最近匹配任务"
+        actions={
+          <button
+            onClick={loadJobs}
+            className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-low hover:text-ink transition-colors"
+            title="刷新"
+          >
+            <RefreshCw size={15} />
+          </button>
+        }
+        bodyClassName="-mx-6 -mb-6 overflow-hidden rounded-b-lg"
+      >
+        <DataTable
+          columns={jobColumns}
+          data={jobs}
+          loading={loadingJobs}
+          empty={<EmptyState title="暂无匹配任务" />}
+        />
+      </Card>
     </div>
+  );
+}
+
+export default function MatchingPage() {
+  // 匹配管理仅平台团队可用
+  return (
+    <RoleGate allow={['SUPER', 'TEAM']}>
+      <MatchingInner />
+    </RoleGate>
   );
 }

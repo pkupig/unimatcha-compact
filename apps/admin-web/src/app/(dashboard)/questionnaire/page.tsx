@@ -1,18 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getQVersions, createQVersion, publishQVersion } from '@/lib/api';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Plus, ExternalLink, CheckCircle2, Clock } from 'lucide-react';
-import clsx from 'clsx';
+import { Plus, ExternalLink, CheckCircle2, Clock, FileText, BarChart } from 'lucide-react';
+import { getQVersions, createQVersion, publishQVersion } from '@/lib/api';
+import {
+  PageHeader,
+  Card,
+  Badge,
+  Modal,
+  ConfirmDialog,
+  EmptyState,
+  Field,
+  Input,
+  Select,
+  RoleGate,
+} from '@/components/ui';
+import { formatDate } from '@/lib/format';
 
-export default function QuestionnairePage() {
+// 问卷类型：ROMANTIC（恋人）| FRIEND（朋友），后端必填
+const TYPE_LABELS: Record<string, string> = {
+  ROMANTIC: '恋爱问卷',
+  FRIEND: '朋友问卷',
+};
+
+function QuestionnaireInner() {
   const [versions, setVersions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newType, setNewType] = useState<'ROMANTIC' | 'FRIEND'>('ROMANTIC');
   const [creating, setCreating] = useState(false);
+  // 待发布版本（ConfirmDialog）
+  const [publishId, setPublishId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => { loadVersions(); }, []);
 
@@ -20,7 +42,7 @@ export default function QuestionnairePage() {
     try {
       const res = await getQVersions();
       setVersions((res as any).data || []);
-    } catch { toast.error('加载问卷列表失败'); }
+    } catch { toast.error('问卷列表加载失败'); }
     finally { setLoading(false); }
   };
 
@@ -29,109 +51,150 @@ export default function QuestionnairePage() {
     if (!newTitle.trim()) return;
     setCreating(true);
     try {
-      await createQVersion({ title: newTitle });
+      await createQVersion({ title: newTitle, type: newType });
       toast.success('问卷版本已创建');
       setShowCreate(false);
       setNewTitle('');
+      setNewType('ROMANTIC');
       loadVersions();
     } catch (err: any) { toast.error(err?.message || '创建失败'); }
     finally { setCreating(false); }
   };
 
-  const handlePublish = async (id: string) => {
-    if (!confirm('发布后，所有用户将看到新版本问卷。确认发布？')) return;
+  const handlePublish = async () => {
+    if (!publishId) return;
+    setPublishing(true);
     try {
-      await publishQVersion(id);
-      toast.success('问卷已发布为激活版本');
+      await publishQVersion(publishId);
+      toast.success('问卷已发布为当前版本');
+      setPublishId(null);
       loadVersions();
     } catch (err: any) { toast.error(err?.message || '发布失败'); }
+    finally { setPublishing(false); }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">问卷管理</h1>
-          <p className="text-sm text-gray-500 mt-0.5">管理匹配问卷版本与题目</p>
-        </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
-          <Plus size={16} /> 新建版本
-        </button>
-      </div>
+      <PageHeader
+        caption="QUESTIONNAIRE"
+        title="问卷管理"
+        sub="管理匹配问卷版本与题目"
+        actions={
+          <button onClick={() => setShowCreate(true)} className="btn-cta">
+            <Plus size={16} /> 新建版本
+          </button>
+        }
+      />
 
       {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">新建问卷版本</h3>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">版本标题</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="如：校园恋爱问卷 V2"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">取消</button>
-                <button type="submit" disabled={creating} className="btn-primary">
-                  {creating ? '创建中...' : '创建'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        caption="NEW VERSION"
+        title="新建问卷版本"
+        widthClassName="max-w-md"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <Field label="问卷类型" required>
+            <Select
+              value={newType}
+              onChange={(e) => setNewType(e.target.value as 'ROMANTIC' | 'FRIEND')}
+              required
+            >
+              <option value="ROMANTIC">恋爱问卷</option>
+              <option value="FRIEND">朋友问卷</option>
+            </Select>
+          </Field>
+          <Field label="版本标题" required>
+            <Input
+              type="text"
+              placeholder="例如：校园恋爱问卷 V2"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              required
+            />
+          </Field>
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary btn-sm">
+              取消
+            </button>
+            <button type="submit" disabled={creating} className="btn-primary btn-sm">
+              {creating ? '创建中…' : '创建'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
+
+      {/* Publish confirm */}
+      <ConfirmDialog
+        open={!!publishId}
+        title="发布问卷版本"
+        message="发布后所有用户将使用新版本问卷，确认发布？"
+        confirmText="确认发布"
+        loading={publishing}
+        onConfirm={handlePublish}
+        onCancel={() => setPublishId(null)}
+      />
 
       {/* Versions list */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">加载中...</div>
+        <div className="text-center py-12 text-outline text-sm">加载中…</div>
+      ) : versions.length === 0 ? (
+        <Card>
+          <EmptyState title="暂无问卷版本" sub="点击右上角「新建版本」创建第一份问卷" />
+        </Card>
       ) : (
         <div className="space-y-3">
           {versions.map((v) => (
-            <div key={v.id} className="card flex items-center gap-4">
+            <Card key={v.id} className="flex items-center gap-4" bodyClassName="contents">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-gray-900">{v.title}</span>
-                  <span className="badge bg-gray-100 text-gray-600">V{v.version}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-display font-extrabold text-on-surface">{v.title}</span>
+                  <Badge variant="outline" className="font-mono">V{v.version}</Badge>
+                  {v.type && <Badge variant="neutral">{TYPE_LABELS[v.type] || v.type}</Badge>}
                   {v.isActive && (
-                    <span className="badge bg-green-100 text-green-700 flex items-center gap-1">
-                      <CheckCircle2 size={11} /> 激活中
-                    </span>
+                    <Badge variant="neon">
+                      <CheckCircle2 size={11} /> 当前版本
+                    </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                  <span>📝 {v._count?.questions ?? 0} 道题</span>
-                  <span>📊 {v._count?.answers ?? 0} 份回答</span>
+                <div className="flex items-center gap-3 mt-1.5 text-xs text-outline">
+                  <span className="flex items-center gap-1">
+                    <FileText size={11} /> <span className="font-mono">{v._count?.questions ?? 0}</span> 道题
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BarChart size={11} /> <span className="font-mono">{v._count?.answers ?? 0}</span> 份作答
+                  </span>
                   {v.publishedAt && (
                     <span className="flex items-center gap-1">
-                      <Clock size={11} />
-                      发布于 {new Date(v.publishedAt).toLocaleDateString('zh-CN')}
+                      <Clock size={11} /> 发布于 <span className="font-mono">{formatDate(v.publishedAt)}</span>
                     </span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {!v.isActive && (
-                  <button
-                    onClick={() => handlePublish(v.id)}
-                    className="btn-secondary text-xs py-1.5 px-3 text-green-600 border-green-200 hover:bg-green-50"
-                  >
+                  <button onClick={() => setPublishId(v.id)} className="btn-primary btn-sm">
                     发布
                   </button>
                 )}
-                <Link href={`/questionnaire/${v.id}`} className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1">
+                <Link href={`/questionnaire/${v.id}`} className="btn-secondary btn-sm">
                   <ExternalLink size={13} /> 编辑题目
                 </Link>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+export default function QuestionnairePage() {
+  // 问卷管理仅平台团队可用
+  return (
+    <RoleGate allow={['SUPER', 'TEAM']}>
+      <QuestionnaireInner />
+    </RoleGate>
   );
 }
