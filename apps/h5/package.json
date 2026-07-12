@@ -1,0 +1,15 @@
+{
+  "name": "unimatcha-h5",
+  "version": "1.0.0",
+  "description": "Unimatcha — mobile H5 web client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3002"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}

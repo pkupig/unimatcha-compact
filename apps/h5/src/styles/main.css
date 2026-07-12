@@ -1,0 +1,871 @@
+/* Unimatcha — global styles (extracted from inline <style>) */
+    /* ====== SPA Navigation Core ====== */
+    .page { display: none; position: fixed; inset: 0; z-index: 40; flex-direction: column; background: #f9f9f9; color: #1b1b1b; min-height: 100vh; overflow-y: auto; }
+    .page.active { display: flex; }
+    .overlay { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 50; overflow-y: auto; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s ease, visibility 0.25s; }
+    .overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+    /* Bottom-sheet overlays (filter-overlay etc.) slide up from bottom; full-screen overlays just fade */
+    .overlay .bottom-sheet-transition { transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+    .overlay.active .bottom-sheet-transition { transform: translateY(0); }
+    /* Side-sheet overlays (匹配设置 / 通知 panels) slide in from the left */
+    .slide-left { transform: translateX(-100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+    .overlay.active .slide-left { transform: translateX(0); }
+    /* Side-sheet overlays sliding in from the right (notifications) */
+    .slide-right { transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+    .overlay.active .slide-right { transform: translateX(0); }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    #splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; background: #f9f9f9; transition: opacity 0.6s ease; }
+    #splash.hide, #splash.hidden { opacity: 0; pointer-events: none; }
+    #bottom-nav { display: none; }
+    /* Bottom nav (Ivory & Ink): no background block; active = bold black, inactive = neutral-400 */
+    .nav-item { color: #a3a3a3; }
+    .nav-item:hover { color: #000; }
+    .nav-item.active { color: #000 !important; font-weight: 700; }
+    /* Tab content panels - fill viewport over page-home */
+    [id^="tab-"] { position: fixed; inset: 0; z-index: 41; background: #f9f9f9; overflow-y: auto; }
+
+    /* 圆角图标：强制 Rounded 家族 + 默认轴值，避免被各处内联 wght 或 Outlined 回退覆盖。
+       字体家族与 index.html 加载的 'Material Symbols Rounded' 匹配。 */
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Rounded' !important;
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24 !important;
+      font-size: 24px;
+      font-weight: normal;
+      font-style: normal;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 漩涡图标统一尺寸/对齐辅助：颜色靠外层 text-* 控制（currentColor）。
+       底部导航约 26px、idle 中心约 48-56px，可在内联 style 覆写 font-size。 */
+    .swirl-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+      color: currentColor;
+    }
+    .swirl-icon svg {
+      width: 1em;
+      height: 1em;
+      display: block;
+    }
+
+    body {
+      min-height: max(884px, 100dvh);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: #f9f9f9;
+      color: #1b1b1b;
+    }
+
+    h1, h2, h3, .font-headline {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Academic Styling */
+    .academic-overlay {
+      background: #f9f9f9;
+    }
+
+    .academic-input {
+      border: none;
+      border-bottom: 1px solid #777777;
+      background: transparent;
+      border-radius: 10px;
+      padding: 0.75rem 0;
+      transition: border-color 0.2s ease;
+    }
+
+    .academic-input:focus {
+      outline: none;
+      box-shadow: none;
+      border-bottom: 2px solid #000000;
+    }
+
+    /* 可爱手写体（纯文字小卡，本轮反馈5b）。中文回退系统趣味字体；不加粗，中文不发糊（反馈4）。 */
+    .font-cute {
+      font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe Print', 'Bradley Hand', 'STHupo', 'YouYuan', cursive;
+      font-weight: 500;
+    }
+
+    /* 匹配状态呼吸灯：--orb 决定颜色。动画恢复为最初的「缩放脉动」版本（用户要求换回未修改版）。 */
+    .status-orb {
+      width: 9px; height: 9px; border-radius: 9999px;
+      background: var(--orb, #FF2EC4); position: relative; flex-shrink: 0;
+    }
+    .status-orb::after {
+      content: ''; position: absolute; inset: -3px; border-radius: 9999px;
+      background: var(--orb, #FF2EC4); opacity: .3;
+      animation: orbPulse 2.4s ease-in-out infinite;
+    }
+    .status-orb--idle { opacity: .5; }
+    /* 没有匹配：不闪烁（静止的点，用户要求） */
+    .status-orb--idle::after { animation: none; opacity: .22; }
+    .status-orb--matching::after { animation-duration: 1.6s; }
+    .status-orb--established { animation: orbGlow 2.2s ease-in-out infinite; }
+    .status-orb--established::after { animation-duration: 2s; }
+    /* 只做上下轻微缩放（scaleY），左右保持原大小；闪烁幅度更小（用户要求） */
+    @keyframes orbPulse { 0%, 100% { transform: scaleY(1); opacity: .4; } 50% { transform: scaleY(0.72); opacity: .28; } }
+    @keyframes orbGlow { 0%, 100% { box-shadow: 0 0 2px 1px var(--orb, #FF2EC4); } 50% { box-shadow: 0 0 7px 2px var(--orb, #FF2EC4); } }
+
+    /* 隐藏所有滚动条（本轮反馈8）：仍可滑动，只是不显示右侧滑块。 */
+    *::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+
+    /* ===== 深色模式（本轮反馈6 重做：统一、克制；html.dark 生效，荧光色保留） ===== */
+    html.dark { background-color: #15151a; color-scheme: dark; }
+    .dark body { background-color: #15151a !important; color: #ececf0; }
+    /* 基础底 */
+    .dark .bg-background, .dark .bg-surface, .dark .bg-surface-bright, .dark .bg-surface-dim,
+    .dark .bg-neutral-50, .dark .bg-stone-50, .dark .bg-gray-50 { background-color: #15151a !important; }
+    /* 卡片/容器分层 */
+    .dark .bg-surface-container-lowest, .dark .bg-white, .dark .bg-neutral-100, .dark .bg-stone-100 { background-color: #1f1f26 !important; }
+    .dark .bg-surface-container-low { background-color: #24242c !important; }
+    .dark .bg-surface-container { background-color: #2a2a32 !important; }
+    .dark .bg-surface-container-high { background-color: #30303a !important; }
+    .dark .bg-surface-container-highest { background-color: #363641 !important; }
+    .dark .bg-surface\/80, .dark .bg-surface\/95 { background-color: rgba(21, 21, 26, 0.82) !important; }
+    /* 文本分级 */
+    .dark .text-on-surface, .dark .text-black,
+    .dark .text-neutral-900, .dark .text-neutral-800, .dark .text-neutral-700 { color: #ececf0 !important; }
+    .dark .text-on-surface-variant, .dark .text-neutral-600, .dark .text-neutral-500 { color: #a8a8b2 !important; }
+    .dark .text-outline, .dark .text-outline-variant, .dark .text-neutral-400, .dark .text-stone-400 { color: #8a8a93 !important; }
+    /* 边框 */
+    .dark .border-outline-variant, .dark .border-outline, .dark .border-stone-100,
+    .dark .border-neutral-100, .dark .border-neutral-200 { border-color: #34343c !important; }
+    .dark .border-black { border-color: #4a4a54 !important; }
+    /* 输入 */
+    .dark input, .dark textarea, .dark select { color: #ececf0 !important; }
+    .dark .academic-input { border-bottom-color: #34343c !important; }
+    /* 荧光绿按钮保持黑字（必须排在 .text-black 覆盖之后） */
+    .dark .bg-neon { color: #000 !important; }
+    /* 聊天气泡 / 头像 */
+    .dark .chat-bubble { background: #1f1f26 !important; color: #ececf0 !important; border-color: #34343c !important; }
+    .dark .chat-bubble.mine { background: #2a2a32 !important; color: #ececf0 !important; }
+    .dark .chat-avatar--fallback { background: #34343c !important; color: #ddd !important; }
+
+    /* ====== Ivory & Ink button tiers ====== */
+    /* Primary CTA: black block, white text, full width */
+    .btn-cta {
+      display: block;
+      width: 100%;
+      background: #CCFF00;
+      color: #000000;
+      border: none;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem; /* py-5 */
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.875rem;
+      letter-spacing: 0.1em; /* tracking-widest */
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.15s ease;
+    }
+    .btn-cta:hover { background: #B8E600; }
+    .btn-cta:active { transform: scale(0.98); }
+    .btn-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Secondary: outlined black */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: #000000;
+      border: 1px solid #000000;
+      border-radius: 10px;
+      padding: 0.75rem 1.5rem; /* py-3 px-6 */
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    .btn-secondary:hover { background: #000000; color: #ffffff; }
+    .btn-secondary:active { transform: scale(0.98); }
+
+    /* Tag tier: small label chips (outlined by default, .filled = black block) */
+    .btn-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: transparent;
+      color: #000000;
+      border: 1px solid #777777;
+      border-radius: 10px;
+      padding: 0.25rem 0.75rem; /* py-1 px-3 */
+      font-size: 0.75rem; /* text-xs */
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    .btn-tag:hover { border-color: #000000; }
+    .btn-tag:active { transform: scale(0.98); }
+    .btn-tag.filled,
+    .btn-tag--filled {
+      background: #000000;
+      color: #ffffff;
+      border-color: #000000;
+    }
+
+    /* Interest tag chips (rendered by profile.js — class names are load-bearing) */
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      background: transparent;
+      color: inherit;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .tag-chip .tag-remove { cursor: pointer; font-weight: 400; opacity: 0.7; }
+    .tag-chip .tag-remove:hover { opacity: 1; }
+    .tag-chip.add-tag {
+      background: transparent;
+      color: #777777;
+      border: 1px dashed #777777;
+      cursor: pointer;
+    }
+    .tag-chip.add-tag:hover { color: #000000; border-color: #000000; }
+
+    /* Unified top app bar (ivory glass) */
+    .glass-header {
+      background: rgba(249, 249, 249, 0.8);
+      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(24px);
+    }
+
+    /* Milestone: prominent campus background (grayscale, fades out at bottom) */
+    .milestone-bg {
+      position: fixed;
+      inset: 0;
+      background-image: url('/splash_bg.png');
+      background-size: cover;
+      background-position: center;
+      filter: grayscale(1) contrast(1.4) brightness(0.95);
+      opacity: 0.28;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Profile background blur progression: top clear -> bottom blurred (blur degree transition, not a color gradient) */
+    .profile-blur-mask {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      /* 全程模糊但越往下越糊（顶部 0.4 轻模糊 → 底部全模糊）；整层 opacity 由下拉手势控制（下拉越多越清晰），松手 transition 弹回 */
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.72) 42%, black 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.72) 42%, black 100%);
+      opacity: 1;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity;
+    }
+    /* 背景图本身底部淡出：最下面 0 透明度，与白色内容区无缝融合 */
+    /* 背景图底部融入白色，由 index.html 内联的白色渐变层实现，此处不再 mask 背景图本身 */
+
+    /* Bottom sheet helpers */
+    .bottom-sheet-transition { transition: transform 0.3s ease; }
+    .bottom-sheet-gradient { background: rgba(249, 249, 249, 0.5); }
+
+    .academic-grid {
+      background: transparent;
+    }
+
+    .academic-line {
+      background: transparent;
+    }
+
+    .academic-header {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .monospace-timer {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Scrollbar Styles */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Utility Classes */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Bottom nav: explicit height floor + safe-area inset so content is never
+       obscured on notched / iPad devices. Base vertical padding kept via py-4;
+       extra inset added on top so non-notch devices keep their 1rem bottom gap. */
+    #bottom-nav {
+      min-height: 64px;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    .auth-container {
+      max-width: 420px;
+    }
+
+    .tonal-shift {
+      background-color: #f9f9f9;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      padding: 12px 24px;
+      background-color: #000000;
+      color: #ffffff;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #toast.show {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    /* Feed Card Styles */
+    .feed-card { background: #fff; overflow: hidden; cursor: pointer; border: 1px solid rgba(198, 198, 198, 0.4); box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border-radius: 10px; transition: all 0.2s; }
+    .feed-card:hover { border-color: #000; }
+    .feed-image { position: relative; overflow: hidden; }
+    .feed-image img { width: 100%; display: block; }
+    .feed-image-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; background: rgba(0, 0, 0, 0.35); }
+    .feed-like-badge { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 10px; font-size: 11px; font-weight: 600; }
+
+    /* Notification Styles (Ivory & Ink editorial list) */
+    /* .notif-item + .unread are load-bearing: markNotificationRead() removes 'unread'.
+       Unread = red index dot; read = faded entry. Layout lives in the JS template (Tailwind). */
+    .notif-item { transition: opacity 0.3s ease; }
+    .notif-item .notif-dot { display: none; }
+    .notif-item.unread .notif-dot { display: block; }
+    .notif-item:not(.unread) { opacity: 0.6; }
+
+    /* Chat Bubble Styles (Ivory & Ink) — .chat-row[data-id] and .chat-time are load-bearing (read receipts) */
+    .chat-row { display: flex; align-items: flex-end; gap: 12px; }
+    .chat-row.mine { flex-direction: row-reverse; }
+    .chat-avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+    .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14px; text-transform: uppercase; }
+    .chat-col { max-width: 80%; display: flex; flex-direction: column; align-items: flex-start; }
+    .chat-row.mine .chat-col { align-items: flex-end; }
+    /* Partner: white block, thin border + neon left accent, 10px corners (本轮反馈11：去黑) */
+    .chat-bubble { padding: 20px; font-size: 14px; line-height: 1.625; background: #ffffff; color: #1b1b1b; border: 1px solid rgba(198, 198, 198, 0.4); border-left: 2px solid #CCFF00; border-radius: 10px; }
+    /* Mine: soft light-grey block, dark text, neon right accent (本轮反馈11：去纯黑底) */
+    .chat-bubble.mine { background: #ececec; color: #1b1b1b; border: 1px solid rgba(198, 198, 198, 0.4); border-left: none; border-right: 2px solid #CCFF00; box-shadow: none; }
+    .chat-image { max-width: 100%; max-height: 16rem; object-fit: cover; cursor: pointer; border: 1px solid rgba(198, 198, 198, 0.4); border-radius: 10px; display: block; }
+    .chat-image + .chat-bubble { margin-top: 8px; }
+    .chat-time { font-size: 9px; color: #a3a3a3; margin-top: 8px; text-transform: uppercase; letter-spacing: -0.03em; display: block; }
+    .chat-time.mine { text-align: right; }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* ====== Preferences sheet (Ivory & Ink) ====== */
+    /* Round 14px neon-green thumb range slider — JS reads .value/.disabled, visual only */
+    input[type="range"].ink-range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 2px;
+      background: #e2e2e2;
+      border-radius: 0;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"].ink-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #CCFF00;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    input[type="range"].ink-range::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #CCFF00;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    input[type="range"].ink-range:disabled { opacity: 0.3; cursor: not-allowed; }
+    input[type="range"].ink-range:disabled::-webkit-slider-thumb { background: #777777; }
+    input[type="range"].ink-range:disabled::-moz-range-thumb { background: #777777; }
+
+    /* Square monochrome switch — checkbox-backed (JS reads .checked), visual only */
+    input[type="checkbox"].ink-switch {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 3rem;
+      height: 1.5rem;
+      margin: 0;
+      padding: 0;
+      background-color: #e2e2e2;
+      background-image: none !important;
+      border: none;
+      border-radius: 9999px;
+      position: relative;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    input[type="checkbox"].ink-switch::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 1rem;
+      height: 1rem;
+      background: #ffffff;
+      border-radius: 9999px;
+      transition: transform 0.3s ease;
+    }
+    input[type="checkbox"].ink-switch:checked {
+      background-color: #CCFF00;
+      background-image: none !important;
+    }
+    input[type="checkbox"].ink-switch:checked::after { transform: translateX(1.5rem); }
+    input[type="checkbox"].ink-switch:focus { outline: none; box-shadow: none; }
+
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ====== 匹配呼吸点阵动画（呼应 blur_on 点簇）====== */
+    /* 3x3 网格点阵，9 个点错峰呼吸，极简冷静 */
+    .cl-dots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: max-content;
+      margin: 0 auto;
+      place-items: center;
+    }
+    .cl-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 9999px;
+      background: #CCFF00; /* neon 荧光绿 */
+      animation: cl-breathe 1.4s ease-in-out infinite;
+    }
+    @keyframes cl-breathe {
+      0%, 100% { transform: scale(0.6); opacity: 0.3; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+    /* 9 点错峰：每个 +0.12s */
+    .cl-dot:nth-child(1) { animation-delay: 0s; }
+    .cl-dot:nth-child(2) { animation-delay: 0.12s; }
+    .cl-dot:nth-child(3) { animation-delay: 0.24s; }
+    .cl-dot:nth-child(4) { animation-delay: 0.36s; }
+    .cl-dot:nth-child(5) { animation-delay: 0.48s; }
+    .cl-dot:nth-child(6) { animation-delay: 0.6s; }
+    .cl-dot:nth-child(7) { animation-delay: 0.72s; }
+    .cl-dot:nth-child(8) { animation-delay: 0.84s; }
+    .cl-dot:nth-child(9) { animation-delay: 0.96s; }
+
+    /* idle 呼吸变体：灰色 #999、更慢更柔（2.2s）。searching 态保持上面的 neon 绿 + 1.4s */
+    @keyframes cl-breathe-idle {
+      0%, 100% { transform: scale(0.4); opacity: 0.15; }
+      50% { transform: scale(0.9); opacity: 0.6; }
+    }
+    .cl-dots.idle .cl-dot {
+      background: #999999; /* 灰 */
+      animation: cl-breathe-idle 2.2s ease-in-out infinite;
+    }
+
+    /* ============================================================
+       匹配动画 v3：校园简笔画人物（line-art）
+       简笔小人在校园里活动。黑色描边 #1b1b1b + 荧光绿 #CCFF00 点缀，纯白/透明底，无渐变无 emoji。
+       - idle（匹配前）：JS 每 ~2.5s 随机切一个活泼动作 class（act-walk/jump/wave/spin/read/stretch/kick）。
+       - waiting（搜索中）：JS 循环切等待动作（act-pace/check-watch/glance/stomp）。
+       动作切换 = 给 #campus-figure 换 act-* class；下面每个 act-* 用 @keyframes 让头/身/手/腿/位置动起来。
+       ============================================================ */
+    .campus-scene {
+      width: 100%;
+      height: 100%;
+      max-width: 256px;
+      max-height: 100%;
+      overflow: visible;
+    }
+    /* 背景元素：轻微的"活着"的氛围动效（无渐变，仅位移/缩放） */
+    .campus-cloud { animation: campus-cloud-drift 9s ease-in-out infinite; transform-box: view-box; }
+    @keyframes campus-cloud-drift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+    .campus-tree { animation: campus-sway 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+    @keyframes campus-sway { 0%,100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+    .campus-lamp circle { animation: campus-lamp-blink 3.4s ease-in-out infinite; }
+    @keyframes campus-lamp-blink { 0%,100% { opacity: 1; } 70% { opacity: 1; } 82% { opacity: 0.35; } 90% { opacity: 1; } }
+
+    /* 人物各部件：默认以自身中心为变换原点，便于摆动/旋转 */
+    .campus-figure, .campus-figure * { transform-box: fill-box; }
+    .campus-head { transform-origin: 50% 100%; }      /* 颈部为头部转动支点 */
+    /* 肩关节为手臂转动支点：左臂 bbox 右上角是肩点 → 100% 0%；右臂 bbox 左上角是肩点 → 0% 0% */
+    .campus-arm-l { transform-origin: 100% 0%; }
+    .campus-arm-r { transform-origin: 0% 0%; }
+    .campus-leg-l, .campus-leg-r { transform-origin: 50% 0%; } /* 髋部为腿摆动支点 */
+    .campus-bag { transform-origin: 50% 0%; }
+    /* 道具默认隐藏，仅在对应动作出现 */
+    .campus-book, .campus-watch { opacity: 0; }
+    /* 人物整体：默认轻微浮动（任何动作之上叠一层呼吸感由各动作自带，这里给个兜底） */
+    .campus-figure { transform-origin: 50% 88%; }
+
+    /* ---------- idle 活泼动作 ---------- */
+    /* 走路：整体左右横移并翻面，四肢交替前后摆 */
+    .act-walk { animation: campus-walk-move 4.4s ease-in-out infinite; }
+    @keyframes campus-walk-move {
+      0% { transform: translateX(-46px) scaleX(1); }
+      48% { transform: translateX(46px) scaleX(1); }
+      50% { transform: translateX(46px) scaleX(-1); }
+      98% { transform: translateX(-46px) scaleX(-1); }
+      100% { transform: translateX(-46px) scaleX(1); }
+    }
+    .act-walk .campus-leg-l, .act-walk .campus-arm-r { animation: campus-swing-fwd 0.55s ease-in-out infinite; }
+    .act-walk .campus-leg-r, .act-walk .campus-arm-l { animation: campus-swing-back 0.55s ease-in-out infinite; }
+    @keyframes campus-swing-fwd { 0%,100% { transform: rotate(18deg); } 50% { transform: rotate(-18deg); } }
+    @keyframes campus-swing-back { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(18deg); } }
+
+    /* 原地蹦跳：整体上下弹，腿微收，落地小压缩 */
+    .act-jump { animation: campus-jump 0.85s cubic-bezier(0.3,0,0.4,1) infinite; }
+    @keyframes campus-jump {
+      0%,100% { transform: translateY(0) scaleY(1); }
+      18% { transform: translateY(2px) scaleY(0.92); }
+      50% { transform: translateY(-26px) scaleY(1.05); }
+      82% { transform: translateY(0) scaleY(0.96); }
+    }
+    .act-jump .campus-leg-l { animation: campus-tuck-l 0.85s ease-in-out infinite; }
+    .act-jump .campus-leg-r { animation: campus-tuck-r 0.85s ease-in-out infinite; }
+    @keyframes campus-tuck-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(16deg); } }
+    @keyframes campus-tuck-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+    .act-jump .campus-arm-l { animation: campus-armup-l 0.85s ease-in-out infinite; }
+    .act-jump .campus-arm-r { animation: campus-armup-r 0.85s ease-in-out infinite; }
+    @keyframes campus-armup-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(40deg); } }
+    @keyframes campus-armup-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-40deg); } }
+
+    /* 挥手：站定，右臂大幅挥动，头部小幅俏皮摆动 */
+    .act-wave .campus-arm-r { animation: campus-wave 0.5s ease-in-out infinite; }
+    @keyframes campus-wave { 0%,100% { transform: rotate(-95deg); } 50% { transform: rotate(-125deg); } }
+    .act-wave .campus-head { animation: campus-head-bob 1s ease-in-out infinite; }
+    @keyframes campus-head-bob { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+
+    /* 转圈：整体水平翻转模拟转身（scaleX），配合轻微下蹲 */
+    .act-spin { animation: campus-spin 1.6s ease-in-out infinite; }
+    @keyframes campus-spin {
+      0% { transform: scaleX(1) translateY(0); }
+      25% { transform: scaleX(0.1) translateY(-3px); }
+      50% { transform: scaleX(-1) translateY(0); }
+      75% { transform: scaleX(0.1) translateY(-3px); }
+      100% { transform: scaleX(1) translateY(0); }
+    }
+
+    /* 看书：出现小书，低头看，身体轻晃，手臂托书 */
+    .act-read .campus-book { opacity: 1; }
+    .act-read .campus-arm-l { transform: rotate(-34deg); }
+    .act-read .campus-arm-r { transform: rotate(34deg); }
+    .act-read .campus-head { animation: campus-read-nod 2.4s ease-in-out infinite; }
+    @keyframes campus-read-nod { 0%,100% { transform: rotate(8deg); } 50% { transform: rotate(14deg); } }
+    .act-read { animation: campus-read-sway 3s ease-in-out infinite; }
+    @keyframes campus-read-sway { 0%,100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+
+    /* 伸懒腰：身体拉高，双臂上举打开，脚跟微抬 */
+    .act-stretch { animation: campus-stretch 2.6s ease-in-out infinite; }
+    @keyframes campus-stretch { 0%,100% { transform: scaleY(1) translateY(0); } 50% { transform: scaleY(1.08) translateY(-4px); } }
+    .act-stretch .campus-arm-l { animation: campus-stretch-l 2.6s ease-in-out infinite; }
+    .act-stretch .campus-arm-r { animation: campus-stretch-r 2.6s ease-in-out infinite; }
+    @keyframes campus-stretch-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(125deg); } }
+    @keyframes campus-stretch-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-125deg); } }
+    .act-stretch .campus-head { animation: campus-look-up 2.6s ease-in-out infinite; }
+    @keyframes campus-look-up { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-10deg); } }
+
+    /* 踢腿：单脚站立，右腿向前反复踢，双臂小幅平衡摆动 */
+    .act-kick .campus-leg-r { animation: campus-kick 0.7s ease-in-out infinite; }
+    @keyframes campus-kick { 0%,100% { transform: rotate(0deg); } 45% { transform: rotate(-52deg); } 60% { transform: rotate(-46deg); } }
+    .act-kick .campus-arm-l { animation: campus-balance-l 0.7s ease-in-out infinite; }
+    .act-kick .campus-arm-r { animation: campus-balance-r 0.7s ease-in-out infinite; }
+    @keyframes campus-balance-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-22deg); } }
+    @keyframes campus-balance-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(18deg); } }
+    .act-kick { animation: campus-kick-lean 0.7s ease-in-out infinite; }
+    @keyframes campus-kick-lean { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-4deg); } }
+
+    /* ---------- waiting 等待动作（searching 态）---------- */
+    /* 来回踱步：比走路更慢、步幅更小，到端点翻面，表达焦灼地走来走去 */
+    .act-pace { animation: campus-pace-move 5.6s ease-in-out infinite; }
+    @keyframes campus-pace-move {
+      0% { transform: translateX(-30px) scaleX(1); }
+      46% { transform: translateX(30px) scaleX(1); }
+      50% { transform: translateX(30px) scaleX(-1); }
+      96% { transform: translateX(-30px) scaleX(-1); }
+      100% { transform: translateX(-30px) scaleX(1); }
+    }
+    .act-pace .campus-leg-l, .act-pace .campus-arm-r { animation: campus-swing-fwd 0.8s ease-in-out infinite; }
+    .act-pace .campus-leg-r, .act-pace .campus-arm-l { animation: campus-swing-back 0.8s ease-in-out infinite; }
+
+    /* 看手表：抬左臂看表（表盘出现），脚尖轻点，头微低，焦急等待 */
+    .act-check-watch .campus-watch { opacity: 1; animation: campus-watch-tick 1.2s steps(1,end) infinite; }
+    @keyframes campus-watch-tick { 0%,49% { opacity: 1; } 50%,100% { opacity: 0.55; } }
+    .act-check-watch .campus-arm-l { animation: campus-checkwatch-arm 2s ease-in-out infinite; }
+    @keyframes campus-checkwatch-arm { 0%,15% { transform: rotate(0deg); } 35%,80% { transform: rotate(-62deg); } 100% { transform: rotate(0deg); } }
+    .act-check-watch .campus-head { animation: campus-checkwatch-head 2s ease-in-out infinite; }
+    @keyframes campus-checkwatch-head { 0%,15% { transform: rotate(0deg); } 40%,80% { transform: rotate(-12deg); } 100% { transform: rotate(0deg); } }
+    .act-check-watch .campus-leg-r { animation: campus-toe-tap 0.45s ease-in-out infinite; }
+    @keyframes campus-toe-tap { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-10deg); } }
+
+    /* 无聊晃腿张望：身体微靠，头左右张望，一条腿无聊地晃 */
+    .act-glance .campus-head { animation: campus-glance-head 2.4s ease-in-out infinite; }
+    @keyframes campus-glance-head { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+    .act-glance .campus-leg-r { animation: campus-idle-leg 1.4s ease-in-out infinite; }
+    @keyframes campus-idle-leg { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(8deg); } }
+    .act-glance .campus-arm-l { transform: rotate(12deg); }
+    .act-glance .campus-arm-r { transform: rotate(-12deg); }
+    .act-glance { animation: campus-glance-lean 4.8s ease-in-out infinite; }
+    @keyframes campus-glance-lean { 0%,100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+
+    /* 跺脚：站定，两腿交替小幅跺，身体随之上下小颠，没耐心 */
+    .act-stomp { animation: campus-stomp-bob 0.5s ease-in-out infinite; }
+    @keyframes campus-stomp-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    .act-stomp .campus-leg-l { animation: campus-stomp-l 0.5s ease-in-out infinite; }
+    .act-stomp .campus-leg-r { animation: campus-stomp-r 0.5s ease-in-out infinite; }
+    @keyframes campus-stomp-l { 0%,100% { transform: rotate(0deg) translateY(0); } 25% { transform: rotate(8deg) translateY(-5px); } 50% { transform: rotate(0deg) translateY(0); } }
+    @keyframes campus-stomp-r { 0%,100% { transform: rotate(0deg) translateY(0); } 75% { transform: rotate(-8deg) translateY(-5px); } }
+    .act-stomp .campus-arm-l { transform: rotate(20deg); }
+    .act-stomp .campus-arm-r { transform: rotate(-20deg); }
+
+    /* 减少动态偏好：尊重系统设置，关闭所有动作动画（人物静止站立） */
+    @media (prefers-reduced-motion: reduce) {
+      .campus-figure, .campus-figure *, .campus-cloud, .campus-tree, .campus-lamp circle { animation: none !important; }
+    }
+
+    /* ====== 荧光强调按钮变体（Logout / Leave Pool 等危险/离开动作，保持 neon-pink）====== */
+    .btn-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      background: transparent;
+      color: #FF2EC4; /* neon-pink */
+      border: 1px solid #FF2EC4;
+      border-radius: 10px;
+      padding: 0.75rem 1.5rem;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    .btn-danger:hover { background: #FF2EC4; color: #000000; }
+    .btn-danger:active { transform: scale(0.98); }
+
+    /* ============================================================
+       双模式重构（DESIGN-DUAL-MODE §6.2/§6.6/§6.10/§6.11）
+       荧光绿 #CCFF00 (neon)、荧光粉 #FF2EC4 (neon-pink)、圆角 10px。
+       ============================================================ */
+
+    /* ---- §6.2 主页顶部三切换分段控件 [Chat | 恋人匹配 | 朋友匹配] ----
+       容器 #home-mode-switch；每个按钮 .home-mode-seg，选中态加 .active（JS 切换）。
+       未选中：透明底黑字；选中：荧光绿底黑字。 */
+    .home-mode-switch {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid #000000;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+    .home-mode-seg {
+      flex: 1 1 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.5rem 0.25rem;
+      border-radius: 10px;
+      background: transparent;
+      color: #1b1b1b;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+    }
+    .home-mode-seg:hover { background: #f3f3f3; }
+    .home-mode-seg.active {
+      background: #CCFF00; /* neon */
+      color: #000000;
+    }
+    .home-mode-seg.active:hover { background: #CCFF00; }
+    .home-mode-seg:active { transform: scale(0.98); }
+
+    /* ---- §6.11 两段切换 [推荐 | 校园墙] 选中态（沿用黑底白字/neon 风格）----
+       square header 按钮渲染由 JS 切换 .active；选中态荧光绿。 */
+    .square-seg.active {
+      color: #000000;
+      border-bottom-color: #CCFF00;
+    }
+
+    /* ---- §6.11 广场间距收紧：行间距与列间距对齐 gap-1.5（本轮反馈7）----
+       此前 id 选择器把 row-gap 覆盖成 1.5rem，导致上下间距远大于左右；改回 0.375rem。 */
+    #square-feed { row-gap: 0.375rem; }
+
+    /* ---- §6.11 规则6 学校标注小胶囊（卡片右上角）----
+       黑底白字默认；.school-badge--neon 荧光绿底黑字变体。 */
+    .school-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      max-width: 9rem;
+      padding: 0.125rem 0.5rem;
+      background: rgba(0, 0, 0, 0.4);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      color: #ffffff;
+      border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.5625rem; /* ~9px */
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .school-badge--neon { background: #CCFF00; color: #000000; }
+
+    /* ---- §6.11 官方/赞助徽标 ---- */
+    .official-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      background: rgba(27, 27, 27, 0.4);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      color: #ffffff;
+      border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.5625rem;
+      letter-spacing: 0.08em;
+      line-height: 1.4;
+    }
+    .sponsored-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      background: #CCFF00; /* neon */
+      color: #000000;
+      border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 0.5625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      line-height: 1.4;
+    }
+
+    /* ---- §6.6 Chat 列表项倒计时徽标（临时对话「剩余 Xh」）----
+       默认黑底白字；.is-urgent 临近 0 转荧光粉；.is-expired 灰显「即将消失」。 */
+    .chat-countdown-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      background: #000000;
+      color: #ffffff;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.625rem;
+      letter-spacing: -0.02em;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+    .chat-countdown-badge.is-urgent { background: #FF2EC4; color: #000000; }
+    .chat-countdown-badge.is-expired { background: #e2e2e2; color: #777777; }
+    /* mode 角标（恋人候选 / 朋友候选） */
+    .chat-mode-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.125rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #777777;
+    }
+
+    /* ---- §6.10 / §10.5 能量格子（荧光绿小方块）----
+       #energy-display 内每格一个 .energy-cell；已用/灰格用 .energy-cell--empty。 */
+    .energy-cell {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: #CCFF00; /* neon 实心 */
+      border-radius: 3px;
+    }
+    .energy-cell--empty {
+      background: transparent; /* 空心 */
+      border: 1px solid #c6c6c6;
+    }
+
+    /* ---- §6.4 / §10.5 增强模式开关 + 朋友保底滑块 ----
+       增强开关复用 .ink-switch（checkbox）；朋友 cells 滑块复用 .ink-range。
+       这里只补增强区块的卡片容器与「能量不足」禁用提示样式。 */
+    .enhance-block {
+      border: 1px solid #000000;
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .enhance-block .enhance-cost {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6875rem;
+      letter-spacing: 0.02em;
+      color: #474747;
+    }
+    .enhance-block.is-locked { opacity: 0.55; }
+    .enhance-hint-insufficient { color: #FF2EC4; font-weight: 700; }
+
+    /* ---- §6.3 注册后问卷两张卡片：已填打勾态 ----
+       .q-card 容器；完成时加 .q-card--done（绿勾由 JS 切换图标/文案）。 */
+    .q-card--done .q-card-check { color: #CCFF00; }
+
+    /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
+    @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
+    .cl-pulse { animation: cl-pulse 1.8s ease-in-out infinite; }

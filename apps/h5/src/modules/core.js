@@ -1,0 +1,364 @@
+import { S } from '../state.js';
+
+// ========================================
+// API HELPER FUNCTIONS
+// ========================================
+async function api(path, method = 'GET', body = null) {
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  const token = localStorage.getItem('cl_token');
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const opts = {
+    method,
+    headers
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${S.API}${path}`, opts);
+  if (!res.ok) {
+    if (res.status === 401) {
+      // Token expired/invalid: stop all background polling so we don't keep
+      // firing token-less requests, fully reset user-scoped state, then bounce
+      // to the auth page. Throw so callers' catch blocks can react instead of
+      // continuing on with a null result (which previously crashed renderMatchTab).
+      localStorage.removeItem('cl_token');
+      window.stopMatchPolling?.();
+      window.stopChatPolling?.();
+      window.stopNotifPolling?.();
+      window.stopCountdownTick?.();
+      window.cleanupUserState?.();
+      window.closeAllOverlays?.();
+      window.showPage('page-auth');
+      throw new Error('Unauthorized');
+    }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || `API ${res.status}`);
+  }
+  return await res.json();
+}
+window.api = api;
+
+async function uploadImageFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const token = localStorage.getItem('cl_token');
+  const res = await fetch(`${S.API}/uploads/image`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Upload failed');
+  return data.data?.url || data.url;
+}
+
+// ========================================
+// AUTH FUNCTIONS
+// ========================================
+window.uploadImageFile = uploadImageFile;
+
+// Clear every user-scoped field on S so a fresh login/anonymous session can
+// never see the previous account's data (cross-user bleed on shared devices).
+function cleanupUserState() {
+  // Tear down every background timer through its own stop helper so the
+  // interval is actually cleared (not just the id nulled). This makes
+  // cleanupUserState self-contained for callers that don't stop polling
+  // first (e.g. checkUserState's logged-out branch), and guarantees no
+  // previous account's timer survives into the next session.
+  window.stopMatchPolling?.();
+  window.stopChatPolling?.();
+  window.stopNotifPolling?.();
+  window.stopCountdownTick?.();
+  window.stopSessionCountdown?.();
+  S.currentUser = null;
+  S.userSettings = null;
+  // Dual-mode: matchStatus is bucketed by mode ({romantic, friend}); reset to the
+  // empty bucket shape (not null) so match.js can keep indexing S.matchStatus[mode].
+  S.matchStatus = { romantic: null, friend: null };
+  S.homeView = 'chat';
+  S.activeMatchMode = 'romantic';
+  S.isSubmittingProposal = false;
+  // match polling context (ids/counters reset by stopMatchPolling above,
+  // re-asserted here as a defensive default)
+  S.matchPollingId = null;
+  S.matchPollFailCount = 0;
+  // chat
+  S.chatMatchId = null;
+  S.chatPartnerId = null;
+  S.chatPartnerName = null;
+  S.chatMessages = [];
+  S.chatPollingId = null;
+  S.chatLastId = null;
+  S.chatNextCursor = null;
+  S.chatRenderFrom = 0;
+  S.chatLoadingHistory = false;
+  S.chatPollBusy = false;
+  S.chatPollTick = 0;
+  // chat session list (§6.6)
+  S.sessions = [];
+  S.chatSessionType = null;
+  S.chatMode = null;
+  S.chatMyConfirmed = false;
+  S.chatPartnerConfirmed = false;
+  S.chatSessionStatus = null;
+  S.sessionCountdownId = null;
+  // countdown
+  S.countdownInterval = null;
+  // notifications (polling id reset by stopNotifPolling above; clear cache/paging)
+  S.notifPollingId = null;
+  S.notifList = [];
+  S.notifPage = 1;
+  S.notifHasMore = false;
+  S.notifLoadingMore = false;
+  // questionnaire (dual-mode buckets, §6.3)
+  S.questionnaire = null;
+  S.answers = {};
+  S.romanticAnswers = {};
+  S.friendAnswers = {};
+  S.questionnaireMode = 'romantic';
+  S.currentQuestion = 0;
+  // square / post detail
+  S.currentPostId = null;
+  S.pdPostData = null;
+  S.pdSortMode = 'time';
+  S.pdReplyTo = null;
+  S.pdPendingImgs = [];
+  S.newPostImages = [];
+  S.squarePosts = [];
+  S.squareReqSeq = 0;
+  S.isSubmittingPost = false;
+  // profile editing
+  S.editTags = [];
+  S.setupTags = [];
+  // UI state — reset to the same defaults declared in state.js so the next
+  // account opens on a clean view instead of inheriting the prior user's tabs.
+  S.activeTab = 'match';
+  S.squareSection = 'recommended';
+  // Square v2 (dual-mode §6.11): reset tab + new-post destination/anonymity so
+  // the next account opens on the recommend tab with a clean compose form.
+  S.squareTab = 'recommend';
+  S.newPostBoard = 'recommend';
+  S.newPostAnonymous = false;
+  S.milestoneData = null;
+  S.metadataCache = {};
+  S.filterGender = 'all';
+  S.filterStages = [];
+}
+window.cleanupUserState = cleanupUserState;
+
+async function checkUserState() {
+  const token = localStorage.getItem('cl_token');
+  if (!token) {
+    cleanupUserState();
+    window.closeAllOverlays();
+    window.showPage('page-auth');
+    return;
+  }
+  try {
+    const data = await window.api('/users/me');
+    S.currentUser = data.data || data;
+    const u = S.currentUser;
+    if (u.status === 'BANNED') {
+      window.closeAllOverlays();
+      window.showPage('page-banned');
+      return;
+    }
+    const hasProfile = u.hasProfile != null ? u.hasProfile : !!(u.profile && u.profile.nickname);
+    // G 规则：两份问卷均为选填（可都填 / 只填一个 / 都不填）。资料填完即进主页；
+    // 问卷不作为进主页的门槛——在进入「恋人 / 朋友」匹配模式时再按该模式按需引导填写
+    // （见 match.js switchHomeView 的完成度校验）。
+    if (!hasProfile) {
+      window.showPage('page-profile-setup');
+    } else {
+      window.showPage('page-home');
+      window.switchTab('match');
+    }
+  } catch (e) {
+    localStorage.removeItem('cl_token');
+    window.showPage('page-auth');
+  }
+}
+
+// ========================================
+// PAGE NAVIGATION
+// ========================================
+window.checkUserState = checkUserState;
+
+// ========================================
+// PAGE NAVIGATION
+// ========================================
+function showPage(id) {
+  // Hide all SPA pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Also hide all tab panels when navigating away from home
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  const bottomNav = document.getElementById('bottom-nav');
+  if (bottomNav) bottomNav.style.display = id === 'page-home' ? 'flex' : 'none';
+}
+window.showPage = showPage;
+
+function switchTab(tab) {
+  window.stopMatchPolling();
+  window.stopChatPolling();
+  window.stopNotifPolling();
+  window.stopCountdownTick();
+  S.activeTab = tab;
+  // Ensure page-home is active (provides the base layer)
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const homeEl = document.getElementById('page-home');
+  if (homeEl) homeEl.classList.add('active');
+  // Show bottom nav
+  const bottomNav = document.getElementById('bottom-nav');
+  if (bottomNav) bottomNav.style.display = 'flex';
+  // Update nav active state
+  document.querySelectorAll('#bottom-nav .nav-item').forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
+  // Toggle tab panels
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  const tabEl = document.getElementById(`tab-${tab}`);
+  if (tabEl) tabEl.style.display = 'block';
+  // Load tab content
+  // 进入主页（match tab）：走主页顶部三切换（默认 S.homeView，A 规则 §6.2）。
+  // Chat 视图列出全部对话；恋人/朋友视图各自匹配界面。不再直接 loadMatchTab。
+  if (tab === 'match') window.switchHomeView(S.homeView || 'chat');
+  else if (tab === 'square') window.loadSquareTab();
+  else if (tab === 'profile') window.loadProfileTab();
+}
+window.switchTab = switchTab;
+
+// ========================================
+// OVERLAY HELPERS
+// ========================================
+function openOverlay(id) {
+  document.getElementById(id)?.classList.add('active');
+}
+window.openOverlay = openOverlay;
+
+function closeOverlay(id) {
+  document.getElementById(id)?.classList.remove('active');
+}
+window.closeOverlay = closeOverlay;
+
+function hideOverlay(id) {
+  window.closeOverlay(id);
+}
+window.hideOverlay = hideOverlay;
+
+// ── Styled confirm / prompt CARDS（本轮反馈6：替代浏览器原生 window.confirm/prompt）──
+// 返回 Promise：confirmCard -> boolean；promptCard -> string|null（取消为 null）。无 emoji。
+function appCardBackdrop() {
+  const back = document.createElement('div');
+  back.className = 'fixed inset-0 z-[120] flex items-center justify-center px-6 bg-black/40 backdrop-blur-[2px]';
+  return back;
+}
+
+function confirmCard({ title = 'Are you sure?', body = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const esc = window.escapeHtml || ((s) => s);
+    const back = appCardBackdrop();
+    back.innerHTML = `
+      <div class="w-full max-w-sm bg-surface-container-lowest rounded-[10px] shadow-2xl p-6" role="dialog" aria-modal="true">
+        <h3 class="font-headline font-extrabold text-lg tracking-tight text-on-surface mb-2">${esc(title)}</h3>
+        ${body ? `<p class="font-body text-sm leading-relaxed text-on-surface-variant mb-6">${esc(body)}</p>` : '<div class="mb-6"></div>'}
+        <div class="flex gap-3">
+          <button data-card-cancel class="flex-1 py-3 rounded-[10px] border border-outline-variant text-on-surface font-bold text-xs tracking-widest active:scale-[0.98] transition-transform">${esc(cancelLabel)}</button>
+          <button data-card-ok class="flex-1 py-3 rounded-[10px] ${danger ? 'bg-neon-pink text-white' : 'bg-neon text-black'} font-bold text-xs tracking-widest active:scale-[0.98] transition-transform">${esc(confirmLabel)}</button>
+        </div>
+      </div>`;
+    const done = (val) => { back.remove(); resolve(val); };
+    back.querySelector('[data-card-ok]').onclick = () => done(true);
+    back.querySelector('[data-card-cancel]').onclick = () => done(false);
+    back.onclick = (e) => { if (e.target === back) done(false); };
+    document.body.appendChild(back);
+  });
+}
+window.confirmCard = confirmCard;
+
+function promptCard({ title = 'Enter a value', label = '', placeholder = '', value = '', confirmLabel = 'Save', cancelLabel = 'Cancel', multiline = false } = {}) {
+  return new Promise((resolve) => {
+    const esc = window.escapeHtml || ((s) => s);
+    const back = appCardBackdrop();
+    const fieldCls = 'w-full bg-transparent border-0 border-b border-outline focus:border-primary focus:border-b-2 focus:ring-0 focus:outline-none py-2 text-sm font-body';
+    const field = multiline
+      ? `<textarea data-card-input rows="3" class="${fieldCls} resize-none" placeholder="${esc(placeholder)}"></textarea>`
+      : `<input data-card-input type="text" class="${fieldCls}" placeholder="${esc(placeholder)}"/>`;
+    back.innerHTML = `
+      <div class="w-full max-w-sm bg-surface-container-lowest rounded-[10px] shadow-2xl p-6" role="dialog" aria-modal="true">
+        <h3 class="font-headline font-extrabold text-lg tracking-tight text-on-surface mb-3">${esc(title)}</h3>
+        ${label ? `<p class="text-[10px] font-bold tracking-[0.2em] text-outline uppercase mb-2">${esc(label)}</p>` : ''}
+        ${field}
+        <div class="flex gap-3 mt-6">
+          <button data-card-cancel class="flex-1 py-3 rounded-[10px] border border-outline-variant text-on-surface font-bold text-xs tracking-widest active:scale-[0.98] transition-transform">${esc(cancelLabel)}</button>
+          <button data-card-ok class="flex-1 py-3 rounded-[10px] bg-neon text-black font-bold text-xs tracking-widest active:scale-[0.98] transition-transform">${esc(confirmLabel)}</button>
+        </div>
+      </div>`;
+    const input = back.querySelector('[data-card-input]');
+    input.value = value || ''; // 用属性赋值避免引号转义问题
+    const done = (val) => { back.remove(); resolve(val); };
+    back.querySelector('[data-card-ok]').onclick = () => done(input.value);
+    back.querySelector('[data-card-cancel]').onclick = () => done(null);
+    back.onclick = (e) => { if (e.target === back) done(null); };
+    if (!multiline) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(input.value); });
+    document.body.appendChild(back);
+    setTimeout(() => input.focus(), 30);
+  });
+}
+window.promptCard = promptCard;
+
+function closeAllOverlays() {
+  document.querySelectorAll('.overlay.active').forEach(o => o.classList.remove('active'));
+}
+
+// ========================================
+// SPLASH & INITIALIZATION
+// ========================================
+window.closeAllOverlays = closeAllOverlays;
+
+// ========================================
+// SPLASH & INITIALIZATION
+// ========================================
+function hideSplash() {
+  const s = document.getElementById('splash');
+  if (s) {
+    s.classList.add('hide');
+    setTimeout(() => {
+      s.style.display = 'none';
+      window.checkUserState();
+    }, 600);
+  }
+}
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+window.hideSplash = hideSplash;
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+function toast(msg, duration = 3000) {
+  const el = document.getElementById('toast');
+  if (el) {
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration);
+  }
+}
+window.toast = toast;
+
+function escapeHtml(t) {
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+window.escapeHtml = escapeHtml;
+
+function readFileAsDataUrl(file, cb) {
+  const r = new FileReader();
+  r.onload = e => cb(e.target.result);
+  r.readAsDataURL(file);
+}
+window.readFileAsDataUrl = readFileAsDataUrl;
