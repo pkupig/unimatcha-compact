@@ -7,10 +7,13 @@ coverage/
 .next/
 out/
 
-# env files
+# env files (never commit real ones)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# local Claude Code session config
+.claude/
 
 # logs
 npm-debug.log*
