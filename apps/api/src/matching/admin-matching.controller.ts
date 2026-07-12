@@ -6,11 +6,15 @@ import { MatchingService } from './matching.service';
 import { MatchScheduler } from './match.scheduler';
 import { UpdateMatchConfigDto } from './dto/matching.dto';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { normalizeMode } from './mode.util';
 
 @ApiTags('匹配管理（管理员）')
 @ApiBearerAuth()
-@UseGuards(AdminJwtAuthGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
+@Roles('SUPER', 'TEAM')
 @Controller('admin/matching')
 export class AdminMatchingController {
   constructor(
@@ -32,9 +36,10 @@ export class AdminMatchingController {
   }
 
   @Post('jobs/trigger')
-  @ApiOperation({ summary: '手动触发匹配任务' })
-  async triggerJob(@CurrentUser('id') adminId: string) {
-    return this.matchingService.triggerMatchJob(`manual:${adminId}`);
+  @ApiOperation({ summary: '手动触发匹配任务（按 mode）' })
+  @ApiQuery({ name: 'mode', required: false, enum: ['romantic', 'friend'] })
+  async triggerJob(@CurrentUser('id') adminId: string, @Query('mode') mode?: string) {
+    return this.matchingService.triggerMatchJob(`manual:${adminId}`, normalizeMode(mode));
   }
 
   @Get('jobs')

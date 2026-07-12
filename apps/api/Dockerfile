@@ -17,8 +17,15 @@ RUN npx prisma generate
 COPY . .
 RUN npm run build
 
-# Verify build succeeded (fails loudly if dist/main.js missing)
-RUN echo "=== Build output ===" && ls -la dist/src/ && test -f dist/src/main.js && echo "=== BUILD OK ==="
+# tsc does not copy non-TS assets; bring the metadata seed JSON into dist so the
+# packaged image can serve UK universities/cities/majors (read via __dirname/seed).
+RUN mkdir -p dist/src/metadata/seed && cp src/metadata/seed/*.json dist/src/metadata/seed/
+
+# Verify build succeeded (fails loudly if dist/main.js or seed assets missing)
+RUN echo "=== Build output ===" && ls -la dist/src/ \
+    && test -f dist/src/main.js \
+    && test -f dist/src/metadata/seed/uk_universities.json \
+    && echo "=== BUILD OK ==="
 
 # ─── Stage 2: Runner ───────────────────────────────────────
 FROM node:20-slim AS runner
@@ -34,6 +41,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/scripts ./scripts
 
-# Start: push schema to DB → seed admin data → run API
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (node dist/prisma/seed.js || echo 'Seed skipped') && node dist/src/main"]
+# Start: push schema → seed admin → seed 广场演示数据 → seed 广告演示数据 → run API
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (node dist/prisma/seed.js || echo 'Seed skipped') && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') && node dist/src/main"]

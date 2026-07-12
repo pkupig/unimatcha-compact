@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { QuestionnaireService } from '../questionnaire.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { QuestionType } from '@prisma/client';
+import { QuestionType, QuestionnaireType } from '@prisma/client';
 
-const mockPrisma = {
+const mockPrisma: any = {
   questionnaireVersion: {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
@@ -25,6 +25,10 @@ const mockPrisma = {
   questionOption: {
     deleteMany: jest.fn(),
   },
+  // publishVersion 现在用事务原子化下线旧 active + 上线本版本
+  $transaction: jest.fn((arg: any) =>
+    typeof arg === 'function' ? arg(mockPrisma) : Promise.all(arg),
+  ),
 };
 
 describe('QuestionnaireService', () => {
@@ -71,7 +75,7 @@ describe('QuestionnaireService', () => {
         questions: [],
       });
 
-      const result = await service.createVersion({ title: 'New Version' });
+      const result = await service.createVersion({ type: QuestionnaireType.ROMANTIC, title: 'New Version' });
       expect(result.version).toBe(3);
 
       const createCall = mockPrisma.questionnaireVersion.create.mock.calls[0][0];
@@ -84,16 +88,16 @@ describe('QuestionnaireService', () => {
         id: 'v1', version: 1, title: 'First', questions: [],
       });
 
-      await service.createVersion({ title: 'First' });
+      await service.createVersion({ type: QuestionnaireType.ROMANTIC, title: 'First' });
       const createCall = mockPrisma.questionnaireVersion.create.mock.calls[0][0];
       expect(createCall.data.version).toBe(1);
     });
   });
 
   describe('publishVersion', () => {
-    it('should deactivate all other versions and activate the target', async () => {
+    it('should deactivate other active versions of the same type and activate the target (atomically)', async () => {
       mockPrisma.questionnaireVersion.findUnique.mockResolvedValue({
-        id: 'v2', version: 2, title: 'V2', questions: [],
+        id: 'v2', version: 2, title: 'V2', type: QuestionnaireType.ROMANTIC,
       });
       mockPrisma.questionnaireVersion.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.questionnaireVersion.update.mockResolvedValue({
@@ -102,13 +106,21 @@ describe('QuestionnaireService', () => {
 
       await service.publishVersion('v2');
 
+      // 在事务内执行（G 规则：每 type ≤ 1 active）
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      // 仅下线同 type 的其它 active（排除本版本），不影响其它 type
       expect(mockPrisma.questionnaireVersion.updateMany).toHaveBeenCalledWith({
-        where: { isActive: true },
+        where: { isActive: true, type: QuestionnaireType.ROMANTIC, id: { not: 'v2' } },
         data: { isActive: false },
       });
       expect(mockPrisma.questionnaireVersion.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'v2' }, data: { isActive: true, publishedAt: expect.any(Date) } }),
       );
+    });
+
+    it('should throw NotFoundException if the version does not exist', async () => {
+      mockPrisma.questionnaireVersion.findUnique.mockResolvedValue(null);
+      await expect(service.publishVersion('missing')).rejects.toThrow(NotFoundException);
     });
   });
 });

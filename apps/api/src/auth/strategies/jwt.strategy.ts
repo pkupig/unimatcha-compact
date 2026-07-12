@@ -17,8 +17,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: { sub: string; email: string; role: string }) {
     if (payload.role !== 'user') throw new UnauthorizedException();
     const user = await this.authService.validateUser(payload.sub);
-    if (!user) throw new UnauthorizedException('用户不存在或已被注销');
-    if ((user as any).status === 'BANNED') throw new UnauthorizedException('账号已被封禁');
+    if (!user) throw new UnauthorizedException('User not found or has been deactivated');
+    if ((user as any).status === 'BANNED') throw new UnauthorizedException('Your account has been banned');
     return user;
   }
 }

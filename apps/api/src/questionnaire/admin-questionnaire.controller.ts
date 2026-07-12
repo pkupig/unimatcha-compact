@@ -1,23 +1,33 @@
 import {
-  Controller, Get, Post, Put, Delete, Patch, Param, Body, UseGuards,
+  Controller, Get, Post, Put, Delete, Patch, Param, Body, Query, UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { QuestionnaireType } from '@prisma/client';
 import { QuestionnaireService } from './questionnaire.service';
+import { toQType, normalizeMode } from '../matching/mode.util';
 import {
   CreateQuestionnaireVersionDto, CreateQuestionDto, UpdateQuestionDto, ReorderQuestionsDto,
 } from './dto/questionnaire.dto';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('问卷管理（管理员）')
 @ApiBearerAuth()
-@UseGuards(AdminJwtAuthGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
+@Roles('SUPER', 'TEAM')
 @Controller('admin/questionnaire')
 export class AdminQuestionnaireController {
   constructor(private questionnaireService: QuestionnaireService) {}
 
   @Get('versions')
-  @ApiOperation({ summary: '获取所有问卷版本列表' })
-  listVersions() { return this.questionnaireService.listVersions(); }
+  @ApiOperation({ summary: '获取问卷版本列表（可按 type 过滤）' })
+  @ApiQuery({ name: 'type', required: false, enum: ['romantic', 'friend'] })
+  listVersions(@Query('type') type?: string) {
+    // 传入 type 则只列该 type；不传列全部
+    const qType: QuestionnaireType | undefined = type ? toQType(normalizeMode(type)) : undefined;
+    return this.questionnaireService.listVersions(qType);
+  }
 
   @Get('versions/:id')
   @ApiOperation({ summary: '获取问卷版本详情（含题目）' })

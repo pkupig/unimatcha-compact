@@ -1,6 +1,7 @@
 import {
   Injectable, NotFoundException, ConflictException, BadRequestException,
 } from '@nestjs/common';
+import { QuestionnaireType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionnaireVersionDto, CreateQuestionDto, UpdateQuestionDto } from './dto/questionnaire.dto';
 
@@ -9,9 +10,10 @@ export class QuestionnaireService {
   constructor(private prisma: PrismaService) {}
 
   // ─── User-facing ─────────────────────────────────────────
-  async getActiveQuestionnaire() {
+  // 按 type 取当前激活问卷（每 type 至多一个 active），默认 ROMANTIC。
+  async getActiveQuestionnaire(type: QuestionnaireType = QuestionnaireType.ROMANTIC) {
     const version = await this.prisma.questionnaireVersion.findFirst({
-      where: { isActive: true },
+      where: { isActive: true, type },
       include: {
         questions: {
           where: { isEnabled: true },
@@ -22,13 +24,44 @@ export class QuestionnaireService {
         },
       },
     });
-    if (!version) throw new NotFoundException('暂无可用问卷');
+    if (!version) throw new NotFoundException('No questionnaire available');
     return version;
   }
 
+  // 两类问卷完成度：用于 G 规则判断能否进入对应模式匹配（§5.1/§5.2）。
+  // 返回 { romantic: {completed, versionId?}, friend: {completed, versionId?} }
+  async getCompletion(userId: string) {
+    const out: Record<string, { completed: boolean; versionId?: string }> = {};
+    for (const type of [QuestionnaireType.ROMANTIC, QuestionnaireType.FRIEND]) {
+      const version = await this.prisma.questionnaireVersion.findFirst({
+        where: { isActive: true, type },
+        include: {
+          questions: {
+            where: { isEnabled: true, isRequired: true },
+            select: { id: true },
+          },
+        },
+      });
+      const key = type.toLowerCase();
+      if (!version) { out[key] = { completed: false }; continue; }
+      const requiredIds = version.questions.map((q) => q.id);
+      const answered = await this.prisma.answer.count({
+        where: {
+          userId,
+          questionnaireVersionId: version.id,
+          questionId: { in: requiredIds },
+        },
+      });
+      out[key] = { completed: answered >= requiredIds.length, versionId: version.id };
+    }
+    return out;
+  }
+
   // ─── Admin CRUD ───────────────────────────────────────────
-  async listVersions() {
+  // type 透传：传入则只列该 type，不传列全部。
+  async listVersions(type?: QuestionnaireType) {
     return this.prisma.questionnaireVersion.findMany({
+      where: type ? { type } : {},
       orderBy: { version: 'desc' },
       include: { _count: { select: { questions: true, answers: true } } },
     });
@@ -44,12 +77,12 @@ export class QuestionnaireService {
         },
       },
     });
-    if (!version) throw new NotFoundException('问卷版本不存在');
+    if (!version) throw new NotFoundException('Questionnaire version not found');
     return version;
   }
 
   async createVersion(dto: CreateQuestionnaireVersionDto) {
-    // Auto-increment version number
+    // version 仍全局自增（@unique），但版本线按 type 区分
     const latest = await this.prisma.questionnaireVersion.findFirst({
       orderBy: { version: 'desc' },
     });
@@ -58,6 +91,7 @@ export class QuestionnaireService {
     return this.prisma.questionnaireVersion.create({
       data: {
         version: nextVersion,
+        type: dto.type,
         title: dto.title,
         description: dto.description,
         questions: dto.questions
@@ -84,23 +118,33 @@ export class QuestionnaireService {
   }
 
   async publishVersion(id: string) {
-    const version = await this.getVersion(id);
+    // G 规则（每 type ≤ 1 active）：下线同 type 其它 active 与上线本版本须在
+    // 同一事务内原子执行，避免并发发布两个版本时同时存在多个 active。
+    return this.prisma.$transaction(async (tx) => {
+      const version = await tx.questionnaireVersion.findUnique({ where: { id } });
+      if (!version) throw new NotFoundException('Questionnaire version not found');
 
-    // Deactivate all others
-    await this.prisma.questionnaireVersion.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
-    });
+      // type-scoped 下线：把同 type 的其它 active 置 false（排除本版本）
+      await tx.questionnaireVersion.updateMany({
+        where: { isActive: true, type: version.type, id: { not: id } },
+        data: { isActive: false },
+      });
 
-    return this.prisma.questionnaireVersion.update({
-      where: { id },
-      data: { isActive: true, publishedAt: new Date() },
+      return tx.questionnaireVersion.update({
+        where: { id },
+        data: { isActive: true, publishedAt: new Date() },
+      });
     });
   }
 
   async addQuestion(versionId: string, dto: CreateQuestionDto) {
     const version = await this.prisma.questionnaireVersion.findUnique({ where: { id: versionId } });
-    if (!version) throw new NotFoundException('问卷版本不存在');
+    if (!version) throw new NotFoundException('Questionnaire version not found');
+    // 已发布（active）版本的题目不可原地增删改：用户答案锚定该版本，改题会让历史答案与题面错位。
+    // 须新建版本再修改（§5.1）。
+    if (version.isActive) {
+      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+    }
 
     const maxOrder = await this.prisma.question.aggregate({
       where: { questionnaireId: versionId },
@@ -124,8 +168,15 @@ export class QuestionnaireService {
   }
 
   async updateQuestion(questionId: string, dto: UpdateQuestionDto) {
-    const existing = await this.prisma.question.findUnique({ where: { id: questionId } });
-    if (!existing) throw new NotFoundException('题目不存在');
+    const existing = await this.prisma.question.findUnique({
+      where: { id: questionId },
+      include: { questionnaire: { select: { isActive: true } } },
+    });
+    if (!existing) throw new NotFoundException('Question not found');
+    // 已发布（active）版本的题目不可原地修改（§5.1）
+    if (existing.questionnaire?.isActive) {
+      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+    }
 
     // Delete old options and recreate
     if (dto.options !== undefined) {
@@ -149,6 +200,15 @@ export class QuestionnaireService {
   }
 
   async deleteQuestion(questionId: string) {
+    const existing = await this.prisma.question.findUnique({
+      where: { id: questionId },
+      include: { questionnaire: { select: { isActive: true } } },
+    });
+    if (!existing) throw new NotFoundException('Question not found');
+    // 已发布（active）版本的题目不可删除（§5.1）
+    if (existing.questionnaire?.isActive) {
+      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+    }
     return this.prisma.question.delete({ where: { id: questionId } });
   }
 

@@ -24,7 +24,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('该邮箱已被注册');
+      throw new ConflictException('This email is already registered');
     }
 
     // Hash password
@@ -35,7 +35,8 @@ export class AuthService {
         email: dto.email,
         passwordHash,
       },
-      select: { id: true, email: true, mode: true, status: true, createdAt: true },
+      // mode 已迁出 User（改用 UserModeState，按需懒创建），登录注册不再返回全局 mode
+      select: { id: true, email: true, status: true, createdAt: true },
     });
 
     const token = this.signToken(user.id, user.email);
@@ -48,16 +49,17 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('Incorrect email or password');
+    }
+
+    // 先校验密码再做封禁判定，避免凭封禁提示枚举账号是否存在
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('Incorrect email or password');
     }
 
     if (user.status === 'BANNED') {
-      throw new UnauthorizedException('账号已被封禁，请联系客服');
-    }
-
-    const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('Your account has been banned, please contact support');
     }
 
     // Check if profile exists
@@ -70,7 +72,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        mode: user.mode,
+        // mode 已迁出 User（改用 UserModeState），登录不再返回全局 mode
         status: user.status,
         hasProfile: !!profile,
         profileCompleteness: profile?.profileCompleteness || 0,
@@ -79,10 +81,35 @@ export class AuthService {
     };
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    // 与注册保持一致：至少 8 位
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    // 校验当前密码，防止持有令牌即可改密
+    const valid = await bcrypt.compare(currentPassword || '', user.passwordHash);
+    if (!valid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    return { message: 'Password updated' };
+  }
+
   async validateUser(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, mode: true, status: true },
+      select: { id: true, email: true, status: true },
     });
   }
 

@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { AnswersService } from './answers.service';
 import { SubmitAnswersDto } from './dto/answer.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { toQType, normalizeMode } from '../matching/mode.util';
 
 @ApiTags('问卷答案')
 @ApiBearerAuth()
@@ -19,11 +20,18 @@ export class AnswersController {
   }
 
   @Get('mine')
-  @ApiOperation({ summary: '获取我的答案' })
+  @ApiOperation({ summary: '获取我的答案（可按版本或模式过滤）' })
+  @ApiQuery({ name: 'versionId', required: false })
+  @ApiQuery({ name: 'type', required: false, enum: ['romantic', 'friend'] })
   async getMyAnswers(
     @CurrentUser('id') userId: string,
     @Query('versionId') versionId?: string,
+    @Query('type') type?: string,
   ) {
-    return this.answersService.getMyAnswers(userId, versionId);
+    return this.answersService.getMyAnswers(
+      userId,
+      versionId,
+      type ? toQType(normalizeMode(type)) : undefined,
+    );
   }
 }

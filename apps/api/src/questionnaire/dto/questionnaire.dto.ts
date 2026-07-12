@@ -4,7 +4,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionType } from '@prisma/client';
+import { QuestionType, QuestionnaireType } from '@prisma/client';
 
 export class CreateOptionDto {
   @ApiProperty() @IsString() label: string;
@@ -30,6 +30,8 @@ export class CreateQuestionDto {
 }
 
 export class CreateQuestionnaireVersionDto {
+  // 问卷类型：ROMANTIC（恋人）| FRIEND（朋友）。各 type 独立版本线，每 type 至多一个 active。
+  @ApiProperty({ enum: QuestionnaireType }) @IsEnum(QuestionnaireType) type: QuestionnaireType;
   @ApiProperty() @IsString() title: string;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
 

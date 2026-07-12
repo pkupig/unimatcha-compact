@@ -2,6 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { MatchingService, MATCH_QUEUE, MATCH_JOB } from './matching.service';
+import { normalizeMode } from './mode.util';
 
 @Processor(MATCH_QUEUE)
 export class MatchProcessor {
@@ -10,8 +11,9 @@ export class MatchProcessor {
   constructor(private matchingService: MatchingService) {}
 
   @Process(MATCH_JOB)
-  async handleMatchJob(job: Job<{ jobId: string }>) {
-    this.logger.log(`Processing match job: ${job.data.jobId}`);
-    await this.matchingService.executeMatchJob(job.data.jobId);
+  async handleMatchJob(job: Job<{ jobId: string; mode?: string }>) {
+    const mode = normalizeMode(job.data.mode);
+    this.logger.log(`Processing match job: ${job.data.jobId} (mode=${mode})`);
+    await this.matchingService.executeMatchJob(job.data.jobId, mode);
   }
 }

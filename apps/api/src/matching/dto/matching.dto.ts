@@ -1,4 +1,6 @@
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString, IsOptional, IsBoolean, IsIn, IsInt, Min, Max,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateMatchConfigDto {
@@ -27,11 +29,36 @@ export class TriggerMatchJobDto {
   @IsOptional()
   @IsString()
   triggeredBy?: string;
+
+  @ApiPropertyOptional({ enum: ['romantic', 'friend'], example: 'romantic', description: '触发的模式（缺省 romantic）' })
+  @IsOptional()
+  @IsIn(['romantic', 'friend'])
+  mode?: 'romantic' | 'friend';
 }
 
-export class DissolveDto {
-  @ApiPropertyOptional({ example: '性格不合', description: '解除原因（可选）' })
+/**
+ * POST /matching/start — 用户开始匹配（双模式 + 增强，§3.4 / §10.2）。
+ */
+export class StartMatchDto {
+  @ApiPropertyOptional({ enum: ['romantic', 'friend'], example: 'romantic', description: '匹配模式（缺省 romantic）' })
   @IsOptional()
-  @IsString()
-  reason?: string;
+  @IsIn(['romantic', 'friend'])
+  mode?: 'romantic' | 'friend';
+
+  @ApiPropertyOptional({ example: false, description: '是否开启增强模式（预扣能量，无视75分阈值强配）' })
+  @IsOptional()
+  @IsBoolean()
+  enhanced?: boolean;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: '朋友增强档位 1–5（=保证匹配的朋友数 N；恋人忽略，固定3格）',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  cells?: number;
 }
+
+export { DissolveDto } from './dissolve.dto';

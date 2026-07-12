@@ -11,6 +11,18 @@ import { AnswersModule } from './answers/answers.module';
 import { MatchingModule } from './matching/matching.module';
 import { AdminModule } from './admin/admin.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { SquareModule } from './square/square.module';
+import { MetadataModule } from './metadata/metadata.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { ChatModule } from './chat/chat.module';
+import { NotificationModule } from './notifications/notification.module';
+import { ReportsModule } from './reports/reports.module';
+import { EnergyModule } from './energy/energy.module';
+import { CoupleModule } from './couple/couple.module';
+import { RelationshipsModule } from './relationships/relationships.module';
+import { SchoolsModule } from './schools/schools.module';
+import { AdsModule } from './ads/ads.module';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -39,6 +51,18 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     MatchingModule,
     AdminModule,
     LeaderboardModule,
+    SquareModule,
+    MetadataModule,
+    UploadsModule,
+    ChatModule,
+    NotificationModule,
+    ReportsModule,
+    EnergyModule,
+    CoupleModule,
+    RelationshipsModule,
+    SchoolsModule,
+    AdsModule,
+    FinanceModule,
   ],
 })
 export class AppModule {}

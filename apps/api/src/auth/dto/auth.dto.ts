@@ -3,12 +3,12 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@university.edu' })
-  @IsEmail({}, { message: '请输入有效的邮箱地址' })
+  @IsEmail({}, { message: 'Please enter a valid email address' })
   email: string;
 
   @ApiProperty({ example: 'Password@123', minLength: 8 })
   @IsString()
-  @MinLength(8, { message: '密码至少8位' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
   @MaxLength(64)
   password: string;
 }
@@ -20,6 +20,18 @@ export class LoginDto {
 
   @ApiProperty({ example: 'Password@123' })
   @IsString()
+  password: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'OldPassword@123' })
+  @IsString()
+  currentPassword: string;
+
+  @ApiProperty({ example: 'NewPassword@123', minLength: 8 })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @MaxLength(64)
   password: string;
 }
 

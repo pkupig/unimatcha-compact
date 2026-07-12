@@ -17,7 +17,7 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
   async validate(payload: { sub: string; role: string }) {
     if (payload.role !== 'admin') throw new UnauthorizedException();
     const admin = await this.adminAuthService.validateAdmin(payload.sub);
-    if (!admin) throw new UnauthorizedException('管理员不存在');
+    if (!admin) throw new UnauthorizedException('Administrator not found');
     return admin;
   }
 }
