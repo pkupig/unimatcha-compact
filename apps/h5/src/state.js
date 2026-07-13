@@ -4,7 +4,16 @@ export const S = {
   currentUser: null,
   userSettings: null,
   activeTab: 'match',
-  API: `http://${location.hostname}:3001/api/v1`,
+  // 本地开发（localhost / 127.0.0.1 / 裸 IP）：直连 API 的 :3001。
+  // 生产（Caddy）：H5 在 app.<域名>，API 在 api.<域名>，且必须 https——原来的
+  // `http://${hostname}:3001` 会（1）混合内容被浏览器拦、（2）打到未暴露的 3001 端口。
+  API: (() => {
+    const h = location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+      return `${location.protocol}//${h}:3001/api/v1`;
+    }
+    return `https://api.${h.replace(/^app\./, '')}/api/v1`;
+  })(),
   currentQuestion: 0,
   answers: {},
   questionnaire: null,

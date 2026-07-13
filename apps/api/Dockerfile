@@ -43,5 +43,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/scripts ./scripts
 
-# Start: push schema → seed admin → seed 广场演示数据 → seed 广告演示数据 → run API
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (node dist/prisma/seed.js || echo 'Seed skipped') && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') && node dist/src/main"]
+# Start: push schema → seed admin (idempotent) → run API.
+# - 去掉 --accept-data-loss：生产每次启动都跑，带该标志会静默丢弃「被判定为数据丢失」的列/数据；
+#   不带则在检测到破坏性变更时 db push 失败退出（安全默认，宁可启动失败也不毁数据）。
+# - 演示数据（广场 / 广告）只在 SEED_DEMO=true 时播；否则生产库会被灌入假帖/假广告。
+# - dist/prisma/seed.js 用 upsert，幂等，可每次启动跑（建管理员账号）。
+CMD ["sh", "-c", "npx prisma db push && (node dist/prisma/seed.js || echo 'Seed skipped') && ([ \"$SEED_DEMO\" = \"true\" ] && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') || echo 'Demo seed disabled (set SEED_DEMO=true to enable)') && node dist/src/main"]

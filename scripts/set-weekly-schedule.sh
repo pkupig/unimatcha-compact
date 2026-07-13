@@ -5,7 +5,7 @@
 #
 # 用法：
 #   ADMIN_TOKEN=你的管理员token \
-#   API=https://你的后端地址        (可能需要带 /api 前缀，如 https://xxx/api) \
+#   API=https://api.你的域名/api/v1   (务必带 /api/v1 前缀；生产走 Caddy 的 api 子域) \
 #   ./scripts/set-weekly-schedule.sh
 #
 # 可选覆盖（都有默认值）：
@@ -15,7 +15,8 @@
 #
 set -euo pipefail
 
-API="${API:-http://localhost:3000}"
+# 默认本地：API 监听 3001，且全局前缀是 /api/v1（原默认 3000 且无前缀，打不到任何路由）。
+API="${API:-http://localhost:3001/api/v1}"
 CRON="${CRON:-0 20 * * 0}"
 TZ="${TZ:-Europe/London}"
 DESC="${DESC:-每周日20:00公布本轮匹配结果}"

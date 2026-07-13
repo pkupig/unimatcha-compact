@@ -6,8 +6,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-campuslove}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campuslove_secret}
       POSTGRES_DB: ${POSTGRES_DB:-campuslove}
+    # 只绑回环：api 走 docker 内网 postgres:5432 连接，无需把 DB 暴露到公网。
+    # "5432:5432" 会监听 0.0.0.0（公网可达）；"127.0.0.1:5432" 仅本机可连（保留本地开发直连）。
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,8 +21,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: unimatcha_redis
+    # 只绑回环：Redis 无鉴权，"6379:6379" 会把它暴露到公网（任何人可读写/FLUSHALL）。
+    # api 走内网 redis:6379 连接，故仅绑 127.0.0.1（保留本地开发直连）。
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -46,6 +50,12 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin@123456}
       PORT: 3001
       NODE_ENV: production
+      # 匹配模型（BACKLOG P0-1）：设了 AI_PROVIDER_URL 即用 matching-ml；MATCH_MODEL=scoring 可一行回退。
+      # AI_PROVIDER_API_KEY 必须与 matching-ml 的 MATCH_API_KEY 一致。演示数据默认关闭（SEED_DEMO）。
+      MATCH_MODEL: ${MATCH_MODEL:-ai}
+      AI_PROVIDER_URL: ${AI_PROVIDER_URL:-http://matching-ml:8100/match}
+      AI_PROVIDER_API_KEY: ${MATCH_API_KEY:-}
+      SEED_DEMO: ${SEED_DEMO:-false}
     # Behind Caddy: reachable on the internal network + via api.<domain>.
     # (was "3001:3001" — switch back to `ports` if you need direct host access.)
     expose:
@@ -57,6 +67,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      matching-ml:
+        condition: service_started
+    restart: unless-stopped
+
+  matching-ml:
+    build:
+      context: ./matching-ml
+      dockerfile: Dockerfile
+    image: unimatcha-matching-ml
+    container_name: unimatcha_matching_ml
+    environment:
+      LLM_BACKEND: ${LLM_BACKEND:-mock}
+      # 生产必设：空 key + 非回环绑定会 fail-closed 拒绝启动（P0-5）。与后端 AI_PROVIDER_API_KEY 一致。
+      MATCH_API_KEY: ${MATCH_API_KEY:-}
+      HOST: 0.0.0.0
+      PORT: 8100
+    # 仅内网可达（api 走 matching-ml:8100）；不经 Caddy 暴露到公网。
+    expose:
+      - "8100"
     restart: unless-stopped
 
   admin-web:
