@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, Ban, CheckCircle } from 'lucide-react';
-import { listAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from '@/lib/api';
+import { listAdminUsers, createAdminUser, updateAdminUser } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import {
   PageHeader,
@@ -112,8 +112,9 @@ function SponsorsContent() {
   const confirmToggle = async () => {
     if (!toggleTarget) return;
     try {
-      if (toggleTarget.isActive) await deleteAdminUser(toggleTarget.id);
-      else await updateAdminUser(toggleTarget.id, { isActive: true });
+      // 停用 = 置 isActive:false（可恢复），不是硬删除账号。原来「停用」调 deleteAdminUser
+      // 会永久删除赞助商账号，与「已停用」文案 + 可再启用的语义矛盾（accounts 页用的就是这个正确写法）。
+      await updateAdminUser(toggleTarget.id, { isActive: !toggleTarget.isActive });
       toast.success(toggleTarget.isActive ? '已停用' : '已启用');
       setToggleTarget(null);
       load();

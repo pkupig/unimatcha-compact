@@ -242,7 +242,8 @@ export class SquareService {
         take: 20,
         include: this.postInclude(),
       });
-      wallPicks = this.shuffle(wallHot);
+      // 按 (用户, 当天) 播种：同一用户当天翻页时墙卡顺序稳定，避免 offset 分页错位重复/漏卡。
+      wallPicks = this.seededShuffle(wallHot, this.hashStr(userId) ^ Math.floor(now / 86400000));
     }
 
     // 4) 混排：pinned 大卡置顶 → 每 5 小卡插 1 普通大卡 → 每页 ≤2 中卡
@@ -386,12 +387,16 @@ export class SquareService {
     if (dto.parentCommentId) {
       const parent = await this.prisma.squarePostComment.findUnique({
         where: { id: dto.parentCommentId },
-        select: { id: true, userId: true, postId: true },
+        select: { id: true, userId: true, postId: true, parentCommentId: true },
       });
       if (!parent || parent.postId !== postId) {
         throw new BadRequestException('Parent comment does not belong to this post');
       }
-      parentComment = { id: parent.id, userId: parent.userId };
+      // 楼中楼只有两层（getPost 只取顶层评论的直接 replies）。若回复目标本身是「回复」，
+      // 把新评论挂到其顶层父评论下，否则这条 reply-to-reply 会入库、计数、通知，却永不渲染。
+      // 通知仍发给被回复者本人（parent.userId）。
+      const topLevelId = parent.parentCommentId || parent.id;
+      parentComment = { id: topLevelId, userId: parent.userId };
     }
 
     const [comment] = await this.prisma.$transaction([
@@ -1027,6 +1032,28 @@ export class SquareService {
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+  }
+
+  // 确定性洗牌（LCG）：同一 seed 产出同一顺序。用于推荐流的破圈墙卡——
+  // 原来每次请求都 Math.random 重洗，offset 分页会在页间错位（同卡重复/漏出）。
+  private seededShuffle<T>(arr: T[], seed: number): T[] {
+    const a = [...arr];
+    let s = (seed >>> 0) || 1;
+    const rand = () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  private hashStr(s: string): number {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
   }
 
   // 卡片整形：判定卡型 + 匿名脱敏（§8.1.1 规则 7）
