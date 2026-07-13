@@ -27,7 +27,7 @@ function renderThumbStrip(container, urls) {
     ? `<div class="flex flex-wrap gap-2">${urls
         .map(
           (u, i) => `<div class="relative w-20 h-20">
-            <img src="${esc(u)}" class="w-full h-full object-cover rounded-[10px] border border-outline-variant/40" onerror="this.style.display='none'">
+            <img src="${window.safeUrl(u)}" class="w-full h-full object-cover rounded-[10px] border border-outline-variant/40" onerror="this.style.display='none'">
             <button type="button" data-rm="${i}" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center"><span class="material-symbols-outlined" style="font-size:13px">close</span></button>
           </div>`,
         )
@@ -45,7 +45,7 @@ function renderThumbStrip(container, urls) {
 function renderThumbGallery(urls) {
   if (!urls || !urls.length) return '';
   return `<div class="grid grid-cols-3 gap-2 mb-3">${urls
-    .map((u) => `<img src="${esc(u)}" class="w-full h-24 object-cover rounded-[10px] border border-outline-variant/40" onerror="this.style.display='none'">`)
+    .map((u) => `<img src="${window.safeUrl(u)}" class="w-full h-24 object-cover rounded-[10px] border border-outline-variant/40" onerror="this.style.display='none'">`)
     .join('')}</div>`;
 }
 
@@ -157,11 +157,11 @@ function renderCoupleHub(space) {
   // 顶部卡片：可编辑封面图（各自不同，点空白处编辑）+ 今日状态 + 对方 bio
   const heroIcon = (label) => (statusIcon(label) ? `<span class="material-symbols-outlined" style="font-size:16px">${statusIcon(label)}</span>` : '');
   const header = `
-    <div class="relative rounded-[10px] overflow-hidden p-6 mb-5 text-white cursor-pointer" onclick="coupleEditCover(event)" style="${cover ? `background-image:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.6)),url('${cover}');background-size:cover;background-position:center;` : 'background:#2e1a3a;'}">
+    <div class="relative rounded-[10px] overflow-hidden p-6 mb-5 text-white cursor-pointer" onclick="coupleEditCover(event)" style="${cover ? `background-image:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.6)),url('${window.safeCssUrl(cover)}');background-size:cover;background-position:center;` : 'background:#2e1a3a;'}">
       <span class="absolute top-3 right-3 material-symbols-outlined text-white/55 pointer-events-none" style="font-size:18px">edit</span>
       <div class="flex items-center gap-4">
         <div class="w-14 h-14 rounded-full overflow-hidden ring-2 ring-neon shrink-0 bg-surface-container flex items-center justify-center">
-          ${pAvatar ? `<img src="${esc(pAvatar)}" class="w-full h-full object-cover">` : '<span class="material-symbols-outlined text-outline">person</span>'}
+          ${pAvatar ? `<img src="${window.safeUrl(pAvatar)}" class="w-full h-full object-cover">` : '<span class="material-symbols-outlined text-outline">person</span>'}
         </div>
         <div class="min-w-0">
           <p class="text-[10px] tracking-[0.2em] text-neon font-bold">IN A RELATIONSHIP</p>
@@ -189,7 +189,7 @@ function renderCoupleHub(space) {
     const label = du > 0 ? `${du} day${du === 1 ? '' : 's'} to go` : du === 0 ? 'Today' : `${-du} day${du === -1 ? '' : 's'} ago`;
     const bg = future ? 'bg-neon-pink/10 border-neon-pink/30' : 'bg-surface-container border-outline-variant/20';
     const imgs = a.images || [];
-    const thumb = imgs[0] ? `<div class="relative w-12 h-12 rounded-[8px] overflow-hidden shrink-0 bg-surface-container"><img src="${esc(imgs[0])}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">${imgs.length > 1 ? `<span class="absolute bottom-0 right-0 px-1 bg-black/65 text-white text-[9px] font-bold rounded-tl-[6px]">${imgs.length}</span>` : ''}</div>` : '';
+    const thumb = imgs[0] ? `<div class="relative w-12 h-12 rounded-[8px] overflow-hidden shrink-0 bg-surface-container"><img src="${window.safeUrl(imgs[0])}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">${imgs.length > 1 ? `<span class="absolute bottom-0 right-0 px-1 bg-black/65 text-white text-[9px] font-bold rounded-tl-[6px]">${imgs.length}</span>` : ''}</div>` : '';
     return `<button onclick="openAnniversaryDetail('${a.id}')" class="w-full text-left ${bg} border rounded-[10px] p-4 flex items-center justify-between gap-3 active:scale-[0.99]">
       <div class="flex items-center gap-3 min-w-0">${thumb}<div class="min-w-0"><p class="text-sm font-bold text-on-surface truncate">${esc(a.title)}</p><p class="text-[10px] text-outline tracking-wider mt-0.5">${esc(String(a.date).slice(0, 10))}${a.note ? ' · note' : ''}</p></div></div>
       <span class="text-xs font-bold ${future ? 'text-neon-pink' : 'text-outline'} tracking-widest shrink-0">${label}</span>

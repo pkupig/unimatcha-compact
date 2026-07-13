@@ -80,6 +80,17 @@ function cleanupUserState() {
   S.homeView = 'chat';
   S.activeMatchMode = 'romantic';
   S.isSubmittingProposal = false;
+  // Enhanced/energy (§10.5): reset to state.js defaults. Without this, a different
+  // account logging in on the same SPA session inherits the prior user's enhance
+  // toggle + stale energy cache, so tapping "Join Matching Pool" could enrol them in
+  // a paid enhanced match they never selected (only openMatchSettings rehydrates these).
+  S.energy = { totalEnergy: 0, usedEnergy: 0, availableEnergy: 0 };
+  S.enhanced = {
+    romantic: { enabled: false, cost: 3 },
+    friend: { enabled: false, cells: 1 },
+  };
+  S.matchBasis = 'both';
+  S.matchExtraInfo = '';
   // match polling context (ids/counters reset by stopMatchPolling above,
   // re-asserted here as a defensive default)
   S.matchPollingId = null;
@@ -355,6 +366,39 @@ function escapeHtml(t) {
   return d.innerHTML;
 }
 window.escapeHtml = escapeHtml;
+
+// 清洗用户可控 URL 后再插入 HTML 属性（src/href/background）。
+// escapeHtml 不转义引号，直接把 avatarUrl/图片 URL 塞进 src="${url}" 会被
+// `"` 截断属性注入 onerror（存储型 XSS）；此函数：①拦截 javascript:/vbscript:/
+// file: 及非图片 data: 等可执行 scheme，②转义属性破坏字符，使其在双/单引号属性中都安全。
+function safeUrl(u) {
+  if (u == null) return '';
+  const s = String(u).trim();
+  if (!s) return '';
+  // 只允许安全 scheme：http(s)、相对 / 协议相对路径、图片 data:；其余一律拒绝。
+  // 剥离浏览器会忽略的控制字符（如 "java\tscript:"）再判 scheme，防绕过。
+  const stripped = s.replace(/[\u0000-\u0020]/g, '');
+  if (/^(?:javascript|vbscript|file|blob):/i.test(stripped)) return '';
+  if (/^data:/i.test(stripped) && !/^data:image\//i.test(stripped)) return '';
+  return s.replace(/[&<>"'`]/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c]
+  ));
+}
+window.safeUrl = safeUrl;
+
+// 清洗用户 URL 后再嵌入 CSS url(...)（style 属性或 CSSOM background-image）。
+// 此处 HTML 实体转义无用（CSS 上下文不解实体），改为剥离能突破 url() 的字符：
+// 引号 / 括号 / 反斜杠 / 尖括号 / 空白换行，从而无法闭合 url() 注入额外声明。
+function safeCssUrl(u) {
+  if (u == null) return '';
+  const s = String(u).trim();
+  if (!s) return '';
+  const stripped = s.replace(/[\u0000-\u0020]/g, '');
+  if (/^(?:javascript|vbscript|file|blob):/i.test(stripped)) return '';
+  if (/^data:/i.test(stripped) && !/^data:image\//i.test(stripped)) return '';
+  return s.replace(/["'()\\<>]/g, '').replace(/[\u0000-\u0020]+/g, '');
+}
+window.safeCssUrl = safeCssUrl;
 
 function readFileAsDataUrl(file, cb) {
   const r = new FileReader();

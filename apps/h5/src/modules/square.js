@@ -228,7 +228,7 @@ function avatarChip(profile, fallbackName, sizeClass, textSize, extra) {
   const name = profile?.nickname || fallbackName || 'Anonymous';
   const initials = window.escapeHtml(name.substring(0, 2).toUpperCase());
   if (url) {
-    return `<img src="${url}" class="${sizeClass} rounded-full object-cover ${extra}">`;
+    return `<img src="${window.safeUrl(url)}" class="${sizeClass} rounded-full object-cover ${extra}">`;
   }
   return `<div class="${sizeClass} rounded-full bg-black flex items-center justify-center ${extra}"><span class="text-white ${textSize} font-bold">${initials}</span></div>`;
 }
@@ -293,7 +293,7 @@ function bentoLargeCard(p) {
   // 图片贴满卡片上/左/右边缘（卡片 overflow-hidden 裁出圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
   return `<article data-post-id="${p.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[10px] overflow-hidden" onclick="openPostDetail('${p.id}')">
     <div class="relative overflow-hidden aspect-[4/5] bg-surface-container">
-      <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${img}" onerror="this.style.display='none'">
+      <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${window.safeUrl(img)}" onerror="this.style.display='none'">
       ${badge ? `<div class="absolute top-4 left-4">${badge}</div>` : ''}
       ${school ? `<div class="absolute top-4 right-4">${school}</div>` : ''}
     </div>
@@ -321,7 +321,7 @@ function bentoSmallCard(p) {
   const school = schoolBadge(p);
   const schoolOverlay = school ? `<div class="absolute top-2 right-2">${school}</div>` : '';
   const media = img
-    ? `<div class="relative aspect-[3/4] bg-surface-container overflow-hidden"><img class="w-full h-full object-cover" src="${img}" onerror="this.parentElement.style.display='none'">${schoolOverlay}</div>`
+    ? `<div class="relative aspect-[3/4] bg-surface-container overflow-hidden"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'">${schoolOverlay}</div>`
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
     : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}">${schoolOverlay}<p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
   // 图片/彩色文字块贴满卡片上/左/右边缘（卡片 overflow-hidden 裁圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
@@ -354,7 +354,7 @@ function bentoWideCard(p) {
       </div>
       ${school ? `<span class="school-badge shrink-0">${window.escapeHtml(school)}</span>` : ''}
     </div>
-    ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[10px]"><img class="w-full h-full object-cover" src="${img}" onerror="this.parentElement.style.display='none'"></div>` : ''}
+    ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[10px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
     <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
     <div class="flex items-center justify-between">
@@ -489,10 +489,10 @@ function syncPostDetailToList(post) {
 
 function renderPdImages(images) {
   if (!images.length) return '';
-  if (images.length === 1) return `<section class="w-full bg-surface-container overflow-hidden"><img src="${images[0]}" class="w-full object-cover" onerror="this.parentElement.style.display='none'"></section>`;
+  if (images.length === 1) return `<section class="w-full bg-surface-container overflow-hidden"><img src="${window.safeUrl(images[0])}" class="w-full object-cover" onerror="this.parentElement.style.display='none'"></section>`;
   return `<section class="relative w-full bg-surface-container overflow-hidden">
     <div id="pd-carousel" class="flex w-full overflow-x-auto snap-x snap-mandatory hide-scrollbar" onscroll="pdCarouselScrolled(this)">
-      ${images.map(img => `<div class="flex-none w-full snap-start"><img src="${img}" class="w-full aspect-[4/5] object-cover" onerror="this.parentElement.style.display='none'"></div>`).join('')}
+      ${images.map(img => `<div class="flex-none w-full snap-start"><img src="${window.safeUrl(img)}" class="w-full aspect-[4/5] object-cover" onerror="this.parentElement.style.display='none'"></div>`).join('')}
     </div>
     <button onclick="pdCarouselNav(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 text-white flex items-center justify-center active:scale-90 transition-transform">
       <span class="material-symbols-outlined text-base">chevron_left</span>
@@ -544,7 +544,7 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
     : (!!authorKey?.value && cm.userId === authorKey.value);
   return `<div class="flex gap-4${isReply ? ' pl-12' : ''}">
     ${avatar
-      ? `<img src="${avatar}" class="w-8 h-8 rounded-full object-cover shrink-0">`
+      ? `<img src="${window.safeUrl(avatar)}" class="w-8 h-8 rounded-full object-cover shrink-0">`
       : `<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between mb-2 gap-2">
@@ -785,7 +785,7 @@ function renderNewPostImages() {
   const c = document.getElementById('new-post-images');
   if (!c) return;
   c.innerHTML = S.newPostImages.map((img, i) => `<div class="relative aspect-square w-20 h-20 bg-surface-container-low rounded-[10px] overflow-hidden">
-      <img src="${img.preview}" class="w-full h-full object-cover">
+      <img src="${window.safeUrl(img.preview)}" class="w-full h-full object-cover">
       <button type="button" onclick="removeNewPostImage(${i})" class="absolute -top-1 -right-1 bg-primary text-white w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform">
         <span class="material-symbols-outlined text-[14px]">close</span>
       </button>

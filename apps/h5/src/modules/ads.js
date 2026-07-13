@@ -66,7 +66,7 @@ export function adLargeCard(ad) {
   const img = (ad.images || [])[0];
   const media = img
     ? `<div class="relative overflow-hidden aspect-[4/5] bg-surface-container">
-        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${img}" onerror="this.style.display='none'">
+        <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${window.safeUrl(img)}" onerror="this.style.display='none'">
         <div class="absolute top-4 left-4"><span class="sponsored-badge">Sponsored</span></div>
       </div>`
     // 后端 schema 要求至少 1 图，这里仍兜底：无图时徽章走顶部标题行
@@ -110,7 +110,7 @@ function showAdDetail(ad) {
       </button>
     </header>
     <main class="w-full max-w-screen-md mx-auto pb-16">
-      ${(ad.images || []).map(img => `<img src="${img}" class="w-full object-cover" onerror="this.style.display='none'">`).join('')}
+      ${(ad.images || []).map(img => `<img src="${window.safeUrl(img)}" class="w-full object-cover" onerror="this.style.display='none'">`).join('')}
       <div class="px-6 py-8">
         <div class="mb-4"><span class="sponsored-badge">Sponsored</span></div>
         ${ad.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${esc(ad.title)}</h2>` : ''}

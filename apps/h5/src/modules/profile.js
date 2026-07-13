@@ -287,7 +287,7 @@ async function handleAvatarFile(event, target = 'setup') {
     const url = await window.uploadImageFile(file);
     await window.api('/uploads/avatar', 'POST', { url });
     if (S.currentUser) S.currentUser.profile = { ...(S.currentUser.profile || {}), avatarUrl: url };
-    if (el) el.innerHTML = `<img src="${url}" class="w-full h-full object-cover rounded-full">`;
+    if (el) el.innerHTML = `<img src="${window.safeUrl(url)}" class="w-full h-full object-cover rounded-full">`;
     window.toast('Avatar updated');
   } catch (e) {
     window.toast('Avatar upload failed: ' + e.message);
@@ -311,7 +311,7 @@ async function loadProfileTab() {
   const avatar = profile.avatarUrl || '';
   const avatarEl = document.getElementById('profile-avatar');
   if (avatarEl) avatarEl.innerHTML = avatar
-    ? `<img src="${avatar}" alt="User Avatar" class="w-full h-full object-cover">`
+    ? `<img src="${window.safeUrl(avatar)}" alt="User Avatar" class="w-full h-full object-cover">`
     : '<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-5xl text-outline-variant">person</span></div>';
   const nameEl = document.getElementById('profile-name');
   if (nameEl) nameEl.textContent = (profile.nickname || 'Your Name');
@@ -361,7 +361,7 @@ async function loadProfileTab() {
     if (bgEl.tagName === 'IMG') {
       bgEl.src = bgSrc;
     } else {
-      bgEl.style.backgroundImage = `url(${bgSrc})`;
+      bgEl.style.backgroundImage = `url(${window.safeCssUrl(bgSrc)})`;
       bgEl.style.backgroundSize = 'cover';
       bgEl.style.backgroundPosition = 'center';
     }
@@ -435,7 +435,7 @@ async function handleStudentCardFile(event) {
   try {
     const url = await window.uploadImageFile(file);
     S.verifyCardUrl = url;
-    if (prev) prev.innerHTML = `<img src="${url}" class="w-full h-full object-cover" alt="Student card">`;
+    if (prev) prev.innerHTML = `<img src="${window.safeUrl(url)}" class="w-full h-full object-cover" alt="Student card">`;
   } catch (e) {
     S.verifyCardUrl = null;
     if (prev) prev.innerHTML = '<span class="material-symbols-outlined text-3xl">add_a_photo</span><span class="text-[10px] font-bold tracking-widest mt-1">Tap to upload</span>';
@@ -580,13 +580,13 @@ async function openEditProfile() {
   window.renderEditTags();
   const avatarEl = document.getElementById('edit-avatar');
   if (avatarEl) avatarEl.innerHTML = p.avatarUrl
-    ? `<img alt="Profile photo" src="${p.avatarUrl}" class="w-full h-full object-cover">`
+    ? `<img alt="Profile photo" src="${window.safeUrl(p.avatarUrl)}" class="w-full h-full object-cover">`
     : '<div class="w-full h-full flex flex-col items-center justify-center text-outline"><span class="material-symbols-outlined text-3xl">add_a_photo</span><span class="text-[9px] font-bold tracking-widest mt-1">Add Photo</span></div>';
   const cover = S.currentUser?.profile?.coverUrl;
   const coverEl = document.getElementById('edit-cover-preview');
   if (coverEl) {
     if (cover) {
-      coverEl.style.backgroundImage = `url(${cover})`;
+      coverEl.style.backgroundImage = `url(${window.safeCssUrl(cover)})`;
       coverEl.style.backgroundSize = 'cover';
       coverEl.style.backgroundPosition = 'center';
     } else {
@@ -777,7 +777,7 @@ async function handleCoverFile(event) {
     await window.api('/profiles/me', 'PUT', { coverUrl: url });
     if (S.currentUser) S.currentUser.profile = { ...(S.currentUser.profile || {}), coverUrl: url };
     const el = document.getElementById('edit-cover-preview');
-    if (el) el.style.backgroundImage = `url(${url})`;
+    if (el) el.style.backgroundImage = `url(${window.safeCssUrl(url)})`;
     window.toast('Cover updated');
   } catch (e) {
     window.toast('Cover upload failed: ' + e.message);
@@ -813,7 +813,7 @@ function renderPhotoSlots() {
   let html = '';
   for (let i = 0; i < 6; i++) {
     if (photos[i]) {
-      html += `<div class="relative aspect-square overflow-hidden border border-outline-variant/40 bg-surface-container rounded-[10px]"><img src="${photos[i]}" alt="Photo" class="w-full h-full object-cover"><span onclick="removeProfilePhoto(${i})" class="absolute top-1 right-1 w-5 h-5 bg-primary/70 text-white flex items-center justify-center text-xs cursor-pointer">×</span></div>`;
+      html += `<div class="relative aspect-square overflow-hidden border border-outline-variant/40 bg-surface-container rounded-[10px]"><img src="${window.safeUrl(photos[i])}" alt="Photo" class="w-full h-full object-cover"><span onclick="removeProfilePhoto(${i})" class="absolute top-1 right-1 w-5 h-5 bg-primary/70 text-white flex items-center justify-center text-xs cursor-pointer">×</span></div>`;
     } else {
       html += `<div onclick="triggerProfilePhotoUpload()" class="aspect-square border border-dashed border-outline-variant rounded-[10px] flex items-center justify-center cursor-pointer text-outline hover:border-primary hover:text-primary transition-colors active:scale-[0.98]"><span class="material-symbols-outlined">add</span></div>`;
     }
@@ -905,7 +905,7 @@ function renderPublicProfileCard(p, opts = {}) {
   return `<div class="flex flex-col items-center text-center px-6 py-10">
     <div class="w-24 h-24 rounded-full p-[3px] bg-primary mb-4">
       <div class="w-full h-full rounded-full overflow-hidden bg-surface-container-high ring-2 ring-white flex items-center justify-center">
-        ${avatar ? `<img src="${avatar}" alt="Avatar" class="w-full h-full object-cover">` : '<span class="material-symbols-outlined text-4xl text-outline">person</span>'}
+        ${avatar ? `<img src="${window.safeUrl(avatar)}" alt="Avatar" class="w-full h-full object-cover">` : '<span class="material-symbols-outlined text-4xl text-outline">person</span>'}
       </div>
     </div>
     <h2 class="font-headline text-3xl font-extrabold tracking-tight">${esc(p.nickname || '')}</h2>

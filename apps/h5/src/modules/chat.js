@@ -35,7 +35,7 @@ function formatRemainingShort(ms) {
 // the existing .chat-avatar styling).
 function sessionAvatarHtml(partner) {
   const url = partner?.avatarUrl || partner?.avatar || '';
-  if (url) return `<img src="${attrEscape(url)}" alt="" loading="lazy" class="chat-avatar"/>`;
+  if (url) return `<img src="${window.safeUrl(url)}" alt="" loading="lazy" class="chat-avatar"/>`;
   const name = partner?.nickname || partner?.name || 'P';
   const initial = String(name).trim().charAt(0).toUpperCase() || '·';
   return `<div class="chat-avatar chat-avatar--fallback" aria-hidden="true">${window.escapeHtml(initial)}</div>`;
@@ -635,7 +635,7 @@ function avatarHtml(mine) {
   // 对方头像（非自己）可点：弹出小卡片（设置备注 / 编辑聊天背景，本轮反馈2）
   const click = mine ? '' : ' onclick="openChatAvatarMenu(event)" style="cursor:pointer"';
   if (url) {
-    return `<img src="${attrEscape(url)}" alt="" loading="lazy" class="chat-avatar"${click}/>`;
+    return `<img src="${window.safeUrl(url)}" alt="" loading="lazy" class="chat-avatar"${click}/>`;
   }
   const name = mine
     ? (S.currentUser?.profile?.nickname || 'Me')
@@ -691,7 +691,7 @@ function messageHtml(m, myId) {
   }
   let body = '';
   if (m.imageUrl) {
-    body += `<img src="${attrEscape(m.imageUrl)}" alt="Photo" loading="lazy"
+    body += `<img src="${window.safeUrl(m.imageUrl)}" alt="Photo" loading="lazy"
       class="chat-image"
       onclick="openChatImage(this.src)"/>`;
   }

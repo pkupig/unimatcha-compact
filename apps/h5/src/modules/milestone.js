@@ -40,7 +40,7 @@ window.loadMilestone = loadMilestone;
 function msAvatar(url) {
   return `<div class="w-24 h-24 rounded-full border border-primary p-1 bg-surface shadow-sm overflow-hidden shrink-0">
     ${url
-      ? `<img src="${url}" class="w-full h-full rounded-full object-cover">`
+      ? `<img src="${window.safeUrl(url)}" class="w-full h-full rounded-full object-cover">`
       : `<div class="w-full h-full rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-outline text-2xl">person</span></div>`}
   </div>`;
 }
