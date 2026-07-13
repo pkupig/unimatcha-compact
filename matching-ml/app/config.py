@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # weights; otherwise the pipeline uses fusion.py. Retrain weekly on feedback.
     ranker_model_path: str = ""
 
+    # Security (P0-5). Shared secret required as `Authorization: Bearer <key>` on
+    # POST /match; the NestJS side sends AI_PROVIDER_API_KEY — the two MUST match.
+    # Empty = auth disabled (local dev only; never expose beyond localhost like that).
+    match_api_key: str = ""
+
     # Service
     host: str = "0.0.0.0"
     port: int = 8100

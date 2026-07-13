@@ -355,24 +355,21 @@ python -m app.main
 
 ## 7. 接入 NestJS 后端
 
-后端已有 `ai-match-model.provider.example.ts`，POST `{candidates,constraints}` 到 `AI_PROVIDER_URL` 拿 `MatchResult`。本服务就是这个契约，**三步接入**：
+**（P0-1 已完成）** 后端 `apps/api/src/matching/providers/ai-match-model.provider.ts` POST `{candidates,constraints}` 到 `AI_PROVIDER_URL` 拿 `MatchResult`，本服务就是这个契约。接入只剩环境变量：
 
-**① 环境变量**
+**① 环境变量**（backend 侧）
 ```bash
 AI_PROVIDER_URL=http://<matching-ml-host>:8100/match   # 注意带 /match 路径
-AI_PROVIDER_API_KEY=<shared-secret>
+AI_PROVIDER_API_KEY=<shared-secret>                    # = 本服务 MATCH_API_KEY
+# AI_PROVIDER_TIMEOUT_MS=300000                        # 可选，请求超时
 ```
 
-**② 切换 provider 绑定**（`api/.../matching/matching.module.ts`）：把 `ai-match-model.provider.example.ts` 改名去掉 `.example`，然后
-```ts
-{ provide: MATCH_MODEL_PROVIDER, useClass: AIMatchModelProvider }   // 原来是 ScoringMatchModelProvider
-```
-保留 `ScoringMatchModelProvider` 在 module 里，随时一行回退（或做成 env 开关）。
+**② provider 绑定已做成 env 开关**（`apps/api/src/matching/matching.module.ts`）：缺省配置了 `AI_PROVIDER_URL` 即用 `AIMatchModelProvider`；`MATCH_MODEL=scoring` 一行回退到本地打分（`MATCH_MODEL=ai` 强制 AI）。
 
 **③ 契约对齐**：候选人字段与 `match-model.interface.ts` 1:1（含 `_prefs` 和带 `questionGroup/questionOrder` 的 `answers[]`）。响应填 `pairs/unmatched/emptyPoolUserIds/modelVersion/processingTimeMs`，每个 pair 的 `metadata` 已带打分拆解、理由、模型版本、宪法版本，直接落 `Match.metadata`。
 
 **注意事项**
-- **鉴权**：示例 provider 发 `Authorization: Bearer <key>`，本服务暂未校验——放到私网外前，在 `app/main.py` 加一个 FastAPI 依赖检查 header。
+- **鉴权（P0-5 已实现，fail-closed）**：`/match` 校验 `Authorization: Bearer <MATCH_API_KEY>`（`app/main.py` 的 `require_api_key` 依赖）。`MATCH_API_KEY` 须与后端 `AI_PROVIDER_API_KEY` 一致；留空仅允许回环地址（启动时打警告），**非回环绑定 + 空 key 直接拒绝启动**。`/health` 不鉴权。
 - **降级**：ollama 挂了，服务自动逐 pair 回退规则路，`/match` 仍返回合法结果。
 - **成本**：召回把 LLM 调用限制在每人 `RECALL_TOP_K`；超大池再加 embedding 召回（algorithm.md §10.3）。
 
