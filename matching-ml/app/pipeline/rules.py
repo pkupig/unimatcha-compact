@@ -78,8 +78,13 @@ def passes_hard_gate(a: CandidateProfile, b: CandidateProfile, mode: str) -> boo
     """True iff the pair survives every hard constraint (calculatePairScore != 0)."""
     ap, bp = a.prefs, b.prefs
     if mode == "romantic":
-        a_ok = a.genderPref in ("any", "") or a.genderPref == b.gender
-        b_ok = b.genderPref in ("any", "") or b.genderPref == a.gender
+        # per-mode 匹配偏好 preferredGender 优先，回退到 profile 级 genderPref。
+        # 原实现只看 genderPref，用户经匹配偏好设的性别要求被硬门忽略（与 friend 分支不一致、
+        # 且违反宪法硬条款）。保持 romantic 严格语义：对方性别未知则非 "any" 偏好一律不通过。
+        a_pref = (ap.preferredGender if (ap and ap.preferredGender) else a.genderPref) or "any"
+        b_pref = (bp.preferredGender if (bp and bp.preferredGender) else b.genderPref) or "any"
+        a_ok = a_pref in ("any", "") or a_pref == b.gender
+        b_ok = b_pref in ("any", "") or b_pref == a.gender
         if not a_ok or not b_ok:
             return False
     else:
