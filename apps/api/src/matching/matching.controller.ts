@@ -2,9 +2,10 @@ import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nest
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 import { MatchingService } from './matching.service';
+import { MatchFeedbackService } from './feedback/match-feedback.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { DissolveDto, StartMatchDto } from './dto/matching.dto';
+import { DissolveDto, ReportMatchFeedbackEventsDto, StartMatchDto } from './dto/matching.dto';
 import { UpdateMatchPreferencesDto } from './dto/match-preferences.dto';
 import { normalizeMode } from './mode.util';
 
@@ -23,7 +24,10 @@ class ConnectUserDto {
 @UseGuards(JwtAuthGuard)
 @Controller('matching')
 export class MatchingController {
-  constructor(private matchingService: MatchingService) {}
+  constructor(
+    private matchingService: MatchingService,
+    private matchFeedback: MatchFeedbackService,
+  ) {}
 
   @Post('start')
   @ApiOperation({ summary: '用户主动开始匹配（双模式 + 增强）' })
@@ -109,6 +113,16 @@ export class MatchingController {
     @Body() dto: UpdateMatchPreferencesDto,
   ) {
     return this.matchingService.setMatchPreferences(userId, dto);
+  }
+
+  // ─── 行为埋点上报（P0-2，H5 接入为 P1-6） ─────────────────────────
+  @Post('feedback/events')
+  @ApiOperation({ summary: '批量上报匹配行为事件（viewed/openedProfile，最多 50 条；训练反馈埋点）' })
+  async reportFeedbackEvents(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ReportMatchFeedbackEventsDto,
+  ) {
+    return this.matchFeedback.ingestClientEvents(userId, dto.events);
   }
 
   // ─── 旧端点兼容别名（恋人单对象语义） ────────────────────────────

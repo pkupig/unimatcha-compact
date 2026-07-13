@@ -5,6 +5,7 @@ import { ProfilesService } from '../../profiles/profiles.service';
 import { MATCH_MODEL_PROVIDER } from '../providers/match-model.interface';
 import { NotificationService } from '../../notifications/notification.service';
 import { EnergyService } from '../../energy/energy.service';
+import { MatchFeedbackService } from '../feedback/match-feedback.service';
 import { getQueueToken } from '@nestjs/bull';
 import { BadRequestException } from '@nestjs/common';
 
@@ -58,6 +59,11 @@ const mockEnergyService = {
   consumeInTx: jest.fn(),
   refund: jest.fn(),
 };
+const mockMatchFeedback = {
+  logExposure: jest.fn().mockResolvedValue(undefined),
+  logEvent: jest.fn().mockResolvedValue(undefined),
+  ingestClientEvents: jest.fn(),
+};
 
 describe('MatchingService (dual-mode)', () => {
   let service: MatchingService;
@@ -72,6 +78,7 @@ describe('MatchingService (dual-mode)', () => {
         { provide: getQueueToken(MATCH_QUEUE), useValue: mockQueue },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: EnergyService, useValue: mockEnergyService },
+        { provide: MatchFeedbackService, useValue: mockMatchFeedback },
       ],
     }).compile();
 

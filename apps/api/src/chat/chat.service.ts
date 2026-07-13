@@ -2,9 +2,11 @@ import {
   Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MatchFeedbackService } from '../matching/feedback/match-feedback.service';
 import {
   ALL_CHATTABLE,
   CONFIRM_WINDOW_MS,
+  fromMatchMode,
   isConfirmedStatus,
   isTempStatus,
   toMatchMode,
@@ -18,7 +20,10 @@ type SessionMode = ModeStr | 'all';
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private matchFeedback: MatchFeedbackService,
+  ) {}
 
   // 只读历史（可拉消息，但禁止发送）：已解除 / 已过期 / 被拒
   private static readonly READ_ONLY_STATUSES = ['DISSOLVED', 'EXPIRED', 'REJECTED'];
@@ -131,6 +136,19 @@ export class ChatService {
     await this.prisma.match.update({
       where: { id: matchId },
       data: { updatedAt: new Date() },
+    });
+
+    // 行为埋点（P0-2）：本人在该 match 的第 1 条记 firstMessage，其余记 message；失败不影响发送
+    const senderCount = await this.prisma.message.count({
+      where: { matchId, senderId: userId },
+    });
+    void this.matchFeedback.logEvent({
+      matchId,
+      mode: fromMatchMode(match.mode),
+      userAId: match.userAId,
+      userBId: match.userBId,
+      actorId: userId,
+      type: senderCount <= 1 ? 'firstMessage' : 'message',
     });
 
     this.logger.debug(`Message sent in match ${matchId} by user ${userId}`);

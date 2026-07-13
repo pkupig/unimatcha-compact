@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { NotificationService } from '../notifications/notification.service';
 import { EnergyService, ENERGY_COST_ROMANTIC } from '../energy/energy.service';
+import { MatchFeedbackService } from './feedback/match-feedback.service';
 import {
   MATCH_MODEL_PROVIDER,
   MatchModelProvider,
@@ -57,6 +58,7 @@ export class MatchingService {
     @InjectQueue(MATCH_QUEUE) private matchQueue: Queue,
     private notificationService: NotificationService,
     private energyService: EnergyService,
+    private matchFeedback: MatchFeedbackService,
   ) {}
 
   // ─── Config ───────────────────────────────────────────────
@@ -479,8 +481,9 @@ export class MatchingService {
       );
 
       // ── 逐对创建 Match（临时对话，立即可聊；48h 从 createdAt 起算）──
+      let exposurePosition = 0;
       for (const pair of result.pairs) {
-        await this.prisma.$transaction(async (tx) => {
+        const createdMatch = await this.prisma.$transaction(async (tx) => {
           if (mode === 'romantic') {
             // 恋人：跳过任一方已有进行中或已确认的 ROMANTIC 匹配
             const existing = await tx.match.findFirst({
@@ -495,7 +498,7 @@ export class MatchingService {
             });
             if (existing) {
               skippedPairs++;
-              return;
+              return null;
             }
           } else {
             // 朋友：跳过这一对在该模式下已有活跃 Match（避免重复配同一对）
@@ -511,7 +514,7 @@ export class MatchingService {
             });
             if (existing) {
               skippedPairs++;
-              return;
+              return null;
             }
           }
 
@@ -609,7 +612,23 @@ export class MatchingService {
           matchedCount.set(pair.userAId, (matchedCount.get(pair.userAId) ?? 0) + 1);
           matchedCount.set(pair.userBId, (matchedCount.get(pair.userBId) ?? 0) + 1);
           totalMatched++;
+          return match;
         });
+
+        // 曝光埋点（P0-2）：公布即曝光。事务提交后落库（埋点失败只告警，不影响匹配）；
+        // (matchJobId, matchId) 唯一键保证 Bull 重试不重复。featureSnapshot 冻结自模型 metadata。
+        if (createdMatch) {
+          await this.matchFeedback.logExposure({
+            matchJobId: jobId,
+            matchId: createdMatch.id,
+            mode,
+            userAId: pair.userAId,
+            userBId: pair.userBId,
+            position: exposurePosition++,
+            score: pair.score,
+            metadata: pair.metadata,
+          });
+        }
       }
 
       if (skippedPairs > 0) {
@@ -768,7 +787,9 @@ export class MatchingService {
 
   // ─── 通用确认：成为恋人 / 朋友（双确认语义，§3.4） ───────────────
   async confirmRelationship(userId: string, matchId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    // 行为埋点（P0-2）：CAS 生效才记 confirmed；事务提交后落库，失败不影响确认
+    let confirmedEvt: { mode: ModeStr; userAId: string; userBId: string } | null = null;
+    const result = await this.prisma.$transaction(async (tx) => {
       const m = await tx.match.findUnique({ where: { id: matchId } });
       if (!m) throw new NotFoundException('Match not found');
       if (m.userAId !== userId && m.userBId !== userId) {
@@ -813,6 +834,7 @@ export class MatchingService {
         },
       });
       if (res.count === 0) throw new BadRequestException('Cannot confirm in the current status');
+      confirmedEvt = { mode: modeStr, userAId: m.userAId, userBId: m.userBId };
 
       // 本方 UMS -> confirming。朋友：已有已确认朋友者保持 relationship 不降级；
       // 恋人：无条件推进（恋人独占，不存在「保留其它已确认恋人」语义，误用该守卫会留下不一致状态）。
@@ -860,6 +882,18 @@ export class MatchingService {
       }
       return { status: 'WAITING', message: 'You have confirmed, waiting for the other party to confirm...' };
     });
+
+    if (confirmedEvt) {
+      void this.matchFeedback.logEvent({
+        matchId,
+        mode: confirmedEvt.mode,
+        userAId: confirmedEvt.userAId,
+        userBId: confirmedEvt.userBId,
+        actorId: userId,
+        type: 'confirmed',
+      });
+    }
+    return result;
   }
 
   // ─── 通用解除（删除关系，恋人 / 朋友 + 发通知 E 规则，§3.4） ────────
@@ -880,6 +914,8 @@ export class MatchingService {
       }
 
       const modeStr: ModeStr = fromMatchMode(m.mode);
+      // 埋点用：临时对话阶段的解除语义是「拒绝」，永久关系阶段才是「解除」
+      const wasTemp = isTempStatus(m.status);
       await tx.match.update({
         where: { id: matchId },
         data: {
@@ -916,7 +952,18 @@ export class MatchingService {
         await this.recomputeModeStateAfterExpire(tx, [m.userAId, m.userBId], 'friend');
       }
 
-      return { mode: modeStr };
+      return { mode: modeStr, wasTemp, userAId: m.userAId, userBId: m.userBId };
+    });
+
+    // 行为埋点（P0-2）：事务提交后落库，失败不影响解除
+    void this.matchFeedback.logEvent({
+      matchId,
+      mode: outcome.mode,
+      userAId: outcome.userAId,
+      userBId: outcome.userBId,
+      actorId: userId,
+      type: outcome.wasTemp ? 'rejected' : 'dissolved',
+      meta: reason ? { reason } : {},
     });
 
     this.logger.log(`Match ${matchId} dissolved by ${userId} (mode=${outcome.mode})`);

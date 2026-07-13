@@ -962,3 +962,52 @@ model WithdrawalRequest {
   @@index([status])
   @@map("withdrawal_requests")
 }
+
+// ─────────────────────────────────────────────
+// 匹配反馈埋点（BACKLOG P0-2）
+// schema 源自 matching-ml/feedback/prisma_models.prisma；训练侧按
+// (userA,userB,mode) 归因（feedback/attribution.py），字段名不可改。
+// 曝光在匹配公布时落库；行为事件在用户权威动作处落库。
+// ─────────────────────────────────────────────
+
+model MatchExposure {
+  id                  String   @id @default(cuid())
+  matchId             String?
+  matchJobId          String? // 本仓库补充列：Bull 重试幂等键（上游 schema 无此列，导出训练数据时忽略）
+  mode                String // "romantic" | "friend"
+  userAId             String
+  userBId             String
+  shownToUserId       String
+  position            Int      @default(0)
+  algorithmVersion    String   @default("")
+  constitutionVersion String   @default("")
+  modelVersions       Json     @default("{}")
+  featureSnapshot     Json // 展示时刻冻结特征——之后绝不重算（algorithm.md §9.4）
+  finalScore          Float    @default(0)
+  shownAt             DateTime @default(now())
+
+  @@unique([matchJobId, matchId])
+  @@index([mode, shownAt])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([matchId])
+  @@map("match_exposures")
+}
+
+model MatchBehaviorEvent {
+  id         String   @id @default(cuid())
+  matchId    String?
+  exposureId String?
+  mode       String
+  userAId    String
+  userBId    String
+  actorId    String
+  type       String // viewed|openedProfile|firstMessage|message|confirmed|rejected|dissolved|reported|blocked
+  meta       Json     @default("{}")
+  at         DateTime @default(now())
+
+  @@index([mode, at])
+  @@index([actorId])
+  @@index([matchId])
+  @@map("match_behavior_events")
+}
