@@ -37,7 +37,7 @@ const mockPrisma: any = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
   },
-  userMatchPreferences: { upsert: jest.fn(), findUnique: jest.fn() },
+  userMatchPreferences: { upsert: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
   questionnaireVersion: { findFirst: jest.fn() },
   answer: { count: jest.fn() },
   notification: { create: jest.fn(), createMany: jest.fn() },

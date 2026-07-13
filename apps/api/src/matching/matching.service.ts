@@ -686,6 +686,18 @@ export class MatchingService {
         this.logger.log(`Match job ${jobId}: ${supplementaryRefunds} supplementary enhanced refunds`);
       }
 
+      // 增强是「按轮」付费（startMatchForUser 每次预扣）：本轮处理完后清掉所有增强候选的
+      // enhancedModeEnabled，否则用户付一次费后，enhancedModeEnabled 长期为 true，之后每轮都被
+      // buildCandidates 当增强用户免费强配（未匹配还每轮重复退款）。清零后须再次经 /matching/start
+      // 付费才恢复增强。expireUnconfirmedMatches 的退款读 Match.enhancedMode（冻结值），不受影响。
+      const enhancedIds = candidates.filter((c) => c.enhanced).map((c) => c.userId);
+      if (enhancedIds.length > 0) {
+        await this.prisma.userMatchPreferences.updateMany({
+          where: { userId: { in: enhancedIds }, mode },
+          data: { enhancedModeEnabled: false, ...(mode === 'friend' ? { friendEnhancedCells: 1 } : {}) },
+        });
+      }
+
       await this.prisma.matchJob.update({
         where: { id: jobId },
         data: { status: 'COMPLETED', completedAt: new Date(), totalMatched },
