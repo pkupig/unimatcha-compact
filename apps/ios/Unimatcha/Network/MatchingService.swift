@@ -1,66 +1,59 @@
 import Foundation
 
 struct MatchingService {
-    static func getMatchStatus() async throws -> MatchStatus {
-        return try await APIClient.shared.request("/users/me/match-status")
+    // ─── Status / result (dual-mode) ───────────────────────
+    static func status(mode: MatchMode) async throws -> MatchStatus {
+        try await APIClient.shared.request("/matching/status", queryParams: ["mode": mode.rawValue])
+    }
+    static func result(mode: MatchMode) async throws -> MatchStatus {
+        try await APIClient.shared.request("/matching/result", queryParams: ["mode": mode.rawValue])
     }
 
-    static func getMatchResult() async throws -> MatchResult {
-        return try await APIClient.shared.request("/matching/result")
+    // ─── Join / leave pool ──────────────────────────────────
+    @discardableResult
+    static func start(mode: MatchMode, enhanced: Bool = false, cells: Int? = nil) async throws -> MatchActionResult {
+        try await APIClient.shared.request("/matching/start", method: .POST,
+            body: StartMatchRequest(mode: mode.rawValue, enhanced: enhanced ? true : nil, cells: mode == .friend ? cells : nil))
+    }
+    @discardableResult
+    static func stop(mode: MatchMode) async throws -> MatchActionResult {
+        try await APIClient.shared.request("/matching/stop", method: .POST, queryParams: ["mode": mode.rawValue])
     }
 
-    static func getFullStatus() async throws -> FullMatchStatus {
-        return try await APIClient.shared.request("/matching/status")
+    // ─── Connect (QR / search add-friend) ───────────────────
+    static func connect(code: String) async throws -> ConnectResult {
+        try await APIClient.shared.request("/matching/connect", method: .POST, body: ConnectCodeRequest(code: code))
+    }
+    static func connectUser(userId: String) async throws -> ConnectResult {
+        try await APIClient.shared.request("/matching/connect-user", method: .POST, body: ConnectUserRequest(userId: userId))
     }
 
-    static func startMatch() async throws -> MatchStartResponse {
-        return try await APIClient.shared.request("/matching/start", method: .POST)
+    // ─── Confirm / dissolve (matchId-scoped) ────────────────
+    @discardableResult
+    static func confirm(matchId: String) async throws -> MatchActionResult {
+        try await APIClient.shared.request("/matching/\(matchId)/confirm-relationship", method: .POST)
+    }
+    @discardableResult
+    static func dissolve(matchId: String, reason: String? = nil) async throws -> MatchActionResult {
+        try await APIClient.shared.request("/matching/\(matchId)/dissolve", method: .POST, body: DissolveRequest(reason: reason))
     }
 
-    static func stopMatch() async throws -> GenericResponse {
-        return try await APIClient.shared.request("/matching/stop", method: .POST)
+    // ─── Preferences ────────────────────────────────────────
+    static func getPreferences(mode: MatchMode) async throws -> MatchPreferences {
+        try await APIClient.shared.request("/matching/preferences", queryParams: ["mode": mode.rawValue])
+    }
+    @discardableResult
+    static func setPreferences(_ prefs: MatchPreferences) async throws -> MatchPreferences {
+        try await APIClient.shared.request("/matching/preferences", method: .PUT, body: prefs)
     }
 
-    // ─── 旧版 confirm/reject（不含 proposalId） ─────────────
-    static func confirmMatch() async throws -> GenericResponse {
-        return try await APIClient.shared.request("/matching/confirm", method: .POST)
+    // ─── Milestones + feedback ──────────────────────────────
+    static func milestones() async throws -> Milestones {
+        try await APIClient.shared.request("/matching/milestones")
     }
-
-    static func rejectMatch() async throws -> GenericResponse {
-        return try await APIClient.shared.request("/matching/reject", method: .POST)
+    static func reportFeedback(matchId: String, type: String) async throws {
+        struct Ev: Encodable { let matchId: String; let type: String }
+        struct Body: Encodable { let events: [Ev] }
+        try await APIClient.shared.send("/matching/feedback/events", body: Body(events: [Ev(matchId: matchId, type: type)]))
     }
-
-    // ─── 按 proposalId confirm/reject（第三轮新增） ────────
-    static func confirmProposal(proposalId: String) async throws -> GenericResponse {
-        return try await APIClient.shared.request("/matching/proposals/\(proposalId)/confirm", method: .POST)
-    }
-
-    static func rejectProposal(proposalId: String) async throws -> GenericResponse {
-        return try await APIClient.shared.request("/matching/proposals/\(proposalId)/reject", method: .POST)
-    }
-
-    // ─── 匹配偏好 ─────────────────────────────────────────
-    static func getPreferences() async throws -> UserMatchPreferences {
-        return try await APIClient.shared.request("/matching/preferences")
-    }
-
-    static func setPreferences(_ prefs: UserMatchPreferences) async throws -> UserMatchPreferences {
-        return try await APIClient.shared.request("/matching/preferences", method: .PUT, body: prefs)
-    }
-
-    // ─── 分手 ─────────────────────────────────────────────
-    static func dissolveRelationship(reason: String? = nil) async throws -> GenericResponse {
-        struct Body: Encodable { let reason: String? }
-        return try await APIClient.shared.request("/matching/dissolve", method: .POST, body: Body(reason: reason))
-    }
-
-    // ─── 认证 ─────────────────────────────────────────────
-    static func applyVerification() async throws -> GenericResponse {
-        return try await APIClient.shared.request("/users/me/verification/apply", method: .POST)
-    }
-}
-
-struct GenericResponse: Codable {
-    let message: String?
-    let status: String?
 }

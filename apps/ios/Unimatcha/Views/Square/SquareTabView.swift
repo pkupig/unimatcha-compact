@@ -1,399 +1,333 @@
 import SwiftUI
 
-enum SquareSection: String, CaseIterable {
-    case square = "广场"
-    case leaderboard = "排行榜"
-}
-
+/// Square v2 feed — top segmented board switch (推荐 / 校园墙), infinite-scroll card feed.
+/// Cards tap into PostDetailView; like inline; toolbar + composes a new post.
 struct SquareTabView: View {
     @EnvironmentObject var squareVM: SquareViewModel
-    @EnvironmentObject var leaderboardVM: LeaderboardViewModel
-    @State private var section: SquareSection = .square
-    @State private var commentText: [String: String] = [:]
+    @EnvironmentObject var authVM: AuthViewModel
 
-    let pink = Color(red: 1, green: 0.4, blue: 0.5)
+    @State private var showCreate = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // ─── 胶囊切换 ─────────────────────────
-                capsuleToggle
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
+                boardPicker
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
 
-                // ─── 内容区 ──────────────────────────
-                if section == .square {
-                    squareContent
-                } else {
-                    leaderboardContent
-                }
+                feed
             }
+            .themedScreen()
             .navigationTitle("广场")
-            .overlay(alignment: .bottomTrailing) {
-                if section == .square {
-                    floatingAddButton
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showCreate = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .foregroundColor(Theme.accent)
+                    }
                 }
             }
-            .sheet(isPresented: $squareVM.showNewPost) {
-                newPostSheet
+            .navigationDestination(for: String.self) { postId in
+                PostDetailView(postId: postId)
+            }
+            .sheet(isPresented: $showCreate) {
+                CreatePostView(board: squareVM.board) {
+                    Task { await squareVM.reload() }
+                }
+            }
+            .task {
+                if squareVM.cards.isEmpty { await squareVM.reload() }
             }
         }
+        .tint(Theme.accent)
     }
 
-    // MARK: - Capsule Toggle
-    private var capsuleToggle: some View {
-        HStack(spacing: 0) {
-            ForEach(SquareSection.allCases, id: \.self) { s in
+    // MARK: - Board picker (推荐 / 校园墙)
+
+    private var boardPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(SquareBoard.allCases) { b in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { section = s }
+                    guard squareVM.board != b else { return }
+                    Task { await squareVM.switchBoard(b) }
                 } label: {
-                    Text(s.rawValue)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(section == s ? .white : .primary)
+                    Text(b.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(squareVM.board == b ? Theme.onAccent : Theme.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 9)
                         .background(
-                            section == s ? pink : Color.clear
+                            squareVM.board == b
+                                ? AnyShapeStyle(Theme.accentGradient)
+                                : AnyShapeStyle(Color.clear)
                         )
-                        .cornerRadius(20)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding(3)
-        .background(Color(.systemGray6))
-        .cornerRadius(22)
+        .padding(4)
+        .background(Theme.surfaceLo)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.outline, lineWidth: 1))
     }
 
-    // MARK: - Square Content
-    private var squareContent: some View {
-        ScrollView {
-            if squareVM.isLoading && squareVM.posts.isEmpty {
-                ProgressView().padding(.top, 60)
-            } else if squareVM.posts.isEmpty {
-                emptySquare
-            } else {
-                LazyVStack(spacing: 16) {
-                    ForEach(squareVM.posts) { post in
-                        postCard(post)
+    // MARK: - Feed
+
+    @ViewBuilder
+    private var feed: some View {
+        if squareVM.board == .campusWall && squareVM.needProfileSchool {
+            needSchoolEmptyState
+        } else if squareVM.cards.isEmpty && squareVM.isLoading {
+            VStack {
+                Spacer()
+                ProgressView().tint(Theme.accent)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+        } else if squareVM.cards.isEmpty {
+            emptyState
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    ForEach(squareVM.cards) { card in
+                        NavigationLink(value: card.id) {
+                            SquareCardRow(card: card) {
+                                Task { await squareVM.like(card.id) }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            if card.id == squareVM.cards.last?.id {
+                                Task { await squareVM.loadMore() }
+                            }
+                        }
+                    }
+
+                    if squareVM.isLoading {
+                        ProgressView()
+                            .tint(Theme.accent)
+                            .padding(.vertical, 12)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
+                .padding(.bottom, 24)
             }
+            .refreshable { await squareVM.reload() }
         }
-        .refreshable { await squareVM.loadPosts() }
-        .task { await squareVM.loadPosts() }
     }
 
-    private var emptySquare: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 48))
-                .foregroundColor(Color(.systemGray4))
-            Text("广场还没有动态")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            Text("恋爱中的情侣可以发布甜蜜动态哦～")
-                .font(.subheadline)
-                .foregroundColor(Color(.systemGray3))
-        }
-        .padding(.top, 60)
-    }
-
-    // MARK: - Post Card
-    private func postCard(_ post: CouplePost) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Header: author + couple names
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(Color(red: 1, green: 0.92, blue: 0.95))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(String((post.author?.profile?.nickname ?? "?").prefix(1)))
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(pink)
-                    )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    let nameA = post.match?.userA?.profile?.nickname ?? "?"
-                    let nameB = post.match?.userB?.profile?.nickname ?? "?"
-                    Text("\(nameA) & \(nameB)")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text(post.createdAt.prefix(10))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            }
-
-            // Content
-            Text(post.content)
-                .font(.system(size: 15))
-                .lineLimit(6)
-
-            // Actions
-            HStack(spacing: 24) {
-                Button {
-                    Task { await squareVM.likePost(post.id) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "heart")
-                        Text("\(post.likeCount)")
-                    }
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                }
-
-                HStack(spacing: 4) {
-                    Image(systemName: "bubble.right")
-                    Text("\(post.commentCount)")
-                }
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "square.grid.2x2")
+                .font(.system(size: 44))
+                .foregroundColor(Theme.textMuted)
+            Text("这里还没有内容")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Theme.textSecondary)
+            Text("发布第一条动态，点亮广场吧～")
                 .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .foregroundColor(Theme.textMuted)
+            Button("发布动态") { showCreate = true }
+                .buttonStyle(NeonButtonStyle())
+                .frame(maxWidth: 200)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
+    }
 
-                Spacer()
-            }
-
-            // Recent comments
-            if let comments = post.comments, !comments.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(comments.prefix(3)) { c in
-                        HStack(spacing: 4) {
-                            Text(c.user?.profile?.nickname ?? "匿名")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(pink)
-                            Text(c.content)
-                                .font(.system(size: 12))
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .padding(8)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            }
-
-            // Comment input
-            HStack(spacing: 8) {
-                TextField("说点什么...", text: Binding(
-                    get: { commentText[post.id] ?? "" },
-                    set: { commentText[post.id] = $0 }
-                ))
+    private var needSchoolEmptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "graduationcap")
+                .font(.system(size: 44))
+                .foregroundColor(Theme.textMuted)
+            Text("完善学校信息后可见校园墙")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Theme.textSecondary)
+            Text("校园墙只对同校同学开放，先在「我的」里填写你的学校吧。")
                 .font(.system(size: 13))
-                .textFieldStyle(.roundedBorder)
-
-                Button {
-                    let text = commentText[post.id] ?? ""
-                    guard !text.isEmpty else { return }
-                    Task {
-                        await squareVM.addComment(postId: post.id, content: text)
-                        commentText[post.id] = ""
-                    }
-                } label: {
-                    Text("发送")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(pink)
-                        .cornerRadius(14)
-                }
-            }
+                .foregroundColor(Theme.textMuted)
+                .multilineTextAlignment(.center)
         }
-        .padding(14)
-        .background(Color.white)
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
+    }
+}
+
+// MARK: - Feed card row
+
+private struct SquareCardRow: View {
+    let card: SquareCard
+    let onLike: () -> Void
+
+    private var authorName: String {
+        if card.anonymous == true {
+            return card.anonymousAuthor?.nickname ?? "匿名同学"
+        }
+        return card.authorUser?.profile?.nickname ?? "用户"
     }
 
-    // MARK: - Floating Add Button
-    private var floatingAddButton: some View {
-        Button {
-            squareVM.showNewPost = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(pink)
-                .clipShape(Circle())
-                .shadow(color: pink.opacity(0.4), radius: 8, y: 4)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
+    private var authorAvatar: String? {
+        if card.anonymous == true { return card.anonymousAuthor?.avatarUrl }
+        return card.authorUser?.profile?.avatarUrl
     }
 
-    // MARK: - New Post Sheet
-    private var newPostSheet: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                TextEditor(text: $squareVM.newPostContent)
-                    .frame(minHeight: 150)
-                    .padding(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(.systemGray4), lineWidth: 1)
-                    )
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                header
 
-                // Image placeholder
-                HStack {
-                    Image(systemName: "photo.badge.plus")
-                        .foregroundColor(.secondary)
-                    Text("图片功能即将上线")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
+                if let title = card.title, !title.isEmpty {
+                    Text(title)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(2)
                 }
 
-                if let err = squareVM.errorMessage {
-                    Text(err).font(.caption).foregroundColor(.red)
+                if let content = card.content, !content.isEmpty {
+                    Text(content)
+                        .font(.system(size: 14))
+                        .foregroundColor(Theme.textSecondary)
+                        .lineLimit(4)
+                        .multilineTextAlignment(.leading)
                 }
 
-                Spacer()
-            }
-            .padding(20)
-            .navigationTitle("发布动态")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { squareVM.showNewPost = false }
+                if let images = card.images, !images.isEmpty {
+                    imageStrip(images)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task { await squareVM.createPost() }
-                    } label: {
-                        if squareVM.isPosting {
-                            ProgressView()
-                        } else {
-                            Text("发布").bold()
-                        }
-                    }
-                    .disabled(squareVM.newPostContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || squareVM.isPosting)
+
+                if let tags = card.tags, !tags.isEmpty {
+                    tagRow(tags)
                 }
+
+                footer
             }
         }
     }
 
-    // MARK: - Leaderboard Content (embedded)
-    private var leaderboardContent: some View {
-        VStack(spacing: 0) {
-            // Type selector (horizontal scroll)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(LeaderboardViewModel.LeaderboardTab.allCases, id: \.self) { tab in
-                        Button {
-                            leaderboardVM.selectedTab = tab
-                            Task { await leaderboardVM.loadCurrent() }
-                        } label: {
-                            Text(tab.rawValue)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(leaderboardVM.selectedTab == tab ? .white : .primary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(leaderboardVM.selectedTab == tab ? pink : Color(.systemGray6))
-                                .cornerRadius(16)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-            }
-            .padding(.vertical, 8)
-
-            // List
-            ScrollView {
-                if leaderboardVM.isLoading {
-                    ProgressView().padding(.top, 60)
-                } else if leaderboardVM.entries.isEmpty {
-                    emptyLeaderboard
-                } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(leaderboardVM.entries) { entry in
-                            leaderboardRow(entry)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                }
-            }
-            .refreshable { await leaderboardVM.loadCurrent() }
-            .task { await leaderboardVM.loadCurrent() }
-        }
-    }
-
-    private var emptyLeaderboard: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "trophy")
-                .font(.system(size: 48))
-                .foregroundColor(Color(.systemGray4))
-            Text("暂无数据")
-                .font(.headline)
-                .foregroundColor(.secondary)
-        }
-        .padding(.top, 60)
-    }
-
-    private func leaderboardRow(_ entry: LeaderboardEntry) -> some View {
-        HStack(spacing: 14) {
-            rankBadge(entry.rank)
-
-            HStack(spacing: -8) {
-                miniAvatar(entry.coupleA.nickname)
-                miniAvatar(entry.coupleB.nickname)
-            }
+    private var header: some View {
+        HStack(spacing: 10) {
+            avatar
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(entry.coupleA.nickname) & \(entry.coupleB.nickname)")
-                    .font(.system(size: 15, weight: .medium))
-                    .lineLimit(1)
-                if let school = entry.coupleA.school {
+                HStack(spacing: 6) {
+                    Text(authorName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Theme.textPrimary)
+                    if card.isSponsored == true {
+                        badge("推广", fill: Theme.warning.opacity(0.18), fg: Theme.warning)
+                    }
+                    if card.sameSchool == true {
+                        badge("同校", fill: Theme.accent.opacity(0.15), fg: Theme.accent)
+                    }
+                }
+                if let school = card.school, !school.isEmpty {
                     Text(school)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 11))
+                        .foregroundColor(Theme.textMuted)
+                        .lineLimit(1)
                 }
             }
-
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(entry.label ?? "\(entry.metric ?? 0)")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(pink)
-            }
-        }
-        .padding(14)
-        .background(Color.white)
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-    }
-
-    private func rankBadge(_ rank: Int) -> some View {
-        ZStack {
-            if rank <= 3 {
-                Circle()
-                    .fill(rank == 1 ? Color.yellow : rank == 2 ? Color.gray : Color.orange)
-                    .frame(width: 32, height: 32)
-                Text("\(rank)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-            } else {
-                Text("\(rank)")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .frame(width: 32)
+            if let created = card.createdAt {
+                Text(String(created.prefix(10)))
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.textMuted)
             }
         }
     }
 
-    private func miniAvatar(_ name: String) -> some View {
-        Circle()
-            .fill(Color(red: 1, green: 0.92, blue: 0.95))
-            .frame(width: 36, height: 36)
-            .overlay(
-                Text(String(name.prefix(1)))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(pink)
-            )
-            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+    private var avatar: some View {
+        AsyncImage(url: URL(string: authorAvatar ?? "")) { phase in
+            switch phase {
+            case .success(let image):
+                image.resizable().scaledToFill()
+            default:
+                Theme.surfaceHi.overlay(
+                    Text(String(authorName.prefix(1)))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Theme.accent)
+                )
+            }
+        }
+        .frame(width: 38, height: 38)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Theme.outline, lineWidth: 1))
+    }
+
+    private func imageStrip(_ images: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(images.prefix(6), id: \.self) { urlString in
+                    AsyncImage(url: URL(string: urlString)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            Theme.surfaceHi
+                        }
+                    }
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private func tagRow(_ tags: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(tags, id: \.self) { tag in
+                    Text("#\(tag)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Theme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Theme.accent.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 20) {
+            Button(action: onLike) {
+                HStack(spacing: 5) {
+                    Image(systemName: "heart")
+                    Text("\(card.likeCount ?? 0)")
+                }
+                .font(.system(size: 13))
+                .foregroundColor(Theme.textSecondary)
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 5) {
+                Image(systemName: "bubble.right")
+                Text("\(card.commentCount ?? 0)")
+            }
+            .font(.system(size: 13))
+            .foregroundColor(Theme.textSecondary)
+
+            Spacer()
+        }
+        .padding(.top, 2)
+    }
+
+    private func badge(_ text: String, fill: Color, fg: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundColor(fg)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(fill)
+            .clipShape(Capsule())
     }
 }

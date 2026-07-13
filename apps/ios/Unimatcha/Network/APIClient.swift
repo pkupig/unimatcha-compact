@@ -110,6 +110,46 @@ final class APIClient {
             throw APIError.decodingError(error)
         }
     }
+
+    /// POST with no meaningful response payload (fire-and-forget style endpoints).
+    @discardableResult
+    func send(_ path: String, method: HTTPMethod = .POST, body: Encodable? = nil) async throws -> GenericResponse {
+        try await request(path, method: method, body: body)
+    }
+
+    // MARK: - Multipart image upload → POST /uploads/image (field name "file")
+    func uploadImage(_ imageData: Data, filename: String = "photo.jpg", mime: String = "image/jpeg") async throws -> UploadResult {
+        guard let url = URL(string: "\(APIConfig.baseURL)/uploads/image") else { throw APIError.invalidURL }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        if let token = TokenStorage.shared.token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        func append(_ s: String) { body.append(s.data(using: .utf8)!) }
+        append("--\(boundary)\r\n")
+        append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n")
+        append("Content-Type: \(mime)\r\n\r\n")
+        body.append(imageData)
+        append("\r\n--\(boundary)--\r\n")
+        request.httpBody = body
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw APIError.unknown }
+        if http.statusCode == 401 { TokenStorage.shared.clearToken(); throw APIError.unauthorized }
+        if http.statusCode >= 400 {
+            let msg = (try? JSONDecoder().decode(ErrorResponse.self, from: data))?.message ?? "上传失败"
+            throw APIError.serverError(http.statusCode, msg)
+        }
+        do {
+            let wrapped = try JSONDecoder().decode(APIResponse<UploadResult>.self, from: data)
+            guard let result = wrapped.data else { throw APIError.serverError(200, "上传无返回") }
+            return result
+        } catch { throw APIError.decodingError(error) }
+    }
 }
 
 private struct ErrorResponse: Decodable {

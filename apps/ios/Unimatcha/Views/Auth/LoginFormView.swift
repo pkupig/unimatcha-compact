@@ -4,57 +4,49 @@ struct LoginFormView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var email = ""
     @State private var password = ""
-    
+
+    private var canSubmit: Bool { !email.isEmpty && !password.isEmpty && !authVM.isLoading }
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(spacing: 12) {
                 TextField("邮箱", text: $email)
                     .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
                     .textContentType(.emailAddress)
                     .modifier(InputFieldModifier())
-                
+
                 SecureField("密码", text: $password)
                     .textContentType(.password)
                     .modifier(InputFieldModifier())
             }
             .padding(.top, 24)
-            
+
             if let error = authVM.errorMessage {
                 Text(error)
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(Theme.danger)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity)
             }
-            
+
             Button(action: { Task { await authVM.login(email: email, password: password) } }) {
-                HStack {
+                HStack(spacing: 8) {
                     if authVM.isLoading {
-                        ProgressView().tint(.white).scaleEffect(0.8)
+                        ProgressView().tint(Theme.onAccent).scaleEffect(0.85)
                     }
                     Text("登录")
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(email.isEmpty || password.isEmpty ? Color.gray.opacity(0.3) : Color(red: 1, green: 0.30, blue: 0.43))
-                .foregroundColor(.white)
-                .cornerRadius(14)
-                .font(.system(size: 16, weight: .semibold))
             }
-            .disabled(email.isEmpty || password.isEmpty || authVM.isLoading)
+            .buttonStyle(NeonButtonStyle(enabled: canSubmit))
+            .disabled(!canSubmit)
+
+            Text("大学邮箱登录 · 每周五公布新一轮匹配")
+                .font(.system(size: 12))
+                .foregroundColor(Theme.textMuted)
+                .padding(.top, 4)
         }
         .padding(.horizontal, 24)
-    }
-}
-
-struct InputFieldModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(14)
-            .background(Color.white)
-            .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.15), lineWidth: 1))
-            .font(.system(size: 16))
     }
 }

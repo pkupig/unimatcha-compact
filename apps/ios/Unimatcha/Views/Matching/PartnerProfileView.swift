@@ -1,219 +1,246 @@
 import SwiftUI
 
+/// Full partner profile rendered from a `PublicProfile`.
+/// Use `init(profile:)` when the object is already loaded (match status carries it),
+/// or `init(userId:)` to fetch it lazily (relationship "view profile" link).
 struct PartnerProfileView: View {
-    let userId: String
+    private let preloaded: PublicProfile?
+    private let userId: String?
+
     @State private var profile: PublicProfile?
-    @State private var isLoading = true
+    @State private var isLoading: Bool
     @State private var errorMessage: String?
 
-    let pink = Color(red: 1, green: 0.4, blue: 0.5)
+    init(profile: PublicProfile) {
+        self.preloaded = profile
+        self.userId = profile.userId
+        _profile = State(initialValue: profile)
+        _isLoading = State(initialValue: false)
+    }
+
+    init(userId: String) {
+        self.preloaded = nil
+        self.userId = userId
+        _profile = State(initialValue: nil)
+        _isLoading = State(initialValue: true)
+    }
 
     var body: some View {
         ScrollView {
-            if isLoading {
-                ProgressView().padding(.top, 80)
-            } else if let profile = profile {
-                let isVerified = profile.verificationStatus == "verified"
-
-                VStack(spacing: 24) {
-                    // Avatar with verification ring
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(red: 1, green: 0.85, blue: 0.9), Color(red: 1, green: 0.94, blue: 0.96)],
-                                    startPoint: .top, endPoint: .bottom
-                                )
-                            )
-                            .frame(width: 100, height: 100)
-                            .overlay(
-                                Text(String(profile.nickname?.prefix(1) ?? "?"))
-                                    .font(.system(size: 40, weight: .medium))
-                                    .foregroundColor(Color(red: 1, green: 0.35, blue: 0.45))
-                            )
-                            .overlay(Circle().stroke(isVerified ? Color.yellow : .clear, lineWidth: 3))
-                        if isVerified {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(.yellow).font(.system(size: 20))
-                                .offset(x: 36, y: 36)
-                        }
-                    }
-                    .padding(.top, 20)
-
-                    Text(profile.nickname ?? "匿名用户")
-                        .font(.system(size: 24, weight: .bold))
-
-                    // MBTI + 星座 badges
-                    HStack(spacing: 6) {
-                        if let mbti = profile.mbti, !mbti.isEmpty {
-                            Text(mbti)
-                                .font(.caption).fontWeight(.semibold)
-                                .padding(.horizontal, 8).padding(.vertical, 2)
-                                .background(Color.purple.opacity(0.12))
-                                .foregroundColor(.purple).cornerRadius(8)
-                        }
-                        if let zodiac = profile.zodiac, !zodiac.isEmpty {
-                            Text(zodiac)
-                                .font(.caption).fontWeight(.semibold)
-                                .padding(.horizontal, 8).padding(.vertical, 2)
-                                .background(Color.yellow.opacity(0.15))
-                                .foregroundColor(Color(red: 0.72, green: 0.53, blue: 0))
-                                .cornerRadius(8)
-                        }
-                    }
-
-                    // Info cards
-                    VStack(spacing: 0) {
-                        infoRow(icon: "graduationcap", label: "学校", value: profile.school)
-                        Divider().padding(.leading, 52)
-                        infoRow(icon: "person", label: "年龄", value: profile.age.map { "\($0) 岁" })
-                        Divider().padding(.leading, 52)
-                        infoRow(icon: "location", label: "城市", value: profile.city)
-                        Divider().padding(.leading, 52)
-                        infoRow(icon: "book", label: "年级", value: profile.grade)
-                        if let major = profile.major, !major.isEmpty {
-                            Divider().padding(.leading, 52)
-                            infoRow(icon: "book.closed", label: "专业", value: major)
-                        }
-                        if let nationality = profile.nationality, !nationality.isEmpty {
-                            Divider().padding(.leading, 52)
-                            infoRow(icon: "globe", label: "国籍", value: nationality)
-                        }
-                    }
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .padding(.horizontal, 20)
-
-                    // Tags
-                    if let tags = profile.tags, !tags.isEmpty {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("个人标签")
-                                .font(.system(size: 16, weight: .semibold))
-                            FlowLayout(spacing: 8) {
-                                ForEach(tags, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.subheadline)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 6)
-                                        .background(Color(red: 1, green: 0.94, blue: 0.96))
-                                        .foregroundColor(Color(red: 1, green: 0.3, blue: 0.45))
-                                        .cornerRadius(16)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-
-                    // Bio
-                    if let bio = profile.bio, !bio.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("个人简介")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text(bio)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color.white)
-                        .cornerRadius(16)
-                        .padding(.horizontal, 20)
-                    }
-
-                    // Social links (only visible in relationship mode)
-                    if let social = profile.socialLinks {
-                        socialLinksSection(social)
-                    }
-
-                    Spacer().frame(height: 40)
-                }
-            } else if let error = errorMessage {
+            if let profile = profile {
+                content(profile)
+            } else if isLoading {
+                ProgressView().tint(Theme.accent).padding(.top, 80)
+            } else {
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 40))
-                        .foregroundColor(.secondary)
-                    Text(error)
+                        .foregroundColor(Theme.textMuted)
+                    Text(errorMessage ?? "无法加载资料")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Theme.textSecondary)
                 }
                 .padding(.top, 80)
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .themedScreen()
         .navigationTitle("TA 的主页")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await loadProfile() }
+        .task { if preloaded == nil { await loadProfile() } }
     }
 
-    private func infoRow(icon: String, label: String, value: String?) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 28)
-                .foregroundColor(pink)
-            Text(label)
-                .foregroundColor(.secondary)
-                .frame(width: 50, alignment: .leading)
-            Text(value ?? "—")
-                .foregroundColor(.primary)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
+    // MARK: - Content
+    private func content(_ profile: PublicProfile) -> some View {
+        VStack(spacing: 16) {
+            coverHeader(profile)
 
-    private func socialLinksSection(_ social: SocialLinks) -> some View {
-        let links: [(String, String, String?)] = [
-            ("微信", "message.fill", social.wechat),
-            ("QQ", "bubble.left.fill", social.qq),
-            ("小红书", "book.fill", social.xiaohongshu),
-            ("微博", "globe", social.weibo),
-            ("Instagram", "camera.fill", social.instagram),
-        ]
-        let nonEmpty = links.filter { $0.2 != nil && !$0.2!.isEmpty }
-        guard !nonEmpty.isEmpty else { return AnyView(EmptyView()) }
+            // Name + badges
+            VStack(spacing: 10) {
+                Text(profile.nickname ?? "匿名用户")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Theme.textPrimary)
 
-        return AnyView(
-            VStack(alignment: .leading, spacing: 10) {
-                Text("联系方式")
-                    .font(.system(size: 16, weight: .semibold))
+                HStack(spacing: 8) {
+                    if profile.verificationStatus == "verified" {
+                        badge(text: "已认证", icon: "checkmark.seal.fill")
+                    }
+                    if let mbti = profile.mbti, !mbti.isEmpty { badge(text: mbti) }
+                    if let zodiac = profile.zodiac, !zodiac.isEmpty { badge(text: zodiac) }
+                }
+            }
 
+            // Info rows
+            Card {
                 VStack(spacing: 0) {
-                    ForEach(Array(nonEmpty.enumerated()), id: \.offset) { index, item in
-                        HStack(spacing: 12) {
-                            Image(systemName: item.1)
-                                .frame(width: 28)
-                                .foregroundColor(pink)
-                            Text(item.0)
-                                .foregroundColor(.secondary)
-                                .frame(width: 70, alignment: .leading)
-                            Text(item.2 ?? "")
-                                .foregroundColor(.primary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                    infoRows(profile)
+                }
+            }
+            .padding(.horizontal, 16)
 
-                        if index < nonEmpty.count - 1 {
-                            Divider().padding(.leading, 56)
+            // Bio
+            if let bio = profile.bio, !bio.isEmpty {
+                labeledCard(title: "个人简介") {
+                    Text(bio)
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            // Interests
+            if let interests = profile.interests, !interests.isEmpty {
+                labeledCard(title: "兴趣爱好") {
+                    FlowLayout(spacing: 8) {
+                        ForEach(interests, id: \.self) { TagChip(text: $0) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            // Tags
+            if let tags = profile.tags, !tags.isEmpty {
+                labeledCard(title: "个人标签") {
+                    FlowLayout(spacing: 8) {
+                        ForEach(tags, id: \.self) { TagChip(text: $0) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            // Real photos grid
+            if let photos = profile.realPhotos, !photos.isEmpty {
+                labeledCard(title: "真实照片") {
+                    photoGrid(photos)
+                }
+            }
+
+            Spacer().frame(height: 32)
+        }
+        .padding(.bottom, 8)
+    }
+
+    // MARK: - Cover + avatar
+    private func coverHeader(_ profile: PublicProfile) -> some View {
+        ZStack(alignment: .bottom) {
+            Group {
+                if let cover = profile.coverUrl, let url = URL(string: cover) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img): img.resizable().scaledToFill()
+                        default: Theme.accentGradient
                         }
                     }
+                } else {
+                    Theme.accentGradient
                 }
-                .background(Color.white)
-                .cornerRadius(12)
             }
-            .padding(.horizontal, 20)
-        )
+            .frame(height: 160)
+            .frame(maxWidth: .infinity)
+            .clipped()
+            .overlay(
+                LinearGradient(colors: [.clear, Theme.bg.opacity(0.85)],
+                               startPoint: .center, endPoint: .bottom)
+            )
+
+            AvatarCircle(urlString: profile.avatarUrl, fallback: profile.nickname, size: 92)
+                .overlay(Circle().stroke(Theme.bg, lineWidth: 4))
+                .offset(y: 46)
+        }
+        .padding(.bottom, 46)
     }
 
-    private func loadProfile() async {
-        isLoading = true
-        do {
-            profile = try await ProfileService.getPublicProfile(userId: userId)
-        } catch let error as APIError {
-            errorMessage = error.errorDescription
-        } catch {
-            errorMessage = error.localizedDescription
+    // MARK: - Info rows
+    @ViewBuilder
+    private func infoRows(_ profile: PublicProfile) -> some View {
+        let rows: [(String, String, String?)] = [
+            ("graduationcap", "学校", profile.school),
+            ("person", "年龄", profile.age.map { "\($0) 岁" }),
+            ("location", "城市", profile.city),
+            ("book", "年级", profile.grade),
+            ("book.closed", "专业", profile.major),
+            ("globe", "国籍", profile.nationality),
+        ]
+        let visible = rows.filter { ($0.2?.isEmpty == false) }
+        ForEach(Array(visible.enumerated()), id: \.offset) { idx, row in
+            HStack(spacing: 12) {
+                Image(systemName: row.0)
+                    .frame(width: 24)
+                    .foregroundColor(Theme.accent)
+                Text(row.1)
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 52, alignment: .leading)
+                Text(row.2 ?? "—")
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+            }
+            .font(.subheadline)
+            .padding(.vertical, 12)
+            if idx < visible.count - 1 {
+                Divider().overlay(Theme.outline).padding(.leading, 36)
+            }
         }
+    }
+
+    // MARK: - Photo grid
+    private func photoGrid(_ photos: [String]) -> some View {
+        let columns = [GridItem(.flexible(), spacing: 8),
+                       GridItem(.flexible(), spacing: 8),
+                       GridItem(.flexible(), spacing: 8)]
+        return LazyVGrid(columns: columns, spacing: 8) {
+            ForEach(photos, id: \.self) { urlString in
+                AsyncImage(url: URL(string: urlString)) { phase in
+                    switch phase {
+                    case .success(let img): img.resizable().scaledToFill()
+                    case .empty: Theme.surfaceHi
+                    default: Theme.surfaceHi.overlay(
+                        Image(systemName: "photo").foregroundColor(Theme.textMuted))
+                    }
+                }
+                .frame(height: 104)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
+            }
+        }
+    }
+
+    // MARK: - Small builders
+    private func badge(text: String, icon: String? = nil) -> some View {
+        HStack(spacing: 4) {
+            if let icon = icon { Image(systemName: icon).font(.caption2) }
+            Text(text)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundColor(Theme.accent)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Theme.accent.opacity(0.12))
+        .clipShape(Capsule())
+    }
+
+    private func labeledCard<Content: View>(title: String,
+                                            @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Theme.textPrimary)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.outline, lineWidth: 1))
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Load
+    private func loadProfile() async {
+        guard let userId = userId else { isLoading = false; return }
+        isLoading = true
+        do { profile = try await ProfileService.getPublicProfile(userId: userId) }
+        catch let e as APIError { errorMessage = e.errorDescription }
+        catch { errorMessage = error.localizedDescription }
         isLoading = false
     }
 }

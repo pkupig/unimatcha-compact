@@ -1,18 +1,18 @@
 import Foundation
 
 struct QuestionnaireService {
-    static func getActiveQuestionnaire() async throws -> QuestionnaireVersion {
-        return try await APIClient.shared.request("/questionnaire/active")
+    /// Active questionnaire for a mode (?type=romantic|friend). 404 if none published.
+    static func active(mode: MatchMode) async throws -> QuestionnaireVersion {
+        try await APIClient.shared.request("/questionnaire/active", queryParams: ["type": mode.rawValue])
     }
-    
-    static func submitAnswers(versionId: String, answers: [AnswerItemRaw]) async throws -> SubmitSuccess {
-        let body = SubmitAnswersRequest(questionnaireVersionId: versionId, answers: answers)
-        return try await APIClient.shared.request("/answers", method: .POST, body: body)
-    }
-}
 
-struct SubmitSuccess: Codable {
-    let message: String
-    let answeredCount: Int
-    let questionnaireVersion: Int
+    static func completion() async throws -> QuestionnaireCompletion {
+        try await APIClient.shared.request("/questionnaire/completion")
+    }
+
+    @discardableResult
+    static func submit(versionId: String, answers: [AnswerItem]) async throws -> SubmitAnswersResult {
+        try await APIClient.shared.request("/answers", method: .POST,
+            body: SubmitAnswersRequest(questionnaireVersionId: versionId, answers: answers))
+    }
 }

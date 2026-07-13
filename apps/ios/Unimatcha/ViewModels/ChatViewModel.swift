@@ -21,38 +21,32 @@ final class ChatViewModel: ObservableObject {
         self.partnerName = partnerName
     }
 
-    // ─── 加载历史消息 ──────────────────────────────────────
     func loadHistory() async {
         do {
             let res = try await ChatService.getMessages(matchId: matchId, limit: 50)
-            self.messages = res.messages
-            self.lastMessageId = res.messages.last?.id
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+            messages = res.messages
+            lastMessageId = res.messages.last?.id
+            _ = try? await ChatService.markRead(matchId: matchId)
+        } catch { errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription }
     }
 
-    // ─── 发送消息 ─────────────────────────────────────────
     func sendMessage() async {
         let content = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else { return }
-        inputText = ""
-        isSending = true
+        inputText = ""; isSending = true
         do {
-            let msg = try await ChatService.sendMessage(matchId: matchId, content: content)
-            messages.append(msg)
-            lastMessageId = msg.id
-        } catch let e as APIError {
-            errorMessage = e.errorDescription
-            inputText = content // restore
-        } catch {
-            errorMessage = error.localizedDescription
-            inputText = content
-        }
+            let msg = try await ChatService.send(matchId: matchId, content: content)
+            messages.append(msg); lastMessageId = msg.id
+        } catch let e as APIError { errorMessage = e.errorDescription; inputText = content }
+        catch { errorMessage = error.localizedDescription; inputText = content }
         isSending = false
     }
 
-    // ─── 开始轮询 ─────────────────────────────────────────
+    func nudge() async {
+        do { _ = try await ChatService.nudge(matchId: matchId); await poll() }
+        catch { errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription }
+    }
+
     func startPolling() {
         pollTask?.cancel()
         pollTask = Task { [weak self] in
@@ -64,22 +58,17 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    func stopPolling() {
-        pollTask?.cancel()
-        pollTask = nil
-    }
+    func stopPolling() { pollTask?.cancel(); pollTask = nil }
 
     private func poll() async {
         do {
-            let res = try await ChatService.pollMessages(matchId: matchId, afterId: lastMessageId)
+            let res = try await ChatService.poll(matchId: matchId, afterId: lastMessageId)
             if !res.messages.isEmpty {
                 messages.append(contentsOf: res.messages)
                 lastMessageId = res.messages.last?.id
             }
-        } catch { /* silently ignore poll errors */ }
+        } catch { /* ignore poll errors */ }
     }
 
-    deinit {
-        pollTask?.cancel()
-    }
+    deinit { pollTask?.cancel() }
 }

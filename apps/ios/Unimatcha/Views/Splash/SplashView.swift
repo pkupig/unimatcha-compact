@@ -1,45 +1,46 @@
 import SwiftUI
 
+/// Branded splash — Unimatcha neon-green wordmark on near-black.
 struct SplashView: View {
     @State private var logoScale: CGFloat = 0.6
     @State private var logoOpacity: Double = 0
     @State private var textOpacity: Double = 0
+    @State private var glowPulse: Bool = false
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1, green: 0.94, blue: 0.96), .white],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Theme.bg.ignoresSafeArea()
 
-            VStack(spacing: 16) {
+            // Subtle neon glow behind the mark
+            Circle()
+                .fill(Theme.accent.opacity(0.18))
+                .frame(width: 260, height: 260)
+                .blur(radius: 60)
+                .scaleEffect(glowPulse ? 1.08 : 0.92)
+                .opacity(logoOpacity)
+
+            VStack(spacing: 20) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(red: 1, green: 0.4, blue: 0.5), Color(red: 1, green: 0.6, blue: 0.7)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 100, height: 100)
-                        .shadow(color: Color(red: 1, green: 0.4, blue: 0.5).opacity(0.4), radius: 20, y: 8)
+                        .fill(Theme.accentGradient)
+                        .frame(width: 104, height: 104)
+                        .shadow(color: Theme.accent.opacity(0.45), radius: 24, y: 8)
 
                     Image(systemName: "sparkles")
-                        .font(.system(size: 44))
-                        .foregroundColor(.white)
+                        .font(.system(size: 46, weight: .bold))
+                        .foregroundColor(Theme.onAccent)
                 }
                 .scaleEffect(logoScale)
                 .opacity(logoOpacity)
 
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     Text("Unimatcha")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.2, green: 0.2, blue: 0.25))
+                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .foregroundColor(Theme.textPrimary)
 
                     Text("遇见最合适的 TA")
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Theme.textSecondary)
                 }
                 .opacity(textOpacity)
             }
@@ -52,6 +53,15 @@ struct SplashView: View {
             withAnimation(.easeIn(duration: 0.6).delay(0.4)) {
                 textOpacity = 1.0
             }
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
+                glowPulse = true
+            }
         }
     }
 }
+
+#if DEBUG
+struct SplashView_Previews: PreviewProvider {
+    static var previews: some View { SplashView() }
+}
+#endif

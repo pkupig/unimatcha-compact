@@ -5,51 +5,67 @@ struct RegisterFormView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
-    
+
     private var passwordMismatch: Bool { !confirmPassword.isEmpty && password != confirmPassword }
-    private var canSubmit: Bool { !email.isEmpty && password.count >= 8 && password == confirmPassword && !authVM.isLoading }
-    
+    private var canSubmit: Bool {
+        !email.isEmpty && password.count >= 8 && password == confirmPassword && !authVM.isLoading
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             VStack(spacing: 12) {
                 TextField("大学邮箱", text: $email)
                     .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .textContentType(.emailAddress)
                     .modifier(InputFieldModifier())
-                
-                SecureField("密码（至少8位）", text: $password)
+
+                SecureField("密码（至少 8 位）", text: $password)
+                    .textContentType(.newPassword)
                     .modifier(InputFieldModifier())
-                
+
                 SecureField("确认密码", text: $confirmPassword)
+                    .textContentType(.newPassword)
                     .modifier(InputFieldModifier())
                     .overlay(
-                        passwordMismatch ? RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.5), lineWidth: 1) : nil
+                        passwordMismatch
+                            ? RoundedRectangle(cornerRadius: Theme.radiusSm).stroke(Theme.danger.opacity(0.7), lineWidth: 1)
+                            : nil
                     )
             }
             .padding(.top, 24)
-            
+
             if passwordMismatch {
                 Text("两次输入的密码不一致")
-                    .font(.caption).foregroundColor(.red)
+                    .font(.caption)
+                    .foregroundColor(Theme.danger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            
+
             if let error = authVM.errorMessage {
-                Text(error).font(.caption).foregroundColor(.red).multilineTextAlignment(.center).padding(.horizontal)
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(Theme.danger)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
             }
-            
+
             Button(action: { Task { await authVM.register(email: email, password: password) } }) {
-                HStack {
-                    if authVM.isLoading { ProgressView().tint(.white).scaleEffect(0.8) }
+                HStack(spacing: 8) {
+                    if authVM.isLoading {
+                        ProgressView().tint(Theme.onAccent).scaleEffect(0.85)
+                    }
                     Text("创建账号")
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(canSubmit ? Color(red: 1, green: 0.30, blue: 0.43) : Color.gray.opacity(0.3))
-                .foregroundColor(.white)
-                .cornerRadius(14)
-                .font(.system(size: 16, weight: .semibold))
             }
+            .buttonStyle(NeonButtonStyle(enabled: canSubmit))
             .disabled(!canSubmit)
+
+            Text("注册即代表同意用户协议与隐私政策")
+                .font(.system(size: 12))
+                .foregroundColor(Theme.textMuted)
+                .padding(.top, 4)
         }
         .padding(.horizontal, 24)
     }

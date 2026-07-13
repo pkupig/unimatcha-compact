@@ -1,82 +1,62 @@
 import Foundation
 import SwiftUI
 
+enum SquareBoard: String, CaseIterable, Identifiable {
+    case recommend, campusWall
+    var id: String { rawValue }
+    var title: String { self == .recommend ? "推荐" : "校园墙" }
+}
+
 @MainActor
 final class SquareViewModel: ObservableObject {
-    @Published var posts: [CouplePost] = []
+    @Published var board: SquareBoard = .recommend
+    @Published var cards: [SquareCard] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var page = 1
-    @Published var total = 0
+    @Published var needProfileSchool = false
+    private var page = 1
+    private var hasMore = true
 
-    // New post
-    @Published var newPostContent = ""
-    @Published var isPosting = false
-    @Published var showNewPost = false
+    func switchBoard(_ b: SquareBoard) async { board = b; await reload() }
 
-    func loadPosts() async {
-        isLoading = true
-        errorMessage = nil
+    func reload() async {
+        page = 1; hasMore = true; cards = []
+        await loadMore()
+    }
+
+    func loadMore() async {
+        guard hasMore, !isLoading else { return }
+        isLoading = true; errorMessage = nil
         do {
-            let resp = try await SquareService.listPosts(page: page)
-            self.posts = resp.posts
-            self.total = resp.total
-        } catch let error as APIError {
-            errorMessage = error.errorDescription
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+            let resp = board == .recommend
+                ? try await SquareService.recommend(page: page)
+                : try await SquareService.campusWall(page: page)
+            needProfileSchool = resp.needProfileSchool ?? false
+            cards.append(contentsOf: resp.items)
+            hasMore = resp.hasMore ?? false
+            page += 1
+        } catch let e as APIError { errorMessage = e.errorDescription }
+        catch { errorMessage = error.localizedDescription }
         isLoading = false
     }
 
-    func createPost() async {
-        guard !newPostContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        isPosting = true
+    func like(_ id: String) async {
+        guard let idx = cards.firstIndex(where: { $0.id == id }) else { return }
         do {
-            let post = try await SquareService.createPost(content: newPostContent)
-            posts.insert(post, at: 0)
-            newPostContent = ""
-            showNewPost = false
-        } catch let error as APIError {
-            errorMessage = error.errorDescription
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        isPosting = false
+            let r = try await SquareService.like(id: id)
+            let old = cards[idx]
+            let delta = r.liked ? 1 : -1
+            cards[idx] = old.withLike((old.likeCount ?? 0) + delta)
+        } catch { /* ignore */ }
     }
+}
 
-    func likePost(_ postId: String) async {
-        do {
-            _ = try await SquareService.likePost(id: postId)
-            if let idx = posts.firstIndex(where: { $0.id == postId }) {
-                // Optimistic update — create new post with incremented like
-                let old = posts[idx]
-                let updated = CouplePost(
-                    id: old.id, matchId: old.matchId, authorUserId: old.authorUserId,
-                    content: old.content, imageUrl: old.imageUrl,
-                    likeCount: old.likeCount + 1, commentCount: old.commentCount,
-                    createdAt: old.createdAt, author: old.author, match: old.match, comments: old.comments
-                )
-                posts[idx] = updated
-            }
-        } catch {}
-    }
-
-    func addComment(postId: String, content: String) async {
-        do {
-            let comment = try await SquareService.createComment(postId: postId, content: content)
-            if let idx = posts.firstIndex(where: { $0.id == postId }) {
-                let old = posts[idx]
-                var comments = old.comments ?? []
-                comments.append(comment)
-                let updated = CouplePost(
-                    id: old.id, matchId: old.matchId, authorUserId: old.authorUserId,
-                    content: old.content, imageUrl: old.imageUrl,
-                    likeCount: old.likeCount, commentCount: old.commentCount + 1,
-                    createdAt: old.createdAt, author: old.author, match: old.match, comments: comments
-                )
-                posts[idx] = updated
-            }
-        } catch {}
+private extension SquareCard {
+    func withLike(_ n: Int) -> SquareCard {
+        SquareCard(id: id, board: board, authorType: authorType, cardType: cardType, title: title,
+                   content: content, images: images, anonymous: anonymous, isSponsored: isSponsored,
+                   school: school, sameSchool: sameSchool, likeCount: n, commentCount: commentCount,
+                   createdAt: createdAt, authorUser: authorUser, anonymousAuthor: anonymousAuthor,
+                   tags: tags, isMine: isMine)
     }
 }
