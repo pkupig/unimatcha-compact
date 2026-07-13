@@ -28,6 +28,21 @@ def _avg(*xs: float) -> float:
     return sum(xs) / len(xs) if xs else 0.0
 
 
+# matchBasis 分类：questionnaire-basis 弱化 profile 组件、profile-basis 弱化 questionnaire 组件；
+# llm/semantic/complementarity 是 LLM 派生的相容信号，两种 basis 都保留。
+_QUESTIONNAIRE_KEYS = {"questionnaire"}
+_PROFILE_KEYS = {"profile", "interestActivity", "campusSchedule"}
+
+
+def _pair_basis(a: CandidateProfile, b: CandidateProfile) -> str:
+    """一对的匹配依据：两人一致才生效，任一方不同则回退 'both'（中性默认，保持对称）。"""
+    def norm(c: CandidateProfile) -> str:
+        v = c.prefs.matchBasis if (c.prefs and c.prefs.matchBasis) else "both"
+        return v if v in ("questionnaire", "profile", "both") else "both"
+    na, nb = norm(a), norm(b)
+    return na if na == nb else "both"
+
+
 def fuse(
     a: CandidateProfile,
     b: CandidateProfile,
@@ -70,6 +85,26 @@ def fuse(
             "semantic": w["semantic"] * semantic,
             "campusSchedule": w["campusSchedule"] * campus,
         }
+    # matchBasis：按用户选择的匹配依据重加权（questionnaire / profile 侧此消彼长），再归一化
+    # 回同一 0..100 量纲，避免选了 basis 的用户系统性被打低分。仅当双方 basis 一致且非 "both"
+    # 时生效；默认 / 分歧走原权重，输出与之前逐字节一致。
+    basis = _pair_basis(a, b)
+    if basis != "both":
+        DOWN = 0.15  # 弱化系数（不置 0，留底避免主组件缺失时整对失去信号）
+        down_keys = {
+            k for k in parts
+            if (basis == "questionnaire" and k in _PROFILE_KEYS)
+            or (basis == "profile" and k in _QUESTIONNAIRE_KEYS)
+        }
+        for k in down_keys:
+            parts[k] *= DOWN
+        orig_w_sum = sum(w.values())
+        new_w_sum = orig_w_sum - (1 - DOWN) * sum(w[k] for k in down_keys)
+        if new_w_sum > 0:
+            factor = orig_w_sum / new_w_sum
+            for k in parts:
+                parts[k] *= factor
+
     raw = sum(parts.values())
     breakdown = {k: round(v, 1) for k, v in parts.items()}
     breakdown["riskPenalty"] = float(risk_penalty)

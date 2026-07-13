@@ -99,7 +99,14 @@ class MatchingPipeline:
             soft_score = self.ranker.rank_score(snapshot) * 100 if self.ranker else fr.final_score
             # The pair is FEASIBLE. Below the quality threshold it is normally dropped,
             # BUT for a member (H5) we keep their top-feasible option rather than refund.
-            below = soft_score < threshold
+            #
+            # Feasibility gate is ALWAYS on the fusion score: SCORE_THRESHOLD (τ=60, config.py)
+            # is calibrated for the fusion 0..100 distribution. The ranker output is a blend of
+            # rare-event probabilities on a compressed scale (ceiling ~95, typically ~10–35), so
+            # comparing it to the same τ would drop virtually every non-member pair and collapse
+            # the pool. The ranker still decides RANKING order among the gated-in pairs (§9.5).
+            gate_score = fr.final_score
+            below = gate_score < threshold
             is_member = a.userId in members or b.userId in members
             if below and not is_member:
                 continue
