@@ -1,7 +1,7 @@
 # U-Spark 待办与缺口总表（备份文档）
 
 > 这份文档记录**已经做了什么、还差什么、之后要做什么**，是整个项目的"记忆备份"，避免遗忘。
-> 更新日期：2026-07-04。按优先级分 P0（上线前必做）/ P1（上线后迭代）/ P2（规模化远期）。
+> 更新日期：2026-07-13（P0-1/P0-2/P0-5 完成，见下表）。按优先级分 P0（上线前必做）/ P1（上线后迭代）/ P2（规模化远期）。
 > 匹配算法细节见 `matching-ml/README.md`；训练见 `matching-ml/TRAINING.md`；调度见 `SCHEDULING.md`。
 
 ---
@@ -32,12 +32,12 @@
 
 | # | 事项 | 为什么 | 在哪做 | 依赖 |
 |---|---|---|---|---|
-| P0-1 | **接入 matching-ml**：后端 provider 从 Scoring 切到 AI，设 `AI_PROVIDER_URL`，服务器部署 matching-ml | 让新算法真正接管匹配 | 后端 `matching.module.ts` + 部署 | matching-ml（已就绪） |
-| P0-2 | **埋点两张表**：`MatchExposure` + `MatchBehaviorEvent`，匹配后落曝光、用户动作落事件 | **反馈学习的地基**，不埋=以后没数据训，越用越准无从谈起。**必须上线前做** | 后端，schema 见 `matching-ml/feedback/prisma_models.prisma` | 无 |
-| P0-3 | **调度 A 方案**：把 cron 设成每周日公布 + 发一条开场公告 | 实现"每周一轮、周日出结果" | 见 `SCHEDULING.md`（本次已做） | 无 |
-| P0-4 | **阈值校准**：切真模型/开 ranker 后重新调 `SCORE_THRESHOLD` | 混合分/ranker 分量纲不同，不校准会误杀 | matching-ml 配置 | P0-1 |
-| P0-5 | `/match` 加鉴权（Bearer 校验）再暴露到私网外 | 安全 | matching-ml `app/main.py` | 无 |
-| P0-6 | 决定上线用哪档：纯规则(mock) / prompt 版 / 微调版 | 没微调好也能先用规则或通用模型上线 | 决策 | — |
+| P0-1 | ✅ 2026-07-13 **接入 matching-ml**：`AIMatchModelProvider`（`ai-match-model.provider.ts`）+ env 开关（`MATCH_MODEL=ai\|scoring`，缺省设了 `AI_PROVIDER_URL` 即 ai）；带超时/结构校验。本地 E2E 双模式各配出 2 对已验证。**服务器部署 matching-ml 仍待做** | 让新算法真正接管匹配 | 后端 `matching.module.ts`（✅）+ 部署（待） | matching-ml（已就绪） |
+| P0-2 | ✅ 2026-07-13 **埋点两张表**：`MatchExposure`（含补充列 matchJobId 作重试幂等键）+ `MatchBehaviorEvent` 已进 schema；曝光在匹配公布处落库（`executeMatchJob`），confirmed/rejected/dissolved/firstMessage/message 在服务端权威动作处落库，viewed/openedProfile 走 `POST /matching/feedback/events`（白名单防伪造）。全部事件类型 E2E 已验证 | **反馈学习的地基** | 后端 ✅（H5 上报接入=P1-6） | 无 |
+| P0-3 | **调度 A 方案**：把 cron 设成每周日公布 + 发一条开场公告 | 实现"每周一轮、周日出结果" | 见 `SCHEDULING.md`（文档+脚本已备；正式切换用管理端改 cron，属运营操作） | 无 |
+| P0-4 | **阈值校准**：切真模型/开 ranker 后重新调 `SCORE_THRESHOLD` | 混合分/ranker 分量纲不同，不校准会误杀 | matching-ml 配置（mock 档当前 60 分阈值 E2E 表现正常：明显相容对 70.1 分通过） | P0-1 ✅ |
+| P0-5 | ✅ 2026-07-13 `/match` 加鉴权：`require_api_key` 依赖校验 `Bearer <MATCH_API_KEY>`（constant-time 比较；空 key=关闭并打启动警告，仅限本地）。401/401/200 矩阵已验证 | 安全 | matching-ml `app/main.py` ✅ | 无 |
+| P0-6 | 决定上线用哪档：纯规则(mock) / prompt 版 / 微调版 | 没微调好也能先用规则或通用模型上线 | 决策（当前默认 `LLM_BACKEND=mock` 可直接上线，切 ollama 只改 env） | — |
 
 > **注**：ollama + 微调模型可以晚点上；先用 `LLM_BACKEND=mock`（规则版）或 prompt 版通用模型上线，产品能跑、数据先跑起来。
 
