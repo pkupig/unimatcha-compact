@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -348,11 +348,14 @@ function UnionAds() {
 
 function TeamAds() {
   const router = useRouter();
+  // 初始筛选取 URL 的 ?status=——仪表盘「平台待审广告」等入口深链带该参数，
+  // 原来固定初始化为空，点进来筛选不生效、显示全部。
+  const searchParams = useSearchParams();
   const [items, setItems] = useState<Campaign[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(searchParams.get('status') || '');
   const [schoolId, setSchoolId] = useState('');
   const [schools, setSchools] = useState<School[]>([]);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
