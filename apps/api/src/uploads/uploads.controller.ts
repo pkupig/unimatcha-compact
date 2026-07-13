@@ -12,7 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiProperty, ApiConsumes } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { Request } from 'express';
@@ -26,25 +26,28 @@ if (!existsSync(UPLOADS_DIR)) {
   mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
+// 仅允许位图类型；显式拒绝 image/svg+xml——SVG 可内嵌 <script>，
+// 同源访问 /uploads/x.svg 时会触发存储型 XSS（§安全）。
+// mimetype → 规范扩展名：存盘名一律由此表派生，绝不用 file.originalname 的后缀
+// （originalname 与 mimetype 是两个独立的客户端可控字段——伪造 mimetype=image/png
+// 但 filename="x.svg" 会绕过只查 mimetype 的过滤，把 svg 落盘为 .svg 再被当 svg+xml 提供）。
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+};
+
 const imageStorage = diskStorage({
   destination: UPLOADS_DIR,
   filename: (_req, file, cb) => {
-    const ext = extname(file.originalname).toLowerCase() || '.jpg';
+    const ext = MIME_TO_EXT[(file.mimetype || '').toLowerCase()] ?? '.jpg';
     cb(null, `${uuidv4()}${ext}`);
   },
 });
 
-// 仅允许位图类型；显式拒绝 image/svg+xml——SVG 可内嵌 <script>，
-// 同源访问 /uploads/x.svg 时会触发存储型 XSS（§安全）。
-const ALLOWED_IMAGE_MIMES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-]);
-
 function imageFileFilter(_req: any, file: Express.Multer.File, cb: any) {
-  if (!ALLOWED_IMAGE_MIMES.has((file.mimetype || '').toLowerCase())) {
+  if (!MIME_TO_EXT[(file.mimetype || '').toLowerCase()]) {
     return cb(new BadRequestException('Only JPEG, PNG, GIF, or WebP images are allowed'), false);
   }
   cb(null, true);
