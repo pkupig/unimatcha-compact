@@ -175,15 +175,17 @@ export class EnergyService {
     refundReason: 'empty_pool' | 'unconfirmed_48h' = 'empty_pool',
     dedupeKey?: string,
   ): Promise<void> {
-    // 幂等去重：有 matchId 按 matchId；否则（无 match 的批量退款，如 job 级空池/未达保证）按 dedupeKey。
-    if (matchId) {
-      const dup = await tx.energyTransaction.findFirst({
-        where: { relatedMatchId: matchId, type: 'REFUND' },
-      });
-      if (dup) return;
-    } else if (dedupeKey) {
+    // 幂等去重：优先按 dedupeKey（调用方可锚定到轮次/尝试，跨轮复用同一 Match 行仍可分别退款）；
+    // 无 dedupeKey 时回退按 matchId。注意顺序——过期退款同时传 matchId(审计) + 轮次 dedupeKey，
+    // 若先按 matchId 去重，第二轮同对再过期的合法退款会被上一轮流水错误挡掉（复用行 matchId 不变）。
+    if (dedupeKey) {
       const dup = await tx.energyTransaction.findFirst({
         where: { userId, type: 'REFUND', metadata: { path: ['dedupeKey'], equals: dedupeKey } },
+      });
+      if (dup) return;
+    } else if (matchId) {
+      const dup = await tx.energyTransaction.findFirst({
+        where: { relatedMatchId: matchId, type: 'REFUND' },
       });
       if (dup) return;
     }

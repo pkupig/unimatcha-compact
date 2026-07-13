@@ -998,7 +998,7 @@ export class MatchingService {
         createdAt: { lte: cutoff },
       },
       select: {
-        id: true, mode: true, userAId: true, userBId: true,
+        id: true, mode: true, userAId: true, userBId: true, createdAt: true,
         enhancedMode: true, enhancedUserEnergy: true, metadata: true,
       },
     });
@@ -1052,9 +1052,17 @@ export class MatchingService {
             const recordedId = (fresh.metadata as any)?.enhancedUserId;
             const refundUserId =
               recordedId === m.userAId || recordedId === m.userBId ? recordedId : m.userAId;
+            // 退款额度：恋人一对一，过期即退全部预扣（=enhancedUserEnergy，通常 3）；
+            // 朋友按「每个朋友 1 格」——enhancedUserEnergy 存的是本轮总格数 N（=保证朋友数），
+            // 每条朋友 Match 都带 N，若按 N 退，K 条过期就退 K×N（最多 5×）超退。故朋友固定退 1 格。
+            const refundAmount = modeStr === 'romantic' ? fresh.enhancedUserEnergy : 1;
+            // 去重键锚定到本次配对尝试（createdAt 每轮重配时被 upsert 重置）：Match 行按
+            // @@unique(userA,userB,mode) 跨轮复用同一 id，若仅按 matchId 去重，第二轮同对再过期的
+            // 合法退款会被第一轮的 REFUND 流水挡掉。带轮次锚点后跨轮可退、同轮重扫仍幂等。
+            const dedupeKey = `expire:${m.id}:${m.createdAt.getTime()}`;
             await this.energyService.refundInTx(
-              tx, refundUserId, modeStr, fresh.enhancedUserEnergy, m.id,
-              '增强匹配 48 小时内未确认，退还能量', 'unconfirmed_48h',
+              tx, refundUserId, modeStr, refundAmount, m.id,
+              '增强匹配 48 小时内未确认，退还能量', 'unconfirmed_48h', dedupeKey,
             );
           }
         }
