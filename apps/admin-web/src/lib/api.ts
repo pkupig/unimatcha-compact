@@ -20,7 +20,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => (res.data?.data !== undefined ? { ...res, data: res.data.data } : res),
   (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    // 401 拦截：会话过期 → 清 token 跳登录。但登录请求本身返回 401（账号/密码错、账号停用）时
+    // 不能跳转，否则页面直接重载、登录表单永远来不及显示失败原因；让该错误透传给表单处理。
+    const isLoginAttempt = (err.config?.url || '').includes('/auth/login');
+    if (err.response?.status === 401 && typeof window !== 'undefined' && !isLoginAttempt) {
       localStorage.removeItem('admin_token');
       window.location.href = '/login';
     }
@@ -300,7 +303,8 @@ export const deleteOfficialPost = (id: string, reason?: string) =>
  * ═══════════════════════════════════════════════════════════════ */
 export const getMatchConfig = () => api.get('/admin/matching/config');
 export const updateMatchConfig = (data: any) => api.put('/admin/matching/config', data);
-export const triggerMatchJob = () => api.post('/admin/matching/jobs/trigger');
+export const triggerMatchJob = (mode?: 'romantic' | 'friend') =>
+  api.post('/admin/matching/jobs/trigger' + (mode ? `?mode=${mode}` : ''));
 export const getMatchJobs = (params?: any) => api.get('/admin/matching/jobs', { params });
 export const getMatchJobDetail = (id: string) => api.get(`/admin/matching/jobs/${id}`);
 export const retryMatchJob = (id: string) => api.post(`/admin/matching/jobs/${id}/retry`);

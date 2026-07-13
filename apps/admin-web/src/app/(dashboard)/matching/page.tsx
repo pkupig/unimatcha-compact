@@ -77,8 +77,11 @@ function MatchingInner() {
   const handleTrigger = async () => {
     setTriggering(true);
     try {
-      await triggerMatchJob();
-      toast.success('匹配任务已加入队列');
+      // 文案承诺「为所有处于匹配模式的用户执行一次匹配」，故恋人 + 朋友两模式都触发
+      // （原来只调无参 triggerMatchJob → 后端仅缺省跑 romantic，朋友池被漏掉）。
+      await triggerMatchJob('romantic');
+      await triggerMatchJob('friend');
+      toast.success('匹配任务已加入队列（恋人 + 朋友）');
       setTimeout(loadJobs, 1000);
     } catch (err: any) { toast.error(err?.message || '触发失败'); }
     finally { setTriggering(false); }

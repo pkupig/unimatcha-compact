@@ -68,7 +68,13 @@ function UsersPageInner() {
 
   const LIMIT = 20;
 
-  useEffect(() => { loadUsers(); }, [page, search, statusFilter]);
+  // 去抖：search 直接进依赖会每敲一个字就打一次接口（用户列表全量查询）。
+  // 用 300ms 定时器 + cleanup 取消未触发的上一次，连打时只有最后一次生效。
+  useEffect(() => {
+    const t = setTimeout(loadUsers, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, search, statusFilter]);
 
   const loadUsers = async () => {
     setLoading(true);

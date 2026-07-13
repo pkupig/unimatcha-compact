@@ -92,13 +92,13 @@ services:
     build:
       context: ./apps/admin-web
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_API_URL 必须在 build 时传入（客户端包编译期内联）；生产设成 https://api.<域名>。
+      args:
+        NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:3001}
     image: unimatcha-admin-web
     container_name: unimatcha_admin
     environment:
-      # In production point these at the public domain, e.g.
-      #   NEXT_PUBLIC_API_URL=https://api.unimatcha.com
-      #   NEXTAUTH_URL=https://admin.unimatcha.com
-      NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:3001}
+      # NEXTAUTH_* 是运行时用；NEXT_PUBLIC_API_URL 已在上面 build args 内联，这里不再重复（运行时设无效）。
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change_this_secret}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
     # Behind Caddy → admin.<domain>. (was "3000:3000")
