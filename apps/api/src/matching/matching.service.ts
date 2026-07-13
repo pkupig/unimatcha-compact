@@ -1144,6 +1144,11 @@ export class MatchingService {
     const mode: ModeStr = normalizeMode(dto.mode);
     const data: any = { ...dto };
     delete data.mode;
+    // 增强开关（enhancedModeEnabled / friendEnhancedCells）只能由 startMatchForUser 权威写入——
+    // 那里会预扣能量。若允许经此端点持久化，用户不花能量就能让 buildCandidates 读到 enhanced=true，
+    // 获得无视阈值的强配（免费白嫖付费功能）。此处一律剥离。
+    delete data.enhancedModeEnabled;
+    delete data.friendEnhancedCells;
 
     // universityStage 多值白名单过滤
     if (data.universityStage !== undefined) {

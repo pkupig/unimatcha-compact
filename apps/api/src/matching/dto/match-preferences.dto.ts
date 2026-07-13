@@ -98,16 +98,6 @@ export class UpdateMatchPreferencesDto {
   @MaxLength(500)
   friendRequirements?: string;
 
-  // ─── 增强模式开关（§10，J 规则） ────────────────────────────────
-  @ApiPropertyOptional({ example: false, description: '是否开启增强模式（预扣能量，无视75分阈值强配）' })
-  @IsOptional()
-  @IsBoolean()
-  enhancedModeEnabled?: boolean;
-
-  @ApiPropertyOptional({ example: 1, description: '朋友增强档位 1–5（=保证匹配的朋友数 N；恋人忽略，固定3）' })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  friendEnhancedCells?: number;
+  // 注意：增强开关（enhancedModeEnabled / friendEnhancedCells）不在此 DTO——它们必须经
+  // POST /matching/start（startMatchForUser）设置，那里会预扣能量。经偏好端点设置会绕开扣费。
 }

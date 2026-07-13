@@ -374,7 +374,7 @@ export class SquareService {
   async createComment(userId: string, postId: string, dto: CreateCommentDto) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
-      select: { id: true, isHidden: true, authorUserId: true },
+      select: { id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true },
     });
     if (!post) throw new NotFoundException('Post not found');
     if (post.isHidden && post.authorUserId !== userId) {
@@ -419,7 +419,10 @@ export class SquareService {
     ]);
 
     // 通知作者 + 被回复者（去重、不通知自己、官方帖无 authorUserId 跳过）
-    const actorName = await this.getNickname(userId);
+    // 匿名帖：评论者对楼主与其他评论者都保持匿名（帖内 anonymizeComments 已脱敏），
+    // 通知 body 也须用化名而非真实昵称，否则楼主凭「XX 评论了」+ 帖内匿名评论即可反解身份。
+    const isAnonUserPost = post.anonymous && post.authorType === SquareAuthorType.USER;
+    const actorName = isAnonUserPost ? this.funAlias(userId) : await this.getNickname(userId);
     if (post.authorUserId && post.authorUserId !== userId) {
       await this.prisma.notification.create({
         data: {
@@ -454,7 +457,7 @@ export class SquareService {
   async likePost(postId: string, userId: string) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
-      select: { id: true, isHidden: true, authorUserId: true },
+      select: { id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true },
     });
     if (!post) throw new NotFoundException('Post not found');
     if (post.isHidden && post.authorUserId !== userId) {
@@ -489,6 +492,11 @@ export class SquareService {
     }
 
     if (post.authorUserId && post.authorUserId !== userId) {
+      // 匿名帖：点赞者对楼主保持匿名。body 用化名，且 metadata.actorId 用不可反推的 per-post
+      // token（不能下发真实 userId——客户端可见 metadata），否则匿名形同虚设。
+      // 去重键 actorKey 在匿名/非匿名下都对同一 (post, 用户) 稳定，首赞去重仍生效。
+      const isAnonUserPost = post.anonymous && post.authorType === SquareAuthorType.USER;
+      const actorKey = isAnonUserPost ? this.authorToken(postId, userId) : userId;
       // 只在该用户对该帖「首次点赞」时通知，避免反复取消/重赞刷屏（§8.1）：
       // 若已存在本 post+actor 的 like 通知则跳过。用 JSON path 过滤（PostgreSQL），
       // 不依赖 metadata 键顺序，比整对象 equals 更稳健。
@@ -498,20 +506,20 @@ export class SquareService {
           type: 'like',
           AND: [
             { metadata: { path: ['postId'], equals: postId } },
-            { metadata: { path: ['actorId'], equals: userId } },
+            { metadata: { path: ['actorId'], equals: actorKey } },
           ],
         },
         select: { id: true },
       });
       if (!existingNotif) {
-        const actorName = await this.getNickname(userId);
+        const actorName = isAnonUserPost ? this.funAlias(userId) : await this.getNickname(userId);
         await this.prisma.notification.create({
           data: {
             userId: post.authorUserId,
             type: 'like',
             title: 'New like',
             body: `${actorName} liked your post`,
-            metadata: { postId, actorId: userId },
+            metadata: { postId, actorId: actorKey },
           },
         });
       }
@@ -1038,6 +1046,10 @@ export class SquareService {
   // 帖子脱敏整形：匿名帖不下发作者身份（学校照常显示，§8.1.1）
   private shapePost(post: any, viewerId: string | undefined) {
     const out: any = { ...post };
+    // 审核内部字段绝不下发：metadata.reports 含举报人 userId + 理由，
+    // 若原样返回，任何人（含被举报作者）都能看到谁举报了自己。整块 metadata 目前只承载
+    // 审核数据，前端无消费，直接剔除。
+    delete out.metadata;
     // 是否本人（用于前端展示自删入口等）——须在删除 authorUserId 之前算出
     const isMine = !!viewerId && post.authorUserId === viewerId;
     if (post.anonymous && post.authorType === SquareAuthorType.USER) {

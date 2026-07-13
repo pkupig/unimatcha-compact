@@ -1456,14 +1456,10 @@ async function saveMatchSettings() {
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
   const extraMatchInfo = document.getElementById('match-extra-info')?.value || '';
-  // Match Settings 现负责增强字段（saveFilterPrefs 不再处理，§10.5）。
+  // 增强开关只在客户端状态 S.enhanced 里，join pool (startMatch → POST /matching/start) 时才
+  // 提交并预扣能量。这里不再把 enhancedModeEnabled/friendEnhancedCells 发到 /matching/preferences：
+  // 后端只认 /matching/start 的扣费路径，偏好端点已拒收这两个字段（防免费白嫖增强）。
   const body = { mode, extraMatchInfo };
-  if (mode === 'romantic') {
-    body.enhancedModeEnabled = !!S.enhanced.romantic.enabled;
-  } else {
-    body.enhancedModeEnabled = !!S.enhanced.friend.enabled;
-    body.friendEnhancedCells = Math.min(5, Math.max(1, S.enhanced.friend.cells || 1));
-  }
   try {
     await window.api('/matching/preferences', 'PUT', body);
     window.toast('Settings saved');

@@ -139,14 +139,12 @@ export class CoupleService {
   // 设置/清除我的情侣封面（各自一张，存在 settings.coupleCovers[matchId]，本轮反馈4）
   async setCover(userId: string, matchId: string, imageUrl: string | null) {
     await this.assertMember(userId, matchId);
-    const me = await this.prisma.user.findUnique({ where: { id: userId }, select: { settings: true } });
-    const settings: any = (me?.settings as any) || {};
-    const covers = { ...(settings.coupleCovers || {}) };
-    if (imageUrl) covers[matchId] = imageUrl;
-    else delete covers[matchId];
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { settings: { ...settings, coupleCovers: covers } },
+    // 行锁串行化读-改-写，避免与其它 settings 端点并发时互相丢更新（FOR UPDATE）
+    await this.prisma.updateUserSettings(userId, (settings) => {
+      const covers = { ...(settings.coupleCovers || {}) };
+      if (imageUrl) covers[matchId] = imageUrl;
+      else delete covers[matchId];
+      return { ...settings, coupleCovers: covers };
     });
     return this.getSpace(userId, matchId);
   }

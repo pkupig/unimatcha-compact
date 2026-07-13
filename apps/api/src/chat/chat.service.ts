@@ -291,20 +291,12 @@ export class ChatService {
     if (!isConfirmedStatus(match.status)) {
       throw new ForbiddenException('Only confirmed chats can set a background');
     }
-    // 事务内重读 settings 再合并写回，避免与其它 settings 写入并发覆盖（read-modify-write 序列化）
-    await this.prisma.$transaction(async (tx) => {
-      const me = await tx.user.findUnique({
-        where: { id: userId },
-        select: { settings: true },
-      });
-      const settings: any = (me?.settings as any) || {};
+    // 行锁串行化读-改-写，避免与其它 settings 端点并发时互相丢更新（FOR UPDATE）
+    await this.prisma.updateUserSettings(userId, (settings) => {
       const backgrounds = { ...(settings.chatBackgrounds || {}) };
       if (imageUrl) backgrounds[matchId] = imageUrl;
       else delete backgrounds[matchId];
-      await tx.user.update({
-        where: { id: userId },
-        data: { settings: { ...settings, chatBackgrounds: backgrounds } },
-      });
+      return { ...settings, chatBackgrounds: backgrounds };
     });
     return { chatBackground: imageUrl || null };
   }
@@ -329,21 +321,16 @@ export class ChatService {
     const content = `${myName} nudged ${partnerName}${suffix}`;
     // kind:'nudge' 让 H5 据字段判定拍一拍，免去对 content 的字符串匹配
     const msg = await this.prisma.message.create({ data: { matchId, senderId: userId, content, kind: 'nudge' } });
+    // 与 sendMessage 一致 touch updatedAt：会话列表按 updatedAt 倒序，否则拍一拍产生新消息却不置顶
+    await this.prisma.match.update({ where: { id: matchId }, data: { updatedAt: new Date() } });
     return { ok: true, messageId: msg.id, content };
   }
 
   // 自定义「别人拍我」的后缀文案（设置里，本轮反馈3）
   async setNudgeSuffix(userId: string, suffix: string) {
     const clean = (suffix || '').slice(0, 40);
-    // 事务内重读 settings 再合并写回，避免与其它 settings 写入并发覆盖（read-modify-write 序列化）
-    await this.prisma.$transaction(async (tx) => {
-      const me = await tx.user.findUnique({ where: { id: userId }, select: { settings: true } });
-      const settings: any = (me?.settings as any) || {};
-      await tx.user.update({
-        where: { id: userId },
-        data: { settings: { ...settings, nudgeSuffix: clean } },
-      });
-    });
+    // 行锁串行化读-改-写，避免与其它 settings 端点并发时互相丢更新（FOR UPDATE）
+    await this.prisma.updateUserSettings(userId, (settings) => ({ ...settings, nudgeSuffix: clean }));
     return { nudgeSuffix: clean };
   }
 
@@ -393,9 +380,18 @@ export class ChatService {
     const messages = await this.prisma.message.findMany({
       where: {
         matchId,
-        ...(afterCreatedAt ? { createdAt: { gt: afterCreatedAt } } : {}),
+        // 复合游标 (createdAt, id)：仅按 createdAt > anchor 会漏掉与 anchor 同毫秒的兄弟消息
+        // （gt 排除相等），该消息将永远不被轮询拉到。加 id 次级判据，同毫秒也不丢不重。
+        ...(afterCreatedAt
+          ? {
+              OR: [
+                { createdAt: { gt: afterCreatedAt } },
+                { createdAt: afterCreatedAt, id: { gt: afterId } },
+              ],
+            }
+          : {}),
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: 50,
       select: {
         id: true,

@@ -231,34 +231,22 @@ export class UsersService {
     userId: string,
     dto: { pushEnabled?: boolean; privacy?: Record<string, unknown> },
   ) {
-    // 读取原始存储的 settings，保留 notes/chatBackgrounds/coupleCovers/nudgeSuffix 等兄弟键
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { settings: true },
-    });
-    if (!user) throw new NotFoundException('User not found');
-    const raw = (user.settings && typeof user.settings === 'object'
-      ? (user.settings as Record<string, unknown>)
-      : {}) as Record<string, unknown>;
-    const shaped = this.mergeWithDefaults(raw);
-
-    // 只挑认识的键合并，防止写入无关数据
-    const nextPushEnabled =
-      typeof dto.pushEnabled === 'boolean' ? dto.pushEnabled : shaped.pushEnabled;
-    const nextPrivacy = { ...shaped.privacy };
-    if (dto.privacy && typeof dto.privacy === 'object') {
-      for (const key of PRIVACY_KEYS) {
-        if (typeof dto.privacy[key] === 'boolean') {
-          nextPrivacy[key] = dto.privacy[key] as boolean;
+    // 行锁串行化读-改-写：仅覆盖 pushEnabled/privacy，notes/chatBackgrounds/coupleCovers/
+    // nudgeSuffix 等兄弟键原样保留；避免与其它 settings 端点并发时互相丢更新。
+    let nextPushEnabled = DEFAULT_SETTINGS.pushEnabled;
+    let nextPrivacy: Record<string, unknown> = { ...DEFAULT_SETTINGS.privacy };
+    await this.prisma.updateUserSettings(userId, (raw) => {
+      const shaped = this.mergeWithDefaults(raw);
+      nextPushEnabled = typeof dto.pushEnabled === 'boolean' ? dto.pushEnabled : shaped.pushEnabled;
+      nextPrivacy = { ...shaped.privacy };
+      if (dto.privacy && typeof dto.privacy === 'object') {
+        for (const key of PRIVACY_KEYS) {
+          if (typeof dto.privacy[key] === 'boolean') {
+            nextPrivacy[key] = dto.privacy[key] as boolean;
+          }
         }
       }
-    }
-
-    // 写库时基于原始 settings 展开，仅覆盖 pushEnabled/privacy，其余兄弟键原样保留
-    const persisted = { ...raw, pushEnabled: nextPushEnabled, privacy: nextPrivacy };
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { settings: persisted },
+      return { ...raw, pushEnabled: nextPushEnabled, privacy: nextPrivacy };
     });
     // mergeWithDefaults 仅用于塑形客户端响应，不作为写库的值
     return { pushEnabled: nextPushEnabled, privacy: nextPrivacy };
@@ -304,14 +292,14 @@ export class UsersService {
   // ─── 备注（#3）：本人对某用户的备注存入 settings.notes ───────────────
   async setNote(userId: string, targetUserId: string, note: string) {
     if (!targetUserId) throw new BadRequestException('Missing targetUserId');
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { settings: true } });
-    const settings: any = (user?.settings as any) || {};
-    const notes = settings.notes || {};
     const trimmed = (note || '').trim().slice(0, 30);
-    if (trimmed) notes[targetUserId] = trimmed;
-    else delete notes[targetUserId];
-    settings.notes = notes;
-    await this.prisma.user.update({ where: { id: userId }, data: { settings } });
+    // 行锁串行化：只改 settings.notes[targetUserId]，保留其它兄弟键，避免并发丢更新
+    await this.prisma.updateUserSettings(userId, (settings) => {
+      const notes = { ...(settings.notes || {}) };
+      if (trimmed) notes[targetUserId] = trimmed;
+      else delete notes[targetUserId];
+      return { ...settings, notes };
+    });
     return { targetUserId, note: trimmed || null };
   }
 
