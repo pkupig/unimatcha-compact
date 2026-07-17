@@ -4,13 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AdminRole, Prisma } from '@prisma/client';
+import {
+  AdminRole,
+  Prisma,
+  PublicSubmissionStatus,
+  PublicSubmissionType,
+} from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
 import { SquareService } from '../square/square.service';
 import { CreateOfficialPostDto } from '../square/dto/square.dto';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
+import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 
 // 当前登录后管（来自 admin-jwt 策略写入的 req.user）
 type CurrentAdmin = {
@@ -155,7 +161,7 @@ export class AdminService {
 
     // 广告商业化汇总：平台 30 天广告流水（毛收入）= Σ AdDailyStat.spendCents
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-    const [totalSchools, adRevenueAgg, pendingWithdrawals, pendingPlatformReview] =
+    const [totalSchools, adRevenueAgg, pendingWithdrawals, pendingPlatformReview, pendingSubmissions] =
       await Promise.all([
         this.prisma.school.count(),
         this.prisma.adDailyStat.aggregate({
@@ -164,6 +170,10 @@ export class AdminService {
         }),
         this.prisma.withdrawalRequest.count({ where: { status: 'PENDING' } }),
         this.prisma.adCampaign.count({ where: { status: 'PENDING_PLATFORM_REVIEW' } }),
+        // 官网待处理赞助申请（ADMIN-REDESIGN §5.6）
+        this.prisma.publicSubmission.count({
+          where: { type: PublicSubmissionType.SPONSOR, status: PublicSubmissionStatus.PENDING },
+        }),
       ]);
 
     return {
@@ -173,6 +183,7 @@ export class AdminService {
       adRevenue30dCents: adRevenueAgg._sum.spendCents ?? 0,
       pendingWithdrawals,
       pendingPlatformReview,
+      pendingSubmissions,
     };
   }
 
@@ -612,6 +623,184 @@ export class AdminService {
     const report = await this.prisma.report.findUnique({ where: { id } });
     if (!report) throw new NotFoundException('举报记录不存在');
     return this.prisma.report.update({ where: { id }, data: { status } });
+  }
+
+  // ─── 官网提交联动（PublicSubmission，ADMIN-REDESIGN §5.6，SUPER/TEAM）──
+  // 列表：newest first；search 模糊匹配 email/organization；
+  // convertedAdmin 与 PublicSubmission 无外键关系 → 手动二次查询拼装
+  async listSubmissions(params: {
+    type?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Number(params.page) > 0 ? Number(params.page) : 1;
+    const limit = Number(params.limit) > 0 ? Number(params.limit) : 20;
+
+    const where: Prisma.PublicSubmissionWhereInput = {};
+    if (params.type) {
+      if (!Object.values(PublicSubmissionType).includes(params.type as PublicSubmissionType)) {
+        throw new BadRequestException('type 参数无效（WAITLIST / SPONSOR）');
+      }
+      where.type = params.type as PublicSubmissionType;
+    }
+    if (params.status) {
+      if (
+        !Object.values(PublicSubmissionStatus).includes(params.status as PublicSubmissionStatus)
+      ) {
+        throw new BadRequestException('status 参数无效（PENDING / CONTACTED / APPROVED / REJECTED）');
+      }
+      where.status = params.status as PublicSubmissionStatus;
+    }
+    if (params.search) {
+      where.OR = [
+        { email: { contains: params.search, mode: 'insensitive' } },
+        { organization: { contains: params.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.publicSubmission.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.publicSubmission.count({ where }),
+    ]);
+
+    const convertedIds = [
+      ...new Set(rows.map((r) => r.convertedAdminId).filter((v): v is string => !!v)),
+    ];
+    const convertedAdmins = convertedIds.length
+      ? await this.prisma.adminUser.findMany({
+          where: { id: { in: convertedIds } },
+          select: { id: true, name: true, role: true, isActive: true },
+        })
+      : [];
+    const adminById = new Map(convertedAdmins.map((a) => [a.id, a]));
+
+    const items = rows.map((r) => ({
+      ...r,
+      convertedAdmin: (r.convertedAdminId && adminById.get(r.convertedAdminId)) || null,
+    }));
+
+    return { items, total, page, limit };
+  }
+
+  // 状态流转（CONTACTED / REJECTED / 回 PENDING）：记处理人与时间；
+  // note 缺省 → 保留原备注，传值 → 覆盖。APPROVED 已被 DTO 层拒绝（只能经 convert）。
+  async updateSubmission(actor: CurrentAdmin, id: string, dto: UpdateSubmissionDto) {
+    const submission = await this.prisma.publicSubmission.findUnique({ where: { id } });
+    if (!submission) throw new NotFoundException('提交记录不存在');
+
+    return this.prisma.publicSubmission.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        handledByAdminId: actor.id,
+        handledAt: new Date(),
+        ...(dto.note !== undefined ? { handleNote: dto.note } : {}),
+      },
+    });
+  }
+
+  // 一键开通后台账号：事务内（可选建校 →）建 AdminUser → 提交记录置 APPROVED。
+  // 校验规则与 createAdminUser 同源（School.id 必须存在 / 学校名唯一 / bcrypt 12）。
+  async convertSubmission(actor: CurrentAdmin, id: string, dto: ConvertSubmissionDto) {
+    const submission = await this.prisma.publicSubmission.findUnique({ where: { id } });
+    if (!submission) throw new NotFoundException('提交记录不存在');
+    if (submission.status === PublicSubmissionStatus.APPROVED) {
+      throw new BadRequestException('该申请已开通过账号');
+    }
+
+    const accountRole =
+      dto.accountRole === 'STUDENT_UNION' ? AdminRole.STUDENT_UNION : AdminRole.SPONSOR;
+
+    // 空串一律按缺省处理（前端表单可能提交 ''）
+    const schoolId = dto.schoolId?.trim() || undefined;
+    const newSchoolName = dto.newSchoolName?.trim() || undefined;
+    const organizationName = dto.organizationName?.trim() || undefined;
+
+    let sourcedBySchoolId: string | null = null;
+    if (accountRole === AdminRole.STUDENT_UNION) {
+      // 现有学校 / 新建学校 二选一
+      if (!!schoolId === !!newSchoolName) {
+        throw new BadRequestException('学生会账号需在「现有学校 / 新建学校」中二选一');
+      }
+      if (schoolId) await this.assertSchoolExists(schoolId, '绑定的学校');
+      if (newSchoolName) {
+        const dup = await this.prisma.school.findUnique({ where: { name: newSchoolName } });
+        if (dup) throw new BadRequestException('该学校名已存在');
+      }
+    } else {
+      if (!organizationName) throw new BadRequestException('商家账号必须填写组织名');
+      if (schoolId) {
+        await this.assertSchoolExists(schoolId, '来源学校');
+        sourcedBySchoolId = schoolId;
+      }
+    }
+
+    // 登录邮箱：缺省用申请邮箱；与现有后管账号冲突则拒绝
+    const email = dto.email ?? submission.email;
+    const existing = await this.prisma.adminUser.findUnique({ where: { email } });
+    if (existing) throw new BadRequestException('该邮箱已有后台账号，请换一个登录邮箱');
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 新建学校用 schema 默认分成（platform 1000 / selfSourced 3000 bps）
+      let school: { id: string; name: string } | null = null;
+      if (accountRole === AdminRole.STUDENT_UNION) {
+        school = newSchoolName
+          ? await tx.school.create({
+              data: { name: newSchoolName, city: dto.newSchoolCity?.trim() || null },
+              select: { id: true, name: true },
+            })
+          : await tx.school.findUniqueOrThrow({
+              where: { id: schoolId! },
+              select: { id: true, name: true },
+            });
+      } else if (sourcedBySchoolId) {
+        school = await tx.school.findUniqueOrThrow({
+          where: { id: sourcedBySchoolId },
+          select: { id: true, name: true },
+        });
+      }
+
+      const created = await tx.adminUser.create({
+        data: {
+          email,
+          passwordHash,
+          name: dto.name,
+          role: accountRole,
+          schoolId: accountRole === AdminRole.STUDENT_UNION ? school!.id : null,
+          organizationName: accountRole === AdminRole.SPONSOR ? organizationName! : null,
+          sourcedBySchoolId,
+          contactName: dto.contactName?.trim() || null,
+          contactPhone: dto.contactPhone?.trim() || null,
+          isActive: true,
+          isSuperAdmin: false,
+        },
+        select: { id: true, email: true, name: true, role: true, schoolId: true, organizationName: true },
+      });
+
+      await tx.publicSubmission.update({
+        where: { id },
+        data: {
+          status: PublicSubmissionStatus.APPROVED,
+          convertedAdminId: created.id,
+          handledByAdminId: actor.id,
+          handledAt: new Date(),
+        },
+      });
+
+      return { admin: created, school };
+    });
+
+    // initialPassword 仅此响应一次性回显（前端凭据卡），不落库明文
+    return { ...result, initialPassword: dto.password };
   }
 
   // ─── System Config ─────────────────────────────────────────

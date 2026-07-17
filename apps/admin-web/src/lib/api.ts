@@ -465,3 +465,65 @@ export const getAdminReports = (params?: { status?: string; page?: number; limit
 /** open → resolved（幂等，可回退 open） */
 export const updateAdminReport = (id: string, data: { status: 'resolved' | 'open' }) =>
   api.patch(`/admin/reports/${id}`, data);
+
+/* ═══════════════════════════════════════════════════════════════
+ * Submissions（spec §5.6 官网提交联动，SUPER/TEAM only）
+ * 官网 POST /public/waitlist、/public/sponsor-application 落库 PublicSubmission
+ * ═══════════════════════════════════════════════════════════════ */
+
+export type PublicSubmissionType = 'SPONSOR' | 'WAITLIST';
+/** APPROVED 只能经 convert 达成（PATCH 传 APPROVED → 400） */
+export type PublicSubmissionStatus = 'PENDING' | 'CONTACTED' | 'APPROVED' | 'REJECTED';
+
+export interface AdminSubmission {
+  id: string;
+  type: PublicSubmissionType;
+  email: string;
+  /** WAITLIST 无组织字段 */
+  organization?: string | null;
+  message?: string | null;
+  /** 提交时官网语言（zh/en） */
+  locale?: string | null;
+  createdAt: string;
+  status: PublicSubmissionStatus;
+  handledByAdminId?: string | null;
+  handledAt?: string | null;
+  handleNote?: string | null;
+  /** 一键开通创建的后台账号 id */
+  convertedAdminId?: string | null;
+  convertedAdmin?: { id: string; name: string; role: string; isActive?: boolean } | null;
+}
+
+/** 列表（newest first）→ {items, total, page, limit}；search 模糊匹配 email/organization */
+export const getSubmissions = (params?: {
+  type?: PublicSubmissionType | string;
+  status?: PublicSubmissionStatus | string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) => api.get('/admin/submissions', { params });
+
+/** 状态流转（CONTACTED/REJECTED/回 PENDING），记 handledBy/handledAt/handleNote */
+export const updateSubmission = (
+  id: string,
+  data: { status: 'PENDING' | 'CONTACTED' | 'REJECTED'; note?: string },
+) => api.patch(`/admin/submissions/${id}`, data);
+
+/** 一键开通的提交体（STUDENT_UNION：schoolId / newSchoolName 二选一；SPONSOR：organizationName 必填） */
+export interface ConvertSubmissionInput {
+  accountRole: 'STUDENT_UNION' | 'SPONSOR';
+  /** 缺省用申请邮箱 */
+  email?: string;
+  name: string;
+  password: string;
+  schoolId?: string;
+  newSchoolName?: string;
+  newSchoolCity?: string;
+  organizationName?: string;
+  contactName?: string;
+  contactPhone?: string;
+}
+
+/** 一键开通 → {admin, school|null, initialPassword}（密码仅此一次回传） */
+export const convertSubmission = (id: string, body: ConvertSubmissionInput) =>
+  api.post(`/admin/submissions/${id}/convert`, body);

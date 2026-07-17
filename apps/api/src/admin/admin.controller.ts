@@ -20,6 +20,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
+import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 import { CreateOfficialPostDto } from '../square/dto/square.dto';
 
 // 当前登录后管（来自 admin-jwt 策略写入的 req.user）
@@ -253,6 +254,47 @@ export class AdminController {
   @ApiOperation({ summary: '更新举报状态（open → resolved，幂等）' })
   updateReport(@Param('id') id: string, @Body() dto: UpdateReportStatusDto) {
     return this.adminService.updateReportStatus(id, dto.status);
+  }
+
+  // ─── 官网提交联动（PublicSubmission，SUPER/TEAM，§5.6）──────────
+  @Get('submissions')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM)
+  @ApiOperation({ summary: '官网提交列表（候补名单/赞助申请，newest first，含 convertedAdmin）' })
+  @ApiQuery({ name: 'type', required: false, description: 'WAITLIST / SPONSOR' })
+  @ApiQuery({ name: 'status', required: false, description: 'PENDING / CONTACTED / APPROVED / REJECTED' })
+  @ApiQuery({ name: 'search', required: false, description: '模糊匹配 email / organization' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  listSubmissions(
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.listSubmissions({ type, status, search, page, limit });
+  }
+
+  @Patch('submissions/:id')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM)
+  @ApiOperation({ summary: '官网提交状态流转（CONTACTED/REJECTED/回 PENDING；APPROVED 只能经开通操作）' })
+  updateSubmission(
+    @CurrentUser() admin: CurrentAdmin,
+    @Param('id') id: string,
+    @Body() dto: UpdateSubmissionDto,
+  ) {
+    return this.adminService.updateSubmission(admin, id, dto);
+  }
+
+  @Post('submissions/:id/convert')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM)
+  @ApiOperation({ summary: '一键开通后台账号（学生会/商家；事务内可新建学校；密码一次性回显）' })
+  convertSubmission(
+    @CurrentUser() admin: CurrentAdmin,
+    @Param('id') id: string,
+    @Body() dto: ConvertSubmissionDto,
+  ) {
+    return this.adminService.convertSubmission(admin, id, dto);
   }
 
   // ─── System Config（系统配置为 SUPER 专属，ADMIN-REDESIGN §1）─────

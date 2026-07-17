@@ -259,6 +259,27 @@ src/components/layout/Sidebar.tsx  // 按角色渲染导航
 - 操作：下架（ConfirmDialog + 原因必填，danger）/ 恢复 / 查看详情（Modal 全文+图片）/ 清除举报。
 - H5 端无改动（举报入口已存在）。
 
+## 5.6 官网提交联动（追加需求 2026-07-16）
+
+官网（apps/website）已有两类公开提交落库到 `PublicSubmission`（POST /public/waitlist、POST /public/sponsor-application，(type,email) 幂等 upsert）。本节把它们接进团队后台：
+
+**模型增量**（已加）：`status PublicSubmissionStatus @default(PENDING)`（PENDING 待处理 / CONTACTED 已联系 / APPROVED 已开通 / REJECTED 已关闭）、`handledByAdminId/handledAt/handleNote`、`convertedAdminId`（一键开通创建的后台账号 id）、`updatedAt`。
+
+### 后端（admin 模块，SUPER/TEAM only）
+| 路由 | 说明 |
+|---|---|
+| GET /admin/submissions?type&status&search&page&limit | 列表，newest first；search 模糊匹配 email/organization；返回 {items,total,page,limit}，item 含全部字段 + convertedAdmin {id,name,role} join |
+| PATCH /admin/submissions/:id {status, note?} | 状态流转（CONTACTED/REJECTED/回 PENDING），记 handledBy/handledAt/handleNote；APPROVED 只能经 convert 达成（PATCH 传 APPROVED → 400） |
+| POST /admin/submissions/:id/convert | 一键开通，body：`{accountRole: 'STUDENT_UNION'\|'SPONSOR', email?, name, password, schoolId?, newSchoolName?, newSchoolCity?, organizationName?, contactName?, contactPhone?}`。STUDENT_UNION：schoolId 或 newSchoolName 二选一（新建 School）；SPONSOR：organizationName 必填、schoolId 可选作为 sourcedBySchoolId。email 缺省用申请邮箱；与现有 AdminUser 冲突 → 400『该邮箱已有后台账号』。事务内：创建（可选）School → 创建 AdminUser（bcrypt 12）→ 提交记录置 APPROVED + convertedAdminId + handledBy。响应回传 {admin, school?, initialPassword}（一次性展示） |
+| GET /admin/dashboard（TEAM payload 增量） | + pendingSubmissions（SPONSOR 且 PENDING 计数） |
+
+### 前端（admin-web，TEAM 导航「官网提交」/submissions，放在「财务」之后）
+- Tabs：赞助申请（SPONSOR）/ 候补名单（WAITLIST）。状态筛选 + 邮箱/组织搜索。
+- 列：组织 / 邮箱(mono) / 留言（截断+查看 Modal）/ 提交时间 / 状态 Badge（待处理 ink / 已联系 outline / 已开通 neon / 已关闭 pink）/ 处理信息（备注+时间）/ 操作。
+- 操作（赞助申请）：标记已联系（Modal 可填备注）、开通账号（Modal：账号类型单选 学生会/商家 → 学生会：学校下拉「现有学校 + 新建…」；商家：组织名/联系人/电话 + 可选来源学校；邮箱默认申请邮箱可改；密码输入 + 「随机生成」按钮）→ 成功后展示一次性凭据卡（邮箱/密码 + 复制按钮 + 提醒线下交付）、关闭（原因备注）。候补名单只读 + 可标记已联系/关闭。
+- 已开通的行展示 convertedAdmin 名字并链接 /accounts。
+- 团队总览新增 ActionChip「待处理赞助申请」→ /submissions。
+
 ## 6. H5 改造（apps/h5/src/modules/square.js）
 
 - 进入推荐流时并行 `GET /ads/feed?school=<我的学校>&limit=3`；广告卡以 bentoLargeCard 形态渲染（Sponsored 霓虹绿徽章 + advertiserName），插入规则：首屏第 3 个卡位 1 个，此后每 8 个小卡插 1 个，广告轮换不重复。

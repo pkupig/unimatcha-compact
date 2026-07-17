@@ -140,7 +140,7 @@ function TeamDashboard({ stats, overview }: { stats: any; overview: AdsOverview 
       </div>
 
       {/* 待办 chips */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <ActionChip
           href="/finance"
           label="待审核提现"
@@ -152,6 +152,12 @@ function TeamDashboard({ stats, overview }: { stats: any; overview: AdsOverview 
           label="平台待审广告"
           caption="Pending Review"
           count={pendingPlatformReview}
+        />
+        <ActionChip
+          href="/submissions"
+          label="待处理赞助申请"
+          caption="Sponsor Applications"
+          count={stats?.pendingSubmissions ?? 0}
         />
       </div>
 
