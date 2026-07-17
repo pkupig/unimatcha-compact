@@ -222,11 +222,11 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 .ph-placeholder .material-symbols-rounded{font-size:42px;color:var(--neon-dark)}
 .ph-placeholder span:last-child{font-family:var(--mono);font-size:11px;letter-spacing:.04em;line-height:1.55;color:var(--muted)}
 /* in-app UI mockups inside .screen —— 按真实 H5 浅色界面复刻，多页可滑动（可整体替换为真实截图/录屏 .ph-media） */
-.aui{position:relative;background:#f9f9f9;color:#1b1b1b;font-size:12px;line-height:1.5;user-select:none}
+.aui{position:relative;background:#f9f9f9;color:#1b1b1b;font-size:12px;line-height:1.5;user-select:none;overflow:hidden}
 .aui,.aui *{box-sizing:border-box}
-.aui-track{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain;scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab}
-.aui-track::-webkit-scrollbar{display:none}
-.aui-track.dragging{cursor:grabbing;scroll-snap-type:none}
+/* transform 轮播轨道：不用原生滚动（scroll-snap 与拖拽/自动翻页在真实浏览器里互相打架） */
+.aui-track{display:flex;height:100%;transition:transform .55s var(--ease);will-change:transform;cursor:grab;touch-action:pan-y}
+.aui-track.dragging{cursor:grabbing;transition:none}
 .aui-page{flex:0 0 100%;min-width:100%;display:flex;flex-direction:column;background:#f9f9f9;overflow:hidden}
 .aui-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:24px 12px 8px}
 .aui-top .material-symbols-rounded{font-size:19px;color:#1b1b1b}
@@ -1268,7 +1268,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
           <a href="about.html" data-i18n="nav.about">关于我们</a>
           <a href="privacy.html" data-i18n="foot.privacy">隐私协议</a>
           <a href="terms.html" data-i18n="foot.terms">用户协议</a>
-          <a href="mailto:hello@unimatcha.ai" data-i18n="foot.contact">联系我们</a>
+          <a href="mailto:contact@unimatcha.ai" data-i18n="foot.contact">联系我们</a>
         </div>
       </div>
     </div>
@@ -1395,13 +1395,14 @@ const I18N={
     'foot.desc':'Long-term matching for university students · v2.0. Every Friday 17:00 we reveal each round fairly and with focus.','foot.c1':'Product','foot.c2':'Platform','foot.c3':'About','foot.h5':'H5 Mobile','foot.ios':'iOS App','foot.admin':'Admin','foot.privacy':'Privacy','foot.terms':'Terms','foot.contact':'Contact us','faq.more':'Browse all questions in the Help Center','foot.copy':'© 2026 UNIMATCHA · Long-term matching protocol','foot.tag':'Built for people who are serious · ◆ #CCFF00',
   }
 };
-let LANG=localStorage.getItem('um_lang')||'zh';
+let LANG=localStorage.getItem('um_lang')||'en';
 function applyLang(l){
   LANG=l;document.documentElement.lang=l;localStorage.setItem('um_lang',l);
   document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(I18N[l][k]!=null)el.textContent=I18N[l][k];});
   document.querySelectorAll('[data-i18n-html]').forEach(el=>{const k=el.getAttribute('data-i18n-html');if(I18N[l][k]!=null)el.innerHTML=I18N[l][k];});
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(I18N[l][k]!=null)el.placeholder=I18N[l][k];});
   document.querySelectorAll('[data-zh]').forEach(el=>{el.textContent=l==='zh'?el.getAttribute('data-zh'):el.getAttribute('data-en');});
+  document.title=l==='zh'?'Unimatcha 抹茶 — 大学生校园生活平台 · 认真匹配 × 校园墙':'Unimatcha — Campus life for students · Serious matching × Campus Wall';
   document.getElementById('langLabel').textContent=(l==='zh'?'EN':'中');
   buildReviews();
 }
@@ -1581,7 +1582,7 @@ const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1'
       form.hidden=true;ok.hidden=false;
     }catch(_){
       btn.disabled=false;
-      window.location.href='mailto:hello@unimatcha.ai?subject='+encodeURIComponent(LANG==='zh'?'加入候补名单':'Join the waitlist')+'&body='+encodeURIComponent(email);
+      window.location.href='mailto:contact@unimatcha.ai?subject='+encodeURIComponent(LANG==='zh'?'加入候补名单':'Join the waitlist')+'&body='+encodeURIComponent(email);
     }
   });
 })();
@@ -1773,27 +1774,30 @@ const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1'
 /* ===================== init ===================== */
 applyLang(LANG);
 
-/* ===================== phone mockup carousels ===================== */
+/* ===================== phone mockup carousels（transform 轮播） ===================== */
 document.querySelectorAll('.screen.aui').forEach(screen=>{
   const track=screen.querySelector('.aui-track');
   const dots=[...screen.querySelectorAll('.aui-dots i')];
   if(!track||!dots.length)return;
   const pages=track.children.length;
-  let idx=0,hold=false;
-  const sync=()=>{const i=Math.round(track.scrollLeft/track.clientWidth);if(i!==idx){idx=i;dots.forEach((d,k)=>d.classList.toggle('on',k===idx));}};
-  const go=n=>{idx=(n+pages)%pages;track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});dots.forEach((d,k)=>d.classList.toggle('on',k===idx));};
-  track.addEventListener('scroll',()=>requestAnimationFrame(sync),{passive:true});
-  dots.forEach((d,k)=>d.addEventListener('click',()=>{hold=true;go(k);setTimeout(()=>hold=false,4000);}));
-  /* 桌面拖拽滑动 */
-  let sx=0,sl=0,drag=false;
-  track.addEventListener('pointerdown',e=>{drag=true;hold=true;sx=e.clientX;sl=track.scrollLeft;track.classList.add('dragging');});
-  track.addEventListener('pointermove',e=>{if(drag)track.scrollLeft=sl-(e.clientX-sx);});
-  const end=()=>{if(!drag)return;drag=false;track.classList.remove('dragging');go(Math.max(0,Math.min(pages-1,Math.round(track.scrollLeft/track.clientWidth))));setTimeout(()=>hold=false,4000);};
-  track.addEventListener('pointerup',end);track.addEventListener('pointerleave',end);
-  track.addEventListener('touchstart',()=>{hold=true;},{passive:true});
-  track.addEventListener('touchend',()=>{setTimeout(()=>hold=false,4000);},{passive:true});
+  let idx=0,hold=false,holdTimer=null;
+  const render=()=>{track.style.transform='translateX('+(-idx*100)+'%)';dots.forEach((d,k)=>d.classList.toggle('on',k===idx));};
+  const go=n=>{idx=(n+pages)%pages;render();};
+  const pause=ms=>{hold=true;clearTimeout(holdTimer);holdTimer=setTimeout(()=>hold=false,ms||5000);};
+  dots.forEach((d,k)=>d.addEventListener('click',()=>{pause();go(k);}));
+  /* 拖拽 / 触屏滑动翻页：跟手，松手按 18% 阈值决定翻页或回弹（touch-action:pan-y 不挡竖向滚动） */
+  let sx=0,dx=0,drag=false,w=1;
+  track.addEventListener('pointerdown',e=>{drag=true;sx=e.clientX;dx=0;w=track.clientWidth||1;track.classList.add('dragging');pause();try{track.setPointerCapture(e.pointerId);}catch(_){}});
+  track.addEventListener('pointermove',e=>{if(!drag)return;dx=e.clientX-sx;track.style.transform='translateX('+(-idx*w+dx)+'px)';});
+  const end=()=>{if(!drag)return;drag=false;track.classList.remove('dragging');
+    if(Math.abs(dx)>w*0.18&&!(idx===0&&dx>0)&&!(idx===pages-1&&dx<0)){go(idx+(dx<0?1:-1));}else{render();}
+    pause();};
+  track.addEventListener('pointerup',end);track.addEventListener('pointercancel',end);track.addEventListener('lostpointercapture',end);
+  screen.addEventListener('mouseenter',()=>{hold=true;clearTimeout(holdTimer);});
+  screen.addEventListener('mouseleave',()=>{hold=false;});
   /* 自动轮播（页面可见且未被把玩时） */
-  setInterval(()=>{if(!hold&&document.visibilityState==='visible')go(idx+1);},3800);
+  setInterval(()=>{if(!hold&&document.visibilityState==='visible')go(idx+1);},4200);
+  render();
 });
 </script>
 <script src="chat.js"></script>

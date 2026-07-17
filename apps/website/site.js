@@ -1,6 +1,6 @@
 /* Unimatcha 官网子页共享脚本：语言切换(um_lang，与 index 共用)、汉堡菜单、reveal、FAQ 手风琴 */
 (function(){
-  var LANG = localStorage.getItem('um_lang') || 'zh';
+  var LANG = localStorage.getItem('um_lang') || 'en';
   var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ? 'http://localhost:3001/api/v1' : 'https://api.unimatcha.ai/api/v1';
 
@@ -74,7 +74,7 @@
       document.getElementById('sponsorOk').hidden = false;
     }).catch(function(){
       btn.disabled = false;
-      location.href = 'mailto:hello@unimatcha.ai?subject=' +
+      location.href = 'mailto:contact@unimatcha.ai?subject=' +
         encodeURIComponent(LANG === 'zh' ? '赞助申请 · ' + org : 'Sponsorship Application · ' + org) +
         '&body=' + encodeURIComponent(msg + '\n\n' + email);
     });
