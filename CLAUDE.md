@@ -38,6 +38,9 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 
 ## 每日日志
 
+### 2026-07-18
+- 完成（上线后官网三修）：①首访默认语言 zh→en（index/site.js，index 标题随语言切换补齐）；②手机演示翻页从 scroll-snap 重写为 transform 轮播（拖拽/触屏跟手、18% 阈值翻页或回弹、touch-action:pan-y 不挡竖向滚动、悬停暂停自动翻页）——原生滚动+snap 在真实浏览器里与拖拽/自动翻页互相打架；③全站邮箱 hello@→contact@unimatcha.ai（含 chat.js 知识库 11 处）。本地+线上双验证：新 origin 首访英文/英文标题、模拟拖拽翻页、线上活数据 ROUND 001（CORS 白名单工作正常）；website 容器已重建上线（952163c）。
+
 ### 2026-07-17
 - 完成（生产部署到 DigitalOcean，unimatcha.ai）：①域名确认为 **unimatcha.ai**（Spaceship），全局替换 .com→.ai 约 20 处（官网 API 地址/子域链接/邮箱/OG/sitemap/Caddyfile/DEPLOY/admin 占位符）并推 unipia；②七轮改动整理为 6 个提交推送（api 公开接口/admin 联动/官网 v2/部署配置/日志/域名切换）；③新建 DEPLOY.md 部署手册（DNS 5 条 A 记录、.env 模板、验证清单、常见问题）；compose 补 ALLOWED_ORIGINS 接线；④服务器 root@209.97.179.143（DO 伦敦 2vCPU/4GB，known_hosts 里找到的既有机器，本机 ed25519 免密直连）：unipia 私仓服务器拉不了 → 改为**本地 git push server main 直推服务器裸仓库** /opt/unimatcha.git + post-receive 自动检出 /opt/unimatcha；生产 .env 服务器上随机生成（密钥/管理员密码/MATCH_API_KEY，SEED_DEMO=false）；⑤修一个真构建 bug：website 镜像 nginx.conf 被 .dockerignore 排除导致 COPY 失败（b0df25a：保留上下文、构建后从网页根删除）；⑥八容器全 Up：api 日志 prisma push+seed+Nest started，容器网内 site-stats 返回生产真实数据（全 0、下轮 2026-07-24 五 17:00 沪时），website 出 HTML，postgres/redis healthy。**唯一待办：用户在 Spaceship 加 5 条 A 记录 → 209.97.179.143**（@/www/app/admin/api）；Caddy 已在自动重试签证书（最长重试 30 天），DNS 生效即上线。
 - 完成（🚀 正式上线，全站验证通过）：DNS 走了一段弯路——用户先在 Spaceship 面板加记录但域名 NS 还挂在 launch1/2.spaceship.net 停放服务器（TLD 还有旧 DS 记录导致公共 DNS SERVFAIL），诊断后用户切 NS + 关 DNSSEC；最终 **NS 托管在 DigitalOcean（ns1-3.digitalocean.com）而非 Spaceship DNS**，记录在 DO 控制面板管理（主域自动建，www/app/admin/api 四条用户手动加）。验证清单全绿：五域名解析 →209.97.179.143、五 HTTPS 端点全 200（Caddy 证书自动签发，重启一次触发即时补签）、site-stats 生产真实数据、官网静态资源 200、**公网合作表单提交→public_submissions 落库（PENDING，后台工作流就绪）**、admin@unimatcha.ai SUPER 登录 OK（凭据仅在服务器端测试）、八容器 Up。测试数据 launch.test@unimatcha.ai 留在库中可在后台「官网提交」页查看。
