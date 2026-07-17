@@ -56,6 +56,8 @@ services:
       AI_PROVIDER_URL: ${AI_PROVIDER_URL:-http://matching-ml:8100/match}
       AI_PROVIDER_API_KEY: ${MATCH_API_KEY:-}
       SEED_DEMO: ${SEED_DEMO:-false}
+      # CORS 白名单（逗号分隔）；不设则放开（开发用）。生产设官网+H5 域名。
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
     # Behind Caddy: reachable on the internal network + via api.<domain>.
     # (was "3001:3001" — switch back to `ports` if you need direct host access.)
     expose:
@@ -121,15 +123,16 @@ services:
       - api
     restart: unless-stopped
 
-  web:
+  website:
     build:
-      context: ./apps/web
+      context: ./apps/website
       dockerfile: Dockerfile
-    image: unimatcha-web
-    container_name: unimatcha_web
-    # Marketing site, behind Caddy → root domain (unimatcha.com).
+    image: unimatcha-website
+    container_name: unimatcha_website
+    # Marketing site（apps/website 静态站，官网唯一真源；apps/web 为已弃用的旧版 Next 官网，不再部署）。
+    # Behind Caddy → root domain (unimatcha.com).
     expose:
-      - "3003"
+      - "80"
     restart: unless-stopped
 
   caddy:
@@ -144,7 +147,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - web
+      - website
       - api
       - admin-web
       - h5

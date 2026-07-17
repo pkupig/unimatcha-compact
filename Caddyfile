@@ -5,7 +5,7 @@
 # DNS: add A records for @, www, app, admin, api → your DigitalOcean server IP.
 
 unimatcha.com, www.unimatcha.com {
-	reverse_proxy web:3003
+	reverse_proxy website:80
 }
 
 app.unimatcha.com {
