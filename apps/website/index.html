@@ -476,8 +476,8 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 @media(max-width:520px){.logos{grid-template-columns:repeat(2,1fr)}}
 
 /* ---------- campus wall (dark) ---------- */
-#wall{position:relative;background:#101311;isolation:isolate;overflow:hidden}
-#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.4px);background-size:26px 26px;background-position:-13px -13px;-webkit-mask-image:radial-gradient(120% 90% at 50% 0%,#000 35%,transparent 88%);mask-image:radial-gradient(120% 90% at 50% 0%,#000 35%,transparent 88%);opacity:.6}
+#wall{position:relative;background:#232624;isolation:isolate;overflow:hidden}
+#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(120% 95% at 50% 0%,#000 45%,transparent 95%);mask-image:radial-gradient(120% 95% at 50% 0%,#000 45%,transparent 95%)}
 #wall::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(204,255,0,.022),transparent 30%,transparent 75%,rgba(0,0,0,.25))}
 #wall .wrap{position:relative;z-index:1}
 #wall .eyebrow{color:#9aa39a}
@@ -947,7 +947,6 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
         </div>
       </div>
       <div class="show-phone reveal l">
-        <canvas class="ldr" data-loader="rings" aria-hidden="true" style="top:50%;left:50%;width:580px;height:580px;transform:translate(-50%,-50%);z-index:0;opacity:.4"></canvas>
         <div class="phone">
           <div class="screen aui" aria-label="应用界面：广场（可滑动多页）">
             <!-- 按真实 H5 复刻；可整体替换为真实截图/录屏：<img class="ph-media" src="截图.png" alt=""> 或 <video class="ph-media" src="录屏.mp4" autoplay muted loop playsinline></video> -->
