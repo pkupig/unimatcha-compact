@@ -167,7 +167,7 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 @media(max-width:760px){#ga-bg{display:none}}
 /* matching section: dotted-grid background (::after, so it coexists with the ::before glow) */
 #features{position:relative}
-#features::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
+
 #features .wrap{position:relative;z-index:1}
 .scrollcue .ln{width:46px;height:1px;background:var(--ink);opacity:.3;position:relative;overflow:hidden}
 .scrollcue .ln::after{content:"";position:absolute;left:-46px;top:0;width:46px;height:100%;background:var(--neon-dark);animation:slide 2s infinite}
@@ -476,8 +476,7 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 @media(max-width:520px){.logos{grid-template-columns:repeat(2,1fr)}}
 
 /* ---------- campus wall（与 #features 同底：米白 + 点阵网格） ---------- */
-#wall{position:relative;background:var(--ivory);isolation:isolate;overflow:hidden}
-#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
+#wall{position:relative;background:transparent;isolation:isolate}
 #wall .wrap{position:relative;z-index:1}
 #wall .show-text h2 .accent,#wall .show-text h2 em{font-style:normal;background:linear-gradient(transparent 62%,var(--neon) 62%)}
 /* === Campus Wall right-column theme cards (Aleo-style, dark) — scoped to #wall === */
@@ -548,6 +547,27 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
   #wall .wall-page-title{font-size:20px}
 }
 #wall .phone{width:340px;box-shadow:0 40px 74px -34px rgba(10,10,10,.62)}
+/* ---------- 钉住滚动：固定 100vh 背景视口，两屏互斥切换 ---------- */
+#showpin{position:relative;height:240vh}
+.showpin-viewport{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--ivory)}
+.showpin-viewport::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
+#showpin .show-stage{position:absolute;inset:0;z-index:1;display:flex;align-items:center;padding:64px 0 24px;opacity:0;visibility:hidden;transform:translateY(30px);transition:opacity .5s var(--ease),transform .5s var(--ease),visibility 0s linear .5s}
+#showpin .show-stage.is-on{opacity:1;visibility:visible;transform:none;transition:opacity .5s var(--ease),transform .5s var(--ease)}
+#showpin .show-stage .wrap{width:100%}
+@media(min-width:921px) and (max-height:900px){#showpin .phone{width:296px}}
+@media(min-width:921px) and (max-height:790px){#showpin .phone{width:258px}}
+@media(min-width:921px) and (max-height:820px){
+  #showpin #wall .wall-topics{display:none}
+  #showpin #wall .wall-lead{display:none}
+  #showpin .wall-panel{min-height:0;padding:20px 24px}
+  #showpin .wall-page-desc{margin-top:10px;font-size:15px;line-height:1.7}
+  #showpin .wall-points{margin-top:14px;gap:8px}
+}
+@media(max-width:920px){
+  #showpin{height:auto}
+  .showpin-viewport{position:static;height:auto;overflow:visible}
+  #showpin .show-stage{position:static;opacity:1;visibility:visible;transform:none;display:block;padding:72px 0 40px}
+}
 #wall .screen{background:#0d0f0d}
 #wall .ph-placeholder{inset:6px;border:2px dashed rgba(204,255,0,.22);border-radius:18px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
 #wall .ph-placeholder .material-symbols-rounded{color:var(--neon-dark)}
@@ -765,7 +785,9 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
 </section>
 
 <!-- features -->
-<section class="sec showcase3 bg-ivory" id="features">
+<!-- 钉住滚动：两屏手机共用一个固定 100vh 背景视口，滚轮切换、互斥显示（≤920px 回退正常流） -->
+<div id="showpin"><div class="showpin-viewport">
+<section class="sec showcase3 show-stage is-on" id="features">
   <div class="wrap">
     <div class="show3-grid">
       <!-- left: description + live countdown -->
@@ -888,7 +910,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
 </section>
 
 <!-- campus wall -->
-<section class="sec showcase reverse" id="wall">
+<section class="sec showcase reverse show-stage" id="wall">
   <div class="wrap">
     <div class="show-grid">
       <div class="show-text reveal r">
@@ -1024,6 +1046,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
     </div>
   </div>
 </section>
+</div></div>
 
 <!-- more: culture + product bento -->
 <section class="sec bg-warm" id="more">
@@ -1766,6 +1789,24 @@ const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1'
 
 /* ===================== init ===================== */
 applyLang(LANG);
+
+/* ===================== showcase pin：滚轮驱动两屏互斥切换 ===================== */
+(function(){
+  const pin=document.getElementById("showpin");if(!pin)return;
+  const stages=[document.getElementById("features"),document.getElementById("wall")];
+  function upd(){
+    if(innerWidth<=920){stages.forEach(s=>s.classList.add("is-on"));return;}
+    const total=pin.offsetHeight-innerHeight;
+    const p=total>0?Math.min(1,Math.max(0,-pin.getBoundingClientRect().top/total)):0;
+    const active=p<0.5?0:1;
+    stages.forEach((s,i)=>s.classList.toggle("is-on",i===active));
+  }
+  addEventListener("scroll",upd,{passive:true});addEventListener("resize",upd);upd();
+  /* #wall 锚点定位到切换后半段（否则跳到视口顶只会看到第一屏） */
+  function goWall(e){if(innerWidth<=920)return;if(e)e.preventDefault();const total=pin.offsetHeight-innerHeight;scrollTo({top:pin.offsetTop+total*0.8,behavior:"smooth"});}
+  document.querySelectorAll('a[href="#wall"]').forEach(a=>a.addEventListener("click",goWall));
+  if(location.hash==="#wall")setTimeout(goWall,60);
+})();
 
 /* ===================== phone mockup carousels（transform 轮播） ===================== */
 document.querySelectorAll('.screen.aui').forEach(screen=>{
