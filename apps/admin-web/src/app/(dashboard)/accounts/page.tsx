@@ -411,10 +411,10 @@ function AccountsContent() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder={
                 tab === 'union'
-                  ? 'union.warwick@unimatcha.com'
+                  ? 'union.warwick@unimatcha.ai'
                   : tab === 'sponsor'
                     ? 'sponsor@company.com'
-                    : 'team@unimatcha.com'
+                    : 'team@unimatcha.ai'
               }
               required
             />

@@ -11,7 +11,7 @@
 <meta property="og:site_name" content="Unimatcha 抹茶" />
 <meta property="og:title" content="Unimatcha 抹茶 — 大学生校园生活平台" />
 <meta property="og:description" content="认真的匹配，真实的校园墙。每周五 17:00，缘分统一结算。" />
-<meta property="og:url" content="https://unimatcha.com/" />
+<meta property="og:url" content="https://unimatcha.ai/" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Unimatcha 抹茶 — 大学生校园生活平台" />
 <meta name="twitter:description" content="认真的匹配，真实的校园墙。每周五 17:00，缘分统一结算。" />
@@ -1258,7 +1258,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
           <a href="#features" data-i18n="nav.how">如何使用</a>
         </div>
         <div class="fcol"><h5 data-i18n="foot.c2">平台</h5>
-          <a href="https://app.unimatcha.com" target="_blank" rel="noopener" data-i18n="foot.h5">H5 移动端</a>
+          <a href="https://app.unimatcha.ai" target="_blank" rel="noopener" data-i18n="foot.h5">H5 移动端</a>
           <a href="#getapp" data-i18n="foot.ios">iOS 客户端</a>
         </div>
         <div class="fcol"><h5 data-i18n="foot.c3">关于</h5>
@@ -1268,7 +1268,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
           <a href="about.html" data-i18n="nav.about">关于我们</a>
           <a href="privacy.html" data-i18n="foot.privacy">隐私协议</a>
           <a href="terms.html" data-i18n="foot.terms">用户协议</a>
-          <a href="mailto:hello@unimatcha.com" data-i18n="foot.contact">联系我们</a>
+          <a href="mailto:hello@unimatcha.ai" data-i18n="foot.contact">联系我们</a>
         </div>
       </div>
     </div>
@@ -1551,7 +1551,7 @@ function tickCD(){
 tickCD();setInterval(tickCD,1000);
 
 /* ===================== live data from API（失败静默回退本地假数） ===================== */
-const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:3001/api/v1':'https://api.unimatcha.com/api/v1';
+const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:3001/api/v1':'https://api.unimatcha.ai/api/v1';
 (async()=>{
   try{
     const r=await fetch(API_BASE+'/public/site-stats',{signal:AbortSignal.timeout(5000)});
@@ -1581,7 +1581,7 @@ const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1'
       form.hidden=true;ok.hidden=false;
     }catch(_){
       btn.disabled=false;
-      window.location.href='mailto:hello@unimatcha.com?subject='+encodeURIComponent(LANG==='zh'?'加入候补名单':'Join the waitlist')+'&body='+encodeURIComponent(email);
+      window.location.href='mailto:hello@unimatcha.ai?subject='+encodeURIComponent(LANG==='zh'?'加入候补名单':'Join the waitlist')+'&body='+encodeURIComponent(email);
     }
   });
 })();

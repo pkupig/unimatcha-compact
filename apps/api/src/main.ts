@@ -29,7 +29,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
-  // CORS：设 ALLOWED_ORIGINS（逗号分隔，如 https://unimatcha.com,https://app.unimatcha.com）则白名单；
+  // CORS：设 ALLOWED_ORIGINS（逗号分隔，如 https://unimatcha.ai,https://app.unimatcha.ai）则白名单；
   // 未设保持放开（本地开发/手机 H5 直连需要）。
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
     .split(',')

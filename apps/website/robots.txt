@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://unimatcha.com/sitemap.xml
+Sitemap: https://unimatcha.ai/sitemap.xml

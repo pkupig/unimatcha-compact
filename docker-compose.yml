@@ -130,7 +130,7 @@ services:
     image: unimatcha-website
     container_name: unimatcha_website
     # Marketing site（apps/website 静态站，官网唯一真源；apps/web 为已弃用的旧版 Next 官网，不再部署）。
-    # Behind Caddy → root domain (unimatcha.com).
+    # Behind Caddy → root domain (unimatcha.ai).
     expose:
       - "80"
     restart: unless-stopped

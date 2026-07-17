@@ -2,7 +2,7 @@
 (function(){
   var LANG = localStorage.getItem('um_lang') || 'zh';
   var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:3001/api/v1' : 'https://api.unimatcha.com/api/v1';
+    ? 'http://localhost:3001/api/v1' : 'https://api.unimatcha.ai/api/v1';
 
   function applyLang(l){
     LANG = l;
@@ -74,7 +74,7 @@
       document.getElementById('sponsorOk').hidden = false;
     }).catch(function(){
       btn.disabled = false;
-      location.href = 'mailto:hello@unimatcha.com?subject=' +
+      location.href = 'mailto:hello@unimatcha.ai?subject=' +
         encodeURIComponent(LANG === 'zh' ? '赞助申请 · ' + org : 'Sponsorship Application · ' + org) +
         '&body=' + encodeURIComponent(msg + '\n\n' + email);
     });

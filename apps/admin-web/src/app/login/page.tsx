@@ -68,7 +68,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 className="input"
-                placeholder="admin@unimatcha.com"
+                placeholder="admin@unimatcha.ai"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

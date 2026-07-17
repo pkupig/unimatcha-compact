@@ -26,22 +26,22 @@
       zh: '可以随时在应用内「设置」申请注销，我们会在 30 天内删除你的个人信息（法律要求保留的除外）。',
       en: 'You can delete your account in Settings anytime; personal data is erased within 30 days (except legally required retention).' },
     { k: ['密码', '忘记', 'password', 'forgot'],
-      zh: '在登录页点「忘记密码」按提示操作；遇到问题发邮件到 hello@unimatcha.com，我们帮你处理。',
-      en: 'Use "Forgot Password" on the sign-in page, or email hello@unimatcha.com and we\'ll sort it out.' },
+      zh: '在登录页点「忘记密码」按提示操作；遇到问题发邮件到 hello@unimatcha.ai，我们帮你处理。',
+      en: 'Use "Forgot Password" on the sign-in page, or email hello@unimatcha.ai and we\'ll sort it out.' },
     { k: ['赞助', '学生会', '社团', '合作', 'sponsor', 'union', 'society', 'partner'],
       zh: '我们真金白银赞助学生会和社团：活动经费、周边、奖品、场地都可以谈，签约还送专属运营后台。在赞助计划页提交申请，一周内回复。',
       en: 'We sponsor student unions and societies with real budgets, merch, prizes and venues — plus a dedicated ops console. Apply on the Sponsorship page; we reply within a week.',
       link: { href: 'sponsors.html#apply', zh: '去申请赞助 →', en: 'Apply for sponsorship →' } },
     { k: ['广告', '投放', '商家', 'advertis', 'ad ', 'ads', 'merchant'],
-      zh: '商家可以在抹茶按校园定向投放广告（支持包断/按展示/按点击多种计价），由投放学校的学生会先行审核。合作请邮件 hello@unimatcha.com。',
-      en: 'Merchants can run campus-targeted ads (buyout / CPM / CPC), reviewed first by the campus student union. Email hello@unimatcha.com to talk.' },
+      zh: '商家可以在抹茶按校园定向投放广告（支持包断/按展示/按点击多种计价），由投放学校的学生会先行审核。合作请邮件 hello@unimatcha.ai。',
+      en: 'Merchants can run campus-targeted ads (buyout / CPM / CPC), reviewed first by the campus student union. Email hello@unimatcha.ai to talk.' },
     { k: ['下载', '上线', 'ios', 'android', 'app store', 'google play', '什么时候上', 'launch', 'download'],
       zh: 'iOS 与 Android 客户端正在打磨中。现在可以在首页加入候补名单，上线第一时间通知你。',
       en: 'iOS and Android apps are in the works. Join the waitlist on the homepage and we\'ll email you at launch.',
       link: { href: 'index.html#getapp', zh: '加入候补名单 →', en: 'Join the waitlist →' } },
     { k: ['举报', '骚扰', '不良', 'report', 'harass', 'abuse'],
-      zh: '帖子、评论、用户资料都可以在应用内一键举报：本校学生会先审、平台复核，结果会通知你。紧急情况直接邮件 hello@unimatcha.com，安全类邮件优先处理。',
-      en: 'Report posts, comments or profiles in one tap — union review first, platform double-check, and you get the outcome. Emergencies: hello@unimatcha.com (prioritised).' },
+      zh: '帖子、评论、用户资料都可以在应用内一键举报：本校学生会先审、平台复核，结果会通知你。紧急情况直接邮件 hello@unimatcha.ai，安全类邮件优先处理。',
+      en: 'Report posts, comments or profiles in one tap — union review first, platform double-check, and you get the outcome. Emergencies: hello@unimatcha.ai (prioritised).' },
     { k: ['隐私', '数据', '安全吗', 'privacy', 'data', 'safe'],
       zh: '数据 TLS 加密传输、不出售给任何第三方、注销 30 天内删除，而且我们从不显示「匹配分数」。',
       en: 'TLS-encrypted, never sold, erased within 30 days of deletion — and we never show a "match score".',
@@ -59,8 +59,8 @@
       zh: '我们从不给人打分，也不向任何人展示所谓「匹配分」——展示的是你们为什么合适的理由。',
       en: 'We never score people or show a "match score" — only the reasons you fit.' },
     { k: ['人工', '客服', '联系', '邮箱', 'human', 'contact', 'email', 'support'],
-      zh: '人工支持请邮件 hello@unimatcha.com，7 个工作日内回复（安全类优先）。',
-      en: 'For a human, email hello@unimatcha.com — we reply within 7 working days (safety mail prioritised).' }
+      zh: '人工支持请邮件 hello@unimatcha.ai，7 个工作日内回复（安全类优先）。',
+      en: 'For a human, email hello@unimatcha.ai — we reply within 7 working days (safety mail prioritised).' }
   ];
 
   var TXT = {
@@ -68,12 +68,12 @@
       hello: '你好呀！我是抹茶小助手 🍵 匹配、能量、匿名、赞助……有问题尽管问。',
       fallback: '这个问题我还答不好 😳 可以换个问法，或看看下面这些：',
       chips: ['周五几点公布结果？', '能量是什么？', '匿名安全吗？', '如何申请赞助？'],
-      more: '完整问题列表在帮助中心 →', mail: '联系人工：hello@unimatcha.com' },
+      more: '完整问题列表在帮助中心 →', mail: '联系人工：hello@unimatcha.ai' },
     en: { title: 'Matcha Assistant', sub: 'Auto-reply · online', ph: 'Type your question…', send: 'Send',
       hello: 'Hi! I\'m the Matcha assistant 🍵 Ask me about matching, energy, anonymity, sponsorship — anything.',
       fallback: 'I don\'t have a good answer for that yet 😳 Try rephrasing, or pick one below:',
       chips: ['When are results revealed?', 'What is Energy?', 'Is anonymity safe?', 'How to get sponsored?'],
-      more: 'Full list in the Help Center →', mail: 'Human support: hello@unimatcha.com' }
+      more: 'Full list in the Help Center →', mail: 'Human support: hello@unimatcha.ai' }
   };
 
   var lang = function () { return (document.documentElement.lang === 'en') ? 'en' : 'zh'; };
@@ -168,7 +168,7 @@
       return html;
     }
     var t = TXT[l];
-    return esc(t.fallback) + '<br><a href="faq.html">' + esc(t.more) + '</a><br><a href="mailto:hello@unimatcha.com">' + esc(t.mail) + '</a>';
+    return esc(t.fallback) + '<br><a href="faq.html">' + esc(t.more) + '</a><br><a href="mailto:hello@unimatcha.ai">' + esc(t.mail) + '</a>';
   }
 
   function ask(q) {

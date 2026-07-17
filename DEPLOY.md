@@ -1,16 +1,16 @@
 # Unimatcha 生产部署手册
 
 整套服务用根目录 `docker-compose.yml` 一键起，Caddy 负责 80/443 与自动 HTTPS（Let's Encrypt）。
-域名假定为 **unimatcha.com**（官网/H5/chat 的 API 地址均按此硬编码或按子域自适应；换域名需全局替换）。
+域名假定为 **unimatcha.ai**（官网/H5/chat 的 API 地址均按此硬编码或按子域自适应；换域名需全局替换）。
 
 ## 架构
 
 | 域名 | 服务 | 容器 |
 |---|---|---|
-| unimatcha.com / www | 官网静态站（apps/website，nginx） | unimatcha_website |
-| app.unimatcha.com | H5 应用（apps/h5） | unimatcha_h5 |
-| admin.unimatcha.com | 管理后台（apps/admin-web） | unimatcha_admin |
-| api.unimatcha.com | API（apps/api） | unimatcha_api |
+| unimatcha.ai / www | 官网静态站（apps/website，nginx） | unimatcha_website |
+| app.unimatcha.ai | H5 应用（apps/h5） | unimatcha_h5 |
+| admin.unimatcha.ai | 管理后台（apps/admin-web） | unimatcha_admin |
+| api.unimatcha.ai | API（apps/api） | unimatcha_api |
 | —（仅内网） | matching-ml 匹配模型 | unimatcha_matching_ml |
 | —（仅内网+回环） | PostgreSQL 16 / Redis 7 | unimatcha_postgres / unimatcha_redis |
 
@@ -26,7 +26,7 @@ A   admin  <服务器IP>
 A   api    <服务器IP>
 ```
 
-TTL 默认即可。生效通常几分钟，可用 `nslookup api.unimatcha.com` 验证。
+TTL 默认即可。生效通常几分钟，可用 `nslookup api.unimatcha.ai` 验证。
 （Caddy 首次启动时会自动为这 5 个域名签发证书，签发要求 DNS 已生效。）
 
 ## 2. 服务器准备（一次性）
@@ -59,7 +59,7 @@ ADMIN_JWT_SECRET=<随机串>
 NEXTAUTH_SECRET=<随机串>
 
 # ── 管理员种子账号（首次启动创建 SUPER）──
-SEED_ADMIN_EMAIL=admin@unimatcha.com
+SEED_ADMIN_EMAIL=admin@unimatcha.ai
 SEED_ADMIN_PASSWORD=<强密码，登录后可改>
 
 # ── 匹配模型 ──
@@ -68,11 +68,11 @@ MATCH_API_KEY=<随机串——api 与 matching-ml 共用，空值会 fail-closed
 LLM_BACKEND=mock            # 未接真实 LLM 前用 mock（规则打分照常工作）
 
 # ── 前端构建期/运行时地址 ──
-API_URL=https://api.unimatcha.com          # admin-web 构建期内联，改了必须 --build
-NEXTAUTH_URL=https://admin.unimatcha.com
+API_URL=https://api.unimatcha.ai          # admin-web 构建期内联，改了必须 --build
+NEXTAUTH_URL=https://admin.unimatcha.ai
 
 # ── CORS 白名单（官网 + H5 + 后台）──
-ALLOWED_ORIGINS=https://unimatcha.com,https://www.unimatcha.com,https://app.unimatcha.com,https://admin.unimatcha.com
+ALLOWED_ORIGINS=https://unimatcha.ai,https://www.unimatcha.ai,https://app.unimatcha.ai,https://admin.unimatcha.ai
 
 # ── 演示数据：生产必须 false ──
 SEED_DEMO=false
@@ -97,10 +97,10 @@ docker compose exec api npx prisma db push
 ## 5. 验证清单
 
 ```bash
-curl -I  https://unimatcha.com                       # 200，官网
-curl -I  https://app.unimatcha.com                   # 200，H5
-curl -I  https://admin.unimatcha.com/login           # 200，后台
-curl -s  https://api.unimatcha.com/api/v1/public/site-stats   # JSON 真实统计
+curl -I  https://unimatcha.ai                       # 200，官网
+curl -I  https://app.unimatcha.ai                   # 200，H5
+curl -I  https://admin.unimatcha.ai/login           # 200，后台
+curl -s  https://api.unimatcha.ai/api/v1/public/site-stats   # JSON 真实统计
 ```
 
 浏览器过一遍：官网首页统计数字/倒计时来自 API；候补名单+学生会联系表单能提交（后台「官网提交」页可见）；
@@ -119,7 +119,7 @@ docker compose up -d --build       # 只重建有改动的镜像
 ## 7. 每周匹配调度
 
 上线后把公布 cron 配置到正式时间（见 SCHEDULING.md / scripts/set-weekly-schedule.sh，
-注意脚本打的是 api 容器内的 3001 端口，服务器上执行：`docker compose exec api sh -c "..."` 或经 api.unimatcha.com 调管理接口）。
+注意脚本打的是 api 容器内的 3001 端口，服务器上执行：`docker compose exec api sh -c "..."` 或经 api.unimatcha.ai 调管理接口）。
 
 ## 常见问题
 
