@@ -29,9 +29,14 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
-  // CORS
+  // CORS：设 ALLOWED_ORIGINS（逗号分隔，如 https://unimatcha.com,https://app.unimatcha.com）则白名单；
+  // 未设保持放开（本地开发/手机 H5 直连需要）。
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: true,  // 开发环境允许所有来源（手机 H5 需要）
+    origin: allowedOrigins.length ? allowedOrigins : true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });

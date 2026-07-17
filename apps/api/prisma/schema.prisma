@@ -1011,3 +1011,41 @@ model MatchBehaviorEvent {
   @@index([matchId])
   @@map("match_behavior_events")
 }
+
+// ─────────────────────────────────────────────
+// 官网公开提交（候补名单 / 赞助申请），见 src/public
+// ─────────────────────────────────────────────
+
+model PublicSubmission {
+  id           String               @id @default(cuid())
+  type         PublicSubmissionType
+  email        String
+  organization String?
+  message      String?              @db.Text
+  locale       String?
+  createdAt    DateTime             @default(now())
+
+  // 后台处理工作流（docs/ADMIN-REDESIGN.md §5.6）
+  status           PublicSubmissionStatus @default(PENDING)
+  handledByAdminId String? // 最近一次处理人
+  handledAt        DateTime?
+  handleNote       String? // 处理备注（联系记录/关闭原因）
+  convertedAdminId String? // 「一键开通」创建的后台账号（学生会/商家）
+  updatedAt        DateTime               @default(now()) @updatedAt
+
+  @@unique([type, email])
+  @@index([type, status, createdAt])
+  @@map("public_submissions")
+}
+
+enum PublicSubmissionType {
+  WAITLIST
+  SPONSOR
+}
+
+enum PublicSubmissionStatus {
+  PENDING // 待处理
+  CONTACTED // 已联系
+  APPROVED // 已开通账号
+  REJECTED // 已关闭
+}
