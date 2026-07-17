@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>关于我们 · Unimatcha 抹茶</title>
+<meta name="description" content="抹茶由学生打造：反快餐式约会，把每一次校园连接都当回事。了解我们的使命、信条与故事。" />
+<meta name="theme-color" content="#F5F5F5" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="关于我们 · Unimatcha 抹茶" />
+<meta property="og:description" content="由学生打造，反快餐式约会——把每一次校园连接都当回事。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23CCFF00'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="site.css" />
+<style>
+.timeline{position:relative;margin-top:10px}
+.timeline::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding:0 0 30px 52px}
+.tl-item::before{content:"";position:absolute;left:9px;top:6px;width:14px;height:14px;border-radius:50%;background:var(--neon);box-shadow:0 0 0 4px rgba(204,255,0,.25)}
+.tl-item b{display:block;font-size:16px;font-weight:800}
+.tl-item span{font-size:14px;color:var(--muted)}
+.tl-item .tl-k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted-2);text-transform:uppercase;display:block;margin-bottom:2px}
+.manifesto{font-size:clamp(19px,2.6vw,26px);font-weight:700;line-height:1.7;max-width:820px}
+.manifesto em{font-style:normal;background:linear-gradient(transparent 62%,var(--neon) 62%)}
+</style>
+</head>
+<body data-title-zh="关于我们 · Unimatcha 抹茶" data-title-en="About us · Unimatcha">
+
+<header id="hdr">
+  <nav class="nav">
+    <a class="brand" href="index.html">UNIMATCHA<span class="beta-tag">BETA</span></a>
+    <div class="navlinks">
+      <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+      <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+      <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+      <a href="about.html" class="on" data-zh="关于我们" data-en="About"></a>
+    </div>
+    <div class="nav-cta">
+      <button class="lang" id="langBtn" type="button"><span class="material-symbols-rounded">translate</span><span id="langLabel">EN</span></button>
+      <a class="btn-neon" href="index.html#getapp"><span data-zh="获取 App" data-en="Get the App"></span><span class="material-symbols-rounded">arrow_forward</span></a>
+      <button class="burger" id="burger" type="button" aria-label="菜单"><span class="material-symbols-rounded">menu</span></button>
+    </div>
+  </nav>
+  <div class="mobmenu" id="mobmenu">
+    <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+    <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+    <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+    <a href="about.html" class="on" data-zh="关于我们" data-en="About"></a>
+  </div>
+</header>
+
+<!-- hero -->
+<section class="page-hero">
+  <div class="glow" style="width:380px;height:380px;left:50%;top:-200px;transform:translateX(-50%)"></div>
+  <div class="wrap" style="position:relative">
+    <div class="bigword" style="position:absolute;right:-30px;top:-6px;opacity:.75" aria-hidden="true">MATCHA</div>
+    <span class="eyebrow"><span class="dot"></span><span data-zh="关于我们" data-en="ABOUT US"></span></span>
+    <h1><span data-zh="我们在认真" data-en="We take one thing"></span><br><em><span data-zh="做一件事。" data-en="very seriously."></span></em></h1>
+    <p class="lede" data-zh="让每一段校园缘分都被认真对待——这就是抹茶存在的全部理由。" data-en="Making every campus connection count — that's the whole reason Unimatcha exists."></p>
+  </div>
+</section>
+
+<!-- manifesto -->
+<section class="sec bg-white">
+  <div class="wrap">
+    <span class="eyebrow reveal"><span class="dot"></span><span data-zh="为什么做抹茶" data-en="WHY UNIMATCHA"></span></span>
+    <div style="height:26px"></div>
+    <p class="manifesto reveal" data-lang="zh">我们受够了无尽滑动的快餐式社交。于是决定反着来：<em>一周只有一次机会</em>，每周五 17:00 统一揭晓；宁愿你少遇见几个，也要让每一个都对；不给人打分，只讲你们为什么合适。把缘分交给时间，也交给一群同样认真的人。</p>
+    <p class="manifesto reveal" data-lang="en">We were done with endless-swipe, fast-food dating. So we built the opposite: <em>one chance a week</em>, revealed together every Friday at 17:00. We'd rather you meet fewer people, and have every one be right. No scores on people — only the reasons you fit. Give fate some time, and a community that takes it as seriously as you do.</p>
+
+    <!-- 活数据统计带（data-live-stat 由 site.js 拉真实后端，取不到保留回退值） -->
+    <div class="reveal statgrid" style="margin-top:64px;border-top:1px solid var(--line);padding-top:40px">
+      <div><div style="font-family:var(--mono);font-weight:700;font-size:clamp(26px,3.6vw,42px)" data-live-stat="users">42,137</div><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:4px" data-zh="在册用户" data-en="Registered"></div></div>
+      <div><div style="font-family:var(--mono);font-weight:700;font-size:clamp(26px,3.6vw,42px)" data-live-stat="matches">8,460</div><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:4px" data-zh="成功配对" data-en="Matches"></div></div>
+      <div><div style="font-family:var(--mono);font-weight:700;font-size:clamp(26px,3.6vw,42px)" data-live-stat="schools" data-suffix="+">32+</div><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:4px" data-zh="覆盖院校" data-en="Campuses"></div></div>
+      <div><div style="font-family:var(--mono);font-weight:700;font-size:clamp(26px,3.6vw,42px)" data-live-stat="rounds" data-suffix="+">118+</div><div style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:4px" data-zh="已运行轮次" data-en="Rounds run"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- creeds -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><span class="dot"></span><span data-zh="三个信条" data-en="THREE CREEDS"></span></span>
+      <h2 data-zh="我们相信的事。" data-en="What we believe."></h2>
+    </div>
+    <div class="edrows reveal">
+      <div class="edrow"><span class="no">/ 01</span><h3 data-zh="少而精" data-en="Less, but better"></h3><p data-zh="没有无尽滑动，只有值得等待的那一刻。每周一轮，每一轮都全力以赴。" data-en="No endless swiping — only a moment worth waiting for. One round a week, full effort every round."></p></div>
+      <div class="edrow"><span class="no">/ 02</span><h3 data-zh="真实" data-en="Real"></h3><p data-zh="每个人都是校园邮箱认证的真实同学；匿名有化名保护，但审核从不缺席。" data-en="Everyone is a real, campus-email-verified student; anonymity is pseudonym-protected but never unmoderated."></p></div>
+      <div class="edrow"><span class="no">/ 03</span><h3 data-zh="长期" data-en="Long-term"></h3><p data-zh="我们优化的是长期关系和真朋友，不是点击率。遇见对的人，也遇见同频的挚友。" data-en="We optimise for lasting relationships and true friends, not click-through. Meet the right person — and the right people."></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- by students -->
+<section class="sec bg-warm">
+  <div class="wrap">
+    <div class="grid c2" style="align-items:center;gap:48px">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot"></span><span data-zh="由学生打造" data-en="BUILT BY STUDENTS"></span></span>
+        <h2 style="font-size:clamp(26px,3.4vw,36px);font-weight:800;letter-spacing:-.015em;margin-top:14px" data-zh="为校园而生，由学生打造。" data-en="Born on campus, built by students."></h2>
+        <p style="color:#444;margin-top:14px;font-size:15.5px" data-zh="抹茶从校园里长出来：我们自己就是用户，最清楚一个人在陌生城市开始大学生活时，想遇见什么样的人、想有一面什么样的墙。所以从匹配算法的宪法，到匿名机制的每个细节，都由认真生活的学生一点点打磨。" data-en="Unimatcha grew out of campus life: we are our own users. We know exactly what kind of people you hope to meet — and what kind of wall you wish your campus had — when starting university in a new city. From the matching algorithm's constitution to every detail of the anonymity design, it's polished by students who take life seriously."></p>
+        <p style="color:#444;margin-top:12px;font-size:15.5px" data-zh="我们也把资源交还给校园：赞助学生会，把活动经费、周边和奖品交给真正组织校园生活的人。" data-en="And we give back: we sponsor student unions, putting budgets, merch and prizes in the hands of the people who actually run campus life."></p>
+      </div>
+      <div class="reveal">
+        <div class="timeline">
+          <div class="tl-item"><span class="tl-k">CHAPTER 01</span><b data-zh="一个想法" data-en="An idea"></b><span data-zh="在宿舍里写下第一版匹配问卷：如果一周只匹配一次，会怎样？" data-en="The first questionnaire, drafted in a dorm: what if matching happened just once a week?"></span></div>
+          <div class="tl-item"><span class="tl-k">CHAPTER 02</span><b data-zh="第一轮匹配" data-en="The first round"></b><span data-zh="第一批同学在周五 17:00 收到了他们的匹配结果。" data-en="The first cohort got their results at 17:00 on a Friday."></span></div>
+          <div class="tl-item"><span class="tl-k">CHAPTER 03</span><b data-zh="校园墙上线" data-en="The campus wall"></b><span data-zh="匹配之外，校园本身也该有一面真实的墙——校园墙和匿名机制上线。" data-en="Beyond matching, campus deserved a real wall — the campus wall and pseudonymous posting shipped."></span></div>
+          <div class="tl-item"><span class="tl-k">CHAPTER 04</span><b data-zh="赞助计划启动" data-en="Sponsorship begins"></b><span data-zh="开始真金白银地赞助学生会，并为合作组织开通专属运营后台。" data-en="We began funding student unions for real, each with their own ops console."></span></div>
+          <div class="tl-item"><span class="tl-k">NOW</span><b data-zh="正式版就在路上" data-en="The full release is coming"></b><span data-zh="iOS 与 Android 客户端打磨中——加入候补名单，第一时间体验。" data-en="iOS and Android apps are in the works — join the waitlist to be first in."></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- contact -->
+<section class="sec">
+  <div class="wrap">
+    <div class="cta-band reveal">
+      <div class="glow"></div>
+      <h2 data-zh="想聊聊？我们都在。" data-en="Want to talk? We're here."></h2>
+      <p data-zh="合作、反馈、加入我们——一封邮件的距离。" data-en="Partnerships, feedback, joining the team — all one email away."></p>
+      <a class="btn-neon" href="mailto:hello@unimatcha.com"><span data-zh="hello@unimatcha.com" data-en="hello@unimatcha.com"></span><span class="material-symbols-rounded">arrow_forward</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>
+      <div class="brand">UNIMATCHA<span class="beta-tag">BETA</span></div>
+      <p class="desc" data-zh="大学生校园生活平台：认真的匹配，真实的校园墙。" data-en="A campus-life platform for students: serious matching, a real campus wall."></p>
+    </div>
+    <div class="foot-cols">
+      <div class="fcol"><h5 data-zh="产品" data-en="Product"></h5>
+        <a href="index.html#features" data-zh="匹配" data-en="Matching"></a>
+        <a href="index.html#wall" data-zh="校园墙" data-en="Campus Wall"></a>
+        <a href="index.html#getapp" data-zh="获取 App" data-en="Get the App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="平台" data-en="Platform"></h5>
+        <a href="https://app.unimatcha.com" target="_blank" rel="noopener" data-zh="H5 移动端" data-en="H5 Mobile"></a>
+        <a href="index.html#getapp" data-zh="iOS 客户端" data-en="iOS App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="关于" data-en="About"></h5>
+        <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+        <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+        <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+        <a href="about.html" data-zh="关于我们" data-en="About us"></a>
+        <a href="privacy.html" data-zh="隐私协议" data-en="Privacy"></a>
+        <a href="terms.html" data-zh="用户协议" data-en="Terms"></a>
+        <a href="mailto:hello@unimatcha.com" data-zh="联系我们" data-en="Contact"></a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bot"><span>© 2026 UNIMATCHA</span><span data-zh="为认真的人而造 · ◆ #CCFF00" data-en="Built for people who are serious · ◆ #CCFF00"></span></div>
+</footer>
+
+<script src="site.js"></script>
+<script src="chat.js"></script>
+</body>
+</html>

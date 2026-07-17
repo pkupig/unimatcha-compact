@@ -3,8 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Unimatcha — 大学生长期恋爱匹配协议</title>
-<meta name="description" content="面向大学生的长期恋爱匹配平台。每一轮持续整整一周，周五 17:00 统一公布匹配结果。" />
+<title>Unimatcha 抹茶 — 大学生校园生活平台 · 认真匹配 × 校园墙</title>
+<meta name="description" content="抹茶（Unimatcha）是为大学生打造的校园生活平台：每周五 17:00 统一公布的认真匹配，和以本校为中心的真实校园墙。" />
+<meta name="theme-color" content="#F5F5F5" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23CCFF00'/%3E%3C/svg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Unimatcha 抹茶" />
+<meta property="og:title" content="Unimatcha 抹茶 — 大学生校园生活平台" />
+<meta property="og:description" content="认真的匹配，真实的校园墙。每周五 17:00，缘分统一结算。" />
+<meta property="og:url" content="https://unimatcha.com/" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Unimatcha 抹茶 — 大学生校园生活平台" />
+<meta name="twitter:description" content="认真的匹配，真实的校园墙。每周五 17:00，缘分统一结算。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600&family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -48,14 +58,20 @@ header.hide{transform:translateY(-100%)}
 .nav{max-width:1320px;margin:0 auto;padding:20px 40px;display:flex;align-items:center;justify-content:space-between}
 header.scrolled{background:rgba(245,245,245,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line-soft)}
 header.scrolled .nav{padding:14px 40px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em}
+.brand{display:flex;align-items:center;gap:7px;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em}
+.beta-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;background:var(--neon);color:var(--ink);border-radius:5px;padding:3px 6px;line-height:1;display:inline-block;transform:translateY(-6px)}
 .brand .blip{width:11px;height:11px;border-radius:50%;background:var(--neon);box-shadow:0 0 0 4px rgba(204,255,0,.28);animation:pulse 2.2s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(204,255,0,.28)}50%{box-shadow:0 0 0 9px rgba(204,255,0,0)}}
-.navlinks{display:flex;gap:36px;font-size:14px;font-weight:500}
-.navlinks a{position:relative;color:var(--muted);transition:color .25s}
+.navlinks{display:flex;gap:34px;font-size:14px;font-weight:500}
+.navlinks a{position:relative;color:var(--muted);transition:color .25s;white-space:nowrap}
 .navlinks a:hover{color:var(--ink)}
 .navlinks a::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:2px;background:var(--neon);transition:width .3s var(--ease)}
 .navlinks a:hover::after{width:100%}
+.burger{display:none;border:1px solid var(--line);background:transparent;border-radius:10px;padding:7px 9px;cursor:pointer}
+.burger .material-symbols-rounded{font-size:20px;color:var(--ink)}
+.mobmenu{display:none;border-top:1px solid var(--line);background:rgba(245,245,245,.98);padding:8px 24px 16px;flex-direction:column}
+.mobmenu.open{display:flex}
+.mobmenu a{padding:12px 4px;font-size:15px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line-soft)}
 .nav-cta{display:flex;align-items:center;gap:16px}
 .lang{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:7px 12px;background:transparent;transition:.25s}
 .lang:hover{border-color:var(--ink);color:var(--ink)}
@@ -68,7 +84,7 @@ header.scrolled .nav{padding:14px 40px}
 .btn-ghost{background:transparent;color:var(--ink);padding:12px 20px;border:1px solid var(--line)}
 .btn-ghost:hover{border-color:var(--ink);background:rgba(10,10,10,.03)}
 .btn-lg{padding:16px 30px;font-size:15.5px}
-@media(max-width:920px){.navlinks{display:none}}
+@media(max-width:920px){.navlinks{display:none}.burger{display:inline-flex}}
 
 /* ---------- layout ---------- */
 .wrap{max-width:1320px;margin:0 auto;padding:0 40px;position:relative}
@@ -205,6 +221,79 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 .ph-placeholder{position:absolute;inset:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:2px dashed rgba(10,10,10,.16);border-radius:18px;text-align:center;padding:22px;background:linear-gradient(150deg,#fafafa,#eef0e8)}
 .ph-placeholder .material-symbols-rounded{font-size:42px;color:var(--neon-dark)}
 .ph-placeholder span:last-child{font-family:var(--mono);font-size:11px;letter-spacing:.04em;line-height:1.55;color:var(--muted)}
+/* in-app UI mockups inside .screen —— 按真实 H5 浅色界面复刻，多页可滑动（可整体替换为真实截图/录屏 .ph-media） */
+.aui{position:relative;background:#f9f9f9;color:#1b1b1b;font-size:12px;line-height:1.5;user-select:none}
+.aui,.aui *{box-sizing:border-box}
+.aui-track{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain;scroll-snap-type:x mandatory;scrollbar-width:none;cursor:grab}
+.aui-track::-webkit-scrollbar{display:none}
+.aui-track.dragging{cursor:grabbing;scroll-snap-type:none}
+.aui-page{flex:0 0 100%;min-width:100%;display:flex;flex-direction:column;background:#f9f9f9;overflow:hidden}
+.aui-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:24px 12px 8px}
+.aui-top .material-symbols-rounded{font-size:19px;color:#1b1b1b}
+.aui-seg{display:flex;align-items:center;gap:2px;background:#fff;border:1px solid #e2e2e2;border-radius:999px;padding:3px}
+.aui-seg span{padding:5px 11px;border-radius:999px;font-size:10.5px;font-weight:600;color:#474747;white-space:nowrap}
+.aui-seg span.on{background:var(--neon);color:#111;font-weight:700}
+.aui-tabs2{display:flex;justify-content:center;gap:26px;padding:26px 0 0}
+.aui-tabs2 span{font-size:11px;font-weight:700;letter-spacing:.16em;color:#9e9e9e;padding-bottom:7px}
+.aui-tabs2 span.on{color:#111;border-bottom:2px solid var(--neon)}
+.aui-search{margin:12px 14px 2px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #eee;border-radius:999px;padding:8px 14px;color:#9e9e9e;font-size:11.5px}
+.aui-search .material-symbols-rounded{font-size:15px;color:#9e9e9e}
+.aui-body{flex:1;overflow:hidden;padding:10px 12px;position:relative;display:flex;flex-direction:column;gap:10px}
+.aui-center{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px}
+.aui-h{font-size:14px;font-weight:800;letter-spacing:.2em}
+.aui-k{font-family:var(--mono);font-size:8.5px;letter-spacing:.22em;color:#9e9e9e;margin-top:10px;text-transform:uppercase}
+.aui-cd{font-size:25px;font-weight:300;letter-spacing:.04em;margin-top:2px}
+.aui-btn{display:block;width:100%;border:0;border-radius:10px;padding:12px 0;text-align:center;font-size:10px;font-weight:800;letter-spacing:.26em;background:var(--neon);color:#111}
+.aui-btn.pink{background:transparent;border:2px solid #FF2EC4;color:#FF2EC4}
+.aui-link{text-align:center;font-size:9.5px;letter-spacing:.22em;color:#474747;font-weight:600;margin-top:12px}
+.aui-card{background:#fff;border-radius:16px;padding:13px 14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.aui-p-top{display:flex;align-items:center;gap:9px}
+.aui-p-av{width:33px;height:33px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10.5px;flex:none}
+.aui-p-av.anon{background:#ececec;color:#8a8a8a}
+.aui-p-av.anon .material-symbols-rounded{font-size:17px}
+.aui-p-meta{flex:1;min-width:0}
+.aui-p-meta b{display:block;font-size:12.5px;color:#111}
+.aui-p-meta span{font-size:9.5px;color:#9e9e9e;letter-spacing:.06em}
+.aui-school{font-size:8px;font-weight:700;color:#fff;background:rgba(0,0,0,.45);border-radius:999px;padding:3px 8px;flex:none;letter-spacing:.02em}
+.aui-p-title{font-size:13px;font-weight:800;margin:9px 0 2px}
+.aui-p-txt{margin:0;font-size:11.5px;color:#333}
+.aui-p-act{display:flex;justify-content:space-between;color:#6f6f6f;font-size:11px;margin-top:9px}
+.aui-p-act span{display:inline-flex;align-items:center;gap:4px}
+.aui-p-act .material-symbols-rounded{font-size:15px}
+.aui-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.aui-gcard{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.aui-gimg{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;padding:34px 10px 30px;font-weight:800;font-size:13.5px;line-height:1.5}
+.aui-gimg .aui-school{position:absolute;top:8px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.aui-gfoot{padding:8px 10px 10px}
+.aui-gfoot b{display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aui-gfoot span{font-size:9px;color:#9e9e9e}
+.aui-gfoot .aui-like{float:right;color:#6f6f6f;font-size:10px;display:inline-flex;align-items:center;gap:3px}
+.aui-gfoot .aui-like .material-symbols-rounded{font-size:13px}
+.aui-cover{background:linear-gradient(180deg,#dcdcdc,#ececec);padding:20px 12px 0;display:flex;justify-content:flex-end}
+.aui-verify{display:inline-flex;align-items:center;gap:5px;background:#8a8a8a;color:#fff;border-radius:999px;padding:5px 12px;font-size:9.5px;font-weight:700;letter-spacing:.08em}
+.aui-verify .material-symbols-rounded{font-size:12px}
+.aui-idwrap{background:linear-gradient(180deg,#ececec,#f9f9f9);text-align:center;padding:10px 16px 12px}
+.aui-bigav{width:70px;height:70px;border-radius:50%;background:#111;color:#fff;font-weight:700;font-size:20px;display:inline-flex;align-items:center;justify-content:center;border:4px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.aui-name{font-size:15.5px;font-weight:800;margin-top:7px}
+.aui-schoolpill{display:inline-block;background:var(--neon);color:#111;font-size:8.5px;font-weight:700;border-radius:999px;padding:4px 11px;margin-top:6px;letter-spacing:.04em}
+.aui-state{display:block;background:#fff;border-radius:999px;padding:7px;font-size:10px;color:#474747;margin-top:10px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.aui-state i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9c9c9;margin-right:6px;vertical-align:-1px}
+.aui-rows{flex:1;padding:4px 4px 0}
+.aui-row{display:flex;align-items:center;gap:11px;border-bottom:1px solid #ececec;padding:12px 14px;font-size:12px;font-weight:600}
+.aui-row .material-symbols-rounded{font-size:17px;color:#1b1b1b}
+.aui-row .chev{margin-left:auto;color:#c4c4c4}
+.aui-row .cnt{margin-left:auto;color:#9e9e9e;font-size:11px}
+.aui-row .cnt+.chev{margin-left:6px}
+.aui-fab{position:absolute;right:14px;bottom:12px;width:44px;height:44px;border-radius:14px;background:var(--neon);color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px -10px rgba(120,140,0,.55)}
+.aui-fab .material-symbols-rounded{font-size:22px}
+.aui-bar{display:flex;border-top:1px solid #ececec;padding:9px 20px 13px;background:#fff;justify-content:space-around}
+.aui-bar div{text-align:center;color:#a3a3a3;font-size:8.5px;letter-spacing:.16em;display:flex;flex-direction:column;gap:3px;align-items:center;font-weight:600}
+.aui-bar div.on{color:#111}
+.aui-bar .material-symbols-rounded{font-size:20px}
+.aui-bar svg{width:21px;height:21px}
+.aui-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:62px;display:flex;gap:5px;z-index:3}
+.aui-dots i{width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,.18);transition:all .25s;cursor:pointer}
+.aui-dots i.on{background:#9db400;width:14px;border-radius:3px}
 /* showcase 3-column (left desc · center phone · right steps) */
 .showcase3{padding:150px 0;overflow:hidden}
 .show3-grid{display:grid;grid-template-columns:1fr minmax(320px,360px) 1fr;gap:46px;align-items:center}
@@ -499,8 +588,14 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 .ga-bt small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:#b8b8b0;text-transform:uppercase}
 .ga-bt b{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.01em}
 .ga-soon{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;background:var(--neon);color:#000;padding:4px 9px;border-radius:7px;white-space:nowrap}
-.ga-wait{display:inline-block;margin-top:36px;font-family:var(--display);font-weight:700;font-size:15px;color:var(--neon);border-bottom:1px solid transparent;transition:border-color .2s}
-.ga-wait:hover{border-bottom-color:var(--neon)}
+.ga-wait-form{display:flex;gap:10px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.ga-wait-form input{width:min(320px,72vw);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:13px 20px;font-family:var(--display);font-size:14px;color:#fff;outline:none;transition:border-color .2s}
+.ga-wait-form input::placeholder{color:#8a8a84}
+.ga-wait-form input:focus{border-color:var(--neon)}
+.ga-wait-form button{background:var(--neon);color:var(--ink);border:0;border-radius:999px;padding:13px 24px;font-family:var(--display);font-weight:800;font-size:14px;cursor:pointer;transition:transform .2s var(--ease)}
+.ga-wait-form button:hover{transform:translateY(-2px)}
+.ga-wait-form button:disabled{opacity:.6;cursor:wait}
+.ga-wait-ok{margin-top:32px;font-family:var(--display);font-weight:700;font-size:15px;color:var(--neon)}
 
 /* ---------- final cta ---------- */
 .final{padding:140px 0;text-align:center;background:var(--ivory);position:relative;overflow:hidden}
@@ -563,7 +658,9 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
   .sec-head{margin-bottom:44px}
   .sec-head p{font-size:15.5px}
   .feat{padding:24px}
-  .phone .screen{height:280px}
+  .phone{width:272px}
+  .show-center .phone{width:272px}
+  #wall .phone{width:272px}
   .big-cd{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:380px;margin-left:auto;margin-right:auto}
   .bc{min-width:0;padding:26px 14px}
   .bc .v{font-size:54px}
@@ -575,6 +672,13 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
   .ga-ring{display:none}
   .foot{gap:32px}
   .foot-cols{gap:28px}
+}
+@media(max-width:420px){
+  .nav{padding:14px 14px}
+  header.scrolled .nav{padding:10px 14px}
+  .brand{font-size:14px}
+  .nav-cta{gap:6px}
+  .nav-cta .btn-neon{padding:9px 11px;font-size:12px}
 }
 
 /* ---------- reveal ---------- */
@@ -604,19 +708,25 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
 <!-- nav -->
 <header id="hdr">
   <nav class="nav">
-    <div class="brand"><span class="blip"></span>UNIMATCHA</div>
+    <div class="brand">UNIMATCHA<span class="beta-tag">BETA</span></div>
     <div class="navlinks">
-      <a href="#features" data-i18n="nav.features">功能</a>
-      <a href="#wall" data-i18n="feat.wall.t">校园墙</a>
-      <a href="#reviews" data-i18n="nav.reviews">评价</a>
-      <a href="#partners" data-i18n="nav.partners">合作伙伴</a>
-      <a href="#faq" data-i18n="faq.label">常见问题</a>
+      <a href="sponsors.html" data-i18n="nav.sponsors">赞助计划</a>
+      <a href="safety.html" data-i18n="nav.safety">安全与信任</a>
+      <a href="faq.html" data-i18n="nav.faqp">帮助中心</a>
+      <a href="about.html" data-i18n="nav.about">关于我们</a>
     </div>
     <div class="nav-cta">
       <button class="lang" id="langBtn"><span class="material-symbols-rounded">translate</span><span id="langLabel">EN</span></button>
-      <a class="btn btn-neon" href="#getapp"><span data-i18n="nav.cta">进入应用</span><span class="material-symbols-rounded">arrow_forward</span></a>
+      <a class="btn btn-neon" href="#getapp"><span data-i18n="nav.cta">获取 App</span><span class="material-symbols-rounded">arrow_forward</span></a>
+      <button class="burger" id="burger" type="button" aria-label="菜单"><span class="material-symbols-rounded">menu</span></button>
     </div>
   </nav>
+  <div class="mobmenu" id="mobmenu">
+    <a href="sponsors.html" data-i18n="nav.sponsors">赞助计划</a>
+    <a href="safety.html" data-i18n="nav.safety">安全与信任</a>
+    <a href="faq.html" data-i18n="nav.faqp">帮助中心</a>
+    <a href="about.html" data-i18n="nav.about">关于我们</a>
+  </div>
 </header>
 
 <!-- hero -->
@@ -638,9 +748,9 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
       <div class="h-right">
         <div class="globe-wrap"><canvas id="globe" aria-hidden="true"></canvas><div class="globe-tip" id="globe-tip"></div></div>
         <div class="hero-meta">
-          <div class="hm"><div class="n" data-count="42137">0</div><div class="l" data-i18n="stat.users">在册用户</div></div>
-          <div class="hm"><div class="n" data-count="8460">0</div><div class="l" data-i18n="stat.matches">成功配对</div></div>
-          <div class="hm"><div class="n" data-count="32" data-suffix="+">0</div><div class="l" data-i18n="stat.campuses">覆盖院校</div></div>
+          <div class="hm"><div class="n" data-stat="users" data-count="42137">0</div><div class="l" data-i18n="stat.users">在册用户</div></div>
+          <div class="hm"><div class="n" data-stat="matches" data-count="8460">0</div><div class="l" data-i18n="stat.matches">成功配对</div></div>
+          <div class="hm"><div class="n" data-stat="schools" data-count="32" data-suffix="+">0</div><div class="l" data-i18n="stat.campuses">覆盖院校</div></div>
         </div>
       </div>
     </div>
@@ -652,10 +762,10 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
 <section class="bg-white">
   <div class="wrap" style="padding-top:0;padding-bottom:0">
     <div class="statband">
-      <div class="st reveal"><div class="n" data-count="42137">0</div><div class="c" data-i18n="stat.users">在册用户</div></div>
-      <div class="st reveal d1"><div class="n" data-count="8460">0</div><div class="c" data-i18n="stat.matches">成功配对</div></div>
-      <div class="st reveal d2"><div class="n" data-count="32" data-suffix="+">0</div><div class="c" data-i18n="stat.campuses">覆盖院校</div></div>
-      <div class="st reveal d3"><div class="n" data-count="118" data-suffix="+">0</div><div class="c" data-i18n="stat.rounds">已运行轮次</div></div>
+      <div class="st reveal"><div class="n" data-stat="users" data-count="42137">0</div><div class="c" data-i18n="stat.users">在册用户</div></div>
+      <div class="st reveal d1"><div class="n" data-stat="matches" data-count="8460">0</div><div class="c" data-i18n="stat.matches">成功配对</div></div>
+      <div class="st reveal d2"><div class="n" data-stat="schools" data-count="32" data-suffix="+">0</div><div class="c" data-i18n="stat.campuses">覆盖院校</div></div>
+      <div class="st reveal d3"><div class="n" data-stat="rounds" data-count="118" data-suffix="+">0</div><div class="c" data-i18n="stat.rounds">已运行轮次</div></div>
     </div>
   </div>
 </section>
@@ -690,12 +800,82 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
       <!-- center: phone only (bigger, thin bezel) -->
       <div class="show-center reveal">
         <div class="phone">
-          <div class="screen">
-            <!-- 替换为你的内容：图片 <img class="ph-media" src="你的图片.jpg" alt="">  或视频 <video class="ph-media" src="你的视频.mp4" autoplay muted loop playsinline></video> -->
-            <div class="ph-placeholder">
-              <span class="material-symbols-rounded">add_photo_alternate</span>
-              <span data-i18n="ph.match">匹配界面 · 放置图片 / 视频</span>
+          <div class="screen aui" aria-label="应用界面：匹配（可滑动多页）">
+            <!-- 按真实 H5 复刻；可整体替换为真实截图/录屏：<img class="ph-media" src="截图.png" alt=""> 或 <video class="ph-media" src="录屏.mp4" autoplay muted loop playsinline></video> -->
+            <div class="aui-track">
+              <div class="aui-page"><!-- Romantic · 匹配中 -->
+                <div class="aui-top">
+                  <span class="material-symbols-rounded">tune</span>
+                  <div class="aui-seg"><span data-zh="聊天" data-en="Chat">聊天</span><span class="on" data-zh="恋人" data-en="Romantic">恋人</span><span data-zh="朋友" data-en="Friend">朋友</span></div>
+                  <span class="material-symbols-rounded">notifications</span>
+                </div>
+                <div class="aui-center">
+                  <svg viewBox="0 0 240 132" width="200" height="110" fill="none" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M52 40c-8 0-13-6-10-13 2-6 9-9 15-6 2-7 12-8 16-2 5-2 11 2 11 8 0 8-7 13-14 13z" />
+                    <circle cx="40" cy="78" r="12"/><line x1="40" y1="90" x2="40" y2="110"/><line x1="20" y1="110" x2="60" y2="110"/>
+                    <rect x="160" y="58" width="52" height="52" rx="2"/>
+                    <rect x="168" y="66" width="9" height="9" fill="#CCFF00" stroke="none"/><rect x="182" y="66" width="9" height="9"/><rect x="196" y="66" width="9" height="9"/>
+                    <rect x="168" y="81" width="9" height="9"/><rect x="182" y="81" width="9" height="9" fill="#CCFF00" stroke="none"/><rect x="196" y="81" width="9" height="9"/>
+                    <line x1="212" y1="58" x2="212" y2="44"/><path d="M212 44l12 4-12 4z" fill="#CCFF00" stroke="#1b1b1b" stroke-width="1.6"/>
+                    <circle cx="118" cy="38" r="13"/><path d="M112 40c2 3 10 3 12 0"/><circle cx="113" cy="35" r="1.4" fill="#1b1b1b" stroke="none"/><circle cx="123" cy="35" r="1.4" fill="#1b1b1b" stroke="none"/>
+                    <path d="M105 30c2-8 24-8 26 0"/>
+                    <line x1="118" y1="51" x2="118" y2="88"/>
+                    <line x1="118" y1="60" x2="100" y2="74"/><line x1="118" y1="60" x2="136" y2="74"/>
+                    <rect x="130" y="70" width="12" height="16" rx="3" fill="#CCFF00" stroke="#1b1b1b" stroke-width="1.8"/>
+                    <line x1="118" y1="88" x2="102" y2="118"/><line x1="118" y1="88" x2="134" y2="118"/>
+                    <line x1="10" y1="110" x2="230" y2="110" stroke-width="1.6"/>
+                  </svg>
+                  <div class="aui-h" style="margin-top:16px" data-zh="匹配进行中…" data-en="Matching in progress…">匹配进行中…</div>
+                  <div class="aui-k" data-zh="距下轮公布" data-en="Next cycle in">距下轮公布</div>
+                  <div class="aui-cd" data-zh="2天 09:49:30" data-en="2d 09:49:30">2天 09:49:30</div>
+                  <div style="width:100%;margin-top:16px">
+                    <div class="aui-btn pink" data-zh="离开匹配池" data-en="Leave Pool">离开匹配池</div>
+                    <div class="aui-link" data-zh="修改匹配偏好" data-en="Modify preferences">修改匹配偏好</div>
+                  </div>
+                </div>
+                <div class="aui-bar">
+                  <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
+              <div class="aui-page"><!-- Romantic · 问卷引导 -->
+                <div class="aui-top">
+                  <span class="material-symbols-rounded">tune</span>
+                  <div class="aui-seg"><span data-zh="聊天" data-en="Chat">聊天</span><span class="on" data-zh="恋人" data-en="Romantic">恋人</span><span data-zh="朋友" data-en="Friend">朋友</span></div>
+                  <span class="material-symbols-rounded">notifications</span>
+                </div>
+                <div class="aui-center">
+                  <div style="width:62px;height:62px;border-radius:50%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center"><span class="material-symbols-rounded" style="font-size:26px;color:#FF2EC4">assignment</span></div>
+                  <div class="aui-h" style="margin-top:16px;line-height:1.8" data-zh="恋人匹配问卷" data-en="Romantic questionnaire">恋人匹配问卷</div>
+                  <p style="font-size:11px;color:#6f6f6f;margin:8px 0 0" data-zh="进入该匹配模式前，请先完成恋人问卷。" data-en="Complete the romantic questionnaire before entering this matching mode.">进入该匹配模式前，请先完成恋人问卷。</p>
+                  <div style="width:100%;margin-top:18px"><div class="aui-btn" data-zh="填写问卷" data-en="Fill out questionnaire">填写问卷</div></div>
+                </div>
+                <div class="aui-bar">
+                  <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
+              <div class="aui-page"><!-- Chat · 会话列表空态 -->
+                <div class="aui-top">
+                  <span class="material-symbols-rounded">forum</span>
+                  <div class="aui-seg"><span class="on" data-zh="聊天" data-en="Chat">聊天</span><span data-zh="恋人" data-en="Romantic">恋人</span><span data-zh="朋友" data-en="Friend">朋友</span></div>
+                  <span class="material-symbols-rounded">notifications</span>
+                </div>
+                <div class="aui-center">
+                  <div style="width:56px;height:56px;border-radius:50%;border:1px solid #e2e2e2;background:#fff;display:flex;align-items:center;justify-content:center;color:#9e9e9e"><span class="material-symbols-rounded" style="font-size:22px">forum</span></div>
+                  <div style="font-size:11.5px;font-weight:700;letter-spacing:.18em;margin-top:14px" data-zh="还没有会话" data-en="No conversations yet">还没有会话</div>
+                  <p style="font-size:11px;color:#9e9e9e;margin-top:8px" data-zh="在恋人 / 朋友模式匹配成功后，就可以在这里开始聊天" data-en="Match in Romantic / Friend mode, then start chatting here">在恋人 / 朋友模式匹配成功后，就可以在这里开始聊天</p>
+                </div>
+                <div class="aui-bar">
+                  <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
             </div>
+            <div class="aui-dots"><i class="on"></i><i></i><i></i></div>
           </div>
         </div>
       </div>
@@ -769,12 +949,82 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
       <div class="show-phone reveal l">
         <canvas class="ldr" data-loader="rings" aria-hidden="true" style="top:50%;left:50%;width:580px;height:580px;transform:translate(-50%,-50%);z-index:0;opacity:.4"></canvas>
         <div class="phone">
-          <div class="screen">
-            <!-- 替换为你的内容：图片 <img class="ph-media" src="你的图片.jpg" alt="">  或视频 <video class="ph-media" src="你的视频.mp4" autoplay muted loop playsinline></video> -->
-            <div class="ph-placeholder">
-              <span class="material-symbols-rounded">add_photo_alternate</span>
-              <span data-i18n="ph.wall">校园墙界面 · 放置图片 / 视频</span>
+          <div class="screen aui" aria-label="应用界面：广场（可滑动多页）">
+            <!-- 按真实 H5 复刻；可整体替换为真实截图/录屏：<img class="ph-media" src="截图.png" alt=""> 或 <video class="ph-media" src="录屏.mp4" autoplay muted loop playsinline></video> -->
+            <div class="aui-track">
+              <div class="aui-page"><!-- Square · Campus Wall -->
+                <div class="aui-tabs2"><span data-zh="推荐" data-en="Recommend">推荐</span><span class="on" data-zh="校园墙" data-en="Campus Wall">校园墙</span></div>
+                <div class="aui-search"><span class="material-symbols-rounded">search</span><span data-zh="搜索帖子" data-en="Search posts">搜索帖子</span></div>
+                <div class="aui-body">
+                  <div class="aui-card">
+                    <div class="aui-p-top"><span class="aui-p-av" data-zh="沐晨" data-en="M">沐晨</span><div class="aui-p-meta"><b data-zh="沐晨" data-en="Morgan">沐晨</b><span data-zh="5 分钟前" data-en="5m ago">5 分钟前</span></div><span class="aui-school">University College London</span></div>
+                    <div class="aui-p-title" data-zh="失物招领" data-en="Lost &amp; found">失物招领</div>
+                    <p class="aui-p-txt" data-zh="在二教 104 捡到一张校园卡，失主速来认领！" data-en="Found a campus card in Room 104 — come claim it!">在二教 104 捡到一张校园卡，失主速来认领！</p>
+                    <div class="aui-p-act"><span><span class="material-symbols-rounded">chat_bubble</span>0</span><span><span class="material-symbols-rounded">favorite</span>1</span></div>
+                  </div>
+                  <div class="aui-card">
+                    <div class="aui-p-top"><span class="aui-p-av anon"><span class="material-symbols-rounded">person</span></span><div class="aui-p-meta"><b data-zh="青柠（匿名）" data-en="Noble Hare">青柠（匿名）</b><span data-zh="12 分钟前" data-en="12m ago">12 分钟前</span></div><span class="aui-school">University College London</span></div>
+                    <p class="aui-p-txt" style="margin-top:9px" data-zh="在图书馆三楼总遇到的那个人，今天对我笑了一下，一整天心情都很好。" data-en="The person I keep seeing on the library third floor smiled at me today — made my whole day.">在图书馆三楼总遇到的那个人，今天对我笑了一下，一整天心情都很好。</p>
+                    <div class="aui-p-act"><span><span class="material-symbols-rounded">chat_bubble</span>0</span><span><span class="material-symbols-rounded">favorite</span>1</span></div>
+                  </div>
+                  <div class="aui-card">
+                    <div class="aui-p-top"><span class="aui-p-av" data-zh="沐晨" data-en="M">沐晨</span><div class="aui-p-meta"><b data-zh="沐晨" data-en="Morgan">沐晨</b><span data-zh="26 分钟前" data-en="26m ago">26 分钟前</span></div><span class="aui-school">University College London</span></div>
+                    <div class="aui-p-title" data-zh="周五羽毛球 3 缺 1" data-en="Badminton Friday — 3 need 1">周五羽毛球 3 缺 1</div>
+                    <p class="aui-p-txt" data-zh="体育馆 19:00，会打就行，来个搭子～" data-en="Sports hall 7pm, any level welcome!">体育馆 19:00，会打就行，来个搭子～</p>
+                    <div class="aui-p-act"><span><span class="material-symbols-rounded">chat_bubble</span>0</span><span><span class="material-symbols-rounded">favorite</span>1</span></div>
+                  </div>
+                  <div class="aui-fab"><span class="material-symbols-rounded">add</span></div>
+                </div>
+                <div class="aui-bar">
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div class="on"><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
+              <div class="aui-page"><!-- Square · Recommend -->
+                <div class="aui-tabs2"><span class="on" data-zh="推荐" data-en="Recommend">推荐</span><span data-zh="校园墙" data-en="Campus Wall">校园墙</span></div>
+                <div class="aui-search"><span class="material-symbols-rounded">search</span><span data-zh="搜索帖子" data-en="Search posts">搜索帖子</span></div>
+                <div class="aui-body">
+                  <div class="aui-grid">
+                    <div class="aui-gcard">
+                      <div class="aui-gimg" style="background:#EDE6DA;min-height:150px"><span class="aui-school">University College London</span><span data-zh="周末咖啡自习搭子" data-en="Weekend café study buddy">周末咖啡自习搭子</span></div>
+                      <div class="aui-gfoot"><b data-zh="周末咖啡自习搭子" data-en="Weekend café study buddy">周末咖啡自习搭子</b><span data-zh="刚刚 · 沐晨" data-en="Just now · Morgan">刚刚 · 沐晨</span><span class="aui-like"><span class="material-symbols-rounded">favorite</span>0</span></div>
+                    </div>
+                    <div class="aui-gcard" style="margin-top:18px">
+                      <div class="aui-gimg" style="background:#EFF5D3;min-height:120px"><span class="aui-school">University College London</span><span data-zh="周五羽毛球 3 缺 1" data-en="Badminton Friday — 3 need 1">周五羽毛球 3 缺 1</span></div>
+                      <div class="aui-gfoot"><b data-zh="周五羽毛球 3 缺 1" data-en="Badminton Friday — 3 need 1">周五羽毛球 3 缺 1</b><span data-zh="26 分钟前 · 沐晨" data-en="26m ago · Morgan">26 分钟前 · 沐晨</span><span class="aui-like"><span class="material-symbols-rounded">favorite</span>1</span></div>
+                    </div>
+                  </div>
+                  <div class="aui-fab"><span class="material-symbols-rounded">add</span></div>
+                </div>
+                <div class="aui-bar">
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div class="on"><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
+              <div class="aui-page"><!-- Profile -->
+                <div class="aui-cover"><span class="aui-verify"><span class="material-symbols-rounded">shield</span><span data-zh="认证" data-en="Verify">认证</span></span></div>
+                <div class="aui-idwrap">
+                  <div class="aui-bigav" data-zh="沐晨" data-en="M">沐晨</div>
+                  <div class="aui-name" data-zh="沐晨" data-en="Morgan">沐晨</div>
+                  <div><span class="aui-schoolpill">University College London</span></div>
+                  <span class="aui-state"><i></i><span data-zh="未在匹配中" data-en="Not matching">未在匹配中</span></span>
+                </div>
+                <div class="aui-rows">
+                  <div class="aui-row"><span class="material-symbols-rounded">bolt</span><span data-zh="能量" data-en="ENERGY">能量</span><span class="cnt">0</span><span class="material-symbols-rounded chev">chevron_right</span></div>
+                  <div class="aui-row"><span class="material-symbols-rounded">person</span><span data-zh="编辑资料" data-en="Edit Profile">编辑资料</span><span class="material-symbols-rounded chev">chevron_right</span></div>
+                  <div class="aui-row"><span class="material-symbols-rounded">mail</span><span data-zh="联系我们" data-en="Contact Us">联系我们</span><span class="material-symbols-rounded chev">chevron_right</span></div>
+                  <div class="aui-row"><span class="material-symbols-rounded">settings</span><span data-zh="设置" data-en="Settings">设置</span><span class="material-symbols-rounded chev">chevron_right</span></div>
+                </div>
+                <div class="aui-bar">
+                  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg><span data-zh="匹配" data-en="Match">匹配</span></div>
+                  <div><span class="material-symbols-rounded">grid_view</span><span data-zh="广场" data-en="Square">广场</span></div>
+                  <div class="on"><span class="material-symbols-rounded">person</span><span data-zh="我的" data-en="Profile">我的</span></div>
+                </div>
+              </div>
             </div>
+            <div class="aui-dots"><i class="on"></i><i></i><i></i></div>
           </div>
         </div>
       </div>
@@ -892,7 +1142,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
       </h2>
       <p class="sponsor-lede" data-i18n="par.lede">我们真金白银地支持学生会——活动经费、周边、奖品、场地，我们买单。把想法交给我们，让校园热闹起来。</p>
       <div class="sponsor-cta">
-        <a class="sponsor-btn" href="#get-sponsored">
+        <a class="sponsor-btn" href="sponsors.html#apply">
           <span data-i18n="par.cta.btn">申请赞助</span>
           <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
         </a>
@@ -938,18 +1188,22 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
     </div>
     <p class="ga-sub reveal d1" data-i18n="ga.sub">iOS 与 Android 预计 2026 春季上线。加入候补名单，抢先体验并解锁校园专属福利。</p>
     <div class="ga-badges reveal d1">
-      <a class="ga-badge" href="#">
+      <a class="ga-badge" aria-disabled="true">
         <span class="ga-bi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.23-3.91-1.22-1.78-3.11-2.02-3.78-2.05-1.61-.16-3.14.94-3.96.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.81 1.3 10.37.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.55 0 2 .83 3.36.81 1.39-.03 2.27-1.27 3.12-2.53.98-1.45 1.39-2.85 1.41-2.92-.03-.01-2.7-1.04-2.73-4.13zM14.62 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-3 1.54-.66.76-1.24 1.98-1.08 3.15 1.14.09 2.31-.58 3.02-1.44z"/></svg></span>
         <div class="ga-bt"><small data-i18n="ga.ios.k">即将上线 APP STORE</small><b>App Store</b></div>
         <span class="ga-soon" data-i18n="ga.soon">敬请期待</span>
       </a>
-      <a class="ga-badge" href="#">
+      <a class="ga-badge" aria-disabled="true">
         <span class="ga-bi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3l13 9-13 9V3z"/></svg></span>
         <div class="ga-bt"><small data-i18n="ga.gp.k">即将上线 GOOGLE PLAY</small><b>Google Play</b></div>
         <span class="ga-soon" data-i18n="ga.soon">敬请期待</span>
       </a>
     </div>
-    <a class="ga-wait reveal d2" href="mailto:hello@unimatcha.com" data-i18n="ga.wait">→ 加入候补名单 · 抢先体验</a>
+    <form class="ga-wait-form reveal d2" id="waitForm" novalidate>
+      <input type="email" id="waitEmail" required data-i18n-ph="ga.wait.ph" placeholder="你的校园邮箱 you@university.edu" />
+      <button type="submit" data-i18n="ga.wait.btn">加入候补名单</button>
+    </form>
+    <p class="ga-wait-ok reveal" id="waitOk" hidden data-i18n="ga.wait.ok">✓ 已加入候补名单，上线第一时间通知你。</p>
   </div>
 </section>
 
@@ -982,6 +1236,9 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
         <div class="faq-a"><div><p data-i18n="faq.a5">正式上线定于 2026 年春季。加入候补名单，今秋抢先体验。</p></div></div>
       </div>
     </div>
+    <div class="reveal" style="text-align:center;margin-top:34px">
+      <a href="faq.html" style="display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px;border-bottom:2px solid var(--neon);padding-bottom:3px"><span data-i18n="faq.more">前往帮助中心查看全部问题</span><span class="material-symbols-rounded" style="font-size:17px">arrow_forward</span></a>
+    </div>
   </div>
 </section>
 
@@ -990,7 +1247,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
   <div class="wrap">
     <div class="foot reveal">
       <div>
-        <div class="brand"><span class="blip"></span>UNIMATCHA</div>
+        <div class="brand">UNIMATCHA<span class="beta-tag">BETA</span></div>
         <p class="desc" data-i18n="foot.desc">大学生长期恋爱匹配平台 · v2.0。每周五 17:00，公平、专注地公布每一轮匹配结果。</p>
       </div>
       <div class="foot-cols">
@@ -1001,13 +1258,16 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
           <a href="#features" data-i18n="nav.how">如何使用</a>
         </div>
         <div class="fcol"><h5 data-i18n="foot.c2">平台</h5>
-          <a href="#" data-i18n="foot.h5">H5 移动端</a>
-          <a href="#" data-i18n="foot.ios">iOS 客户端</a>
-          <a href="#" data-i18n="foot.admin">管理后台</a>
+          <a href="https://app.unimatcha.com" target="_blank" rel="noopener" data-i18n="foot.h5">H5 移动端</a>
+          <a href="#getapp" data-i18n="foot.ios">iOS 客户端</a>
         </div>
         <div class="fcol"><h5 data-i18n="foot.c3">关于</h5>
-          <a href="#partners" data-i18n="nav.partners">合作伙伴</a>
-          <a href="#" data-i18n="foot.privacy">隐私协议</a>
+          <a href="sponsors.html" data-i18n="nav.sponsors">赞助计划</a>
+          <a href="safety.html" data-i18n="nav.safety">安全与信任</a>
+          <a href="faq.html" data-i18n="nav.faqp">帮助中心</a>
+          <a href="about.html" data-i18n="nav.about">关于我们</a>
+          <a href="privacy.html" data-i18n="foot.privacy">隐私协议</a>
+          <a href="terms.html" data-i18n="foot.terms">用户协议</a>
           <a href="mailto:hello@unimatcha.com" data-i18n="foot.contact">联系我们</a>
         </div>
       </div>
@@ -1023,7 +1283,7 @@ footer{background:var(--stone);border-top:1px solid var(--line);padding:64px 0 4
 /* ===================== i18n ===================== */
 const I18N={
   zh:{
-    'nav.features':'功能','nav.how':'如何使用','nav.reviews':'评价','nav.partners':'合作伙伴','nav.cta':'进入应用',
+    'nav.features':'功能','nav.how':'如何使用','nav.reviews':'评价','nav.partners':'合作伙伴','nav.cta':'获取 App','nav.open':'进入应用','nav.sponsors':'赞助计划','nav.safety':'安全与信任','nav.faqp':'帮助中心','nav.about':'关于我们',
     'hero.eyebrow':'大学生 · 校园生活平台',
     'hero.title':'点亮你的<br><span class="mark"><span>校园生活</span></span>。',
     'hero.lede':'抹茶是为大学生打造的校园生活平台：认真的<b>匹配</b>，真实的<b>校园墙</b>，让每一段校园缘分都被认真对待。',
@@ -1072,14 +1332,14 @@ const I18N={
     'par.cta.btn':'申请赞助','par.cta.note':'仅面向学生会开放 · 我们会尽快回复每一份申请',
     'par.b1':'免费定制运营平台','par.b2':'共建校园生态','par.b3':'长期赞助同行','par.b4':'托举学生领导力',
     'par.m1':'赞助真正重要的社群','par.m2':'与学生会共建生态','par.m3':'托举学生领导力','par.m4':'长期同行，而非一次性',
-    'epo.label':'下一轮匹配 · NEXT ROUND','epo.head':'每周五 17:00，<br><em>缘分统一结算。</em>','epo.sub':'所有人在同一时刻见证结果。这一周，好好准备你的资料——下一个周五，或许就是故事的开始。','epo.btn':'加入下一轮',
-    'ga.label':'获取 App','ga.head':'即将装进<br><em>你的口袋。</em>','ga.sub':'iOS 与 Android 预计 2026 春季上线。加入候补名单，抢先体验并解锁校园专属福利。','ga.ios.k':'即将上线 APP STORE','ga.gp.k':'即将上线 GOOGLE PLAY','ga.soon':'敬请期待','ga.wait':'→ 加入候补名单 · 抢先体验',
+    'epo.label':'下一轮匹配','epo.head':'每周五 17:00，<br><em>缘分统一结算。</em>','epo.sub':'所有人在同一时刻见证结果。这一周，好好准备你的资料——下一个周五，或许就是故事的开始。','epo.btn':'加入下一轮',
+    'ga.label':'获取 App','ga.head':'即将装进<br><em>你的口袋。</em>','ga.sub':'iOS 与 Android 预计 2026 春季上线。加入候补名单，抢先体验并解锁校园专属福利。','ga.ios.k':'即将上线 APP STORE','ga.gp.k':'即将上线 GOOGLE PLAY','ga.soon':'敬请期待','ga.wait.btn':'加入候补名单','ga.wait.ph':'你的校园邮箱 you@university.edu','ga.wait.ok':'✓ 已加入候补名单，上线第一时间通知你。',
     'cta.label':'准备好了吗','cta.head':'下一个周五 17:00，<br>会不会是 <span class="u">你的故事</span> 开始？','cta.sub':'加入匹配池，把这一周交给认真。','cta.btn1':'立即加入匹配','cta.btn2':'先了解机制',
     'faq.label':'常见问题','faq.head':'你想问的，都在这里。','faq.q1':'抹茶免费吗？','faq.a1':'核心体验完全免费。我们也在为深度用户打造 Pro 版本，带来更高级的筛选和活动特权。','faq.q2':'支持哪些学校？','faq.a2':'首批覆盖美国、英国、欧洲、印度和日本的 120+ 所高校，并持续每周新增。','faq.q3':'和交友/约会软件有什么不同？','faq.a3':'抹茶追求真实的连接，而不是无止境地划走。每周五 17:00 统一公布新一轮——遇见对的那个人，也遇见同频的挚友，还有属于本校的校园墙。','faq.q4':'如何验证学生身份？','faq.a4':'每位用户都需用有效的 .edu（或同等）邮箱注册，并通过应用内的真实校验。','faq.q5':'什么时候上线？','faq.a5':'正式上线定于 2026 年春季。加入候补名单，今秋抢先体验。',
-    'foot.desc':'大学生长期恋爱匹配平台 · v2.0。每周五 17:00，公平、专注地公布每一轮匹配结果。','foot.c1':'产品','foot.c2':'平台','foot.c3':'关于','foot.h5':'H5 移动端','foot.ios':'iOS 客户端','foot.admin':'管理后台','foot.privacy':'隐私协议','foot.contact':'联系我们','foot.copy':'© 2026 UNIMATCHA · 长期恋爱匹配协议','foot.tag':'为认真的人而造 · ◆ #CCFF00',
+    'foot.desc':'大学生长期恋爱匹配平台 · v2.0。每周五 17:00，公平、专注地公布每一轮匹配结果。','foot.c1':'产品','foot.c2':'平台','foot.c3':'关于','foot.h5':'H5 移动端','foot.ios':'iOS 客户端','foot.admin':'管理后台','foot.privacy':'隐私协议','foot.terms':'用户协议','foot.contact':'联系我们','faq.more':'前往帮助中心查看全部问题','foot.copy':'© 2026 UNIMATCHA · 长期恋爱匹配协议','foot.tag':'为认真的人而造 · ◆ #CCFF00',
   },
   en:{
-    'nav.features':'Features','nav.how':'How it works','nav.reviews':'Reviews','nav.partners':'Partners','nav.cta':'Open App',
+    'nav.features':'Features','nav.how':'How it works','nav.reviews':'Reviews','nav.partners':'Partners','nav.cta':'Get the App','nav.open':'Open App','nav.sponsors':'Sponsorship','nav.safety':'Safety','nav.faqp':'FAQ','nav.about':'About',
     'hero.eyebrow':'For students · A campus life platform',
     'hero.title':'Spark your<br><span class="mark"><span>campus life</span></span>.',
     'hero.lede':'Unimatcha is a campus-life platform for university students: serious <b>matching</b> and a real <b>campus wall</b>, so every campus connection is taken seriously.',
@@ -1129,10 +1389,10 @@ const I18N={
     'par.b1':'Free custom ops platform','par.b2':'Co-build the campus ecosystem','par.b3':'A long-term sponsor','par.b4':'Backing student leadership',
     'par.m1':'Sponsoring the communities that matter','par.m2':'Co-building the ecosystem with unions','par.m3':'Backing student leadership','par.m4':'A partnership, not a one-off',
     'epo.label':'Next round · NEXT ROUND','epo.head':'Every Friday 17:00,<br><em>matches settle together.</em>','epo.sub':'Everyone witnesses the result at the same moment. Spend this week perfecting your profile — next Friday could be where your story begins.','epo.btn':'Join the next round',
-    'ga.label':'Get the app','ga.head':'Coming soon to<br><em>your pocket.</em>','ga.sub':'iOS & Android launching Spring 2026. Join the waitlist for early access and exclusive campus drops.','ga.ios.k':'COMING TO APP STORE','ga.gp.k':'COMING TO GOOGLE PLAY','ga.soon':'SOON','ga.wait':'→ Join the waitlist · early access',
+    'ga.label':'Get the app','ga.head':'Coming soon to<br><em>your pocket.</em>','ga.sub':'iOS & Android launching Spring 2026. Join the waitlist for early access and exclusive campus drops.','ga.ios.k':'COMING TO APP STORE','ga.gp.k':'COMING TO GOOGLE PLAY','ga.soon':'SOON','ga.wait.btn':'Join the waitlist','ga.wait.ph':'your uni email — you@university.edu','ga.wait.ok':'✓ You’re on the list — we’ll email you at launch.',
     'cta.label':'Ready?','cta.head':'Next Friday 17:00 —<br>could it be where <span class="u">your story</span> begins?','cta.sub':'Join the pool, and give this week to something real.','cta.btn1':'Join matching now','cta.btn2':'See how it works',
     'faq.label':'FAQ','faq.head':'Everything you wanted to ask.','faq.q1':'Is Unimatcha free?','faq.a1':'Yes — the core experience is free. We’re working on a Pro tier for power users with advanced filters and event perks.','faq.q2':'Which universities are supported?','faq.a2':'We’re launching with 120+ universities across the US, UK, Europe, India and Japan. More added weekly.','faq.q3':'How is this different from dating apps?','faq.a3':'Unimatcha is about real connection, not endless swiping. Every Friday at 17:00 a new round is revealed — meet the right partner and like-minded friends, plus a real campus wall for your school.','faq.q4':'How do you verify students?','faq.a4':'Every user must register with a valid .edu (or equivalent) email and pass an in-app vibe check.','faq.q5':'When does the app launch?','faq.a5':'Public launch is Spring 2026. Join the waitlist for early access this fall.',
-    'foot.desc':'Long-term matching for university students · v2.0. Every Friday 17:00 we reveal each round fairly and with focus.','foot.c1':'Product','foot.c2':'Platform','foot.c3':'About','foot.h5':'H5 Mobile','foot.ios':'iOS App','foot.admin':'Admin','foot.privacy':'Privacy','foot.contact':'Contact us','foot.copy':'© 2026 UNIMATCHA · Long-term matching protocol','foot.tag':'Built for people who are serious · ◆ #CCFF00',
+    'foot.desc':'Long-term matching for university students · v2.0. Every Friday 17:00 we reveal each round fairly and with focus.','foot.c1':'Product','foot.c2':'Platform','foot.c3':'About','foot.h5':'H5 Mobile','foot.ios':'iOS App','foot.admin':'Admin','foot.privacy':'Privacy','foot.terms':'Terms','foot.contact':'Contact us','faq.more':'Browse all questions in the Help Center','foot.copy':'© 2026 UNIMATCHA · Long-term matching protocol','foot.tag':'Built for people who are serious · ◆ #CCFF00',
   }
 };
 let LANG=localStorage.getItem('um_lang')||'zh';
@@ -1140,10 +1400,13 @@ function applyLang(l){
   LANG=l;document.documentElement.lang=l;localStorage.setItem('um_lang',l);
   document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(I18N[l][k]!=null)el.textContent=I18N[l][k];});
   document.querySelectorAll('[data-i18n-html]').forEach(el=>{const k=el.getAttribute('data-i18n-html');if(I18N[l][k]!=null)el.innerHTML=I18N[l][k];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(I18N[l][k]!=null)el.placeholder=I18N[l][k];});
+  document.querySelectorAll('[data-zh]').forEach(el=>{el.textContent=l==='zh'?el.getAttribute('data-zh'):el.getAttribute('data-en');});
   document.getElementById('langLabel').textContent=(l==='zh'?'EN':'中');
   buildReviews();
 }
 document.getElementById('langBtn').addEventListener('click',()=>applyLang(LANG==='zh'?'en':'zh'));
+document.getElementById('burger').addEventListener('click',()=>document.getElementById('mobmenu').classList.toggle('open'));
 
 /* ===================== reviews data ===================== */
 const REVIEWS={
@@ -1276,8 +1539,9 @@ const pad=n=>String(n).padStart(2,'0');
 const cdD=document.querySelectorAll('[data-cd="d"]'),cdH=document.querySelectorAll('[data-cd="h"]'),cdM=document.querySelectorAll('[data-cd="m"]'),cdS=document.querySelectorAll('[data-cd="s"]');
 const cdMini=document.querySelectorAll('[data-cd-mini]');
 let lastS=-1;
+let CD_TARGET=null; /* 后端 site-stats 的下一轮公布时间；取不到时回退本地"下周五17:00" */
 function tickCD(){
-  const tgt=nextFriday17(),now=new Date();let diff=Math.max(0,tgt-now);
+  const tgt=CD_TARGET||nextFriday17(),now=new Date();let diff=Math.max(0,tgt-now);
   const d=Math.floor(diff/864e5);diff-=d*864e5;const h=Math.floor(diff/36e5);diff-=h*36e5;const m=Math.floor(diff/6e4);diff-=m*6e4;const s=Math.floor(diff/1e3);
   cdD.forEach(x=>x.textContent=pad(d));cdH.forEach(x=>x.textContent=pad(h));cdM.forEach(x=>x.textContent=pad(m));
   cdS.forEach(x=>{x.textContent=pad(s);if(s!==lastS){x.classList.add('flash');setTimeout(()=>x.classList.remove('flash'),130);}});
@@ -1285,6 +1549,42 @@ function tickCD(){
   lastS=s;
 }
 tickCD();setInterval(tickCD,1000);
+
+/* ===================== live data from API（失败静默回退本地假数） ===================== */
+const API_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:3001/api/v1':'https://api.unimatcha.com/api/v1';
+(async()=>{
+  try{
+    const r=await fetch(API_BASE+'/public/site-stats',{signal:AbortSignal.timeout(5000)});
+    const j=await r.json();const d=j&&j.data;if(!d)return;
+    const map={users:d.users,matches:d.matches,schools:d.schools,rounds:d.roundsCompleted};
+    document.querySelectorAll('[data-stat]').forEach(el=>{
+      const v=map[el.dataset.stat];if(v==null)return;
+      el.dataset.count=v;
+      el.textContent=Number(v).toLocaleString('en-US')+(el.dataset.suffix||'');
+    });
+    if(d.currentRound)document.getElementById('roundTag').textContent='ROUND '+String(d.currentRound).padStart(3,'0');
+    if(d.nextRevealAt){const t=new Date(d.nextRevealAt);if(!isNaN(t)&&t>new Date()){CD_TARGET=t;tickCD();}}
+  }catch(_){/* API 不可达：保持本地回退值 */}
+})();
+
+/* ===================== waitlist（POST 后端，失败回退 mailto） ===================== */
+(function(){
+  const form=document.getElementById('waitForm');if(!form)return;
+  const input=document.getElementById('waitEmail'),ok=document.getElementById('waitOk'),btn=form.querySelector('button');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const email=input.value.trim();if(!email)return;
+    btn.disabled=true;
+    try{
+      const r=await fetch(API_BASE+'/public/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,locale:LANG}),signal:AbortSignal.timeout(6000)});
+      if(!r.ok)throw new Error('bad status');
+      form.hidden=true;ok.hidden=false;
+    }catch(_){
+      btn.disabled=false;
+      window.location.href='mailto:hello@unimatcha.com?subject='+encodeURIComponent(LANG==='zh'?'加入候补名单':'Join the waitlist')+'&body='+encodeURIComponent(email);
+    }
+  });
+})();
 
 /* ===================== rotating dotted Earth (continents only) ===================== */
 (function () {
@@ -1472,6 +1772,30 @@ tickCD();setInterval(tickCD,1000);
 
 /* ===================== init ===================== */
 applyLang(LANG);
+
+/* ===================== phone mockup carousels ===================== */
+document.querySelectorAll('.screen.aui').forEach(screen=>{
+  const track=screen.querySelector('.aui-track');
+  const dots=[...screen.querySelectorAll('.aui-dots i')];
+  if(!track||!dots.length)return;
+  const pages=track.children.length;
+  let idx=0,hold=false;
+  const sync=()=>{const i=Math.round(track.scrollLeft/track.clientWidth);if(i!==idx){idx=i;dots.forEach((d,k)=>d.classList.toggle('on',k===idx));}};
+  const go=n=>{idx=(n+pages)%pages;track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});dots.forEach((d,k)=>d.classList.toggle('on',k===idx));};
+  track.addEventListener('scroll',()=>requestAnimationFrame(sync),{passive:true});
+  dots.forEach((d,k)=>d.addEventListener('click',()=>{hold=true;go(k);setTimeout(()=>hold=false,4000);}));
+  /* 桌面拖拽滑动 */
+  let sx=0,sl=0,drag=false;
+  track.addEventListener('pointerdown',e=>{drag=true;hold=true;sx=e.clientX;sl=track.scrollLeft;track.classList.add('dragging');});
+  track.addEventListener('pointermove',e=>{if(drag)track.scrollLeft=sl-(e.clientX-sx);});
+  const end=()=>{if(!drag)return;drag=false;track.classList.remove('dragging');go(Math.max(0,Math.min(pages-1,Math.round(track.scrollLeft/track.clientWidth))));setTimeout(()=>hold=false,4000);};
+  track.addEventListener('pointerup',end);track.addEventListener('pointerleave',end);
+  track.addEventListener('touchstart',()=>{hold=true;},{passive:true});
+  track.addEventListener('touchend',()=>{setTimeout(()=>hold=false,4000);},{passive:true});
+  /* 自动轮播（页面可见且未被把玩时） */
+  setInterval(()=>{if(!hold&&document.visibilityState==='visible')go(idx+1);},3800);
+});
 </script>
+<script src="chat.js"></script>
 </body>
 </html>

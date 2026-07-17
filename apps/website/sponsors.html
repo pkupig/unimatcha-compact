@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>学生会合作 · Unimatcha 抹茶</title>
+<meta name="description" content="抹茶寻找学生会合作伙伴：免费定制的学生会管理系统 + 真金白银的活动赞助。留下联系方式，一周内回复。" />
+<meta name="theme-color" content="#F5F5F5" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="学生会合作 · Unimatcha 抹茶" />
+<meta property="og:description" content="免费定制的学生会管理系统 + 活动赞助支持。学生会，来聊聊。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23CCFF00'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="site.css" />
+<style>
+/* 本页专用 */
+.sp-band{background:var(--neon);padding:64px 0;transform:none}
+.sp-band h2{font-size:clamp(24px,3.6vw,40px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.sp-band p{color:#2a3300;font-size:16px;margin-top:12px;max-width:640px}
+.sp-contact{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+@media(max-width:920px){.sp-contact{grid-template-columns:1fr;gap:40px}}
+.sp-why{display:flex;flex-direction:column;gap:16px;margin-top:26px}
+.sp-why .w{display:flex;gap:14px;align-items:flex-start}
+.sp-why .w .material-symbols-rounded{color:var(--neon-dark);font-size:22px;flex:none;margin-top:2px}
+.sp-why .w b{display:block;font-size:15.5px}
+.sp-why .w span{font-size:13.5px;color:var(--muted)}
+</style>
+</head>
+<body data-title-zh="学生会合作 · Unimatcha 抹茶" data-title-en="For Student Unions · Unimatcha">
+
+<header id="hdr">
+  <nav class="nav">
+    <a class="brand" href="index.html">UNIMATCHA<span class="beta-tag">BETA</span></a>
+    <div class="navlinks">
+      <a href="sponsors.html" class="on" data-zh="赞助计划" data-en="Sponsorship"></a>
+      <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+      <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+      <a href="about.html" data-zh="关于我们" data-en="About"></a>
+    </div>
+    <div class="nav-cta">
+      <button class="lang" id="langBtn" type="button"><span class="material-symbols-rounded">translate</span><span id="langLabel">EN</span></button>
+      <a class="btn-neon" href="index.html#getapp"><span data-zh="获取 App" data-en="Get the App"></span><span class="material-symbols-rounded">arrow_forward</span></a>
+      <button class="burger" id="burger" type="button" aria-label="菜单"><span class="material-symbols-rounded">menu</span></button>
+    </div>
+  </nav>
+  <div class="mobmenu" id="mobmenu">
+    <a href="sponsors.html" class="on" data-zh="赞助计划" data-en="Sponsorship"></a>
+    <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+    <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+    <a href="about.html" data-zh="关于我们" data-en="About"></a>
+  </div>
+</header>
+
+<!-- hero：合作定位 -->
+<section class="page-hero">
+  <div class="glow" style="width:420px;height:420px;right:-140px;top:-140px"></div>
+  <div class="wrap" style="position:relative">
+    <div class="bigword" style="position:absolute;right:-40px;top:-14px;opacity:.7" aria-hidden="true">PARTNER</div>
+    <span class="eyebrow"><span class="dot"></span><span data-zh="学生会合作" data-en="FOR STUDENT UNIONS"></span></span>
+    <h1><span data-zh="我们在找" data-en="We partner with"></span><br><em><span data-zh="学生会合作。" data-en="student unions."></span></em></h1>
+    <p class="lede" data-zh="一套免费定制的学生会管理系统，加上真金白银的活动赞助——把学生会的活儿变轻，把校园活动办大。留下联系方式，我们来聊。" data-en="A free, customised management system for your union, plus real sponsorship behind your events — less admin, bigger campus moments. Leave your contact and let's talk."></p>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px">
+      <a class="btn-neon" href="#apply"><span data-zh="联系我们" data-en="Get in touch"></span><span class="material-symbols-rounded">arrow_downward</span></a>
+      <span style="font-family:var(--mono);font-size:12px;color:var(--muted)" data-zh="学生会 / 社团均可 · 一周内回复" data-en="Unions & societies welcome · reply within a week"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 免费定制管理系统（主打，双语演示） -->
+<section class="sec sec-dark">
+  <div class="glow" style="width:520px;height:520px;left:50%;top:-300px;transform:translateX(-50%)"></div>
+  <div class="wrap" style="position:relative;z-index:2">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><span class="dot"></span><span data-zh="合作即赠送" data-en="INCLUDED IN THE PARTNERSHIP"></span></span>
+      <h2 data-zh="免费定制你的学生会管理系统。" data-en="A free, customised management system for your union."></h2>
+      <p data-zh="不是通用模板——按你学校和学生会的实际运营定制：数据总览、校园墙管理、广告审核、收益提现，全部在一个后台里，零成本使用。" data-en="Not a generic template — customised to how your school and union actually run: data overview, campus-wall moderation, ad review and earnings, all in one console, free of charge."></p>
+    </div>
+
+    <div class="console-tabs reveal">
+      <button type="button" class="on" data-view="cv-overview"><span data-zh="学生会总览" data-en="Union overview"></span></button>
+      <button type="button" data-view="cv-moderation"><span data-zh="校园墙管理" data-en="Wall moderation"></span></button>
+      <button type="button" data-view="cv-ads"><span data-zh="广告审核" data-en="Ad review"></span></button>
+    </div>
+
+    <!-- 视图 1：总览（双语演示） -->
+    <div class="console-view on reveal" id="cv-overview">
+      <div class="browser">
+        <div class="browser-bar"><i></i><i></i><i></i><span class="url"><span data-zh="unimatcha console · 学生会" data-en="unimatcha console · union"></span></span></div>
+        <div class="adm">
+          <aside>
+            <div class="a-brand">UniMatcha<i></i></div>
+            <div class="a-sub">ADMIN CONSOLE</div>
+            <span class="a-role" data-zh="学生会" data-en="UNION"></span>
+            <div class="a-org" data-zh="UCL 学生会" data-en="UCL Students' Union"></div>
+            <div class="a-school">University College London</div>
+            <div class="a-item on"><span class="material-symbols-rounded">grid_view</span><span data-zh="总览" data-en="Overview"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">group</span><span data-zh="本校用户" data-en="Campus users"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">storefront</span><span data-zh="赞助商" data-en="Sponsors"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">campaign</span><span data-zh="广告审核" data-en="Ad review"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">shield</span><span data-zh="校园墙管理" data-en="Moderation"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">send</span><span data-zh="发帖子" data-en="Post"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">account_balance_wallet</span><span data-zh="收益提现" data-en="Earnings"></span></div>
+          </aside>
+          <main>
+            <div class="m-eyebrow">Overview</div>
+            <div class="m-title" data-zh="学生会总览" data-en="Union Overview"></div>
+            <div class="m-sub"><span data-zh="University College London · 本校数据一览" data-en="University College London · your campus at a glance"></span></div>
+            <div class="m-cards">
+              <div class="m-card"><div class="k"><span data-zh="本校用户" data-en="Campus users"></span><span class="material-symbols-rounded">group</span></div><div class="v">3,204</div></div>
+              <div class="m-card hl"><div class="k"><span data-zh="账户余额" data-en="Balance"></span><span class="material-symbols-rounded">wallet</span></div><div class="v">¥12,860</div><div class="d" data-zh="可提现余额（不含在途冻结）" data-en="Withdrawable (excl. pending)"></div></div>
+              <div class="m-card dk"><div class="k"><span data-zh="待审广告" data-en="Ads pending"></span><span class="material-symbols-rounded">campaign</span></div><div class="v">3</div></div>
+              <div class="m-card"><div class="k"><span data-zh="进行中投放" data-en="Active campaigns"></span><span class="material-symbols-rounded">bolt</span></div><div class="v">5</div></div>
+            </div>
+            <div class="m-panel">
+              <div class="m-panel-head">
+                <div class="t"><span>Recent Ledger</span><b data-zh="最近入账明细" data-en="Recent ledger"></b></div>
+                <button class="m-btn" type="button" data-zh="收益提现 →" data-en="Withdraw →"></button>
+              </div>
+              <table>
+                <tr><th data-zh="类型" data-en="Type"></th><th data-zh="金额" data-en="Amount"></th><th class="hide-m" data-zh="备注" data-en="Note"></th><th data-zh="时间" data-en="Date"></th></tr>
+                <tr><td><b data-zh="广告分成" data-en="Ad revenue share"></b></td><td><b>+¥1,240.00</b></td><td class="hide-m"><span class="muted" data-zh="CPM 结算 · 七月批次" data-en="CPM settlement · July batch"></span></td><td>2026-07-11</td></tr>
+                <tr><td><b data-zh="广告分成" data-en="Ad revenue share"></b></td><td><b>+¥860.00</b></td><td class="hide-m"><span class="muted" data-zh="CPC 结算 · 迎新专题" data-en="CPC settlement · Freshers special"></span></td><td>2026-07-04</td></tr>
+                <tr><td><b data-zh="提现" data-en="Withdrawal"></b></td><td><b>-¥5,000.00</b></td><td class="hide-m"><span class="muted" data-zh="已打款至对公账户" data-en="Paid to bank account"></span></td><td>2026-06-28</td></tr>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图 2：校园墙管理（双语演示） -->
+    <div class="console-view reveal" id="cv-moderation">
+      <div class="browser">
+        <div class="browser-bar"><i></i><i></i><i></i><span class="url"><span data-zh="unimatcha console · 校园墙管理" data-en="unimatcha console · moderation"></span></span></div>
+        <div class="adm">
+          <aside>
+            <div class="a-brand">UniMatcha<i></i></div>
+            <div class="a-sub">ADMIN CONSOLE</div>
+            <span class="a-role" data-zh="学生会" data-en="UNION"></span>
+            <div class="a-org" data-zh="UCL 学生会" data-en="UCL Students' Union"></div>
+            <div class="a-school">University College London</div>
+            <div class="a-item"><span class="material-symbols-rounded">grid_view</span><span data-zh="总览" data-en="Overview"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">group</span><span data-zh="本校用户" data-en="Campus users"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">storefront</span><span data-zh="赞助商" data-en="Sponsors"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">campaign</span><span data-zh="广告审核" data-en="Ad review"></span></div>
+            <div class="a-item on"><span class="material-symbols-rounded">shield</span><span data-zh="校园墙管理" data-en="Moderation"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">send</span><span data-zh="发帖子" data-en="Post"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">account_balance_wallet</span><span data-zh="收益提现" data-en="Earnings"></span></div>
+          </aside>
+          <main>
+            <div class="m-eyebrow">Moderation</div>
+            <div class="m-title" data-zh="校园墙管理" data-en="Wall Moderation"></div>
+            <div class="m-sub"><span data-zh="University College London · 本校帖子与举报处理" data-en="University College London · posts & reports for your school"></span></div>
+            <div class="seg"><span class="on" data-zh="帖子管理" data-en="Posts"></span><span data-zh="举报队列" data-en="Reports"></span></div>
+            <div class="m-panel" style="padding:6px 10px">
+              <table>
+                <tr><th data-zh="内容" data-en="Content"></th><th class="hide-m" data-zh="作者" data-en="Author"></th><th data-zh="板块" data-en="Board"></th><th class="hide-m" data-zh="互动" data-en="Engagement"></th><th data-zh="状态" data-en="Status"></th><th data-zh="操作" data-en="Actions"></th></tr>
+                <tr><td><b data-zh="周末咖啡自习搭子" data-en="Weekend café study buddy"></b><span class="muted" data-zh="想找周末一起去咖啡馆自习的朋友…" data-en="Looking for someone to study with on weekends…"></span></td><td class="hide-m"><span class="tag" data-zh="用户" data-en="User"></span> <span data-zh="沐晨" data-en="Morgan"></span></td><td data-zh="推荐流" data-en="Recommend"></td><td class="hide-m" data-zh="赞 12 · 评 3" data-en="12 likes · 3 cmts"></td><td><span class="pill" data-zh="展示中" data-en="Live"></span></td><td><span class="act" data-zh="查看" data-en="View"></span> <span class="act pink" data-zh="下架" data-en="Remove"></span></td></tr>
+                <tr><td><b data-zh="失物招领" data-en="Lost & found"></b><span class="muted" data-zh="在二教 104 捡到一张校园卡…" data-en="Found a campus card in Room 104…"></span></td><td class="hide-m"><span class="tag" data-zh="用户" data-en="User"></span> <span data-zh="沐晨" data-en="Morgan"></span></td><td data-zh="校园墙" data-en="Campus wall"></td><td class="hide-m" data-zh="赞 8 · 评 2" data-en="8 likes · 2 cmts"></td><td><span class="pill" data-zh="展示中" data-en="Live"></span></td><td><span class="act" data-zh="查看" data-en="View"></span> <span class="act pink" data-zh="下架" data-en="Remove"></span></td></tr>
+                <tr><td><b data-zh="在图书馆三楼总遇到的那个人…" data-en="The person I keep seeing in the library…"></b><span class="muted" data-zh="今天对我笑了一下，一整天心情都很好" data-en="They smiled at me today — made my whole day"></span></td><td class="hide-m"><span class="tag" data-zh="匿名" data-en="Anon"></span> <span data-zh="青柠" data-en="Noble Hare"></span></td><td data-zh="校园墙" data-en="Campus wall"></td><td class="hide-m" data-zh="赞 89 · 评 31" data-en="89 likes · 31 cmts"></td><td><span class="pill" data-zh="展示中" data-en="Live"></span></td><td><span class="act" data-zh="查看" data-en="View"></span> <span class="act pink" data-zh="下架" data-en="Remove"></span></td></tr>
+                <tr><td><b data-zh="周五羽毛球 3 缺 1" data-en="Badminton Friday — 3 need 1"></b><span class="muted" data-zh="体育馆 19:00，会打就行，来个搭子～" data-en="Sports hall 7pm, any level welcome!"></span></td><td class="hide-m"><span class="tag" data-zh="用户" data-en="User"></span> <span data-zh="沐晨" data-en="Morgan"></span></td><td data-zh="校园墙" data-en="Campus wall"></td><td class="hide-m" data-zh="赞 23 · 评 6" data-en="23 likes · 6 cmts"></td><td><span class="pill grey" data-zh="已下架" data-en="Removed"></span></td><td><span class="act" data-zh="查看" data-en="View"></span> <span class="act" data-zh="恢复" data-en="Restore"></span></td></tr>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图 3：广告审核（双语演示） -->
+    <div class="console-view reveal" id="cv-ads">
+      <div class="browser">
+        <div class="browser-bar"><i></i><i></i><i></i><span class="url"><span data-zh="unimatcha console · 广告审核" data-en="unimatcha console · ad review"></span></span></div>
+        <div class="adm">
+          <aside>
+            <div class="a-brand">UniMatcha<i></i></div>
+            <div class="a-sub">ADMIN CONSOLE</div>
+            <span class="a-role" data-zh="学生会" data-en="UNION"></span>
+            <div class="a-org" data-zh="UCL 学生会" data-en="UCL Students' Union"></div>
+            <div class="a-school">University College London</div>
+            <div class="a-item"><span class="material-symbols-rounded">grid_view</span><span data-zh="总览" data-en="Overview"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">group</span><span data-zh="本校用户" data-en="Campus users"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">storefront</span><span data-zh="赞助商" data-en="Sponsors"></span></div>
+            <div class="a-item on"><span class="material-symbols-rounded">campaign</span><span data-zh="广告审核" data-en="Ad review"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">shield</span><span data-zh="校园墙管理" data-en="Moderation"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">send</span><span data-zh="发帖子" data-en="Post"></span></div>
+            <div class="a-item"><span class="material-symbols-rounded">account_balance_wallet</span><span data-zh="收益提现" data-en="Earnings"></span></div>
+          </aside>
+          <main>
+            <div class="m-eyebrow">Ad Review</div>
+            <div class="m-title" data-zh="广告审核" data-en="Ad Review"></div>
+            <div class="m-sub"><span data-zh="投放到本校的广告，先由你审核 · 分成实时入账" data-en="Ads targeting your campus pass your review first · revenue share in real time"></span></div>
+            <div class="m-panel" style="padding:6px 10px">
+              <table>
+                <tr><th data-zh="广告" data-en="Campaign"></th><th class="hide-m" data-zh="商家" data-en="Merchant"></th><th data-zh="计价" data-en="Pricing"></th><th class="hide-m" data-zh="预算" data-en="Budget"></th><th data-zh="状态" data-en="Status"></th><th data-zh="操作" data-en="Actions"></th></tr>
+                <tr><td><b data-zh="迎新季奶茶买一送一" data-en="Freshers bubble-tea BOGO"></b><span class="muted" data-zh="信息流大卡 · 迎新周档期" data-en="Feed card · Freshers week slot"></span></td><td class="hide-m" data-zh="甜屿茶饮" data-en="Sweet Isle Tea"></td><td>CPM</td><td class="hide-m">¥2,000</td><td><span class="pill" style="background:#ffe9a8" data-zh="待审核" data-en="Pending"></span></td><td><span class="act" data-zh="通过" data-en="Approve"></span> <span class="act pink" data-zh="驳回" data-en="Reject"></span></td></tr>
+                <tr><td><b data-zh="二手教材回收季" data-en="Textbook buy-back season"></b><span class="muted" data-zh="信息流卡片 · 期末档期" data-en="Feed card · end-of-term slot"></span></td><td class="hide-m" data-zh="校园书屋" data-en="Campus Books"></td><td>CPC</td><td class="hide-m">¥1,500</td><td><span class="pill" style="background:#ffe9a8" data-zh="待审核" data-en="Pending"></span></td><td><span class="act" data-zh="通过" data-en="Approve"></span> <span class="act pink" data-zh="驳回" data-en="Reject"></span></td></tr>
+                <tr><td><b data-zh="健身房学生年卡 8 折" data-en="Gym student pass — 20% off"></b><span class="muted" data-zh="信息流大卡 · 全学期" data-en="Feed card · full term"></span></td><td class="hide-m">FitHub</td><td data-zh="包断" data-en="Buyout"></td><td class="hide-m">¥6,000</td><td><span class="pill" data-zh="已通过" data-en="Approved"></span></td><td><span class="act" data-zh="详情" data-en="Details"></span></td></tr>
+              </table>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal" style="display:flex;gap:26px;flex-wrap:wrap;margin-top:26px;font-size:14px;color:#c9c9c2">
+      <span style="display:inline-flex;gap:7px;align-items:center"><span class="material-symbols-rounded" style="color:var(--neon);font-size:17px">check_circle</span><span data-zh="按你的学校定制，免费使用" data-en="Customised to your school, free to use"></span></span>
+      <span style="display:inline-flex;gap:7px;align-items:center"><span class="material-symbols-rounded" style="color:var(--neon);font-size:17px">check_circle</span><span data-zh="本校数据、校园墙与举报一站管理" data-en="Campus data, wall & reports in one place"></span></span>
+      <span style="display:inline-flex;gap:7px;align-items:center"><span class="material-symbols-rounded" style="color:var(--neon);font-size:17px">check_circle</span><span data-zh="本校广告先由你审，分成实时入账" data-en="You review campus ads first; revenue share lands live"></span></span>
+    </div>
+  </div>
+</section>
+
+<!-- 赞助强调（不展开细节） -->
+<section class="sp-band">
+  <div class="wrap reveal">
+    <span class="eyebrow" style="color:#2a3300"><span class="dot" style="background:#0a0a0a"></span><span data-zh="不止系统" data-en="AND BEYOND THE SYSTEM"></span></span>
+    <h2 data-zh="我们还真金白银地赞助你的活动。" data-en="We also put real money behind your events."></h2>
+    <p data-zh="迎新、晚会、比赛、社团日……值得办的活动，我们都愿意一起投入。具体怎么支持，聊了才知道——每个学生会的方案都是定制的。" data-en="Freshers, galas, competitions, society fairs… if it's worth running, we're ready to invest in it with you. The specifics? That's what the conversation is for — every union's plan is bespoke."></p>
+  </div>
+</section>
+
+<!-- 联系表单（学生会 → 我们） -->
+<section class="sec bg-white" id="apply">
+  <div class="wrap">
+    <div class="sp-contact">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot"></span><span data-zh="联系我们" data-en="GET IN TOUCH"></span></span>
+        <h2 style="font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:16px"><span data-zh="学生会，" data-en="Student unions —"></span><br><em style="font-style:normal;background:linear-gradient(transparent 62%,var(--neon) 62%)"><span data-zh="来聊聊。" data-en="let's talk."></span></em></h2>
+        <p style="color:#444;margin-top:16px;font-size:15.5px;max-width:420px" data-zh="留下学生会的名称和联系邮箱，我们一周内回复，聊聊你们学校可以怎么合作。" data-en="Leave your union's name and a contact email — we'll reply within a week to talk about what partnership looks like at your school."></p>
+        <div class="sp-why">
+          <div class="w"><span class="material-symbols-rounded">dashboard_customize</span><div><b data-zh="免费定制管理系统" data-en="Free customised console"></b><span data-zh="按你们的运营方式定制，零成本使用。" data-en="Built around how you operate, at zero cost."></span></div></div>
+          <div class="w"><span class="material-symbols-rounded">volunteer_activism</span><div><b data-zh="活动赞助支持" data-en="Event sponsorship"></b><span data-zh="真金白银投入你们的校园活动。" data-en="Real investment behind your campus events."></span></div></div>
+          <div class="w"><span class="material-symbols-rounded">handshake</span><div><b data-zh="长期合作" data-en="Long-term partnership"></b><span data-zh="不是一次性——一个学期接一个学期地做。" data-en="Not one-off — term after term."></span></div></div>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-top:22px"><span data-zh="更喜欢写邮件？" data-en="Prefer email?"></span> <a href="mailto:hello@unimatcha.com?subject=%E5%AD%A6%E7%94%9F%E4%BC%9A%E5%90%88%E4%BD%9C%20Union%20Partnership" style="text-decoration:underline;text-decoration-color:var(--neon-dark);text-underline-offset:3px">hello@unimatcha.com</a></p>
+      </div>
+      <div class="reveal">
+        <form class="form-card" id="sponsorForm" novalidate>
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:18px">
+            <span class="material-symbols-rounded" style="color:var(--neon-dark)">handshake</span>
+            <b style="font-size:17px" data-zh="合作联系表" data-en="Partnership contact"></b>
+          </div>
+          <label data-zh="学生会 / 组织名称" data-en="UNION / ORGANISATION"></label>
+          <input id="spOrg" type="text" required data-zh-ph="如：UCL 学生会" data-en-ph="e.g. UCL Students' Union" placeholder="如：UCL 学生会" />
+          <label data-zh="联系邮箱" data-en="CONTACT EMAIL"></label>
+          <input id="spEmail" type="email" required data-zh-ph="union@university.edu" data-en-ph="union@university.edu" placeholder="union@university.edu" />
+          <label data-zh="想聊什么（选填）" data-en="WHAT'S ON YOUR MIND (OPTIONAL)"></label>
+          <textarea id="spMsg" rows="4" data-zh-ph="比如：想了解管理系统怎么定制 / 迎新季想找赞助…" data-en-ph="e.g. curious about the custom console / looking for freshers sponsorship…" placeholder="比如：想了解管理系统怎么定制 / 迎新季想找赞助…"></textarea>
+          <button class="btn-neon" type="submit"><span data-zh="发送" data-en="Send"></span><span class="material-symbols-rounded">arrow_forward</span></button>
+          <p class="form-alt"><span data-zh="提交即表示同意我们通过邮件与你联系 ·" data-en="By submitting you agree to be contacted by email ·"></span> <a href="privacy.html" data-zh="隐私协议" data-en="Privacy"></a></p>
+        </form>
+        <div class="form-card form-ok" id="sponsorOk" hidden>
+          <span class="material-symbols-rounded">check_circle</span>
+          <b data-zh="已收到！" data-en="Received!"></b>
+          <p data-zh="我们会在一周内回复到你的邮箱，记得留意。" data-en="We'll reply to your inbox within a week — keep an eye out."></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>
+      <div class="brand">UNIMATCHA<span class="beta-tag">BETA</span></div>
+      <p class="desc" data-zh="大学生校园生活平台：认真的匹配，真实的校园墙。" data-en="A campus-life platform for students: serious matching, a real campus wall."></p>
+    </div>
+    <div class="foot-cols">
+      <div class="fcol"><h5 data-zh="产品" data-en="Product"></h5>
+        <a href="index.html#features" data-zh="匹配" data-en="Matching"></a>
+        <a href="index.html#wall" data-zh="校园墙" data-en="Campus Wall"></a>
+        <a href="index.html#getapp" data-zh="获取 App" data-en="Get the App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="平台" data-en="Platform"></h5>
+        <a href="https://app.unimatcha.com" target="_blank" rel="noopener" data-zh="H5 移动端" data-en="H5 Mobile"></a>
+        <a href="index.html#getapp" data-zh="iOS 客户端" data-en="iOS App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="关于" data-en="About"></h5>
+        <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+        <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+        <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+        <a href="about.html" data-zh="关于我们" data-en="About us"></a>
+        <a href="privacy.html" data-zh="隐私协议" data-en="Privacy"></a>
+        <a href="terms.html" data-zh="用户协议" data-en="Terms"></a>
+        <a href="mailto:hello@unimatcha.com" data-zh="联系我们" data-en="Contact"></a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bot"><span>© 2026 UNIMATCHA</span><span data-zh="为认真的人而造 · ◆ #CCFF00" data-en="Built for people who are serious · ◆ #CCFF00"></span></div>
+</footer>
+
+<script src="site.js"></script>
+<script src="chat.js"></script>
+</body>
+</html>

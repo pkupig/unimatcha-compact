@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>安全与信任 · Unimatcha 抹茶</title>
+<meta name="description" content="抹茶的安全与信任：.edu 校园邮箱认证、可控的匿名机制、举报处理流程与数据承诺。" />
+<meta name="theme-color" content="#F5F5F5" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="安全与信任 · Unimatcha 抹茶" />
+<meta property="og:description" content=".edu 认证、可控匿名、双层审核与数据四底线。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23CCFF00'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="site.css" />
+</head>
+<body data-title-zh="安全与信任 · Unimatcha 抹茶" data-title-en="Safety & Trust · Unimatcha">
+
+<header id="hdr">
+  <nav class="nav">
+    <a class="brand" href="index.html">UNIMATCHA<span class="beta-tag">BETA</span></a>
+    <div class="navlinks">
+      <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+      <a href="safety.html" class="on" data-zh="安全与信任" data-en="Safety"></a>
+      <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+      <a href="about.html" data-zh="关于我们" data-en="About"></a>
+    </div>
+    <div class="nav-cta">
+      <button class="lang" id="langBtn" type="button"><span class="material-symbols-rounded">translate</span><span id="langLabel">EN</span></button>
+      <a class="btn-neon" href="index.html#getapp"><span data-zh="获取 App" data-en="Get the App"></span><span class="material-symbols-rounded">arrow_forward</span></a>
+      <button class="burger" id="burger" type="button" aria-label="菜单"><span class="material-symbols-rounded">menu</span></button>
+    </div>
+  </nav>
+  <div class="mobmenu" id="mobmenu">
+    <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+    <a href="safety.html" class="on" data-zh="安全与信任" data-en="Safety"></a>
+    <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+    <a href="about.html" data-zh="关于我们" data-en="About"></a>
+  </div>
+</header>
+
+<!-- hero -->
+<section class="page-hero">
+  <div class="glow" style="width:380px;height:380px;left:-120px;top:-140px"></div>
+  <div class="wrap" style="position:relative">
+    <div class="bigword" style="position:absolute;right:-30px;top:0;opacity:.7" aria-hidden="true">SAFE</div>
+    <span class="eyebrow"><span class="dot"></span><span data-zh="安全与信任" data-en="SAFETY &amp; TRUST"></span></span>
+    <h1><span data-zh="认真，" data-en="Being serious"></span><br><em><span data-zh="从安全开始。" data-en="starts with safety."></span></em></h1>
+    <p class="lede" data-zh="一个认真的匹配平台，首先要让你敢于真实。这一页讲清楚：我们如何验证身份、如何保护匿名、如何处理举报，以及对你的数据做了哪些承诺。" data-en="A serious matching platform must first make it safe to be real. This page explains how we verify identity, protect anonymity, handle reports, and what we promise about your data."></p>
+  </div>
+</section>
+
+<!-- real identity：左文右视觉 -->
+<section class="sec bg-white">
+  <div class="wrap">
+    <div class="split">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot"></span><span data-zh="真实身份" data-en="REAL PEOPLE"></span></span>
+        <h2 style="font-size:clamp(26px,3.6vw,38px);font-weight:800;letter-spacing:-.015em;margin-top:14px" data-zh="每个人，都是真实的同学。" data-en="Everyone here is a real student."></h2>
+        <ul class="pointlist" style="margin-top:24px">
+          <li><span class="material-symbols-rounded">school</span><span data-zh="必须用有效校园邮箱（.edu 或同等）注册，从源头挡住平台外的陌生人。" data-en="Sign-up requires a valid university email (.edu or equivalent) — non-students stay out from the start."></span></li>
+          <li><span class="material-symbols-rounded">verified_user</span><span data-zh="进入匹配前完成应用内真实性校验，资料页展示认证标识。" data-en="In-app verification before matching; verified badges on profiles."></span></li>
+          <li><span class="material-symbols-rounded">visibility_off</span><span data-zh="真实姓名仅对已确认的伴侣或好友可见——匹配之前，没人能看到。" data-en="Real names show only to confirmed partners or friends — never before."></span></li>
+        </ul>
+      </div>
+      <div class="reveal">
+        <div class="vis" style="max-width:380px;margin:0 auto">
+          <div class="vrow">
+            <span class="vav" data-zh="沐晨" data-en="M">沐晨</span>
+            <div style="flex:1"><b data-zh="沐晨" data-en="Morgan">沐晨</b><small data-zh="University College London · 大三" data-en="University College London · Year 3">University College London · 大三</small></div>
+            <span class="vbadge"><span class="material-symbols-rounded">verified</span><span data-zh="已认证" data-en="Verified"></span></span>
+          </div>
+          <div style="border-top:1px solid var(--line-soft);margin:16px 0 12px"></div>
+          <div class="vrow" style="gap:8px;flex-wrap:wrap">
+            <span class="chip" style="font-size:12px;padding:6px 12px" data-zh="音乐" data-en="Music">音乐</span>
+            <span class="chip" style="font-size:12px;padding:6px 12px" data-zh="摄影" data-en="Photography">摄影</span>
+            <span class="chip" style="font-size:12px;padding:6px 12px" data-zh="羽毛球" data-en="Badminton">羽毛球</span>
+          </div>
+          <div class="vnote" data-zh="真实姓名 · 仅对已确认的伴侣可见" data-en="Real name · visible to confirmed partners only"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- anonymity：右文左视觉 -->
+<section class="sec">
+  <div class="wrap">
+    <div class="split rev">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot"></span><span data-zh="匿名但可控" data-en="ANONYMOUS, NOT LAWLESS"></span></span>
+        <h2 style="font-size:clamp(26px,3.6vw,38px);font-weight:800;letter-spacing:-.015em;margin-top:14px" data-zh="匿名保护你，不保护越界。" data-en="Anonymity protects you — not abuse."></h2>
+        <ul class="pointlist" style="margin-top:24px">
+          <li><span class="material-symbols-rounded">theater_comedy</span><span data-zh="匿名内容以随机化名展示。其他用户——包括楼主——都无法反推你是谁。" data-en="Anonymous content appears under a random pseudonym. No user — not even the post author — can trace it back."></span></li>
+          <li><span class="material-symbols-rounded">notifications</span><span data-zh="匿名帖的评论与点赞通知同样用化名，真实昵称不在任何环节泄露。" data-en="Comment and like notifications also use pseudonyms — real nicknames never leak."></span></li>
+          <li><span class="material-symbols-rounded">shield</span><span data-zh="匿名不豁免审核：违规内容照样下架，严重违规照样处理到账号。" data-en="Anonymity doesn't exempt moderation: violations come down, and serious ones hit the account."></span></li>
+        </ul>
+      </div>
+      <div class="reveal">
+        <div style="max-width:380px;margin:0 auto">
+          <div class="vis">
+            <div class="vrow">
+              <span class="vav" data-zh="沐晨" data-en="M">沐晨</span>
+              <div style="flex:1"><b data-zh="沐晨" data-en="Morgan">沐晨</b><small data-zh="你，正在发一条匿名树洞" data-en="You, posting to the tree-hole"></small></div>
+            </div>
+          </div>
+          <div class="varrow"><span class="material-symbols-rounded">south</span></div>
+          <div class="vis" style="border-color:rgba(204,255,0,.5)">
+            <div class="vrow">
+              <span class="vav ghost"><span class="material-symbols-rounded">person</span></span>
+              <div style="flex:1"><b data-zh="青柠（匿名）" data-en="Noble Hare (anon)"></b><small data-zh="其他人看到的作者" data-en="What everyone else sees"></small></div>
+              <span class="vbadge" style="background:var(--ink);color:var(--neon)"><span class="material-symbols-rounded">lock</span><span data-zh="不可反推" data-en="Untraceable"></span></span>
+            </div>
+          </div>
+          <div class="vnote" data-zh="化名随机生成 · 楼主也无法识别你" data-en="Pseudonym randomly generated · even the author can't identify you"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- reports -->
+<section class="sec bg-warm">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><span class="dot"></span><span data-zh="举报与处理" data-en="REPORTS"></span></span>
+      <h2 data-zh="看到不对劲？三步处理。" data-en="See something off? Three steps."></h2>
+    </div>
+    <div class="steps" style="grid-template-columns:repeat(3,1fr)">
+      <div class="step reveal"><div class="n">1</div><b data-zh="应用内举报" data-en="Report in-app"></b><span data-zh="帖子、评论、用户资料都可以一键举报，可附说明。" data-en="Posts, comments and profiles can all be reported in one tap, with optional context."></span></div>
+      <div class="step reveal"><div class="n">2</div><b data-zh="双层审核" data-en="Two-layer review"></b><span data-zh="本校学生会先审，平台团队复核，违规内容下架。" data-en="Your school's student union reviews first; the platform team double-checks. Violations come down."></span></div>
+      <div class="step reveal"><div class="n">3</div><b data-zh="结果反馈" data-en="Outcome"></b><span data-zh="处理结果通过通知反馈给你，严重违规将限制或封禁账号。" data-en="You're notified of the outcome. Serious violations mean account restrictions or bans."></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- data promises：暗色编号行 -->
+<section class="sec sec-dark">
+  <div class="glow" style="width:460px;height:460px;right:-200px;top:-240px"></div>
+  <div class="wrap" style="position:relative;z-index:2">
+    <div class="sec-head reveal">
+      <span class="eyebrow"><span class="dot"></span><span data-zh="数据承诺" data-en="DATA PROMISES"></span></span>
+      <h2 data-zh="你的数据，四条底线。" data-en="Four hard lines on your data."></h2>
+    </div>
+    <div class="edrows reveal">
+      <div class="edrow"><span class="no">/ 01</span><h3 data-zh="不出售个人信息" data-en="Never sold"></h3><p data-zh="你的资料、问卷与行为数据不会被出售给任何第三方。" data-en="Your profile, questionnaire and activity data are never sold to anyone."></p></div>
+      <div class="edrow"><span class="no">/ 02</span><h3 data-zh="从不显示匹配分数" data-en="No match scores"></h3><p data-zh="我们不给人打分，也不向任何人展示所谓「匹配分」。" data-en="We don't score people, and we never show anyone a 'match score'."></p></div>
+      <div class="edrow"><span class="no">/ 03</span><h3 data-zh="算法特征不出服务器" data-en="Signals stay server-side"></h3><p data-zh="匹配理由与算法特征仅在服务器内部使用，问卷数据与账号权限隔离。" data-en="Match reasoning and algorithm features stay on our servers; questionnaire data is isolated from account permissions."></p></div>
+      <div class="edrow"><span class="no">/ 04</span><h3 data-zh="注销即删除" data-en="Delete means delete"></h3><p data-zh="注销账号后 30 天内删除个人信息（法律要求保留的除外）。" data-en="Personal data is erased within 30 days of deletion (except where law requires retention)."></p></div>
+    </div>
+    <p class="reveal" style="margin-top:22px;font-size:14px;color:#a9a9a2"><span data-zh="完整条款见" data-en="Full terms in the"></span> <a href="privacy.html" style="color:var(--neon);text-decoration:underline;text-underline-offset:3px" data-zh="《隐私协议》" data-en="Privacy Policy"></a></p>
+  </div>
+</section>
+
+<!-- community red lines：跑马灯 -->
+<section class="sec" style="padding-bottom:110px">
+  <div class="wrap">
+    <div class="sec-head reveal" style="margin-bottom:30px">
+      <span class="eyebrow"><span class="dot"></span><span data-zh="社区准则" data-en="COMMUNITY RULES"></span></span>
+      <h2 data-zh="红线很短，请记住。" data-en="The red lines are short. Remember them."></h2>
+    </div>
+  </div>
+  <div class="mq" aria-hidden="true">
+    <div class="track">
+      <span><span data-zh="骚扰与人身攻击" data-en="Harassment & attacks">骚扰与人身攻击</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="歧视性言论" data-en="Discriminatory speech">歧视性言论</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="冒充他人" data-en="Impersonation">冒充他人</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="泄露他人隐私" data-en="Doxxing">泄露他人隐私</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="广告与刷屏" data-en="Spam & ads">广告与刷屏</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="虚假信息与诈骗" data-en="Scams & misinformation">虚假信息与诈骗</span><span class="material-symbols-rounded">block</span></span>
+      <span><span data-zh="骚扰与人身攻击" data-en="Harassment & attacks">骚扰与人身攻击</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="歧视性言论" data-en="Discriminatory speech">歧视性言论</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="冒充他人" data-en="Impersonation">冒充他人</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="泄露他人隐私" data-en="Doxxing">泄露他人隐私</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="广告与刷屏" data-en="Spam & ads">广告与刷屏</span><span class="material-symbols-rounded">block</span></span><span><span data-zh="虚假信息与诈骗" data-en="Scams & misinformation">虚假信息与诈骗</span><span class="material-symbols-rounded">block</span></span>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="cta-band reveal" style="margin-top:64px">
+      <div class="glow"></div>
+      <h2 data-zh="遇到问题，随时找我们。" data-en="Something wrong? Reach out anytime."></h2>
+      <p data-zh="安全相关的邮件我们优先处理。" data-en="Safety-related emails are handled with priority."></p>
+      <a class="btn-neon" href="mailto:hello@unimatcha.com?subject=%E5%AE%89%E5%85%A8%E9%97%AE%E9%A2%98%20Safety%20Report"><span data-zh="联系安全团队" data-en="Contact the safety team"></span><span class="material-symbols-rounded">arrow_forward</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>
+      <div class="brand">UNIMATCHA<span class="beta-tag">BETA</span></div>
+      <p class="desc" data-zh="大学生校园生活平台：认真的匹配，真实的校园墙。" data-en="A campus-life platform for students: serious matching, a real campus wall."></p>
+    </div>
+    <div class="foot-cols">
+      <div class="fcol"><h5 data-zh="产品" data-en="Product"></h5>
+        <a href="index.html#features" data-zh="匹配" data-en="Matching"></a>
+        <a href="index.html#wall" data-zh="校园墙" data-en="Campus Wall"></a>
+        <a href="index.html#getapp" data-zh="获取 App" data-en="Get the App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="平台" data-en="Platform"></h5>
+        <a href="https://app.unimatcha.com" target="_blank" rel="noopener" data-zh="H5 移动端" data-en="H5 Mobile"></a>
+        <a href="index.html#getapp" data-zh="iOS 客户端" data-en="iOS App"></a>
+      </div>
+      <div class="fcol"><h5 data-zh="关于" data-en="About"></h5>
+        <a href="sponsors.html" data-zh="赞助计划" data-en="Sponsorship"></a>
+        <a href="safety.html" data-zh="安全与信任" data-en="Safety"></a>
+        <a href="faq.html" data-zh="帮助中心" data-en="FAQ"></a>
+        <a href="about.html" data-zh="关于我们" data-en="About us"></a>
+        <a href="privacy.html" data-zh="隐私协议" data-en="Privacy"></a>
+        <a href="terms.html" data-zh="用户协议" data-en="Terms"></a>
+        <a href="mailto:hello@unimatcha.com" data-zh="联系我们" data-en="Contact"></a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bot"><span>© 2026 UNIMATCHA</span><span data-zh="为认真的人而造 · ◆ #CCFF00" data-en="Built for people who are serious · ◆ #CCFF00"></span></div>
+</footer>
+
+<script src="site.js"></script>
+<script src="chat.js"></script>
+</body>
+</html>
