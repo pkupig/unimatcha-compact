@@ -475,28 +475,22 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 @media(max-width:920px){.logos{grid-template-columns:repeat(3,1fr)}.partner-cta{padding:40px 32px}}
 @media(max-width:520px){.logos{grid-template-columns:repeat(2,1fr)}}
 
-/* ---------- campus wall (dark) ---------- */
-#wall{position:relative;background:#232624;isolation:isolate;overflow:hidden}
-#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(120% 95% at 50% 0%,#000 45%,transparent 95%);mask-image:radial-gradient(120% 95% at 50% 0%,#000 45%,transparent 95%)}
-#wall::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(204,255,0,.022),transparent 30%,transparent 75%,rgba(0,0,0,.25))}
+/* ---------- campus wall（与 #features 同底：米白 + 点阵网格） ---------- */
+#wall{position:relative;background:var(--ivory);isolation:isolate;overflow:hidden}
+#wall::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
 #wall .wrap{position:relative;z-index:1}
-#wall .eyebrow{color:#9aa39a}
-#wall .eyebrow .dot{background:var(--neon);box-shadow:0 0 0 4px rgba(204,255,0,.12),0 0 8px rgba(204,255,0,.55)}
-#wall .show-idx{color:#838c82}
-#wall .show-text h2{color:#f4f6f2}
-#wall .show-text h2 .accent,#wall .show-text h2 em{color:var(--neon);font-style:normal}
-#wall .show-text>p{color:#c2c8c0}
+#wall .show-text h2 .accent,#wall .show-text h2 em{font-style:normal;background:linear-gradient(transparent 62%,var(--neon) 62%)}
 /* === Campus Wall right-column theme cards (Aleo-style, dark) — scoped to #wall === */
-#wall .wall-lead{margin:16px 0 0;font-size:16px;line-height:1.6;color:#c2c8c0;max-width:44ch}
+#wall .wall-lead{margin:16px 0 0;font-size:16px;line-height:1.6;color:#555;max-width:44ch}
 /* folder / tabbed card: bookmark tabs switch between two theme pages */
 #wall .wall-folder{margin-top:26px;max-width:560px}
 #wall .wall-tabs{display:flex;gap:0;padding-left:0;position:relative;z-index:2}
 #wall .wall-tab{
   display:inline-flex;align-items:center;
   padding:12px 24px;
-  border:1px solid rgba(255,255,255,.4);border-bottom:none;
+  border:1px solid var(--line);border-bottom:none;
   border-radius:0;
-  background:rgba(255,255,255,.68);
+  background:var(--warm,#ECEAE2);
   color:#5f5f5a;
   font-family:var(--display),"Plus Jakarta Sans",system-ui,sans-serif;font-weight:700;font-size:14.5px;
   cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease;
@@ -504,19 +498,19 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 #wall .wall-tab:first-child{border-radius:14px 0 0 0}
 #wall .wall-tab:last-child{border-radius:0 14px 0 0}
 #wall .wall-tab+.wall-tab{border-left:none}
-#wall .wall-tab:hover{color:#0a0a0a;background:rgba(255,255,255,.85)}
+#wall .wall-tab:hover{color:#0a0a0a;background:#fff}
 #wall .wall-tab.is-active{
-  background:#ffffff;border-color:rgba(0,0,0,.06);color:#0a0a0a;
+  background:#ffffff;border-color:var(--line);color:#0a0a0a;
   margin-bottom:-1px;padding-bottom:13px;
 }
 #wall .wall-tab:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
 #wall .wall-panel{
   position:relative;z-index:1;
   background:#ffffff;
-  border:1px solid rgba(0,0,0,.06);
+  border:1px solid var(--line);
   border-radius:0 18px 18px 18px;
   padding:30px 32px;min-height:230px;
-  box-shadow:0 26px 60px -32px rgba(0,0,0,.7);
+  box-shadow:0 26px 60px -32px rgba(10,10,10,.18);
 }
 #wall .wall-page{display:none}
 #wall .wall-page.is-active{display:block;animation:wpfade .32s var(--ease)}
@@ -530,19 +524,19 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
   display:inline-flex;align-items:center;gap:6px;margin-top:24px;
   font-family:var(--mono),"JetBrains Mono",ui-monospace,monospace;
   font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
-  color:#9aa39a;text-decoration:none;transition:color .2s ease;
+  color:var(--muted);text-decoration:none;transition:color .2s ease;
 }
 #wall .wall-explore .material-symbols-rounded{font-size:16px;transition:transform .2s ease}
-#wall .wall-explore:hover{color:var(--neon)}
+#wall .wall-explore:hover{color:var(--ink)}
 #wall .wall-explore:hover .material-symbols-rounded{transform:translate(2px,-2px)}
 /* enrich: quick-point list inside each panel + "popular boards" chips below the folder */
 #wall .wall-points{margin-top:20px;display:flex;flex-direction:column;gap:11px}
 #wall .wall-point{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;line-height:1.45;color:#3a3a3a;font-weight:500}
 #wall .wall-point .material-symbols-rounded{font-size:19px;color:var(--neon-dark);flex-shrink:0;margin-top:1px;font-variation-settings:'FILL' 1}
 #wall .wall-topics{margin-top:30px;max-width:560px}
-#wall .wall-topics-label{font-family:var(--mono),ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#838c82;margin-bottom:14px}
+#wall .wall-topics-label{font-family:var(--mono),ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 #wall .wall-chips{display:flex;flex-wrap:wrap;gap:9px}
-#wall .wall-chip{display:inline-flex;align-items:center;font-family:var(--display),system-ui,sans-serif;font-weight:600;font-size:13.5px;letter-spacing:-.01em;color:#1b1b1b;background:var(--ivory);border:1px solid transparent;border-radius:999px;padding:8px 16px;transition:transform .22s var(--ease),background .22s var(--ease),color .22s var(--ease)}
+#wall .wall-chip{display:inline-flex;align-items:center;font-family:var(--display),system-ui,sans-serif;font-weight:600;font-size:13.5px;letter-spacing:-.01em;color:#1b1b1b;background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;transition:transform .22s var(--ease),background .22s var(--ease),color .22s var(--ease)}
 #wall .wall-chip:hover{background:var(--neon);color:#0a0a0a;transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){
   #wall .wall-page.is-active{animation:none}
@@ -553,7 +547,7 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
   #wall .wall-panel{padding:22px;min-height:0}
   #wall .wall-page-title{font-size:20px}
 }
-#wall .phone{width:340px;background:#0a0a0a;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 0 0 6px rgba(204,255,0,.07),0 30px 70px -28px rgba(0,0,0,.85),0 0 50px -12px rgba(204,255,0,.18)}
+#wall .phone{width:340px;box-shadow:0 40px 74px -34px rgba(10,10,10,.62)}
 #wall .screen{background:#0d0f0d}
 #wall .ph-placeholder{inset:6px;border:2px dashed rgba(204,255,0,.22);border-radius:18px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
 #wall .ph-placeholder .material-symbols-rounded{color:var(--neon-dark)}
