@@ -39,6 +39,7 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 ## 每日日志
 
 ### 2026-07-18
+- 完成（两屏手机展示统一浅色底）：用户改口不要暗区——#wall 改为与 #features 完全同底（米白 var(--ivory) + 24px 点阵网格），旁侧内容整体转浅色：h2 墨色+em 荧光绿高亮划线、lead #555、wall-tab/panel 白底 var(--line) 细边、chips 白底、explore/label 用 muted、手机阴影去霓虹光晕与第一屏一致（4f51a4c 已上线）。
 - 完成（校园墙暗区视觉调整）：#wall 背景纯黑 #101311→黑灰 #232624，点阵纹理改 44px 线网格（顶部聚焦渐隐 mask）；删除手机背后的 rings canvas 圆环动画。已上线（ab1a737）。
 - 完成（上线后官网三修）：①首访默认语言 zh→en（index/site.js，index 标题随语言切换补齐）；②手机演示翻页从 scroll-snap 重写为 transform 轮播（拖拽/触屏跟手、18% 阈值翻页或回弹、touch-action:pan-y 不挡竖向滚动、悬停暂停自动翻页）——原生滚动+snap 在真实浏览器里与拖拽/自动翻页互相打架；③全站邮箱 hello@→contact@unimatcha.ai（含 chat.js 知识库 11 处）。本地+线上双验证：新 origin 首访英文/英文标题、模拟拖拽翻页、线上活数据 ROUND 001（CORS 白名单工作正常）；website 容器已重建上线（952163c）。
 
