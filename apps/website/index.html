@@ -553,10 +553,10 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 .showpin-viewport::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
 #showpin .show-stage{position:relative;z-index:1;padding:56px 0;will-change:opacity,transform;overflow:visible}
 /* 第二屏：手机靠左、右栏加宽，右侧内容上下更松 */
-#wall .show-grid{grid-template-columns:.62fr 1.38fr;gap:44px}
+#wall .show-grid{grid-template-columns:340px minmax(0,1fr);gap:66px}
 #wall .show-phone .phone{margin-left:0}
-#wall .wall-folder{max-width:720px}
-#wall .wall-topics{max-width:720px}
+#wall .wall-folder{max-width:none}
+#wall .wall-topics{max-width:none}
 #wall .wall-lead{max-width:62ch}
 #wall .wall-page-desc{max-width:52ch}
 @media(max-width:860px){#wall .show-grid{grid-template-columns:1fr}#wall .show-phone .phone{margin-left:auto}}
