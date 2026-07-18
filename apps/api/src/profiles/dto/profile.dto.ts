@@ -1,6 +1,6 @@
 import {
   IsString, IsOptional, IsInt, IsArray, IsEnum, IsObject, Min, Max,
-  MaxLength, ArrayMaxSize,
+  MaxLength, ArrayMaxSize, Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -74,6 +74,11 @@ export class CreateProfileDto {
   @Min(16)
   @Max(40)
   age?: number;
+
+  @ApiPropertyOptional({ example: '2004-06-01', description: '生日 YYYY-MM-DD；注册收生日，age 由前端按生日推算一并提交' })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'birthday must be YYYY-MM-DD' })
+  birthday?: string;
 
   @ApiProperty({ example: 'London', required: false })
   @IsOptional()

@@ -223,6 +223,7 @@ model Profile {
   gender     String?
   genderPref String?
   age        Int?
+  birthday   String? // YYYY-MM-DD；注册改收生日，age 由生日推算后仍存（匹配按 age 过滤）
   city       String?
   interests  String[]
   bio        String?  @db.Text
