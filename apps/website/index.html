@@ -567,6 +567,9 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 @media(max-width:920px){
   #showpin .show-stage{opacity:1!important;transform:none!important;padding:72px 0 40px}
 }
+/* 展示区与下一屏的衔接：下方暖色区做成大圆角卡片，上叠盖住硬边 */
+#more{position:relative;z-index:2;border-radius:44px 44px 0 0;margin-top:-44px;box-shadow:0 -18px 40px -32px rgba(10,10,10,.25)}
+@media(max-width:920px){#more{border-radius:26px 26px 0 0;margin-top:-26px}}
 #wall .screen{background:#0d0f0d}
 #wall .ph-placeholder{inset:6px;border:2px dashed rgba(204,255,0,.22);border-radius:18px;background:linear-gradient(155deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
 #wall .ph-placeholder .material-symbols-rounded{color:var(--neon-dark)}
