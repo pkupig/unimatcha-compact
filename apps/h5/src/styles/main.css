@@ -323,19 +323,24 @@
     #bottom-nav {
       left: 50% !important;
       transform: translateX(-50%);
-      width: calc(100% - 40px);
-      max-width: 400px;
-      bottom: calc(10px + env(safe-area-inset-bottom));
-      border-radius: 20px;
+      /* 用户反馈：框再小一点——收窄 + 收薄 */
+      width: calc(100% - 96px);
+      max-width: 300px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      border-radius: 18px;
       background: rgba(255, 255, 255, 0.92);
       -webkit-backdrop-filter: blur(18px);
       backdrop-filter: blur(18px);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
       border: 1px solid rgba(0, 0, 0, 0.05);
-      padding: 0.65rem 1.5rem;
-      min-height: 56px;
+      padding: 0.4rem 1rem;
+      min-height: 46px;
       transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
     }
+    /* 图标与文字随框同步缩小 */
+    #bottom-nav .nav-item .material-symbols-outlined { font-size: 22px; }
+    #bottom-nav .nav-item > span:first-child { font-size: 26px !important; }
+    #bottom-nav .nav-item span:last-child { font-size: 9px; margin-top: 2px; }
     #bottom-nav.nav-hide {
       transform: translateX(-50%) translateY(calc(100% + 24px));
       opacity: 0;
