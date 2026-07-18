@@ -369,6 +369,67 @@ window.escapeHtml = escapeHtml;
 
 // 平面简约空态图标（本轮反馈6）：圆角方块 + 图标，无圆环无描边。
 // tone: 'neon'（行动引导，荧光绿底黑图标）| 'muted'（纯空态，浅灰底灰图标）。
+// ── 下拉刷新（本轮反馈：match / square 页支持下拉刷新，带小动画）──
+// container 为滚动容器（#tab-match / #tab-square 这类 overflow-y:auto 的固定层）。
+// 顶部下拉时圆形指示器跟手下降并随进度旋转，过阈值松手 → 图标转圈 + 执行
+// onRefresh()（返回 Promise），完成后收回。指示器动画最少展示 600ms 避免闪跳。
+function attachPullToRefresh(container, onRefresh) {
+  if (!container || container.dataset.ptrBound) return;
+  container.dataset.ptrBound = '1';
+  const ind = document.createElement('div');
+  ind.className = 'ptr-indicator';
+  ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
+  container.appendChild(ind);
+  const iconEl = ind.querySelector('.material-symbols-outlined');
+  const THRESH = 70;   // 触发刷新的下拉距离
+  const MAXPULL = 110; // 指示器最大下降距离
+  let startY = 0, pulling = false, dist = 0, refreshing = false;
+  const setPos = (y, animate) => {
+    ind.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s' : 'none';
+    ind.style.transform = `translateX(-50%) translateY(${y}px)`;
+  };
+  const reset = () => {
+    ind.classList.remove('ptr-ready', 'ptr-spinning');
+    ind.style.opacity = '0';
+    setPos(0, true);
+  };
+  container.addEventListener('touchstart', (e) => {
+    if (refreshing) return;
+    if (container.scrollTop <= 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+      dist = 0;
+    }
+  }, { passive: true });
+  container.addEventListener('touchmove', (e) => {
+    if (!pulling || refreshing) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
+    dist = Math.min(MAXPULL, dy * 0.5); // 阻尼
+    ind.style.opacity = String(Math.min(1, dist / 40));
+    // 跟手下降 + 随进度旋转一圈
+    setPos(dist, false);
+    if (iconEl) iconEl.style.transform = `rotate(${(dist / THRESH) * 360}deg)`;
+    ind.classList.toggle('ptr-ready', dist >= THRESH);
+  }, { passive: true });
+  const finish = async () => {
+    if (!pulling || refreshing) return;
+    pulling = false;
+    if (dist < THRESH) { reset(); return; }
+    refreshing = true;
+    ind.classList.add('ptr-spinning');
+    setPos(THRESH, true);
+    const started = Date.now();
+    try { await Promise.resolve(onRefresh()); } catch (e) { /* 刷新失败由各自 loader 兜底提示 */ }
+    // 动画最少停留 600ms，让用户看得到刷新发生了
+    const wait = Math.max(0, 600 - (Date.now() - started));
+    setTimeout(() => { refreshing = false; reset(); }, wait);
+  };
+  container.addEventListener('touchend', finish);
+  container.addEventListener('touchcancel', () => { pulling = false; reset(); });
+}
+window.attachPullToRefresh = attachPullToRefresh;
+
 function flatEmptyIcon(icon, tone = 'muted') {
   const box = tone === 'neon' ? 'background:#CCFF00;color:#000' : 'background:#efefef;color:#8a8a8a';
   return `<div class="w-16 h-16 mx-auto mb-6 rounded-[18px] flex items-center justify-center" style="${box}">

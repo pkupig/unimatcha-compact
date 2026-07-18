@@ -23,8 +23,9 @@ function switchHomeView(view) {
   if (leftBtn) {
     const icon = leftBtn.querySelector('.material-symbols-outlined');
     if (view === 'chat') {
-      if (icon) icon.textContent = 'forum';
-      leftBtn.title = 'Chats';
+      // Chat 视图左上角用三个点（更多菜单语义，本轮反馈）
+      if (icon) icon.textContent = 'more_horiz';
+      leftBtn.title = 'More';
       leftBtn.onclick = () => window.openFriendHub();
     } else {
       if (icon) icon.textContent = 'tune';

@@ -73,7 +73,9 @@ async function loadNotifications() {
     // Keep already-rendered content on poll failure; only show error if empty.
     if (!S.notifList.length) {
       c.innerHTML = `<div class="flex flex-col items-center text-center pt-24">
-        <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">Failed to load</p>
+        ${window.flatEmptyIcon('cloud_off')}
+        <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Failed to load</p>
+        <p class="font-body text-sm text-on-surface-variant mt-2">Check your connection and try again</p>
       </div>`;
     }
   }
@@ -115,11 +117,11 @@ function renderNotifications() {
   if (!c) return;
   const notifs = S.notifList;
   if (!notifs.length) {
+    // 平面简约空态（与全站 flatEmptyIcon 统一）
     c.innerHTML = `<div class="flex flex-col items-center text-center pt-24">
-        <div class="w-16 h-16 border border-outline-variant flex items-center justify-center mb-8">
-          <span class="material-symbols-outlined text-outline text-2xl">notifications_none</span>
-        </div>
-        <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">No notifications</p>
+        ${window.flatEmptyIcon('notifications')}
+        <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No notifications</p>
+        <p class="font-body text-sm text-on-surface-variant mt-2">You're all caught up</p>
       </div>`;
     return;
   }
@@ -142,8 +144,8 @@ function renderNotifications() {
       const filled = type === 'like' || type === 'match_result';
       return `<div class="notif-item ${n.isRead ? '' : 'unread'} relative flex items-start gap-6 group cursor-pointer" onclick="openNotificationDetail('${n.id}')">
         <div class="notif-dot absolute -left-3 top-2 w-1.5 h-1.5 rounded-full bg-neon-pink"></div>
-        <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center border border-outline-variant/15 bg-surface-container-lowest rounded-[10px]">
-          <span class="material-symbols-outlined text-primary"${filled ? ` style="font-variation-settings: 'FILL' 1;"` : ''}>${icon}</span>
+        <div class="notif-icon-plate flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-[14px]">
+          <span class="material-symbols-outlined"${filled ? ` style="font-variation-settings: 'FILL' 1;"` : ''}>${icon}</span>
         </div>
         <div class="flex-grow space-y-1 pt-1 min-w-0">
           <div class="flex justify-between items-start gap-4">
@@ -200,8 +202,8 @@ function openNotificationDetail(id) {
     const filled = type === 'like' || type === 'match_result';
     c.innerHTML = `<article class="space-y-10">
         <div class="flex items-center gap-6">
-          <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center border border-outline-variant/15 bg-surface-container-lowest rounded-[10px]">
-            <span class="material-symbols-outlined text-primary"${filled ? ` style="font-variation-settings: 'FILL' 1;"` : ''}>${icon}</span>
+          <div class="notif-icon-plate flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-[14px]">
+            <span class="material-symbols-outlined"${filled ? ` style="font-variation-settings: 'FILL' 1;"` : ''}>${icon}</span>
           </div>
           <span class="font-label text-[10px] text-on-surface-variant tracking-tighter whitespace-nowrap">${window.formatPostTime(n.createdAt || n.created_at)}</span>
         </div>

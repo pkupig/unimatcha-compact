@@ -1,5 +1,5 @@
 import './styles/main.css';
-import './state.js';
+import { S } from './state.js';
 import './modules/core.js';
 import './modules/i18n.js';
 import './modules/auth.js';
@@ -51,4 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
     postImgInput.addEventListener('change', window.handlePostImages);
   }
   window.renderSetupTags();
+  // 下拉刷新：match 页按当前视图刷新（chat 列表 / 匹配状态），square 页刷新当前信息流
+  window.attachPullToRefresh(document.getElementById('tab-match'), () => {
+    const v = S.homeView || 'chat';
+    return v === 'chat' ? window.loadSessions?.() : window.loadMatchTab?.();
+  });
+  window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.());
 });

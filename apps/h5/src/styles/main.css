@@ -880,6 +880,46 @@
        .q-card 容器；完成时加 .q-card--done（绿勾由 JS 切换图标/文案）。 */
     .q-card--done .q-card-check { color: #CCFF00; }
 
+    /* ---- 通知图标盘（本轮反馈：扁平化，无描边浅灰圆角方块）---- */
+    .notif-icon-plate {
+      background: #f1f1f1;
+      color: #1b1b1b;
+    }
+    .dark .notif-icon-plate { background: #2a2a32 !important; color: #ececf0; }
+
+    /* ---- 下拉刷新指示器（core.js attachPullToRefresh）----
+       白色圆片悬浮在容器顶部之外（translateY 由 JS 驱动跟手下降），
+       过阈值 .ptr-ready 图标转荧光绿，刷新中 .ptr-spinning 图标持续转圈。 */
+    .ptr-indicator {
+      position: absolute;
+      top: 20px; /* translateY(0) 时藏在顶栏后（z-index 低于顶栏），下拉时从顶栏下滑出 */
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      background: #ffffff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateX(-50%) translateY(0);
+      opacity: 0;
+      z-index: 39; /* 低于 match 顶栏(z-40)/square 顶栏(z-50)，从其下方滑出 */
+      pointer-events: none;
+    }
+    .ptr-indicator .material-symbols-outlined {
+      font-size: 22px;
+      color: #1b1b1b;
+      transition: color 0.15s ease;
+    }
+    .ptr-indicator.ptr-ready .material-symbols-outlined { color: #7ea600; }
+    .ptr-indicator.ptr-spinning .material-symbols-outlined {
+      animation: ptr-spin 0.7s linear infinite;
+    }
+    @keyframes ptr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .dark .ptr-indicator { background: #24242c; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+    .dark .ptr-indicator .material-symbols-outlined { color: #ececf0; }
+
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
     @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
     .cl-pulse { animation: cl-pulse 1.8s ease-in-out infinite; }
