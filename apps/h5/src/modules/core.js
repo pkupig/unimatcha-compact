@@ -367,6 +367,16 @@ function escapeHtml(t) {
 }
 window.escapeHtml = escapeHtml;
 
+// 平面简约空态图标（本轮反馈6）：圆角方块 + 图标，无圆环无描边。
+// tone: 'neon'（行动引导，荧光绿底黑图标）| 'muted'（纯空态，浅灰底灰图标）。
+function flatEmptyIcon(icon, tone = 'muted') {
+  const box = tone === 'neon' ? 'background:#CCFF00;color:#000' : 'background:#efefef;color:#8a8a8a';
+  return `<div class="w-16 h-16 mx-auto mb-6 rounded-[18px] flex items-center justify-center" style="${box}">
+    <span class="material-symbols-outlined" style="font-size:28px">${icon}</span>
+  </div>`;
+}
+window.flatEmptyIcon = flatEmptyIcon;
+
 // 清洗用户可控 URL 后再插入 HTML 属性（src/href/background）。
 // escapeHtml 不转义引号，直接把 avatarUrl/图片 URL 塞进 src="${url}" 会被
 // `"` 截断属性注入 onerror（存储型 XSS）；此函数：①拦截 javascript:/vbscript:/

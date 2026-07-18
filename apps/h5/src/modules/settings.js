@@ -143,7 +143,7 @@ const CONTENT_PAGES = {
       ${faqItem('How do I edit my profile or matching preferences?', 'Go to Profile → Edit Profile to update your photos, bio and interests. Matching preferences (gender, age range, school filters) live behind the filter icon on the Match tab.')}
       ${faqItem('How do I end a connection?', 'Open your partner’s profile from the Match tab and choose Unmatch. This is permanent: the chat closes and both of you return to the matching pool.')}
       ${faqItem('How do I verify my student status?', 'Register with your university email address. Additional campus verification options are rolling out — verified profiles get a badge and priority in matching.')}
-      ${faqItem('How do I delete my account?', 'Contact us at support@campuslove.app from your registered email and we will remove your account and data in line with our Privacy Policy.')}
+      ${faqItem('How do I delete my account?', 'Contact us at contact@unimatcha.ai from your registered email and we will remove your account and data in line with our Privacy Policy.')}
     `,
   },
   safety: {
@@ -166,14 +166,14 @@ const CONTENT_PAGES = {
       ${lastUpdated}
       ${docSection('1. Acceptance of Terms', 'By creating an account or using Unimatcha (the "Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service. We may update these Terms from time to time; continued use after changes take effect constitutes acceptance of the revised Terms.')}
       ${docSection('2. Eligibility', 'The Service is intended for currently enrolled university students aged 18 or over. You must register with a valid university email address and provide truthful information about yourself. You may maintain only one account, and you may not use the Service if you have previously been removed for violating these Terms.')}
-      ${docSection('3. Your Account', 'You are responsible for safeguarding your login credentials and for all activity under your account. Notify us immediately at support@campuslove.app if you suspect unauthorised access. We are not liable for losses arising from your failure to protect your account.')}
+      ${docSection('3. Your Account', 'You are responsible for safeguarding your login credentials and for all activity under your account. Notify us immediately at contact@unimatcha.ai if you suspect unauthorised access. We are not liable for losses arising from your failure to protect your account.')}
       ${docSection('4. Acceptable Use', 'You agree not to: impersonate any person or misrepresent your identity, age or student status; harass, threaten, defame or abuse other users; post content that is unlawful, hateful, sexually explicit or infringes the rights of others; solicit money or commercial services from other users; use bots, scrapers or other automated means to access the Service; or attempt to interfere with the proper functioning of the Service.')}
       ${docSection('5. User Content', 'You retain ownership of the photos, posts and messages you submit, but you grant Unimatcha a non-exclusive, worldwide, royalty-free licence to host, display and distribute that content within the Service for the purpose of operating its features. You represent that you have all rights necessary to share the content you upload, and that it does not violate any law or third-party right.')}
       ${docSection('6. Matching', 'Match proposals are generated algorithmically based on your questionnaire answers, profile and preferences. We do not guarantee any particular number, frequency or quality of matches, nor any outcome from a match. Decisions to confirm, decline or unmatch are entirely yours.')}
       ${docSection('7. Safety', 'We do not conduct criminal background checks on users. You are solely responsible for your interactions with other users, both online and offline. Always exercise caution and review our Safety Tips before meeting anyone in person.')}
       ${docSection('8. Termination', 'We may suspend or terminate your account at our discretion if we reasonably believe you have violated these Terms, applicable law or the spirit of the community. You may stop using the Service and request account deletion at any time.')}
       ${docSection('9. Disclaimers and Liability', 'The Service is provided "as is" without warranties of any kind, express or implied. To the maximum extent permitted by law, Unimatcha shall not be liable for any indirect, incidental or consequential damages arising from your use of the Service, including interactions with other users.')}
-      ${docSection('10. Contact', 'Questions about these Terms? Email us at support@campuslove.app.')}
+      ${docSection('10. Contact', 'Questions about these Terms? Email us at contact@unimatcha.ai.')}
     `,
   },
   privacy: {
@@ -189,7 +189,7 @@ const CONTENT_PAGES = {
       ${docSection('7. Security', 'We protect your data with encryption in transit, hashed passwords, access controls and regular reviews. No system is perfectly secure, so please use a strong, unique password and report any suspected breach to us immediately.')}
       ${docSection('8. Your Rights', 'Depending on your jurisdiction, you may have the right to access, correct, export or delete your personal data, and to object to or restrict certain processing. To exercise these rights, contact us from your registered email address.')}
       ${docSection('9. Changes to This Policy', 'We may update this Policy as the Service evolves. Material changes will be announced in the app before they take effect.')}
-      ${docSection('10. Contact', 'For privacy questions or requests, email support@campuslove.app.')}
+      ${docSection('10. Contact', 'For privacy questions or requests, email contact@unimatcha.ai.')}
     `,
   },
 };

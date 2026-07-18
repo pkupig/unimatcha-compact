@@ -92,11 +92,13 @@ async function loadSquareTab2() {
   } catch (e) {
     if (seq !== S.squareReqSeq) return; // superseded; don't clobber newer view
     console.error('loadSquareTab2 error:', e);
-    container.innerHTML = `<div class="text-center py-24">
-      <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">Failed to load posts</p>
-      <p class="text-[10px] text-outline tracking-widest mt-2">Pull down or try again later</p>
+    container.innerHTML = `<div class="col-span-2 text-center py-24">
+      ${window.flatEmptyIcon('cloud_off')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Failed to load posts</p>
+      <p class="text-sm text-on-surface-variant mt-2">Check your connection and try again</p>
       <button onclick="loadSquareTab2()" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1">Retry</button>
     </div>`;
+    layoutSquareMasonry();
   }
 }
 window.loadSquareTab2 = loadSquareTab2;
@@ -107,12 +109,13 @@ window.loadSquarePosts = loadSquareTab2;
 function renderSquareNeedSchool() {
   const container = document.getElementById('square-feed');
   if (!container) return;
-  container.innerHTML = `<div class="text-center py-24">
-    <span class="material-symbols-outlined text-4xl text-outline-variant mb-4">school</span>
-    <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">Add your school to view the campus wall</p>
-    <p class="text-[10px] text-outline tracking-widest mt-2">Add your school in profile to unlock the campus wall</p>
+  container.innerHTML = `<div class="col-span-2 text-center py-24">
+    ${window.flatEmptyIcon('school')}
+    <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Add your school to view the campus wall</p>
+    <p class="text-sm text-on-surface-variant mt-2">Set your school in your profile to unlock it</p>
     <button onclick="window.switchTab('profile')" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1">Complete profile</button>
   </div>`;
+  layoutSquareMasonry();
 }
 
 // Dispatch each item to a card type by authorType + board (§6.11 行2138-2142):
@@ -125,9 +128,11 @@ function renderSquareFeed(posts, ads = []) {
   if (!container) return;
   if (!posts.length) {
     container.innerHTML = `<div class="col-span-2 text-center py-24">
-      <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">No posts yet</p>
-      <p class="text-[10px] text-outline tracking-widest mt-2">Be the first to share a moment</p>
+      ${window.flatEmptyIcon('grid_view')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No posts yet</p>
+      <p class="text-sm text-on-surface-variant mt-2">Be the first to share a moment</p>
     </div>`;
+    layoutSquareMasonry();
     return;
   }
   const kindOf = (p) => {
@@ -168,8 +173,45 @@ function renderSquareFeed(posts, ads = []) {
     html += `<div class="col-span-2">${adLargeCard(ads[adIdx++])}</div>`;
   }
   container.innerHTML = html;
+  // 瀑布流布局（本轮反馈5）：卡片高度不再统一，用 grid row-span 按实际高度砌墙；
+  // 图片加载完成后重排（图片卡高度随图而变）。
+  layoutSquareMasonry();
+  container.querySelectorAll('img').forEach(im => {
+    // 竞态防护：图片可能在上面 layout 之后、挂监听之前就完成加载——
+    // complete 时也补一次重排，而不是直接跳过。
+    if (im.complete) { scheduleMasonry(); return; }
+    im.addEventListener('load', scheduleMasonry, { once: true });
+    im.addEventListener('error', scheduleMasonry, { once: true });
+  });
   // 渲染完成后对广告卡挂曝光观察（≥50% 可见计 1 次，会话内去重）
   if (ads.length) observeAdImpressions(container);
+}
+
+// ── 瀑布流：#square-feed 为 grid-auto-rows:2px + row-gap:6px 的网格，
+// 每张卡按自身内容高度换算 grid-row span（n ≥ (h+G)/(R+G)），列内自然错落。
+let masonryRaf = null;
+function scheduleMasonry() {
+  if (masonryRaf) return;
+  masonryRaf = requestAnimationFrame(() => {
+    masonryRaf = null;
+    layoutSquareMasonry();
+  });
+}
+function layoutSquareMasonry() {
+  const c = document.getElementById('square-feed');
+  if (!c) return;
+  const R = 2, G = 6; // auto-row 高 / row-gap（与 main.css #square-feed 保持一致）
+  const items = Array.from(c.children);
+  items.forEach(it => { it.style.gridRowEnd = 'auto'; });
+  const heights = items.map(it => it.getBoundingClientRect().height);
+  items.forEach((it, i) => {
+    it.style.gridRowEnd = `span ${Math.max(1, Math.ceil((heights[i] + G) / (R + G)))}`;
+  });
+}
+window.layoutSquareMasonry = layoutSquareMasonry;
+if (!window.__masonryResizeBound) {
+  window.__masonryResizeBound = true;
+  window.addEventListener('resize', scheduleMasonry);
 }
 
 // Anonymous-aware author identity (§6.11 规则7). Anonymous posts render as
@@ -321,7 +363,8 @@ function bentoSmallCard(p) {
   const school = schoolBadge(p);
   const schoolOverlay = school ? `<div class="absolute top-2 right-2">${school}</div>` : '';
   const media = img
-    ? `<div class="relative aspect-[3/4] bg-surface-container overflow-hidden"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'">${schoolOverlay}</div>`
+    // 图片卡高度随图片原始比例（小红书式瀑布流，本轮反馈5）；过长/过扁由 .rec-img 的 min/max-height 收敛
+    ? `<div class="relative bg-surface-container overflow-hidden"><img class="rec-img" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'">${schoolOverlay}</div>`
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
     : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}">${schoolOverlay}<p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
   // 图片/彩色文字块贴满卡片上/左/右边缘（卡片 overflow-hidden 裁圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）

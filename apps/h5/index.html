@@ -122,7 +122,7 @@
         <span class="material-symbols-outlined text-black" style="font-variation-settings:'FILL' 1,'wght' 500; font-size:26px">auto_awesome</span>
       </div>
       <!-- Wordmark -->
-      <h1 class="font-headline text-6xl md:text-8xl font-extrabold tracking-tighter text-primary leading-[0.9]">Campus<br>Love</h1>
+      <h1 class="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter text-primary leading-[0.9]" data-no-i18n>Unimatcha</h1>
       <!-- Neon accent rule -->
       <div class="w-14 h-[3px] bg-neon mt-8 mb-7"></div>
       <p class="font-body text-sm text-on-surface-variant tracking-wide max-w-[17rem] leading-relaxed">
@@ -248,11 +248,11 @@
     <!-- Footer -->
     <footer class="w-full py-8 px-6 flex flex-col items-center space-y-4 z-20">
       <div class="flex space-x-6">
-        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="javascript:void(0)" onclick="openContentPage('terms')">Terms of Service</a>
         <span class="text-outline-variant text-[10px]">/</span>
-        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+        <a class="font-headline text-[10px] font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors" href="javascript:void(0)" onclick="openContentPage('privacy')">Privacy Policy</a>
       </div>
-      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2024 Unimatcha. All Rights Reserved.</p>
+      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2026 Unimatcha. All Rights Reserved.</p>
     </footer>
   </div>
 
@@ -275,7 +275,7 @@
       </div>
     </main>
     <footer class="w-full py-8 px-6 flex flex-col items-center space-y-4 z-20">
-      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2024 Unimatcha. All Rights Reserved.</p>
+      <p class="text-[9px] font-medium tracking-[0.1em] text-outline-variant">© 2026 Unimatcha. All Rights Reserved.</p>
     </footer>
   </div>
 
@@ -318,7 +318,7 @@
         <div class="space-y-8">
           <!-- Nickname -->
           <div class="group">
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nickname</label>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nickname <span class="text-neon-pink">*</span></label>
             <input id="setup-nickname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="The Scholar" type="text">
           </div>
 
@@ -383,7 +383,7 @@
 
           <!-- Gender Selection -->
           <div>
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Gender</label>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Gender <span class="text-neon-pink">*</span></label>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
               <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="male" type="button" onclick="selectSetupGender(this)">Male</button>
               <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="female" type="button" onclick="selectSetupGender(this)">Female</button>
@@ -402,13 +402,11 @@
             </div>
           </div>
 
-          <!-- Age Picker -->
+          <!-- Birthday Picker (was: Age — 年龄由生日推算) -->
           <div class="group">
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Age</label>
+            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Birthday <span class="text-neon-pink">*</span></label>
             <div class="relative">
-              <select id="setup-age" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
-                <option value="">Select Age</option>
-              </select>
+              <input id="setup-birthday" type="date" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
             </div>
           </div>
 
@@ -441,8 +439,10 @@
           <button class="px-4 py-2 rounded-[10px] border border-outline-variant text-xs font-label tracking-widest hover:border-primary transition-all" type="button" onclick="addSetupTagValue('Architecture')">Architecture</button>
         </div>
 
-        <div class="relative">
-          <input id="setup-tag-input" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-dashed border-outline focus:border-b-2 focus:border-solid focus:border-primary focus:ring-0 px-0 py-3 text-sm font-body placeholder:text-outline-variant transition-all" placeholder="Add new interest..." onkeydown="if(event.key==='Enter'){event.preventDefault();addSetupTag();}">
+        <!-- 手机端软键盘不一定有可用回车：输入框旁提供显式 Add 按钮 -->
+        <div class="flex items-end gap-3">
+          <input id="setup-tag-input" enterkeyhint="done" class="flex-1 min-w-0 bg-transparent border-t-0 border-l-0 border-r-0 border-b border-dashed border-outline focus:border-b-2 focus:border-solid focus:border-primary focus:ring-0 px-0 py-3 text-sm font-body placeholder:text-outline-variant transition-all" placeholder="Add new interest..." onkeydown="if(event.key==='Enter'){event.preventDefault();addSetupTag();}">
+          <button type="button" class="shrink-0 px-5 py-2.5 rounded-[10px] bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform" onclick="addSetupTag()">Add</button>
         </div>
       </section>
 
@@ -581,7 +581,7 @@
     <button id="home-addfriend-btn" class="shrink-0 active:scale-95 duration-200 hover:opacity-70 transition-opacity" onclick="openFriendHub()" title="Chats">
       <span class="material-symbols-outlined text-black" style="font-size:24px">chat</span>
     </button>
-    <div id="home-mode-switch" class="home-mode-switch flex-1 min-w-0 max-w-[250px] mx-auto">
+    <div id="home-mode-switch" class="home-mode-switch flex-1 min-w-0 max-w-[272px] mx-auto">
       <button id="home-seg-chat" class="home-mode-seg active" data-view="chat" onclick="switchHomeView('chat')">
         <span>Chat</span>
       </button>
@@ -717,7 +717,7 @@
         <button onclick="doLogout()" class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.3em] hover:bg-neon-pink hover:text-black transition-all active:scale-95 duration-200">
           Log Out
         </button>
-        <p class="text-center mt-6 text-[10px] text-outline font-medium tracking-widest">Unimatcha · 抹茶 v2.4.0 - Oxford Campus</p>
+        <p class="text-center mt-6 text-[10px] text-outline font-medium tracking-widest" data-no-i18n>Unimatcha v2.4.0</p>
       </div>
     </div>
     </div>
@@ -1324,16 +1324,8 @@
       <div class="space-y-0">
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
           <div class="flex flex-col">
-            <span class="text-on-surface text-sm font-medium tracking-wide">Phone</span>
-            <span class="text-on-surface-variant text-sm">+1 (555) 012-3456</span>
-          </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
-        </div>
-        <div class="h-[1px] bg-outline-variant/20"></div>
-        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
-          <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Email</span>
-            <span id="settings-email" class="text-on-surface-variant text-sm">user@university.edu</span>
+            <span id="settings-email" class="text-on-surface-variant text-sm" data-no-i18n>user@university.edu</span>
           </div>
           <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
         </div>
@@ -1348,18 +1340,45 @@
         <div class="h-[1px] bg-outline-variant/20"></div>
       </div>
     </section>
+    <!-- Preferences：语言 / 深色模式（本轮反馈4：中英文切换入口进设置） -->
+    <section class="mb-14">
+      <div class="flex items-center mb-6">
+        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Preferences</h3>
+      </div>
+      <div class="space-y-0">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="toggleLang()">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">translate</span>
+            <div class="flex flex-col">
+              <span class="text-on-surface text-sm font-medium tracking-wide">Language</span>
+              <span class="text-on-surface-variant text-sm" data-no-i18n>中文 / English</span>
+            </div>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="toggleDarkMode()">
+          <div class="flex items-center gap-4">
+            <span class="material-symbols-outlined text-on-surface">dark_mode</span>
+            <span class="text-on-surface text-sm font-medium tracking-wide">Dark mode</span>
+          </div>
+          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">contrast</span>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+      </div>
+    </section>
     <section class="mb-14">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Nudge</h3>
       </div>
       <div class="space-y-2">
-        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">When someone pats you, it reads:</label>
+        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">When someone nudges you, it reads:</label>
         <div class="flex items-center gap-2">
-          <span class="text-sm text-on-surface-variant shrink-0">…拍了拍我</span>
-          <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="的头" class="flex-1 bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary text-on-surface"/>
+          <span class="text-sm text-on-surface-variant shrink-0">…nudged me</span>
+          <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="on the head" class="flex-1 bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary text-on-surface"/>
           <button onclick="saveNudgeSuffix()" class="px-4 py-2 rounded-[10px] bg-neon text-black text-[10px] font-bold tracking-widest active:scale-95 shrink-0">Save</button>
         </div>
-        <p class="text-[10px] text-outline">e.g. 拍了拍我的头 / 拍了拍我并说晚安</p>
+        <p class="text-[10px] text-outline">e.g. "nudged me on the head" / "拍了拍我的头"</p>
       </div>
     </section>
     <section class="mb-14">
@@ -1367,22 +1386,6 @@
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Privacy</h3>
       </div>
       <div class="space-y-0">
-        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
-          <div class="flex flex-col">
-            <span class="text-on-surface text-sm font-medium tracking-wide">Visibility</span>
-            <span class="text-on-surface-variant text-sm">Visible to your school only</span>
-          </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">visibility</span>
-        </div>
-        <div class="h-[1px] bg-outline-variant/20"></div>
-        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors">
-          <div class="flex flex-col">
-            <span class="text-on-surface text-sm font-medium tracking-wide">Blocked</span>
-            <span class="text-on-surface-variant text-sm">12 accounts restricted</span>
-          </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">block</span>
-        </div>
-        <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4">
           <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Show my profile</span>
@@ -1488,16 +1491,13 @@
         <div class="h-[1px] bg-outline-variant/20"></div>
       </div>
     </section>
-    <!-- Actions -->
+    <!-- Actions（设置项均为即时保存，去掉会误存匹配偏好的 Save Preferences 按钮） -->
     <section class="mt-20 space-y-8">
-      <button class="w-full bg-neon text-black py-5 rounded-[10px] font-headline font-bold text-sm tracking-widest active:scale-[0.98] transition-all" onclick="savePreferences()">
-        Save Preferences
-      </button>
       <button class="w-full border-2 border-neon-pink text-neon-pink py-5 rounded-[10px] font-headline font-bold text-sm tracking-widest hover:bg-neon-pink hover:text-black transition-all" onclick="doLogout()">
         Log Out
       </button>
       <div class="text-center pt-8 pb-12">
-        <p class="text-[10px] text-outline tracking-[0.3em]">Unimatcha · 抹茶 v2.4.0 - Built for Academia</p>
+        <p class="text-[10px] text-outline tracking-[0.3em]" data-no-i18n>Unimatcha v2.4.0</p>
       </div>
     </section>
   </main>
@@ -1619,8 +1619,8 @@
     <span class="material-symbols-outlined text-primary text-4xl mb-4">mail_outline</span>
     <h2 class="font-headline text-lg font-bold tracking-tight mb-3">Contact Us</h2>
     <p class="text-sm text-on-surface-variant mb-1">Questions, feedback or partnership inquiries:</p>
-    <p class="text-sm font-bold mb-8">support@campuslove.app</p>
-    <a href="mailto:support@campuslove.app" class="block w-full bg-neon text-black py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] active:scale-[0.98] transition-all mb-3">Send Email</a>
+    <p class="text-sm font-bold mb-8">contact@unimatcha.ai</p>
+    <a href="mailto:contact@unimatcha.ai" class="block w-full bg-neon text-black py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] active:scale-[0.98] transition-all mb-3">Send Email</a>
     <button class="w-full border border-outline-variant py-4 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.2em] hover:bg-surface-container-low transition-all" onclick="hideOverlay('contact-overlay')">Close</button>
   </div>
 </div>
@@ -1712,34 +1712,44 @@
       <p class="text-xs text-on-surface-variant tracking-wide mb-4 leading-relaxed">Energy powers Enhanced matching (Romantic: 3 cells flat / Friend: 1 cell per guaranteed match).</p>
       <!-- 三档卡片：cells / priceCny 由 JS 用 /energy/packages 回填，data-pkg 兜底默认档 -->
       <div id="energy-packages" class="grid grid-cols-3 gap-3">
-        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_30" onclick="selectEnergyPackage('pkg_30', this)">
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_30" data-cells="30" data-price="30" onclick="selectEnergyPackage('pkg_30', this)">
           <span class="text-2xl font-headline font-extrabold text-black">30</span>
           <span class="text-[10px] tracking-widest text-outline">cells</span>
           <span class="text-xs font-bold text-black mt-1">¥30</span>
         </button>
-        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_60" onclick="selectEnergyPackage('pkg_60', this)">
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_60" data-cells="60" data-price="58" onclick="selectEnergyPackage('pkg_60', this)">
           <span class="text-2xl font-headline font-extrabold text-black">60</span>
           <span class="text-[10px] tracking-widest text-outline">cells</span>
           <span class="text-xs font-bold text-black mt-1">¥58</span>
         </button>
-        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_100" onclick="selectEnergyPackage('pkg_100', this)">
+        <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_100" data-cells="100" data-price="88" onclick="selectEnergyPackage('pkg_100', this)">
           <span class="text-2xl font-headline font-extrabold text-black">100</span>
           <span class="text-[10px] tracking-widest text-outline">cells</span>
           <span class="text-xs font-bold text-black mt-1">¥88</span>
         </button>
       </div>
     </div>
-    <div id="payment-methods" class="px-6 pt-5 pb-7 space-y-2">
-      <p class="font-label text-[10px] tracking-widest text-outline mb-1">Payment Method</p>
-      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('wechat')">
-        <span class="material-symbols-outlined text-[18px]">chat</span> WeChat Pay
-      </button>
-      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('alipay')">
-        <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span> Alipay
-      </button>
-      <button class="w-full py-3.5 rounded-[10px] font-headline text-xs font-bold tracking-widest bg-neon text-black flex items-center justify-center gap-2 active:scale-[0.98] transition-transform" onclick="selectPaymentMethod('stripe')">
-        <span class="material-symbols-outlined text-[18px]">credit_card</span> Stripe
-      </button>
+    <!-- 支付方式改为可选项（单选行），最后统一「去支付」确认（本轮反馈8） -->
+    <div class="px-6 pt-5 pb-7">
+      <p class="font-label text-[10px] tracking-widest text-outline mb-2">Payment Method</p>
+      <div id="payment-methods" class="space-y-2 mb-5">
+        <button class="pay-method w-full py-3 px-4 rounded-[10px] border border-outline-variant flex items-center gap-3 transition-all active:scale-[0.98]" data-method="wechat" onclick="selectPaymentMethod('wechat', this)">
+          <span class="material-symbols-outlined text-[20px]">chat</span>
+          <span class="font-headline text-xs font-bold tracking-widest flex-1 text-left">WeChat Pay</span>
+          <span class="pay-check material-symbols-outlined text-[20px] text-neon opacity-0" style="font-variation-settings:'FILL' 1">check_circle</span>
+        </button>
+        <button class="pay-method w-full py-3 px-4 rounded-[10px] border border-outline-variant flex items-center gap-3 transition-all active:scale-[0.98]" data-method="alipay" onclick="selectPaymentMethod('alipay', this)">
+          <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          <span class="font-headline text-xs font-bold tracking-widest flex-1 text-left">Alipay</span>
+          <span class="pay-check material-symbols-outlined text-[20px] text-neon opacity-0" style="font-variation-settings:'FILL' 1">check_circle</span>
+        </button>
+        <button class="pay-method w-full py-3 px-4 rounded-[10px] border border-outline-variant flex items-center gap-3 transition-all active:scale-[0.98]" data-method="stripe" onclick="selectPaymentMethod('stripe', this)">
+          <span class="material-symbols-outlined text-[20px]">credit_card</span>
+          <span class="font-headline text-xs font-bold tracking-widest flex-1 text-left">Card (Stripe)</span>
+          <span class="pay-check material-symbols-outlined text-[20px] text-neon opacity-0" style="font-variation-settings:'FILL' 1">check_circle</span>
+        </button>
+      </div>
+      <button id="energy-pay-btn" class="btn-cta" onclick="confirmEnergyPurchase()" disabled>Select a package</button>
     </div>
   </div>
 </div>

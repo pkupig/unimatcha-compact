@@ -121,12 +121,11 @@ function renderSessions() {
     const empty = temp.length === 0 && confirmed.length === 0;
     emptyBox.classList.toggle('hidden', !empty);
     if (empty) {
+      // 平面简约空态（本轮反馈6）：浅灰圆角方块图标 + 一句纯文本提示
       emptyBox.innerHTML = `<div class="flex flex-col items-center text-center pt-24">
-          <div class="w-16 h-16 border border-outline-variant rounded-full flex items-center justify-center mb-8">
-            <span class="material-symbols-outlined text-outline text-2xl">forum</span>
-          </div>
-          <p class="font-headline text-xs font-bold tracking-[0.2em] text-on-surface-variant">No conversations yet</p>
-          <p class="font-body text-sm text-on-surface-variant mt-2 max-w-xs inline-flex flex-wrap items-center justify-center gap-1">Match in <span class="material-symbols-outlined align-middle" style="font-size:16px">auto_awesome</span> Partner / <span class="material-symbols-outlined align-middle" style="font-size:16px">group</span> Friend, then start chatting here once you connect</p>
+          ${window.flatEmptyIcon('forum')}
+          <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No conversations yet</p>
+          <p class="font-body text-sm text-on-surface-variant mt-2 max-w-[16rem] leading-relaxed">Match in Romantic or Friend mode — chats appear here once you connect.</p>
         </div>`;
     }
   }

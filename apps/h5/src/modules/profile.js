@@ -78,8 +78,8 @@ async function initProfileSetupPage() {
     bioEl.addEventListener('input', sync);
     sync();
   }
-  // Restore age + gender + preferred-gender selections if the user already has a profile.
-  fillSetupAgeSelect(p.age);
+  // Restore birthday + gender + preferred-gender selections if the user already has a profile.
+  fillSetupBirthday(p);
   if (p.gender) {
     const gEl = document.querySelector(`.gender-btn[data-gender="${p.gender}"]`);
     if (gEl) selectSetupGender(gEl);
@@ -189,16 +189,28 @@ function selectSetupGenderPref(el) {
 }
 window.selectSetupGenderPref = selectSetupGenderPref;
 
-// Populate the setup age dropdown (16-40, matching backend CreateProfileDto bounds)
-// and restore any previously saved value. Idempotent: rebuilds options each call.
-function fillSetupAgeSelect(current) {
-  const sel = document.getElementById('setup-age');
-  if (!sel) return;
-  const opts = ['<option value="">Select Age</option>'];
-  for (let a = 16; a <= 40; a++) {
-    opts.push(`<option value="${a}"${String(current) === String(a) ? ' selected' : ''}>${a}</option>`);
-  }
-  sel.innerHTML = opts.join('');
+// 生日输入（替代年龄下拉）：限定可选区间为「今天往前 40 年 ~ 16 年」，与后端
+// age 16-40 的校验一致；已有生日则回填。
+function fillSetupBirthday(p) {
+  const el = document.getElementById('setup-birthday');
+  if (!el) return;
+  const now = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  el.min = iso(new Date(now.getFullYear() - 40, now.getMonth(), now.getDate()));
+  el.max = iso(new Date(now.getFullYear() - 16, now.getMonth(), now.getDate()));
+  if (!el.value && p?.birthday) el.value = p.birthday;
+}
+
+// 按生日算周岁。生日无效返回 null。
+function ageFromBirthday(birthday) {
+  if (!birthday) return null;
+  const b = new Date(birthday + 'T00:00:00');
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
 }
 
 async function saveProfile() {
@@ -208,8 +220,8 @@ async function saveProfile() {
   const year = document.querySelector('.segment-btn[data-selected="true"]')?.dataset?.year || document.querySelector('.segment-btn.bg-neon')?.dataset?.year;
   const gender = document.querySelector('.gender-btn[data-selected="true"]')?.dataset?.gender || document.querySelector('.gender-btn.bg-neon')?.dataset?.gender;
   const genderPref = document.querySelector('.genderpref-btn[data-selected="true"]')?.dataset?.genderpref || document.querySelector('.genderpref-btn.bg-neon')?.dataset?.genderpref;
-  const ageRaw = document.getElementById('setup-age')?.value;
-  const age = ageRaw ? parseInt(ageRaw, 10) : null;
+  const birthday = document.getElementById('setup-birthday')?.value || '';
+  const age = ageFromBirthday(birthday);
   const givenName = document.getElementById('setup-givenname')?.value?.trim();
   const familyName = document.getElementById('setup-familyname')?.value?.trim();
   if (!nickname) {
@@ -227,8 +239,13 @@ async function saveProfile() {
     window.toast('Please select your gender');
     return;
   }
-  if (!age) {
-    window.toast('Please select your age');
+  if (!birthday || age == null) {
+    window.toast('Please select your birthday');
+    return;
+  }
+  // 与后端 age 16-40 校验一致，提前给出可读提示
+  if (age < 16 || age > 40) {
+    window.toast('Unimatcha is for students aged 16–40');
     return;
   }
   try {
@@ -243,6 +260,7 @@ async function saveProfile() {
       gender,
       genderPref: genderPref || 'any',
       age,
+      birthday,
       bio: bio?.substring(0, 250) || '',
       interests: S.setupTags
     };
@@ -1083,7 +1101,7 @@ async function loadEnergyPackages() {
   if (!grid) return;
   grid.innerHTML = pkgs.map(p => `
     <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black"
-            data-pkg="${window.escapeHtml(p.packageId)}" onclick="selectEnergyPackage('${window.escapeHtml(p.packageId)}', this)">
+            data-pkg="${window.escapeHtml(p.packageId)}" data-cells="${p.cells}" data-price="${p.priceCny}" onclick="selectEnergyPackage('${window.escapeHtml(p.packageId)}', this)">
       <span class="text-2xl font-headline font-extrabold text-black">${p.cells}</span>
       <span class="text-[10px] tracking-widest text-outline">cells</span>
       <span class="text-xs font-bold text-black mt-1">¥${p.priceCny}</span>
@@ -1093,7 +1111,10 @@ window.loadEnergyPackages = loadEnergyPackages;
 
 function openEnergyModal() {
   selectedEnergyPkg = null;
+  selectedPayMethod = null;
   highlightEnergyPackage(null);
+  highlightPayMethod(null);
+  updateEnergyPayButton();
   window.openOverlay('modal-energy-purchase');
   // Refresh package cards (cells/price) from the API every open.
   window.loadEnergyPackages();
@@ -1102,6 +1123,7 @@ window.openEnergyModal = openEnergyModal;
 
 function closeEnergyModal() {
   selectedEnergyPkg = null;
+  selectedPayMethod = null;
   window.closeOverlay('modal-energy-purchase');
 }
 window.closeEnergyModal = closeEnergyModal;
@@ -1118,42 +1140,77 @@ function highlightEnergyPackage(el) {
   }
 }
 
-// Step 1: user taps a package. POST /energy/purchase{packageId} → data{orderId,...}.
-// We stash the orderId on the selection so selectPaymentMethod can confirm it.
-async function selectEnergyPackage(pkgId, el) {
+// ── 购买流程重做（本轮反馈8）：选套餐 → 选支付方式 → 「去支付」统一确认。
+// 下单（POST /energy/purchase）推迟到点支付按钮时才发，选套餐不再产生半截订单。
+let selectedPayMethod = null;
+
+function updateEnergyPayButton() {
+  const btn = document.getElementById('energy-pay-btn');
+  if (!btn) return;
+  if (!selectedEnergyPkg) {
+    btn.disabled = true;
+    btn.textContent = 'Select a package';
+  } else if (!selectedPayMethod) {
+    btn.disabled = true;
+    btn.textContent = 'Select a payment method';
+  } else {
+    btn.disabled = false;
+    btn.textContent = `Pay ¥${selectedEnergyPkg.price} · ${selectedEnergyPkg.cells} cells`;
+  }
+}
+
+// Step 1: pick a package (selection only — no order created yet).
+function selectEnergyPackage(pkgId, el) {
   if (energyPurchaseBusy) return;
   highlightEnergyPackage(el || null);
-  selectedEnergyPkg = { packageId: pkgId, orderId: null };
-  try {
-    const res = await window.api('/energy/purchase', 'POST', { packageId: pkgId });
-    const d = res?.data || res;
-    if (!d?.orderId) throw new Error('No order id returned');
-    selectedEnergyPkg.orderId = d.orderId;
-    selectedEnergyPkg.cells = d.cells;
-  } catch (e) {
-    selectedEnergyPkg = null;
-    highlightEnergyPackage(null);
-    window.toast('Order failed: ' + e.message);
-  }
+  selectedEnergyPkg = {
+    packageId: pkgId,
+    cells: el?.dataset?.cells || '',
+    price: el?.dataset?.price || '',
+  };
+  updateEnergyPayButton();
 }
 window.selectEnergyPackage = selectEnergyPackage;
 
-// Step 2: user picks a pay channel. This is a MOCK for this milestone — we skip a
-// real WeChat/Alipay/Stripe SDK and go straight to confirm. When real channels
-// land, the SDK callback replaces this direct confirm call.
-async function selectPaymentMethod(method) {
+function highlightPayMethod(el) {
+  document.querySelectorAll('#payment-methods .pay-method').forEach(b => {
+    const active = b === el;
+    b.classList.toggle('border-black', active);
+    b.classList.toggle('border-2', active);
+    b.classList.toggle('border-outline-variant', !active);
+    const check = b.querySelector('.pay-check');
+    if (check) check.classList.toggle('opacity-0', !active);
+  });
+}
+
+// Step 2: pick a payment channel (selection only).
+function selectPaymentMethod(method, el) {
   if (energyPurchaseBusy) return;
-  if (!selectedEnergyPkg?.orderId) {
-    window.toast('Please select a package first');
-    return;
-  }
+  selectedPayMethod = method;
+  highlightPayMethod(el || null);
+  updateEnergyPayButton();
+}
+window.selectPaymentMethod = selectPaymentMethod;
+
+// Step 3: confirm. Creates the order then confirms it. MOCK for this milestone —
+// no real WeChat/Alipay/Stripe SDK; when real channels land, the SDK callback
+// slots in between purchase and confirm.
+async function confirmEnergyPurchase() {
+  if (energyPurchaseBusy) return;
+  if (!selectedEnergyPkg?.packageId) { window.toast('Please select a package first'); return; }
+  if (!selectedPayMethod) { window.toast('Please select a payment method'); return; }
   energyPurchaseBusy = true;
+  const btn = document.getElementById('energy-pay-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
   try {
+    const orderRes = await window.api('/energy/purchase', 'POST', { packageId: selectedEnergyPkg.packageId });
+    const order = orderRes?.data || orderRes;
+    if (!order?.orderId) throw new Error('No order id returned');
     // POST /energy/purchase/confirm{orderId,packageId} → data{success,availableEnergy}
     const res = await window.api('/energy/purchase/confirm', 'POST', {
-      orderId: selectedEnergyPkg.orderId,
+      orderId: order.orderId,
       packageId: selectedEnergyPkg.packageId
-      // transactionId? omitted in mock; real SDK supplies it on the confirm
+      // transactionId omitted in mock; real SDK supplies it on the confirm
     });
     const d = res?.data || res;
     if (d && typeof d.availableEnergy === 'number') {
@@ -1164,12 +1221,12 @@ async function selectPaymentMethod(method) {
     window.toast('Recharge successful');
   } catch (e) {
     window.toast('Payment failed: ' + e.message);
+    updateEnergyPayButton();
   } finally {
     energyPurchaseBusy = false;
-    selectedEnergyPkg = null;
   }
 }
-window.selectPaymentMethod = selectPaymentMethod;
+window.confirmEnergyPurchase = confirmEnergyPurchase;
 
 // POST /energy/claim{claimType} — free-energy claims (e.g. daily/sign-up bonus).
 // Refreshes the bar on success.

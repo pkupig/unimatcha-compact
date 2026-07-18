@@ -22,7 +22,7 @@ window.isDarkMode = () => getTheme() === 'dark';
 // ── i18n（批次1：常见导航/按钮/标签）──
 const ZH = {
   Chat: '聊天', Romantic: '恋人', Friend: '朋友', Square: '广场', Profile: '我的',
-  'Edit Profile': '编辑资料', 'Contact Us': '联系我们', Settings: '设置', 'Log Out': '退出登录',
+  Match: '匹配', 'Edit Profile': '编辑资料', 'Contact Us': '联系我们', Settings: '设置', 'Log Out': '退出登录',
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
   Send: '发送', 'Match Settings': '匹配设置', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
@@ -33,6 +33,50 @@ const ZH = {
   'Modify Preferences': '修改偏好', 'Set note': '设置备注', 'Chat background': '聊天背景',
   'Dark mode': '深色模式', Language: '语言', 'Payment Method': '支付方式', 'Confirm as Friend': '确认为好友',
   'Confirm as Partner': '确认为恋人', 'Enter Chat': '进入聊天', 'Cancel connection': '取消连接',
+  // ── 设置页（本轮反馈4：设置整页可中文化）──
+  Account: '账号', Email: '邮箱', Password: '密码', 'Tap to change password': '点击修改密码',
+  Preferences: '偏好', Privacy: '隐私',
+  'Show my profile': '公开我的资料', 'Allow others to view your profile': '允许他人查看你的资料',
+  'Show online status': '显示在线状态', 'Let your match see when you are active': '让匹配对象看到你的在线状态',
+  'Show my moments': '公开我的动态', 'Display your moments to others': '向他人展示你的动态',
+  'Push Notifications': '推送通知', 'Match results, messages and likes': '匹配结果、消息与点赞',
+  Support: '支持', 'Help Center': '帮助中心', 'Safety Tips': '安全提示', 'Report a Problem': '问题反馈',
+  Legal: '法律条款', 'Terms of Service': '用户协议', 'Privacy Policy': '隐私政策',
+  Nudge: '拍一拍', 'When someone nudges you, it reads:': '别人拍你时显示为：', '…nudged me': '…拍了拍我',
+  'e.g. "nudged me on the head" / "拍了拍我的头"': '例如：拍了拍我的头 / 拍了拍我并说晚安',
+  // ── 匹配 / 空态 ──
+  'Start Your Journey': '开始你的旅程', 'Find New Friends': '寻找新朋友',
+  'Join Matching Pool': '加入匹配池', 'Leave Pool': '离开匹配池',
+  'No Match This Week': '本周暂无匹配', 'No Friends This Round': '本轮暂无朋友候选',
+  'Romantic Questionnaire': '恋人问卷', 'Friend Questionnaire': '朋友问卷',
+  'Fill Out Questionnaire': '填写问卷', 'Retake Questionnaire': '重新填写问卷',
+  'A few quick questions unlock romantic matching.': '花几分钟答题，解锁恋人匹配。',
+  'A few quick questions unlock friend matching.': '花几分钟答题，解锁朋友匹配。',
+  "This Week's Match": '本周匹配', 'Profile Unavailable': '资料暂不可用',
+  'No conversations yet': '还没有会话',
+  'Match in Romantic or Friend mode — chats appear here once you connect.': '去恋人或朋友模式匹配，连接成功后会话会出现在这里。',
+  TEMPORARY: '临时会话', CONNECTIONS: '已连接',
+  'Match Basis': '匹配依据', Questionnaire: '问卷', Both: '两者', 'Extra Info': '补充信息',
+  'Enhanced Mode': '增强模式', 'Romantic Enhance': '恋人增强', 'Friend Enhance': '朋友增强',
+  'Target Gender': '目标性别', Male: '男', Female: '女', All: '不限',
+  'Age Range': '年龄范围', 'Any age': '不限年龄', 'School Filter': '学校筛选',
+  'Only Same School': '仅限同校', 'Same City': '同城优先', 'University Stage': '学业阶段',
+  Undergraduate: '本科', Master: '硕士', PhD: '博士', 'Interest Priority': '兴趣优先级',
+  // ── 广场 ──
+  Recommend: '推荐', 'Campus Wall': '校园墙', 'Be the first to share a moment': '来发布第一条动态吧',
+  Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',
+  'Post anonymously': '匿名发布', 'Failed to load posts': '帖子加载失败',
+  'Check your connection and try again': '请检查网络后重试', Retry: '重试',
+  // ── 能量购买 ──
+  cells: '格', 'Select a package': '请选择套餐', 'Select a payment method': '请选择支付方式',
+  'WeChat Pay': '微信支付', Alipay: '支付宝', 'Card (Stripe)': '银行卡 (Stripe)',
+  // ── 登录 / 注册 / 资料 ──
+  'Sign In': '登录', Register: '注册', 'Welcome Back': '欢迎回来', 'Join Unimatcha': '加入 Unimatcha',
+  'Email Address': '邮箱地址', 'Confirm Password': '确认密码', 'Forgot Password?': '忘记密码？',
+  'Profile Setup': '完善资料', 'Basic Info': '基本信息', Nickname: '昵称', 'Real name': '真实姓名',
+  'University / School': '学校', City: '城市', Major: '专业', Nationality: '国籍',
+  Gender: '性别', 'Looking For': '想认识', Birthday: '生日', 'Academic Year': '学业阶段',
+  Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
 };
 let observer = null;
 function getLang() {

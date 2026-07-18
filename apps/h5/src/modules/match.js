@@ -80,19 +80,12 @@ function promptFillQuestionnaire(mode) {
   const container = document.getElementById('match-content');
   if (!container) return;
   const isFriend = mode === 'friend';
-  // 朋友模式不再用蓝，统一荧光绿点缀（靠图标/文字区分）。
-  const accent = isFriend ? 'text-neon' : 'text-neon-pink';
-  const labelIcon = isFriend ? 'group' : 'auto_awesome';
   const labelText = isFriend ? 'Friend Questionnaire' : 'Romantic Questionnaire';
-  container.innerHTML = `<div class="w-full text-center px-8 py-12">
-    <div class="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
-      <div class="absolute w-full h-full border border-outline-variant/30 rounded-full"></div>
-      <div class="w-20 h-20 bg-surface-container-lowest border border-outline-variant rounded-full flex items-center justify-center">
-        <span class="material-symbols-outlined text-3xl ${accent}" style="font-variation-settings:'wght' 100;">assignment</span>
-      </div>
-    </div>
-    <h2 class="font-headline text-lg font-extrabold tracking-[0.2em] text-on-surface mb-3 inline-flex items-center justify-center gap-1.5"><span class="material-symbols-outlined ${accent}" style="font-size:20px">${labelIcon}</span>${labelText}</h2>
-    <p class="font-body text-on-surface-variant text-sm mb-10 max-w-xs mx-auto leading-relaxed">Complete the ${isFriend ? 'friend' : 'romantic'} questionnaire before entering this matching mode.</p>
+  // 平面简约空态（本轮反馈6）：荧光绿圆角方块 + 黑色图标，无圆环无描边
+  container.innerHTML = `<div class="w-full text-center px-8 py-16">
+    ${window.flatEmptyIcon(isFriend ? 'group' : 'auto_awesome', 'neon')}
+    <h2 class="font-headline text-lg font-extrabold tracking-tight text-on-surface mb-2">${labelText}</h2>
+    <p class="font-body text-on-surface-variant text-sm mb-10 max-w-[15rem] mx-auto leading-relaxed">A few quick questions unlock ${isFriend ? 'friend' : 'romantic'} matching.</p>
     <div class="w-full max-w-xs mx-auto">
       <button class="btn-cta bg-neon text-black" onclick="goFillQuestionnaire('${mode}')">Fill Out Questionnaire</button>
     </div>
@@ -348,14 +341,9 @@ window.stopCampusAnim = stopCampusAnim;
 
 // A4/A6/A7: 对方资料缺失（partner 为 null / 不完整 / 账户变更）时的容错卡片。
 function renderPartnerMissing(message) {
-  return `<div class="w-full text-center px-8 py-12">
-    <div class="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
-      <div class="absolute w-full h-full border border-outline-variant/30 rounded-full"></div>
-      <div class="w-20 h-20 bg-surface-container-lowest border border-outline-variant flex items-center justify-center">
-        <span class="material-symbols-outlined text-3xl text-outline" style="font-variation-settings: 'wght' 100;">person_off</span>
-      </div>
-    </div>
-    <h2 class="font-headline text-lg font-extrabold tracking-[0.2em] text-on-surface mb-3">Profile Unavailable</h2>
+  return `<div class="w-full text-center px-8 py-16">
+    ${window.flatEmptyIcon('person_off')}
+    <h2 class="font-headline text-lg font-extrabold tracking-tight text-on-surface mb-2">Profile Unavailable</h2>
     <p class="font-body text-on-surface-variant text-sm mb-10 max-w-xs mx-auto leading-relaxed">${window.escapeHtml(message || "Couldn't load this profile. Please try again later.")}</p>
     <div class="w-full max-w-xs mx-auto">
       <button class="btn-cta bg-neon text-black" onclick="loadMatchTab()">Refresh</button>
@@ -439,14 +427,9 @@ function renderRomanticMatchTab(container, data) {
   // no_match：本周无缘分。须用户主动点重新匹配（B 规则——不自动续）。
   if (state === 'no_match') {
     container.innerHTML = `
-      <div class="w-full text-center px-8 py-12">
-        <div class="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
-          <div class="absolute w-full h-full border border-outline-variant/30 rounded-full"></div>
-          <div class="w-20 h-20 bg-surface-container-lowest border border-outline-variant rounded-full flex items-center justify-center">
-            <span class="material-symbols-outlined text-3xl text-outline" style="font-variation-settings: 'wght' 100;">hourglass_empty</span>
-          </div>
-        </div>
-        <h2 class="font-headline text-lg font-extrabold tracking-[0.2em] text-on-surface mb-3">No Match This Week</h2>
+      <div class="w-full text-center px-8 py-16">
+        ${window.flatEmptyIcon('hourglass_empty')}
+        <h2 class="font-headline text-lg font-extrabold tracking-tight text-on-surface mb-2">No Match This Week</h2>
         <p class="font-body text-on-surface-variant text-sm mb-10 max-w-xs mx-auto leading-relaxed">${window.escapeHtml(data.message || 'No suitable match this week. See you next Friday.')}</p>
         <div class="w-full max-w-xs mx-auto flex flex-col gap-6 items-center">
           <button class="btn-cta bg-neon text-black" onclick="startMatch()">Match Again</button>
@@ -479,14 +462,9 @@ function renderFriendMatchTab(container, data) {
 
   if (state === 'no_match' && !matches.length) {
     container.innerHTML = `
-      <div class="w-full text-center px-8 py-12">
-        <div class="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
-          <div class="absolute w-full h-full border border-neon/30 rounded-full"></div>
-          <div class="w-20 h-20 bg-surface-container-lowest border border-outline-variant rounded-full flex items-center justify-center">
-            <span class="material-symbols-outlined text-3xl text-neon" style="font-variation-settings: 'wght' 100;">group_off</span>
-          </div>
-        </div>
-        <h2 class="font-headline text-lg font-extrabold tracking-[0.2em] text-on-surface mb-3">No Friends This Round</h2>
+      <div class="w-full text-center px-8 py-16">
+        ${window.flatEmptyIcon('group_off')}
+        <h2 class="font-headline text-lg font-extrabold tracking-tight text-on-surface mb-2">No Friends This Round</h2>
         <p class="font-body text-on-surface-variant text-sm mb-10 max-w-xs mx-auto leading-relaxed">${window.escapeHtml(data.message || 'No suitable friend candidates this round. Adjust your preferences or try matching again.')}</p>
         <div class="w-full max-w-xs mx-auto flex flex-col gap-6 items-center">
           <button class="btn-cta bg-neon text-black" onclick="startMatch()">Match Again</button>
