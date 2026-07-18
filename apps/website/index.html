@@ -549,7 +549,8 @@ h1.title .mark::before{content:"";position:absolute;left:-4px;right:-4px;bottom:
 #wall .phone{width:340px;box-shadow:0 40px 74px -34px rgba(10,10,10,.62)}
 /* ---------- 两屏手机：共享背景 + 滚动连续交叉淡化（正常文档流，不锁滚动） ---------- */
 #showpin{position:relative}
-.showpin-viewport{position:relative;background:var(--ivory)}
+.showpin-viewport{position:relative;background:var(--ivory);padding-bottom:104px}
+@media(max-width:920px){.showpin-viewport{padding-bottom:56px}}
 .showpin-viewport::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(rgba(10,10,10,.11) 1.2px,transparent 1.2px);background-size:24px 24px}
 #showpin .show-stage{position:relative;z-index:1;padding:56px 0;will-change:opacity,transform;overflow:visible}
 /* 第二屏：手机靠左、右栏加宽，右侧内容上下更松 */
