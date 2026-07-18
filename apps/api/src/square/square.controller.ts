@@ -16,6 +16,7 @@ import {
   CreatePostDto,
   CreateCommentDto,
   ReportPostDto,
+  VotePollDto,
 } from './dto/square.dto';
 
 /**
@@ -84,6 +85,16 @@ export class SquareController {
     @Param('id') postId: string,
   ) {
     return this.squareService.getPost(postId, userId);
+  }
+
+  @Post('posts/:id/vote')
+  @ApiOperation({ summary: '校园墙投票（每人一票，可改票；仅审核通过的投票帖）' })
+  async votePoll(
+    @CurrentUser('id') userId: string,
+    @Param('id') postId: string,
+    @Body() dto: VotePollDto,
+  ) {
+    return this.squareService.votePoll(postId, userId, dto.optionIndex);
   }
 
   @Post('posts/:id/like')

@@ -5,6 +5,10 @@ import {
   IsArray,
   IsEnum,
   IsBoolean,
+  IsInt,
+  Min,
+  ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -45,6 +49,41 @@ export class CreatePostDto {
   @IsOptional()
   @IsArray()
   tags?: string[];
+
+  @ApiPropertyOptional({ enum: ['normal', 'poll'], description: 'poll=校园墙投票帖（需审核后展示）' })
+  @IsOptional()
+  @IsEnum(['normal', 'poll'])
+  postType?: 'normal' | 'poll';
+
+  @ApiPropertyOptional({ type: [String], description: '投票选项（postType=poll 必填，2–6 个）' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  pollOptions?: string[];
+}
+
+// 投票（POST /square/v2/posts/:id/vote）
+export class VotePollDto {
+  @ApiProperty({ example: 0, description: '所选选项下标（可改票）' })
+  @IsInt()
+  @Min(0)
+  optionIndex: number;
+}
+
+// 后管审核投票帖（POST /admin/square/polls/:id/review）
+export class ReviewPollDto {
+  @ApiProperty({ enum: ['approve', 'reject'] })
+  @IsEnum(['approve', 'reject'])
+  action: 'approve' | 'reject';
+
+  @ApiPropertyOptional({ description: '审核备注（驳回时展示给作者）' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
 }
 
 // 评论（POST /square/v2/posts/:id/comments）—楼中楼，复用 SquarePostComment

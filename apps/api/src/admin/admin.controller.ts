@@ -21,7 +21,9 @@ import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
-import { CreateOfficialPostDto } from '../square/dto/square.dto';
+import { CreateOfficialPostDto, ReviewPollDto } from '../square/dto/square.dto';
+import { EventsService } from '../events/events.service';
+import { CreateEventDto, UpdateEventStatusDto, CheckinTicketDto } from '../events/dto/events.dto';
 
 // 当前登录后管（来自 admin-jwt 策略写入的 req.user）
 type CurrentAdmin = {
@@ -62,7 +64,10 @@ class UpdateReportStatusDto {
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private eventsService: EventsService,
+  ) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/商家）' })
@@ -232,6 +237,79 @@ export class AdminController {
   @ApiOperation({ summary: '清除举报（若为举报自动隐藏则同时恢复展示；学生会仅本校）' })
   dismissSquarePostReports(@CurrentUser('id') adminId: string, @Param('id') id: string) {
     return this.adminService.adminDismissReports(adminId, id);
+  }
+
+  // ─── 校园墙投票审核（学生会本校 / 团队全量）──────────────────
+  @Get('square/polls')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '投票帖审核列表（默认 pending；学生会仅本校，团队视图带 hasUnionReviewer 标记）' })
+  @ApiQuery({ name: 'status', required: false, description: 'pending（默认）/ approved / rejected' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  listPolls(
+    @CurrentUser('id') adminId: string,
+    @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.listPolls(adminId, { status, page, limit });
+  }
+
+  @Post('square/polls/:id/review')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '审核投票帖（approve/reject；学生会仅本校；结果通知作者）' })
+  reviewPoll(
+    @CurrentUser('id') adminId: string,
+    @Param('id') id: string,
+    @Body() dto: ReviewPollDto,
+  ) {
+    return this.adminService.reviewPoll(adminId, id, dto);
+  }
+
+  // ─── 活动与门票（学生会本校 / 团队全量）────────────────────────
+  @Post('events')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '发布活动（同时生成广场活动帖；学生会强制本校）' })
+  createEvent(@CurrentUser('id') adminId: string, @Body() dto: CreateEventDto) {
+    return this.eventsService.createEvent(adminId, dto);
+  }
+
+  @Get('events')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '活动列表（学生会仅本校）' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  listEvents(
+    @CurrentUser('id') adminId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.eventsService.listEvents(adminId, { page, limit });
+  }
+
+  @Patch('events/:id')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '活动状态流转（published/closed/cancelled；学生会仅本校）' })
+  updateEvent(
+    @CurrentUser('id') adminId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateEventStatusDto,
+  ) {
+    return this.eventsService.updateEventStatus(adminId, id, dto.status);
+  }
+
+  @Get('events/:id/tickets')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '购票名单（学生会仅本校）' })
+  listEventTickets(@CurrentUser('id') adminId: string, @Param('id') id: string) {
+    return this.eventsService.listEventTickets(adminId, id);
+  }
+
+  @Post('events/checkin')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '入场核销（按票码；已核销/无效返回 400）' })
+  checkinTicket(@CurrentUser('id') adminId: string, @Body() dto: CheckinTicketDto) {
+    return this.eventsService.checkinTicket(adminId, dto.code);
   }
 
   // ─── 用户反馈举报队列（Report 表，SUPER/TEAM，§5.5）────────────

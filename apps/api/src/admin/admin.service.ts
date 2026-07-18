@@ -588,6 +588,15 @@ export class AdminService {
     return this.squareService.adminRestorePost(adminId, postId);
   }
 
+  // 投票帖审核（scope 逻辑在 SquareService，按 adminId 解析角色/学校）
+  async listPolls(adminId: string, opts: { status?: string; page?: number; limit?: number }) {
+    return this.squareService.listPendingPolls(adminId, opts);
+  }
+
+  async reviewPoll(adminId: string, postId: string, dto: { action: 'approve' | 'reject'; note?: string }) {
+    return this.squareService.reviewPoll(adminId, postId, dto.action, dto.note);
+  }
+
   async adminDismissReports(adminId: string, postId: string) {
     return this.squareService.adminDismissReports(adminId, postId);
   }

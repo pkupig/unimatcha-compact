@@ -64,12 +64,23 @@ export class SquareService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const board = this.toBoard(dto.board);
+    // 投票帖（校园墙投票）：强制发在校园墙，需审核后才对他人可见
+    const isPoll = dto.postType === 'poll';
+    const board = isPoll ? SquareBoard.CAMPUS_WALL : this.toBoard(dto.board);
     const school = await this.getUserSchool(userId);
 
     // campus_wall 且作者无 school → 400（引导补全资料，§8.1.6 决策 2）
     if (board === SquareBoard.CAMPUS_WALL && !school) {
       throw new BadRequestException('Please fill in your school in your profile before posting to the campus wall');
+    }
+
+    let pollOptions: { text: string; votes: number }[] | undefined;
+    if (isPoll) {
+      const opts = (dto.pollOptions || []).map((t) => (t || '').trim()).filter(Boolean);
+      if (opts.length < 2) {
+        throw new BadRequestException('A poll needs at least 2 options');
+      }
+      pollOptions = opts.map((text) => ({ text, votes: 0 }));
     }
 
     const post = await this.prisma.squarePost.create({
@@ -83,11 +94,162 @@ export class SquareService {
         images: dto.images || [],
         anonymous: dto.anonymous ?? false,
         tags: dto.tags || [],
+        postType: isPoll ? 'poll' : 'normal',
+        pollOptions: pollOptions as any,
+        // 投票帖需审核（有对应学生会由其审，否则平台团队审）；普通帖直接可见
+        reviewStatus: isPoll ? 'pending' : 'approved',
       },
       include: this.postInclude(),
     });
 
     return this.shapePost(post, userId);
+  }
+
+  // ─── 校园墙投票：投票/改票（POST /square/v2/posts/:id/vote）────
+  async votePoll(postId: string, userId: string, optionIndex: number) {
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, postType: true, pollOptions: true, reviewStatus: true, isHidden: true },
+    });
+    if (!post || post.postType !== 'poll') throw new NotFoundException('Poll not found');
+    if (post.isHidden || post.reviewStatus !== 'approved') {
+      throw new BadRequestException('This poll is not open for voting');
+    }
+    const options = (post.pollOptions as any[]) || [];
+    if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
+      throw new BadRequestException('Invalid option');
+    }
+    // 事务：落票（每人一票可改票）→ 重算各选项票数 → 冗余写回 pollOptions
+    const pollOptions = await this.prisma.$transaction(async (tx) => {
+      await tx.squarePollVote.upsert({
+        where: { postId_userId: { postId, userId } },
+        create: { postId, userId, optionIndex },
+        update: { optionIndex },
+      });
+      const grouped = await tx.squarePollVote.groupBy({
+        by: ['optionIndex'],
+        where: { postId },
+        _count: { _all: true },
+      });
+      const counts = new Map(grouped.map((g) => [g.optionIndex, g._count._all]));
+      const next = options.map((o: any, i: number) => ({ text: o.text, votes: counts.get(i) || 0 }));
+      await tx.squarePost.update({ where: { id: postId }, data: { pollOptions: next as any } });
+      return next;
+    });
+    return { pollOptions, myVote: optionIndex };
+  }
+
+  // 批量补充 myVote：feed / 详情里的投票帖标记当前用户投的选项
+  private async annotateMyVotes(items: any[], userId: string) {
+    const pollIds = items.filter((p) => p?.postType === 'poll').map((p) => p.id);
+    if (!pollIds.length) return items;
+    const votes = await this.prisma.squarePollVote.findMany({
+      where: { userId, postId: { in: pollIds } },
+      select: { postId: true, optionIndex: true },
+    });
+    const byPost = new Map(votes.map((v) => [v.postId, v.optionIndex]));
+    for (const p of items) {
+      if (p?.postType === 'poll') p.myVote = byPost.has(p.id) ? byPost.get(p.id) : null;
+    }
+    return items;
+  }
+
+  // ─── 投票帖审核（后管：学生会本校 / 团队全量，ADMIN-REDESIGN §4）──
+  async listPendingPolls(
+    adminId: string,
+    opts: { status?: string; page?: number; limit?: number } = {},
+  ) {
+    const scope = await this.getAdminScope(adminId);
+    const role = scope.role;
+    if (role !== AdminRole.SUPER && role !== AdminRole.TEAM && role !== AdminRole.STUDENT_UNION) {
+      throw new ForbiddenException('Not authorized to review polls');
+    }
+    const page = opts.page && opts.page > 0 ? Number(opts.page) : 1;
+    const limit = opts.limit && opts.limit > 0 ? Math.min(Number(opts.limit), 50) : 20;
+    const status = ['pending', 'approved', 'rejected'].includes(opts.status || '')
+      ? opts.status
+      : 'pending';
+    const where: Prisma.SquarePostWhereInput = {
+      postType: 'poll',
+      reviewStatus: status,
+    };
+    if (role === AdminRole.STUDENT_UNION) {
+      where.school = { in: scope.schoolNames };
+    }
+    const [posts, total, unionSchools] = await Promise.all([
+      this.prisma.squarePost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: this.postInclude(),
+      }),
+      this.prisma.squarePost.count({ where }),
+      // 有学生会入驻的学校名单：团队视图标记「该校有学生会（默认由其审核）」
+      this.prisma.school.findMany({
+        where: { unionAdmins: { some: { role: AdminRole.STUDENT_UNION, isActive: true } } },
+        select: { name: true },
+      }),
+    ]);
+    const unionSet = new Set(unionSchools.map((s) => s.name));
+    const items = posts.map((p) => ({
+      ...p,
+      metadata: undefined,
+      hasUnionReviewer: !!p.school && unionSet.has(p.school),
+    }));
+    return { items, page, limit, total, hasMore: page * limit < total };
+  }
+
+  async reviewPoll(
+    adminId: string,
+    postId: string,
+    action: 'approve' | 'reject',
+    note?: string,
+  ) {
+    const scope = await this.getAdminScope(adminId);
+    const role = scope.role;
+    if (role !== AdminRole.SUPER && role !== AdminRole.TEAM && role !== AdminRole.STUDENT_UNION) {
+      throw new ForbiddenException('Not authorized to review polls');
+    }
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, postType: true, school: true, reviewStatus: true, authorUserId: true, title: true, content: true },
+    });
+    if (!post || post.postType !== 'poll') throw new NotFoundException('Poll not found');
+    if (role === AdminRole.STUDENT_UNION && (!post.school || !scope.schoolNames.includes(post.school))) {
+      throw new ForbiddenException('Student union can only review polls from its own school');
+    }
+    if (post.reviewStatus !== 'pending') {
+      throw new BadRequestException('This poll has already been reviewed');
+    }
+    const approved = action === 'approve';
+    const updated = await this.prisma.squarePost.update({
+      where: { id: postId },
+      data: {
+        reviewStatus: approved ? 'approved' : 'rejected',
+        reviewedByAdminId: adminId,
+        reviewedAt: new Date(),
+        reviewNote: note || null,
+      },
+    });
+    // 通知作者审核结果（失败不影响审核落库）
+    if (post.authorUserId) {
+      const label = post.title || post.content.slice(0, 30);
+      await this.prisma.notification
+        .create({
+          data: {
+            userId: post.authorUserId,
+            type: 'system',
+            title: approved ? 'Poll approved' : 'Poll rejected',
+            body: approved
+              ? `Your poll "${label}" is now live on the campus wall.`
+              : `Your poll "${label}" was not approved.${note ? ` Reason: ${note}` : ''}`,
+            metadata: { postId },
+          },
+        })
+        .catch(() => undefined);
+    }
+    return { id: updated.id, reviewStatus: updated.reviewStatus };
   }
 
   // ─── 官方发帖（供 admin 模块调用，§8.1.3 / §8.1.5） ───────────
@@ -196,6 +358,7 @@ export class SquareService {
         board: SquareBoard.RECOMMEND,
         authorType: SquareAuthorType.USER,
         isHidden: false,
+        reviewStatus: 'approved',
       },
       orderBy: { createdAt: 'desc' },
       take: 300, // 候选上限，应用层打分
@@ -213,6 +376,7 @@ export class SquareService {
         board: SquareBoard.RECOMMEND,
         authorType: { in: OFFICIAL_TYPES },
         isHidden: false,
+        reviewStatus: 'approved',
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -235,6 +399,7 @@ export class SquareService {
           board: SquareBoard.CAMPUS_WALL,
           authorType: SquareAuthorType.USER,
           isHidden: false,
+          reviewStatus: 'approved',
           school: mySchool,
           likeCount: { gte: WALL_HOT_THRESHOLD },
         },
@@ -260,6 +425,7 @@ export class SquareService {
     const start = (page - 1) * limit;
     const slice = feed.slice(start, start + limit);
     const items = slice.map((p) => this.shapeCard(p, userId, mySchool));
+    await this.annotateMyVotes(items, userId);
 
     return {
       items,
@@ -295,6 +461,8 @@ export class SquareService {
       board: SquareBoard.CAMPUS_WALL,
       school: mySchool, // 同校硬约束
       isHidden: false,
+      // 投票帖须审核通过；本人的待审/被驳回投票帖仍对本人可见（OR 分支）
+      OR: [{ reviewStatus: 'approved' }, { authorUserId: userId }],
     };
 
     const [posts, total] = await Promise.all([
@@ -309,6 +477,7 @@ export class SquareService {
     ]);
 
     const items = posts.map((p) => this.shapeCard(p, userId, mySchool));
+    await this.annotateMyVotes(items, userId);
     return {
       items,
       page,
@@ -355,6 +524,10 @@ export class SquareService {
     if (post.isHidden && post.authorUserId !== userId) {
       throw new NotFoundException('Post not found');
     }
+    // 待审/被驳回投票帖同理：仅作者可见
+    if (post.reviewStatus !== 'approved' && post.authorUserId !== userId) {
+      throw new NotFoundException('Post not found');
+    }
 
     let myLiked = false;
     if (userId) {
@@ -368,7 +541,9 @@ export class SquareService {
     if (post.anonymous && post.authorType === SquareAuthorType.USER && Array.isArray(post.comments) && post.comments.length) {
       await this.anonymizeComments(post);
     }
-    return { ...this.shapePost(post, userId), comments: post.comments, myLiked };
+    const shaped = { ...this.shapePost(post, userId), comments: post.comments, myLiked };
+    if (userId) await this.annotateMyVotes([shaped], userId);
+    return shaped;
   }
 
   // ─── 评论（楼中楼，§8.1.5）──────────────────────────────────
@@ -929,6 +1104,13 @@ export class SquareService {
       },
       admin: {
         select: { id: true, name: true, organizationName: true, role: true },
+      },
+      // 活动帖直出活动信息（时间/地点/票价/余量），H5 卡片与详情免二次请求
+      event: {
+        select: {
+          id: true, title: true, venue: true, school: true, startAt: true, endAt: true,
+          priceCents: true, capacity: true, ticketsSold: true, status: true,
+        },
       },
       _count: { select: { likes: true, comments: true } },
     } satisfies Prisma.SquarePostInclude;

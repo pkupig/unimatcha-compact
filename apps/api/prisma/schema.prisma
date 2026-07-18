@@ -104,6 +104,8 @@ model User {
 
   notifications Notification[]
   reports       Report[]
+  pollVotes     SquarePollVote[]
+  eventTickets  EventTicket[]
 
   @@map("users")
 }
@@ -133,6 +135,7 @@ model AdminUser {
   updatedAt DateTime @updatedAt
 
   squarePosts SquarePost[]
+  events      Event[]      @relation("EventCreator")
 
   school          School? @relation("SchoolUnionAdmins", fields: [schoolId], references: [id])
   sourcedBySchool School? @relation("SponsorSource", fields: [sourcedBySchoolId], references: [id])
@@ -659,6 +662,19 @@ model SquarePost {
   anonymous   Boolean @default(false) // 隐藏头像/昵称为"匿名同学"（学校仍标注）
   isSponsored Boolean @default(false) // SPONSOR 帖=true，UI 显示 "Sponsored"
 
+  // ─── 投票帖（校园墙投票，需审核）───
+  postType    String  @default("normal") // normal | poll | event
+  pollOptions Json? // [{ text, votes }]（votes 由投票事务内重算冗余存储，feed 免 N+1）
+  // 审核：普通帖默认 approved；投票帖创建即 pending，学生会（本校）或团队审核
+  reviewStatus      String    @default("approved") // approved | pending | rejected
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+
+  // ─── 活动帖（1:1 关联 Event）───
+  eventId String? @unique
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
   isHidden     Boolean   @default(false) // 举报/下架后对他人隐藏
   deletedBy    String?
   deletedAt    DateTime?
@@ -670,13 +686,15 @@ model SquarePost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  comments SquarePostComment[]
-  likes    SquarePostLike[]
+  comments  SquarePostComment[]
+  likes     SquarePostLike[]
+  pollVotes SquarePollVote[]
 
   @@index([board, createdAt])
   @@index([board, school])
   @@index([authorType, createdAt])
   @@index([isHidden, createdAt])
+  @@index([reviewStatus, school, createdAt])
   @@index([coupleMatchId])
   @@map("square_posts")
 }
@@ -714,6 +732,72 @@ model SquarePostLike {
   @@index([postId])
   @@index([userId])
   @@map("square_post_likes")
+}
+
+// 校园墙投票：每人每帖一票，可改票（更新 optionIndex）
+model SquarePollVote {
+  id          String     @id @default(cuid())
+  postId      String
+  post        SquarePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  optionIndex Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([postId, userId])
+  @@index([postId, optionIndex])
+  @@map("square_poll_votes")
+}
+
+// ─────────────────────────────────────────────
+// 活动 + 门票（学生会/团队发布活动 → 广场活动帖；用户购票 → 票夹二维码）
+// ─────────────────────────────────────────────
+model Event {
+  id      String   @id @default(cuid())
+  title   String
+  content String   @db.Text
+  images  String[] @default([])
+
+  school String? // 学生会活动=本校名；团队活动可空（全网）
+  venue  String?
+  startAt DateTime
+  endAt   DateTime?
+
+  priceCents  Int    @default(0) // 0=免费；分为单位
+  capacity    Int? // null=不限量
+  ticketsSold Int    @default(0)
+  status      String @default("published") // published | closed | cancelled
+
+  createdByAdminId String
+  createdByAdmin   AdminUser @relation("EventCreator", fields: [createdByAdminId], references: [id])
+
+  post    SquarePost? // 1:1（SquarePost.eventId @unique）
+  tickets EventTicket[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startAt])
+  @@index([school, startAt])
+  @@map("events")
+}
+
+model EventTicket {
+  id             String    @id @default(cuid())
+  code           String    @unique // 二维码内容（UMT-xxxx，入场核销）
+  eventId        String
+  event          Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricePaidCents Int       @default(0)
+  status         String    @default("valid") // valid | used | cancelled
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventId, status])
+  @@map("event_tickets")
 }
 
 // ─────────────────────────────────────────────
