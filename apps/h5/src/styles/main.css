@@ -1012,6 +1012,9 @@
     .poll-opt-count { position: relative; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #474747; flex-shrink: 0; }
     .dark .poll-opt { background: #1f1f26; border-color: #34343c; }
     .dark .poll-opt-label { color: #ececf0; }
+    .dark .poll-opt-count { color: #a8a8b2; }
+    .dark .poll-opt--mine { border-color: #ececf0; }
+    .dark .splash-bar { background: #34343c; }
 
     /* ---- 票夹（本轮反馈2）：票卡撕票线 ---- */
     .ticket-divider {

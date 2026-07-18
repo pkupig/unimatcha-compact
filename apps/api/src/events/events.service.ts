@@ -36,6 +36,10 @@ export class EventsService {
       if (!school || !scope.schoolNames.includes(school)) {
         throw new ForbiddenException('Student union can only publish events for its own school');
       }
+    } else if (school) {
+      // 团队指定学校：必须是已录入的 School 名（拼错会导致校园墙/学生会 scope 全部匹配不上且无报错）
+      const exists = await this.prisma.school.findUnique({ where: { name: school }, select: { id: true } });
+      if (!exists) throw new BadRequestException(`School "${school}" not found — use a registered school name`);
     }
 
     const startAt = new Date(dto.startAt);
@@ -135,6 +139,13 @@ export class EventsService {
       where: { id: eventId },
       data: { status },
     });
+    // 取消活动：存量有效票一并作废（票夹显示 CANCELLED、核销双重拒绝）
+    if (status === 'cancelled') {
+      await this.prisma.eventTicket.updateMany({
+        where: { eventId, status: 'valid' },
+        data: { status: 'cancelled' },
+      });
+    }
     return { id: updated.id, status: updated.status };
   }
 
@@ -160,12 +171,15 @@ export class EventsService {
     const ticket = await this.prisma.eventTicket.findUnique({
       where: { code: (code || '').trim() },
       include: {
-        event: { select: { id: true, title: true, school: true, startAt: true } },
+        event: { select: { id: true, title: true, school: true, startAt: true, status: true } },
         user: { select: { profile: { select: { nickname: true } } } },
       },
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
     this.assertEventScope(scope, ticket.event);
+    if (ticket.event.status === 'cancelled') {
+      throw new BadRequestException('This event has been cancelled');
+    }
     if (ticket.status === 'used') {
       throw new BadRequestException(`Ticket already used at ${ticket.usedAt?.toISOString()}`);
     }
@@ -212,6 +226,11 @@ export class EventsService {
       throw new BadRequestException('This event has ended');
     }
     const ticket = await this.prisma.$transaction(async (tx) => {
+      // 每人限购 2 张（mock 支付零成本，防单人抽干容量/无限刷票）
+      const mine = await tx.eventTicket.count({
+        where: { eventId, userId, status: { not: 'cancelled' } },
+      });
+      if (mine >= 2) throw new BadRequestException('Ticket limit reached (2 per person)');
       // 条件自增：容量满时影响行数为 0 → 售罄（并发安全，防超卖）
       const bumped = await tx.$executeRaw`
         UPDATE "events" SET "ticketsSold" = "ticketsSold" + 1, "updatedAt" = NOW()

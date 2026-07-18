@@ -138,10 +138,9 @@ function CheckinBar({ onCheckedIn }: { onCheckedIn: () => void }) {
     try {
       const res = await checkinEventTicket(trimmed);
       const data = (res as any).data || {};
-      const holder = data.holder || {};
-      const holderName =
-        holder?.profile?.nickname || holder?.nickname || holder?.email || '持票人';
-      const eventTitle = data.event?.title || '活动';
+      // 后端返回的 event / holder 均为字符串（活动标题 / 持票人昵称）
+      const holderName = typeof data.holder === 'string' && data.holder ? data.holder : '持票人';
+      const eventTitle = typeof data.event === 'string' && data.event ? data.event : '活动';
       setResult({ ok: true, message: `核销成功：${eventTitle} · ${holderName}` });
       toast.success('核销成功');
       setCode('');
@@ -210,7 +209,8 @@ const EMPTY_FORM = {
   endAt: '',
   priceYuan: '0',
   capacity: '',
-  board: 'campus_wall' as 'recommend' | 'campus_wall',
+  // 默认推荐流：校园墙必须带学校（团队留空学校 + 校园墙会被后端 400）
+  board: 'recommend' as 'recommend' | 'campus_wall',
 };
 
 function CreateEventModal({

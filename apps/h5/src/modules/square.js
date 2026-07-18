@@ -339,11 +339,14 @@ async function votePollOption(postId, optionIndex) {
     };
     (S.squarePosts || []).forEach(apply);
     apply(S.pdPostData);
-    const src = (S.squarePosts || []).find(x => x && x.id === postId) || S.pdPostData;
+    let src = (S.squarePosts || []).find(x => x && x.id === postId);
+    if (!src && S.pdPostData?.id === postId) src = S.pdPostData;
+    // 缓存未命中：票已在服务端落库，跳过原地重渲（下次加载会取到最新计数）
+    if (!src) return;
     document.querySelectorAll(`[data-poll-id="${postId}"]`).forEach(el => {
       const wrap = document.createElement('div');
       wrap.innerHTML = pollBlock(src);
-      el.replaceWith(wrap.firstElementChild);
+      if (wrap.firstElementChild) el.replaceWith(wrap.firstElementChild);
     });
     // 高度变化后瀑布流重排
     layoutSquareMasonry();
@@ -365,9 +368,10 @@ function eventStrip(p) {
   const ev = p.event;
   if (p.postType !== 'event' || !ev) return '';
   const soldOut = ev.capacity != null && ev.ticketsSold >= ev.capacity;
-  return `<div class="flex items-center gap-2 flex-wrap mt-1" data-no-i18n>
-    <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">EVENT</span>
-    <span class="text-[11px] text-on-surface-variant font-medium">${eventTimeShort(ev.startAt)}${ev.venue ? ' · ' + window.escapeHtml(ev.venue) : ''}</span>
+  // 根节点不挂 data-no-i18n（否则 Sold out/Free 等 UI 词永远不进中文态）；用户内容单独豁免
+  return `<div class="flex items-center gap-2 flex-wrap mt-1">
+    <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>EVENT</span>
+    <span class="text-[11px] text-on-surface-variant font-medium" data-no-i18n>${eventTimeShort(ev.startAt)}${ev.venue ? ' · ' + window.escapeHtml(ev.venue) : ''}</span>
     <span class="text-[11px] font-bold">${soldOut ? 'Sold out' : eventPrice(ev)}</span>
   </div>`;
 }
@@ -379,18 +383,20 @@ function eventDetailBlock(p) {
   const ended = new Date(ev.endAt || ev.startAt) < new Date();
   const closed = ev.status !== 'published';
   const disabled = soldOut || ended || closed;
-  const label = closed ? 'Sales closed' : (ended ? 'Event ended' : (soldOut ? 'Sold out' : `Get Ticket · ${eventPrice(ev)}`));
-  return `<div class="mt-6 rounded-[14px] border border-outline-variant/30 bg-surface-container-lowest p-5" data-no-i18n>
-    <div class="flex items-center gap-2 mb-3">
+  // 可购时按钮拆成「可译词 + 价格」两个节点，让中文态能翻译 Get Ticket
+  const label = closed ? 'Sales closed' : (ended ? 'Event ended' : (soldOut ? 'Sold out'
+    : `<span>Get Ticket</span><span data-no-i18n>&nbsp;· ${eventPrice(ev)}</span>`));
+  return `<div class="mt-6 rounded-[14px] border border-outline-variant/30 bg-surface-container-lowest p-5">
+    <div class="flex items-center gap-2 mb-3" data-no-i18n>
       <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">EVENT</span>
       ${ev.school ? `<span class="text-[10px] text-outline tracking-widest">${window.escapeHtml(ev.school)}</span>` : ''}
     </div>
-    <div class="space-y-1.5 text-sm">
+    <div class="space-y-1.5 text-sm" data-no-i18n>
       <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">schedule</span>${eventTimeShort(ev.startAt)}${ev.endAt ? ' – ' + eventTimeShort(ev.endAt) : ''}</p>
       ${ev.venue ? `<p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">location_on</span>${window.escapeHtml(ev.venue)}</p>` : ''}
       <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">confirmation_number</span>${eventPrice(ev)}${remaining != null ? ` · ${remaining} left` : ''} · ${ev.ticketsSold} sold</p>
     </div>
-    <button class="btn-cta mt-5 ${disabled ? 'opacity-50' : ''}" ${disabled ? 'disabled' : `onclick="buyEventTicket('${ev.id}')"`}>${label}</button>
+    <button class="btn-cta mt-5 flex items-center justify-center ${disabled ? 'opacity-50' : ''}" ${disabled ? 'disabled' : `onclick="buyEventTicket('${ev.id}')"`}>${label}</button>
   </div>`;
 }
 
@@ -906,8 +912,10 @@ function renderPollOptionInputs(count) {
   const existing = [...list.querySelectorAll('input')].map(i => i.value);
   const n = Math.min(6, Math.max(2, count));
   list.innerHTML = Array.from({ length: n }, (_, i) => `
-    <input type="text" maxlength="50" placeholder="Option ${i + 1}" value="${window.escapeHtml(existing[i] || '')}"
+    <input type="text" maxlength="50" placeholder="Option ${i + 1}"
       class="poll-option-input w-full bg-transparent border-0 border-b border-outline py-2 px-0 text-sm focus:ring-0 focus:border-b-2 focus:border-primary placeholder:text-outline-variant"/>`).join('');
+  // 值用属性赋值回填（不拼 HTML）：escapeHtml 不转义引号，含 " 的选项会截断属性甚至注入
+  [...list.querySelectorAll('input')].forEach((el, i) => { el.value = existing[i] || ''; });
 }
 
 function addPollOptionInput() {

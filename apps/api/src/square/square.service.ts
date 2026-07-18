@@ -109,11 +109,18 @@ export class SquareService {
   async votePoll(postId: string, userId: string, optionIndex: number) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
-      select: { id: true, postType: true, pollOptions: true, reviewStatus: true, isHidden: true },
+      select: { id: true, postType: true, pollOptions: true, reviewStatus: true, isHidden: true, school: true },
     });
     if (!post || post.postType !== 'poll') throw new NotFoundException('Poll not found');
     if (post.isHidden || post.reviewStatus !== 'approved') {
       throw new BadRequestException('This poll is not open for voting');
+    }
+    // 校园墙投票的语义前提是同校：拿到链接的外校用户不可灌票
+    if (post.school) {
+      const mySchool = await this.getUserSchool(userId);
+      if (mySchool !== post.school) {
+        throw new ForbiddenException('Only students of this school can vote');
+      }
     }
     const options = (post.pollOptions as any[]) || [];
     if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
@@ -192,11 +199,20 @@ export class SquareService {
       }),
     ]);
     const unionSet = new Set(unionSchools.map((s) => s.name));
-    const items = posts.map((p) => ({
-      ...p,
-      metadata: undefined,
-      hasUnionReviewer: !!p.school && unionSet.has(p.school),
-    }));
+    const items = posts.map((p) => {
+      const out: any = {
+        ...p,
+        metadata: undefined,
+        hasUnionReviewer: !!p.school && unionSet.has(p.school),
+      };
+      // 匿名投票帖对审核员同样脱敏：审核不需要作者身份，且学生会审核员
+      // 是本校账号，下发 authorUser 等于把匿名发起人直接暴露给同校学生
+      if (p.anonymous) {
+        out.authorUser = null;
+        delete out.authorUserId;
+      }
+      return out;
+    });
     return { items, page, limit, total, hasMore: page * limit < total };
   }
 
