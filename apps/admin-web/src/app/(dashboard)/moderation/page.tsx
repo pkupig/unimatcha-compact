@@ -6,12 +6,13 @@
  * STUDENT_UNION：「校园墙管理」后端强制 scope 本校帖子 + 举报队列（无用户反馈 tab，后端 403）
  * tab1 帖子管理：筛选（板块/学校(仅 TEAM)/状态/搜索）+ 查看/下架(原因必填)/恢复
  * tab2 举报队列：reported=true 预筛，多一个「清除举报」操作
- * tab3 用户反馈（TEAM）：分类/内容/联系方式/提交用户/状态 + 标记已处理
+ * tab3 投票审核：校园墙投票帖 pending/approved/rejected 三态，通过/驳回(可填理由)
+ * tab4 用户反馈（TEAM）：分类/内容/联系方式/提交用户/状态 + 标记已处理
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ShieldAlert, MessageSquareWarning, Inbox } from 'lucide-react';
+import { ShieldAlert, MessageSquareWarning, Inbox, Vote } from 'lucide-react';
 import {
   getSquarePostsAdmin,
   deleteSquarePostAdmin,
@@ -19,9 +20,13 @@ import {
   dismissPostReports,
   getAdminReports,
   updateAdminReport,
+  getAdminPolls,
+  reviewAdminPoll,
   type AdminSquarePost,
   type AdminReport,
   type SquareAuthorType,
+  type AdminPollPost,
+  type PollReviewStatus,
 } from '@/lib/api';
 import { isTeam } from '@/lib/auth';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/format';
@@ -593,7 +598,303 @@ function PostsPanel({ reported, team }: { reported?: boolean; team: boolean }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
- * tab3 用户反馈（TEAM 专属，Report 表）
+ * tab3 投票审核（校园墙投票帖；UNION 后端自动 scope 本校）
+ * ═══════════════════════════════════════════════════════════════ */
+
+const POLL_STATUS_LABELS: Record<string, string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已驳回',
+};
+
+function pollStatusVariant(status?: string | null): BadgeVariant {
+  switch (status) {
+    case 'approved':
+      return 'neon';
+    case 'rejected':
+      return 'pink';
+    default:
+      return 'ink';
+  }
+}
+
+function PollsPanel({ team }: { team: boolean }) {
+  const [items, setItems] = useState<AdminPollPost[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<PollReviewStatus>('pending');
+  const [loading, setLoading] = useState(true);
+
+  // 通过=确认弹窗；驳回=Modal 填理由（选填）
+  const [approveTarget, setApproveTarget] = useState<AdminPollPost | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<AdminPollPost | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const reqRef = useRef(0);
+
+  const load = useCallback(async () => {
+    const reqId = ++reqRef.current;
+    setLoading(true);
+    try {
+      const res = await getAdminPolls({ status, page, limit: LIMIT });
+      if (reqId !== reqRef.current) return;
+      const { items, total } = normalizeList<AdminPollPost>((res as any).data);
+      setItems(items);
+      setTotal(total);
+    } catch (err: any) {
+      if (reqId !== reqRef.current) return;
+      toast.error(err?.message || '加载投票列表失败');
+    } finally {
+      if (reqId === reqRef.current) setLoading(false);
+    }
+  }, [status, page]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleApprove = async () => {
+    if (!approveTarget) return;
+    setSubmitting(true);
+    try {
+      await reviewAdminPoll(approveTarget.id, { action: 'approve' });
+      toast.success('投票已通过');
+      setApproveTarget(null);
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeReject = () => {
+    setRejectTarget(null);
+    setRejectNote('');
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    setSubmitting(true);
+    try {
+      const note = rejectNote.trim();
+      await reviewAdminPoll(rejectTarget.id, { action: 'reject', ...(note ? { note } : {}) });
+      toast.success('投票已驳回');
+      closeReject();
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || '操作失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const columns: Column<AdminPollPost>[] = [
+    {
+      key: 'content',
+      title: '内容',
+      render: (p) => (
+        <div className="max-w-[260px]">
+          {p.title && <p className="font-bold text-on-surface truncate">{p.title}</p>}
+          <p className="text-xs text-on-surface-variant truncate">{p.content}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'options',
+      title: '选项',
+      render: (p) => (
+        <div className="space-y-0.5 max-w-[200px]">
+          {(p.pollOptions ?? []).map((o, i) => (
+            <p key={i} className="text-xs text-on-surface truncate">
+              {o.text}
+              <span className="font-mono text-[10px] text-outline ml-1.5">
+                {formatNumber(o.votes)} 票
+              </span>
+            </p>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: 'school',
+      title: '学校',
+      render: (p) => (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm whitespace-nowrap">
+            {p.school || <span className="text-on-surface-variant">跨校</span>}
+          </span>
+          {team && p.hasUnionReviewer && <Badge variant="outline">本校有学生会</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'author',
+      title: '作者',
+      render: (p) => (
+        <span className="text-sm whitespace-nowrap">
+          {p.anonymous ? (
+            <Badge variant="outline">匿名</Badge>
+          ) : (
+            p.authorUser?.profile?.nickname || '-'
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      title: '提交时间',
+      render: (p) => (
+        <span className="font-mono text-xs text-on-surface-variant whitespace-nowrap">
+          {formatDateTime(p.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      title: '状态',
+      render: (p) => (
+        <div>
+          <Badge variant={pollStatusVariant(p.reviewStatus)}>
+            {POLL_STATUS_LABELS[p.reviewStatus] ?? p.reviewStatus}
+          </Badge>
+          {p.reviewStatus === 'rejected' && p.reviewNote && (
+            <p
+              className="text-[10px] text-outline mt-1 max-w-[140px] truncate"
+              title={p.reviewNote}
+            >
+              {p.reviewNote}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      align: 'right',
+      render: (p) =>
+        p.reviewStatus === 'pending' ? (
+          <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+            <button
+              className="btn-primary btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setApproveTarget(p);
+              }}
+            >
+              通过
+            </button>
+            <button
+              className="btn-danger btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRejectTarget(p);
+              }}
+            >
+              驳回
+            </button>
+          </div>
+        ) : (
+          <span className="text-outline text-xs">-</span>
+        ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="card py-4">
+        <Select
+          className="w-full sm:w-44"
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value as PollReviewStatus);
+            setPage(1);
+          }}
+        >
+          <option value="pending">待审核</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已驳回</option>
+        </Select>
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <DataTable<AdminPollPost>
+          columns={columns}
+          data={items}
+          loading={loading}
+          empty={
+            <EmptyState
+              icon={Vote}
+              title={status === 'pending' ? '暂无待审核的投票' : '暂无投票'}
+            />
+          }
+        />
+        <Pager page={page} total={total} onPage={setPage} />
+      </div>
+
+      {/* 通过 */}
+      <ConfirmDialog
+        open={!!approveTarget}
+        title="通过投票"
+        message={
+          approveTarget ? (
+            <>
+              确认通过「{approveTarget.title || approveTarget.content.slice(0, 20)}」？
+              通过后该投票对用户可见。
+            </>
+          ) : null
+        }
+        confirmText="确认通过"
+        loading={submitting}
+        onConfirm={handleApprove}
+        onCancel={() => setApproveTarget(null)}
+      />
+
+      {/* 驳回（理由选填） */}
+      <Modal
+        open={!!rejectTarget}
+        onClose={closeReject}
+        caption="REJECT POLL"
+        title="驳回投票"
+        widthClassName="max-w-md"
+        footer={
+          <>
+            <button className="btn-secondary btn-sm" onClick={closeReject} disabled={submitting}>
+              取消
+            </button>
+            <button className="btn-danger btn-sm" onClick={handleReject} disabled={submitting}>
+              {submitting ? '处理中…' : '确认驳回'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-on-surface-variant leading-relaxed">
+            驳回后该投票不会展示给用户。
+            {rejectTarget && (
+              <span className="block mt-1 text-on-surface font-medium truncate">
+                「{rejectTarget.title || rejectTarget.content}」
+              </span>
+            )}
+          </p>
+          <Field label="驳回理由" hint="选填，将记录在审核备注中">
+            <Textarea
+              rows={3}
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder="例如：含不当内容 / 与校园无关"
+            />
+          </Field>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ * tab4 用户反馈（TEAM 专属，Report 表）
  * ═══════════════════════════════════════════════════════════════ */
 
 function FeedbackPanel() {
@@ -810,12 +1111,13 @@ function FeedbackPanel() {
 function ModerationInner() {
   const me = useAdminInfo();
   const team = isTeam(me?.role);
-  const [tab, setTab] = useState<'posts' | 'reported' | 'feedback'>('posts');
+  const [tab, setTab] = useState<'posts' | 'reported' | 'polls' | 'feedback'>('posts');
 
   // UNION 不可见用户反馈 tab（后端对其返回 403）
   const tabItems = [
     { key: 'posts', label: '帖子管理' },
     { key: 'reported', label: '举报队列' },
+    { key: 'polls', label: '投票审核' },
     ...(team ? [{ key: 'feedback', label: '用户反馈' }] : []),
   ];
 
@@ -829,6 +1131,7 @@ function ModerationInner() {
       <Tabs value={tab} onChange={(k) => setTab(k as typeof tab)} items={tabItems} />
       {tab === 'posts' && <PostsPanel team={team} />}
       {tab === 'reported' && <PostsPanel reported team={team} />}
+      {tab === 'polls' && <PollsPanel team={team} />}
       {tab === 'feedback' && team && <FeedbackPanel />}
     </div>
   );

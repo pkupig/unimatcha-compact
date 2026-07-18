@@ -2,8 +2,8 @@
 
 /**
  * 角色化侧边栏（spec §5 导航）
- * TEAM/SUPER：总览/用户/学校/账号/广告/财务/广场发帖/问卷/匹配/系统设置(SUPER)
- * STUDENT_UNION：总览/本校用户/赞助商/广告审核/发帖子/收益提现
+ * TEAM/SUPER：总览/用户/学校/账号/广告/广场管理/活动/财务/广场发帖/问卷/匹配/系统设置(SUPER)
+ * STUDENT_UNION：总览/本校用户/赞助商/广告审核/校园墙管理/活动/发帖子/收益提现
  * SPONSOR：总览/广告投放/账户
  */
 
@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Megaphone,
   ShieldAlert,
+  CalendarDays,
   Banknote,
   Inbox,
   Send,
@@ -46,6 +47,7 @@ const TEAM_NAV: NavItem[] = [
   { label: '账号管理', href: '/accounts', icon: ShieldCheck },
   { label: '广告管理', href: '/ads', icon: Megaphone },
   { label: '广场管理', href: '/moderation', icon: ShieldAlert },
+  { label: '活动管理', href: '/events', icon: CalendarDays },
   { label: '财务', href: '/finance', icon: Banknote },
   { label: '官网提交', href: '/submissions', icon: Inbox },
   { label: '广场发帖', href: '/square-post', icon: Send },
@@ -60,6 +62,7 @@ const UNION_NAV: NavItem[] = [
   { label: '赞助商', href: '/sponsors', icon: Store },
   { label: '广告审核', href: '/ads', icon: Megaphone },
   { label: '校园墙管理', href: '/moderation', icon: ShieldAlert },
+  { label: '活动管理', href: '/events', icon: CalendarDays },
   { label: '发帖子', href: '/square-post', icon: Send },
   { label: '收益提现', href: '/earnings', icon: Wallet },
 ];

@@ -527,3 +527,107 @@ export interface ConvertSubmissionInput {
 /** 一键开通 → {admin, school|null, initialPassword}（密码仅此一次回传） */
 export const convertSubmission = (id: string, body: ConvertSubmissionInput) =>
   api.post(`/admin/submissions/${id}/convert`, body);
+
+/* ═══════════════════════════════════════════════════════════════
+ * Polls（校园墙投票审核 —— /moderation「投票审核」tab）
+ * SUPER/TEAM 全量；STUDENT_UNION 后端自动 scope 本校
+ * ═══════════════════════════════════════════════════════════════ */
+
+export type PollReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AdminPollPost {
+  id: string;
+  title?: string | null;
+  content: string;
+  /** null/空 = 跨校 */
+  school?: string | null;
+  createdAt: string;
+  reviewStatus: PollReviewStatus | string;
+  reviewNote?: string | null;
+  pollOptions: { text: string; votes: number }[];
+  authorUser?: { profile?: { nickname?: string | null } | null } | null;
+  anonymous: boolean;
+  /** true = 该校有学生会入驻（默认由学生会审核；团队视角用徽标标出） */
+  hasUnionReviewer?: boolean;
+}
+
+/** 投票帖审核列表 → {items, page, limit, total, hasMore} */
+export const getAdminPolls = (params?: {
+  status?: PollReviewStatus | string;
+  page?: number;
+  limit?: number;
+}) => api.get('/admin/square/polls', { params });
+/** 审核投票帖（驳回可带 note）；成功后从 pending 列表移除 */
+export const reviewAdminPoll = (id: string, data: { action: 'approve' | 'reject'; note?: string }) =>
+  api.post(`/admin/square/polls/${id}/review`, data);
+
+/* ═══════════════════════════════════════════════════════════════
+ * Events（活动管理 /events —— SUPER/TEAM/STUDENT_UNION）
+ * 创建成功即同时生成广场活动帖；学生会不传 school 后端自动填本校
+ * ═══════════════════════════════════════════════════════════════ */
+
+export type AdminEventStatus = 'published' | 'closed' | 'cancelled';
+export type AdminTicketStatus = 'valid' | 'used' | 'cancelled';
+
+export interface AdminEvent {
+  id: string;
+  title: string;
+  content: string;
+  images: string[];
+  /** null/空 = 全网 */
+  school?: string | null;
+  venue?: string | null;
+  startAt: string;
+  endAt?: string | null;
+  /** 0 = 免费 */
+  priceCents: number;
+  /** null = 不限名额 */
+  capacity?: number | null;
+  ticketsSold: number;
+  status: AdminEventStatus | string;
+  createdByAdmin?: {
+    name?: string;
+    role?: string;
+    organizationName?: string | null;
+  } | null;
+  post?: { id: string; board: string } | null;
+}
+
+export interface AdminEventTicket {
+  id: string;
+  code: string;
+  status: AdminTicketStatus | string;
+  pricePaidCents: number;
+  createdAt: string;
+  usedAt?: string | null;
+  user?: {
+    email?: string;
+    profile?: { nickname?: string | null; school?: string | null } | null;
+  } | null;
+}
+
+/** 创建活动的提交体（价格单位：分，0=免费） */
+export interface AdminEventInput {
+  title: string;
+  content: string;
+  images?: string[];
+  school?: string;
+  venue?: string;
+  startAt: string;
+  endAt?: string;
+  priceCents?: number;
+  capacity?: number;
+  board?: 'recommend' | 'campus_wall';
+}
+
+/** 活动列表 → {items, page, limit, total, hasMore} */
+export const getAdminEvents = (params?: { page?: number; limit?: number }) =>
+  api.get('/admin/events', { params });
+export const createAdminEvent = (data: AdminEventInput) => api.post('/admin/events', data);
+/** 状态流转：published（恢复）/ closed（停售）/ cancelled（取消） */
+export const updateAdminEventStatus = (id: string, status: AdminEventStatus) =>
+  api.patch(`/admin/events/${id}`, { status });
+/** 购票名单 → {event: {id,title,ticketsSold,capacity}, tickets: AdminEventTicket[]} */
+export const getAdminEventTickets = (id: string) => api.get(`/admin/events/${id}/tickets`);
+/** 入场核销：成功 {ok, event, holder}；已核销/无效 400（message 带原因） */
+export const checkinEventTicket = (code: string) => api.post('/admin/events/checkin', { code });
