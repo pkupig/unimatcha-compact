@@ -298,6 +298,121 @@ function clampStyle(lines) {
   return `display:-webkit-box;-webkit-line-clamp:${lines};-webkit-box-orient:vertical;overflow:hidden;`;
 }
 
+// ── 投票块（卡片 + 详情共用）：选项行 + 占比条 + 我的选择高亮；未过审仅作者可见并带状态徽标 ──
+function pollBlock(p) {
+  if (p.postType !== 'poll') return '';
+  const options = Array.isArray(p.pollOptions) ? p.pollOptions : [];
+  if (!options.length) return '';
+  const total = options.reduce((n, o) => n + (o.votes || 0), 0);
+  const canVote = p.reviewStatus === 'approved';
+  const my = typeof p.myVote === 'number' ? p.myVote : null;
+  const review = p.reviewStatus === 'pending'
+    ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[8px] bg-surface-container-high text-on-surface-variant text-[9px] font-bold tracking-widest mb-1">UNDER REVIEW</span>'
+    : (p.reviewStatus === 'rejected'
+      ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[8px] bg-neon-pink/15 text-neon-pink text-[9px] font-bold tracking-widest mb-1">REJECTED</span>'
+      : '');
+  const rows = options.map((o, i) => {
+    const pct = total ? Math.round(((o.votes || 0) / total) * 100) : 0;
+    const mine = my === i;
+    return `<button type="button" class="poll-opt${mine ? ' poll-opt--mine' : ''}"
+      ${canVote ? `onclick="event.stopPropagation();votePollOption('${p.id}',${i})"` : 'disabled'}>
+      <span class="poll-opt-fill" style="width:${total ? pct : 0}%"></span>
+      <span class="poll-opt-label" data-no-i18n>${window.escapeHtml(o.text || '')}</span>
+      <span class="poll-opt-count" data-no-i18n>${total ? pct + '%' : ''}</span>
+    </button>`;
+  }).join('');
+  return `<div class="poll-block my-3" data-poll-id="${p.id}">${review}${rows}
+    <p class="text-[10px] text-outline tracking-widest mt-1.5" data-no-i18n>${total} vote${total === 1 ? '' : 's'}${my != null ? ' · tap to change' : ''}</p>
+  </div>`;
+}
+
+async function votePollOption(postId, optionIndex) {
+  try {
+    const data = await window.api(`/square/v2/posts/${postId}/vote`, 'POST', { optionIndex });
+    const res = unwrap(data);
+    // 同步缓存（列表 + 详情），再原地重渲染对应投票块
+    const apply = (p) => {
+      if (p && p.id === postId) {
+        p.pollOptions = res.pollOptions;
+        p.myVote = res.myVote;
+      }
+    };
+    (S.squarePosts || []).forEach(apply);
+    apply(S.pdPostData);
+    const src = (S.squarePosts || []).find(x => x && x.id === postId) || S.pdPostData;
+    document.querySelectorAll(`[data-poll-id="${postId}"]`).forEach(el => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = pollBlock(src);
+      el.replaceWith(wrap.firstElementChild);
+    });
+    // 高度变化后瀑布流重排
+    layoutSquareMasonry();
+  } catch (e) {
+    window.toast(e?.message || 'Vote failed');
+  }
+}
+window.votePollOption = votePollOption;
+
+// ── 活动信息（活动帖卡片行 + 详情购票块，本轮反馈2）──
+function eventPrice(ev) {
+  return ev.priceCents ? `¥${(ev.priceCents / 100).toFixed(ev.priceCents % 100 ? 2 : 0)}` : 'Free';
+}
+function eventTimeShort(iso) {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+function eventStrip(p) {
+  const ev = p.event;
+  if (p.postType !== 'event' || !ev) return '';
+  const soldOut = ev.capacity != null && ev.ticketsSold >= ev.capacity;
+  return `<div class="flex items-center gap-2 flex-wrap mt-1" data-no-i18n>
+    <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">EVENT</span>
+    <span class="text-[11px] text-on-surface-variant font-medium">${eventTimeShort(ev.startAt)}${ev.venue ? ' · ' + window.escapeHtml(ev.venue) : ''}</span>
+    <span class="text-[11px] font-bold">${soldOut ? 'Sold out' : eventPrice(ev)}</span>
+  </div>`;
+}
+function eventDetailBlock(p) {
+  const ev = p.event;
+  if (p.postType !== 'event' || !ev) return '';
+  const remaining = ev.capacity == null ? null : Math.max(0, ev.capacity - ev.ticketsSold);
+  const soldOut = remaining != null && remaining <= 0;
+  const ended = new Date(ev.endAt || ev.startAt) < new Date();
+  const closed = ev.status !== 'published';
+  const disabled = soldOut || ended || closed;
+  const label = closed ? 'Sales closed' : (ended ? 'Event ended' : (soldOut ? 'Sold out' : `Get Ticket · ${eventPrice(ev)}`));
+  return `<div class="mt-6 rounded-[14px] border border-outline-variant/30 bg-surface-container-lowest p-5" data-no-i18n>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">EVENT</span>
+      ${ev.school ? `<span class="text-[10px] text-outline tracking-widest">${window.escapeHtml(ev.school)}</span>` : ''}
+    </div>
+    <div class="space-y-1.5 text-sm">
+      <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">schedule</span>${eventTimeShort(ev.startAt)}${ev.endAt ? ' – ' + eventTimeShort(ev.endAt) : ''}</p>
+      ${ev.venue ? `<p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">location_on</span>${window.escapeHtml(ev.venue)}</p>` : ''}
+      <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">confirmation_number</span>${eventPrice(ev)}${remaining != null ? ` · ${remaining} left` : ''} · ${ev.ticketsSold} sold</p>
+    </div>
+    <button class="btn-cta mt-5 ${disabled ? 'opacity-50' : ''}" ${disabled ? 'disabled' : `onclick="buyEventTicket('${ev.id}')"`}>${label}</button>
+  </div>`;
+}
+
+async function buyEventTicket(eventId) {
+  const ok = await window.confirmCard({
+    title: 'Get this ticket?',
+    body: 'Payment is mocked in beta — the ticket lands in My Tickets instantly.',
+    confirmLabel: 'Confirm',
+  });
+  if (!ok) return;
+  try {
+    const data = await window.api(`/events/${eventId}/purchase`, 'POST', {});
+    const res = unwrap(data);
+    window.toast(`Ticket ${res.code || ''} added to My Tickets`);
+    // 详情里的余票/已售即时刷新
+    if (S.currentPostId) window.loadPostDetail(S.currentPostId);
+  } catch (e) {
+    window.toast(e?.message || 'Purchase failed');
+  }
+}
+window.buyEventTicket = buyEventTicket;
+
 function postLikeButton(p) {
   const liked = !!p.myLiked;
   return `<button class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation();likePost('${p.id}', this)">
@@ -317,6 +432,7 @@ function bentoTextCard(p) {
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[10px]" onclick="openPostDetail('${p.id}')">
     ${header}
     ${p.title ? `<h3 class="font-headline font-bold text-lg tracking-tight mb-2">${window.escapeHtml(p.title)}</h3>` : ''}
+    ${eventStrip(p)}
     <p class="text-sm text-on-surface-variant leading-relaxed mb-4" style="${clampStyle(4)}">${window.escapeHtml(p.content || '')}</p>
     <div class="flex items-center justify-between">
       <p class="text-neutral-400 text-[10px] tracking-widest">${window.formatPostTime(p.createdAt)} • ${window.escapeHtml(postAuthorName(p))}</p>
@@ -341,6 +457,7 @@ function bentoLargeCard(p) {
     </div>
     <div class="space-y-1 min-w-0 px-3 pt-2">
       ${p.title ? `<h3 class="font-headline font-bold text-lg tracking-tight">${window.escapeHtml(p.title)}</h3>` : ''}
+      ${eventStrip(p)}
       <p class="text-neutral-500 text-sm italic" style="${clampStyle(2)}">${window.escapeHtml(p.content || '')}</p>
       <p class="text-neutral-400 text-[10px] tracking-widest">${window.formatPostTime(p.createdAt)} • ${window.escapeHtml(postAuthorName(p))}</p>
     </div>
@@ -400,6 +517,7 @@ function bentoWideCard(p) {
     ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[10px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
     <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
+    ${pollBlock(p)}
     <div class="flex items-center justify-between">
       <span class="flex items-center gap-1 text-neutral-400"><span class="material-symbols-outlined text-sm">chat_bubble</span><span class="text-xs font-bold" data-comment-count>${p.commentCount || 0}</span></span>
       ${postLikeButton(p)}
@@ -640,6 +758,8 @@ function renderPostDetail(post) {
         <div class="col-span-12 min-w-0">
           ${post.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${window.escapeHtml(post.title)}</h2>` : ''}
           <p class="text-on-surface-variant leading-relaxed text-lg font-light whitespace-pre-wrap">${window.escapeHtml(post.content || '')}</p>
+          ${pollBlock(post)}
+          ${eventDetailBlock(post)}
         </div>
       </div>
       <div class="flex items-center gap-8 py-5 border-y border-outline-variant/20 mt-8">
@@ -758,9 +878,10 @@ window.likePdPost = likePdPost;
 function openNewPost() {
   S.newPostImages = [];
   // Default the new-post destination to the tab the user is currently viewing
-  // (recommend or campus_wall), and reset the anonymous toggle.
+  // (recommend or campus_wall), and reset the anonymous + poll toggles.
   S.newPostBoard = S.squareTab === 'campus_wall' ? 'campus_wall' : 'recommend';
   S.newPostAnonymous = false;
+  S.newPostPoll = false;
   const titleEl = document.getElementById('post-title');
   const contentEl = document.getElementById('post-content');
   if (titleEl) titleEl.value = '';
@@ -768,10 +889,46 @@ function openNewPost() {
   syncNewPostBoardUI();
   const anonEl = document.getElementById('newpost-anonymous');
   if (anonEl) anonEl.checked = false;
+  const pollEl = document.getElementById('newpost-poll');
+  if (pollEl) pollEl.checked = false;
+  const pollBox = document.getElementById('newpost-poll-options');
+  if (pollBox) pollBox.classList.add('hidden');
+  renderPollOptionInputs(2);
   window.renderNewPostImages();
   window.openOverlay('overlay-new-post');
 }
 window.openNewPost = openNewPost;
+
+// ── 校园墙投票（本轮反馈1）：发帖里开投票 → 强制校园墙 + 2–6 个选项，审核后展示 ──
+function renderPollOptionInputs(count) {
+  const list = document.getElementById('poll-option-list');
+  if (!list) return;
+  const existing = [...list.querySelectorAll('input')].map(i => i.value);
+  const n = Math.min(6, Math.max(2, count));
+  list.innerHTML = Array.from({ length: n }, (_, i) => `
+    <input type="text" maxlength="50" placeholder="Option ${i + 1}" value="${window.escapeHtml(existing[i] || '')}"
+      class="poll-option-input w-full bg-transparent border-0 border-b border-outline py-2 px-0 text-sm focus:ring-0 focus:border-b-2 focus:border-primary placeholder:text-outline-variant"/>`).join('');
+}
+
+function addPollOptionInput() {
+  const list = document.getElementById('poll-option-list');
+  const cur = list ? list.querySelectorAll('input').length : 2;
+  if (cur >= 6) { window.toast('Up to 6 options'); return; }
+  renderPollOptionInputs(cur + 1);
+}
+window.addPollOptionInput = addPollOptionInput;
+
+function toggleNewPostPoll(checked) {
+  S.newPostPoll = !!checked;
+  const box = document.getElementById('newpost-poll-options');
+  if (box) box.classList.toggle('hidden', !checked);
+  if (checked) {
+    // 投票只发校园墙
+    selectNewPostBoard('campus_wall');
+    if (!document.querySelectorAll('#poll-option-list input').length) renderPollOptionInputs(2);
+  }
+}
+window.toggleNewPostPoll = toggleNewPostPoll;
 
 // New-post destination radio [发到推荐 | 发到校园墙] → S.newPostBoard.
 function selectNewPostBoard(board) {
@@ -863,8 +1020,22 @@ async function submitNewPost() {
       anonymous: !!S.newPostAnonymous
     };
     if (title) payload.title = title;
+    // 投票帖：收集选项，强制校园墙，需审核
+    if (S.newPostPoll) {
+      const opts = [...document.querySelectorAll('#poll-option-list input')]
+        .map(i => i.value.trim()).filter(Boolean);
+      if (opts.length < 2) {
+        window.toast('A poll needs at least 2 options');
+        S.isSubmittingPost = false;
+        if (publishBtn) publishBtn.disabled = false;
+        return;
+      }
+      payload.postType = 'poll';
+      payload.pollOptions = opts;
+      payload.board = 'campus_wall';
+    }
     await window.api('/square/v2/posts', 'POST', payload);
-    window.toast('Posted!');
+    window.toast(S.newPostPoll ? 'Poll submitted — it goes live after review' : 'Posted!');
     window.closeNewPostForm();
     S.newPostImages = [];
     const titleEl = document.getElementById('post-title');

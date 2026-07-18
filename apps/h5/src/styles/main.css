@@ -317,13 +317,30 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* Bottom nav: explicit height floor + safe-area inset so content is never
-       obscured on notched / iPad devices. Base vertical padding kept via py-4;
-       extra inset added on top so non-notch devices keep their 1rem bottom gap. */
+    /* 底部导航（本轮反馈4）：悬浮圆角胶囊 + 滚动隐藏。
+       原全宽贴底改为悬浮条：左右留边、圆角、白底毛玻璃、投影；
+       .nav-hide（core.js bindNavAutoHide 切换）下滑收起、上滑恢复。 */
     #bottom-nav {
-      min-height: 64px;
-      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+      left: 50% !important;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 400px;
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.92);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 0.65rem 1.5rem;
+      min-height: 56px;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
     }
+    #bottom-nav.nav-hide {
+      transform: translateX(-50%) translateY(calc(100% + 24px));
+      opacity: 0;
+    }
+    .dark #bottom-nav { background: rgba(31, 31, 38, 0.92); border-color: rgba(255, 255, 255, 0.06); }
 
     .auth-container {
       max-width: 420px;
@@ -703,11 +720,12 @@
       display: flex;
       gap: 3px;
       padding: 3px;
-      /* 本轮反馈7：边框太黑太粗 → 极浅描边 + 轻投影，弱化容器存在感 */
+      /* 反馈：无阴影，仅极浅描边；高度收敛与两侧 40px 圆按钮同轴 */
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 12px;
       background: #ffffff;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 40px;
+      align-items: center;
     }
     .home-mode-seg {
       /* 按文字内容分配宽度（Chat 窄、Romantic 宽），不再三等分挤压长词 */
@@ -716,7 +734,8 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 0.5rem 0.65rem;
+      height: 100%;
+      padding: 0 0.65rem;
       border-radius: 10px;
       background: transparent;
       color: #1b1b1b;
@@ -919,6 +938,84 @@
     @keyframes ptr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .dark .ptr-indicator { background: #24242c; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
     .dark .ptr-indicator .material-symbols-outlined { color: #ececf0; }
+
+    /* ---- 启动页重设计（平面简约）：logo 缓入 + 底部进度线 ---- */
+    .splash-in { animation: splash-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    @keyframes splash-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .splash-logo { animation: splash-logo 2.6s ease-in-out infinite; }
+    @keyframes splash-logo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .splash-bar { width: 120px; height: 3px; border-radius: 2px; background: #e6e6e6; overflow: hidden; }
+    .splash-bar-fill { height: 100%; width: 40%; border-radius: 2px; background: #CCFF00; animation: splash-bar 1.4s ease-in-out infinite; }
+    @keyframes splash-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
+
+    /* ---- Chat 加号小弹出卡（本轮反馈7）---- */
+    #chat-plus-menu .cpm-backdrop { position: fixed; inset: 0; z-index: 68; background: rgba(0, 0, 0, 0.12); }
+    #chat-plus-menu .cpm-card {
+      position: fixed;
+      top: 56px;
+      left: 12px;
+      z-index: 69;
+      min-width: 208px;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.16);
+      padding: 6px;
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+      transform-origin: top left;
+      transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    #chat-plus-menu .cpm-card.cpm-in { opacity: 1; transform: translateY(0) scale(1); }
+    #chat-plus-menu .cpm-item {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; padding: 11px 12px;
+      border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+      color: #1b1b1b; background: transparent;
+      transition: background-color 0.15s ease;
+    }
+    #chat-plus-menu .cpm-item:hover { background: #f3f3f3; }
+    #chat-plus-menu .cpm-item:active { transform: scale(0.98); }
+    .dark #chat-plus-menu .cpm-card { background: #1f1f26; border-color: rgba(255, 255, 255, 0.07); }
+    .dark #chat-plus-menu .cpm-item { color: #ececf0; }
+    .dark #chat-plus-menu .cpm-item:hover { background: #2a2a32; }
+
+    /* ---- 校园墙投票（本轮反馈1）：选项行 + 占比条 ---- */
+    .poll-block { display: flex; flex-direction: column; gap: 6px; }
+    .poll-opt {
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      width: 100%; padding: 9px 12px;
+      border: 1px solid #c6c6c6; border-radius: 10px;
+      overflow: hidden; text-align: left;
+      background: #ffffff;
+      transition: border-color 0.15s ease;
+    }
+    .poll-opt:not(:disabled):hover { border-color: #1b1b1b; }
+    .poll-opt:not(:disabled):active { transform: scale(0.99); }
+    .poll-opt-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: rgba(204, 255, 0, 0.28);
+      transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+    .poll-opt--mine { border-color: #1b1b1b; border-width: 1.5px; }
+    .poll-opt--mine .poll-opt-fill { background: rgba(204, 255, 0, 0.5); }
+    .poll-opt-label { position: relative; font-size: 13px; font-weight: 600; color: #1b1b1b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .poll-opt-count { position: relative; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #474747; flex-shrink: 0; }
+    .dark .poll-opt { background: #1f1f26; border-color: #34343c; }
+    .dark .poll-opt-label { color: #ececf0; }
+
+    /* ---- 票夹（本轮反馈2）：票卡撕票线 ---- */
+    .ticket-divider {
+      height: 0;
+      border-top: 2px dashed rgba(0, 0, 0, 0.12);
+      position: relative;
+      margin: 0 12px;
+    }
+    .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
 
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
     @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }

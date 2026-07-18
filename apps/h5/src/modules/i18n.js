@@ -70,6 +70,19 @@ const ZH = {
   // ── 能量购买 ──
   cells: '格', 'Select a package': '请选择套餐', 'Select a payment method': '请选择支付方式',
   'WeChat Pay': '微信支付', Alipay: '支付宝', 'Card (Stripe)': '银行卡 (Stripe)',
+  // ── 投票 / 活动 / 票夹 ──
+  'Create a poll': '发起投票', 'Campus wall only · goes live after review': '仅校园墙 · 审核通过后展示',
+  '+ Add option': '+ 添加选项', 'My Tickets': '我的票夹', 'No tickets yet': '还没有门票',
+  'Tickets you get for campus events appear here.': '购买的校园活动门票会出现在这里。',
+  'Show this QR at the entrance': '入场时出示此二维码',
+  'Get Ticket': '购票', 'Sold out': '已售罄', 'Sales closed': '停止售票', 'Event ended': '活动已结束',
+  // ── 注册分步向导 ──
+  'What should we call you?': '怎么称呼你？', 'Your nickname is what others see.': '昵称是别人看到的名字。',
+  'Your real name': '你的真实姓名', 'Only shown to confirmed partners.': '仅对确认的伴侣可见。',
+  'How do you identify?': '你的性别是？', 'Used for matching. Not shown publicly.': '仅用于匹配，不公开展示。',
+  'When were you born?': '你的生日是？', 'We show your age, never your birthday.': '我们只展示年龄，不展示生日。',
+  Next: '下一步', Back: '上一步', Continue: '继续',
+  'One thoughtful match, every week.': '每周一次，用心匹配。',
   // ── 登录 / 注册 / 资料 ──
   'Sign In': '登录', Register: '注册', 'Welcome Back': '欢迎回来', 'Join Unimatcha': '加入 Unimatcha',
   'Email Address': '邮箱地址', 'Confirm Password': '确认密码', 'Forgot Password?': '忘记密码？',

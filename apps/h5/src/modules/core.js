@@ -367,6 +367,25 @@ function escapeHtml(t) {
 }
 window.escapeHtml = escapeHtml;
 
+// ── 底部导航悬浮 + 滚动隐藏（本轮反馈4）──
+// 各 tab 滚动容器下滑时收起底导（translateY 出屏），上滑/回顶恢复。
+function bindNavAutoHide(container) {
+  if (!container || container.dataset.navHideBound) return;
+  container.dataset.navHideBound = '1';
+  let lastY = 0;
+  container.addEventListener('scroll', () => {
+    const nav = document.getElementById('bottom-nav');
+    if (!nav) return;
+    const y = container.scrollTop;
+    const dy = y - lastY;
+    lastY = y;
+    if (y < 40) { nav.classList.remove('nav-hide'); return; }
+    if (dy > 6) nav.classList.add('nav-hide');
+    else if (dy < -6) nav.classList.remove('nav-hide');
+  }, { passive: true });
+}
+window.bindNavAutoHide = bindNavAutoHide;
+
 // 平面简约空态图标（本轮反馈6）：圆角方块 + 图标，无圆环无描边。
 // tone: 'neon'（行动引导，荧光绿底黑图标）| 'muted'（纯空态，浅灰底灰图标）。
 // ── 下拉刷新（本轮反馈：match / square 页支持下拉刷新，带小动画）──

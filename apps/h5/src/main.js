@@ -57,4 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return v === 'chat' ? window.loadSessions?.() : window.loadMatchTab?.();
   });
   window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.());
+  // 底部导航滚动隐藏（三个 tab 滚动容器都绑）
+  ['tab-match', 'tab-square', 'tab-profile'].forEach(id =>
+    window.bindNavAutoHide(document.getElementById(id)));
 });

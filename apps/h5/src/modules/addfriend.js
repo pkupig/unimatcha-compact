@@ -58,6 +58,17 @@ window.friendHubBack = friendHubBack;
 function openAddFriend() { openFriendHub(); }
 window.openAddFriend = openAddFriend;
 
+// 直接进入指定功能面板（本轮反馈7：加号小卡菜单点选后跳过 menu 列表）
+function openFriendHubAt(view) {
+  window.openOverlay('friend-hub-overlay');
+  const inp = document.getElementById('friend-search-input');
+  if (inp) inp.value = '';
+  const results = document.getElementById('friend-search-results');
+  if (results) results.innerHTML = '';
+  friendHubShow(view);
+}
+window.openFriendHubAt = openFriendHubAt;
+
 function closeFriendHub() {
   stopAfScan();
   window.closeOverlay('friend-hub-overlay');

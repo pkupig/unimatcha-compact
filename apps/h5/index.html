@@ -102,46 +102,26 @@
   <!-- Toast Notification -->
   <div id="toast"></div>
 
-  <!-- Splash Screen (Ivory & Ink) -->
+  <!-- Splash Screen（重设计：平面简约——荧光方块 logo + 字标 + 底部进度线） -->
   <div id="splash" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden">
-    <!-- Hairline inset frame (rounded) -->
-    <div class="absolute inset-4 md:inset-6 border border-outline-variant/30 rounded-[28px] pointer-events-none"></div>
-    <!-- Subtle academic geometry (concentric rings) -->
-    <div class="absolute -bottom-28 -left-28 w-80 h-80 border-[0.5px] border-outline-variant opacity-20 rounded-full pointer-events-none"></div>
-    <div class="absolute -top-28 -right-28 w-96 h-96 border-[0.5px] border-outline-variant opacity-[0.12] rounded-full pointer-events-none"></div>
-
     <!-- Skip -->
     <button class="absolute top-8 right-8 z-20 text-outline hover:text-primary transition-colors text-[10px] font-bold tracking-[0.3em] uppercase" onclick="hideSplash()">
       Skip
     </button>
 
     <!-- Brand core -->
-    <section class="relative z-10 flex flex-col items-center text-center px-8">
-      <!-- Neon mark -->
-      <div class="w-12 h-12 bg-neon rounded-[10px] flex items-center justify-center mb-10 shadow-[0_10px_30px_-8px_rgba(204,255,0,0.65)]">
-        <span class="material-symbols-outlined text-black" style="font-variation-settings:'FILL' 1,'wght' 500; font-size:26px">auto_awesome</span>
+    <section class="relative z-10 flex flex-col items-center text-center px-8 splash-in">
+      <div class="w-[76px] h-[76px] bg-neon rounded-[22px] flex items-center justify-center mb-8 splash-logo">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg>
       </div>
-      <!-- Wordmark -->
-      <h1 class="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter text-primary leading-[0.9]" data-no-i18n>Unimatcha</h1>
-      <!-- Neon accent rule -->
-      <div class="w-14 h-[3px] bg-neon mt-8 mb-7"></div>
-      <p class="font-body text-sm text-on-surface-variant tracking-wide max-w-[17rem] leading-relaxed">
-        Where intellectual sparks meet genuine connection.
-      </p>
+      <h1 class="font-headline text-[34px] font-extrabold tracking-[0.18em] text-primary leading-none" data-no-i18n>UNIMATCHA</h1>
+      <p class="mt-4 font-body text-[13px] text-on-surface-variant tracking-wide">One thoughtful match, every week.</p>
     </section>
 
-    <!-- Loader + footer mark -->
-    <div class="absolute bottom-16 z-10 flex flex-col items-center gap-8">
-      <div class="cl-dots idle scale-90">
-        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
-        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
-        <div class="cl-dot"></div><div class="cl-dot"></div><div class="cl-dot"></div>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-px bg-outline-variant/50"></div>
-        <span class="text-[9px] font-bold uppercase tracking-[0.35em] text-outline">Est · MMXXIV</span>
-        <div class="w-8 h-px bg-outline-variant/50"></div>
-      </div>
+    <!-- Bottom progress line -->
+    <div class="absolute bottom-16 z-10 flex flex-col items-center gap-5">
+      <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+      <span class="text-[9px] font-bold uppercase tracking-[0.35em] text-outline" data-no-i18n>BETA</span>
     </div>
   </div>
 
@@ -293,7 +273,62 @@
     </header>
 
     <!-- Content Canvas -->
-    <main class="pt-24 pb-12 px-6 max-w-2xl mx-auto space-y-16">
+    <main class="pt-24 pb-12 px-6 max-w-2xl mx-auto">
+      <!-- ═══ 必填信息分步向导（本轮反馈3：每项一屏）═══ -->
+      <div id="setup-wizard">
+        <div class="mb-12 flex items-center gap-4">
+          <span id="setup-step-num" class="font-headline text-xs font-extrabold tracking-[0.2em] text-outline shrink-0">1 / 4</span>
+          <div class="flex-1 h-[2px] bg-surface-container-highest"><div id="setup-step-bar" class="h-full bg-neon transition-all duration-300" style="width:25%"></div></div>
+        </div>
+
+        <!-- Step 1: Nickname -->
+        <div class="setup-step" data-step="0">
+          <h2 class="font-headline text-2xl font-extrabold tracking-tight mb-2">What should we call you?</h2>
+          <p class="text-sm text-on-surface-variant mb-10">Your nickname is what others see.</p>
+          <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nickname <span class="text-neon-pink">*</span></label>
+          <input id="setup-nickname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="The Scholar" type="text">
+        </div>
+
+        <!-- Step 2: Real name -->
+        <div class="setup-step hidden" data-step="1">
+          <h2 class="font-headline text-2xl font-extrabold tracking-tight mb-2">Your real name</h2>
+          <p class="text-sm text-on-surface-variant mb-10">Only shown to confirmed partners.</p>
+          <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Real name <span class="text-neon-pink">*</span></label>
+          <div class="grid grid-cols-2 gap-4">
+            <input id="setup-givenname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Given name (名)" type="text">
+            <input id="setup-familyname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Family name (姓)" type="text">
+          </div>
+        </div>
+
+        <!-- Step 3: Gender -->
+        <div class="setup-step hidden" data-step="2">
+          <h2 class="font-headline text-2xl font-extrabold tracking-tight mb-2">How do you identify?</h2>
+          <p class="text-sm text-on-surface-variant mb-10">Used for matching. Not shown publicly.</p>
+          <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Gender <span class="text-neon-pink">*</span></label>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="gender-btn py-4 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="male" type="button" onclick="selectSetupGender(this)">Male</button>
+            <button class="gender-btn py-4 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="female" type="button" onclick="selectSetupGender(this)">Female</button>
+            <button class="gender-btn py-4 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="non_binary" type="button" onclick="selectSetupGender(this)">Non-Binary</button>
+            <button class="gender-btn py-4 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="other" type="button" onclick="selectSetupGender(this)">Other</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Birthday -->
+        <div class="setup-step hidden" data-step="3">
+          <h2 class="font-headline text-2xl font-extrabold tracking-tight mb-2">When were you born?</h2>
+          <p class="text-sm text-on-surface-variant mb-10">We show your age, never your birthday.</p>
+          <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Birthday <span class="text-neon-pink">*</span></label>
+          <input id="setup-birthday" type="date" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
+        </div>
+
+        <div class="mt-14 flex items-center gap-4">
+          <button id="setup-prev-btn" type="button" class="hidden px-6 py-4 font-headline text-xs font-bold tracking-widest text-on-surface-variant hover:text-primary transition-colors active:scale-95" onclick="setupWizardPrev()">Back</button>
+          <button id="setup-next-btn" type="button" class="btn-cta flex-1" onclick="setupWizardNext()">Next</button>
+        </div>
+      </div>
+
+      <!-- ═══ 其余选填资料（向导完成后显示）═══ -->
+      <div id="setup-rest" class="hidden space-y-16">
       <!-- Avatar Section -->
       <section class="flex flex-col items-center">
         <div class="relative group">
@@ -316,21 +351,6 @@
         </div>
 
         <div class="space-y-8">
-          <!-- Nickname -->
-          <div class="group">
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Nickname <span class="text-neon-pink">*</span></label>
-            <input id="setup-nickname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="The Scholar" type="text">
-          </div>
-
-          <!-- Real name (required, 姓 + 名 分开) -->
-          <div class="group">
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Real name <span class="text-neon-pink">*</span> <span class="font-medium tracking-normal text-outline normal-case">· only shown to confirmed partners</span></label>
-            <div class="grid grid-cols-2 gap-4">
-              <input id="setup-givenname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Given name (名)" type="text">
-              <input id="setup-familyname" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all" placeholder="Family name (姓)" type="text">
-            </div>
-          </div>
-
           <!-- School Picker -->
           <div class="group">
             <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">University / School</label>
@@ -381,17 +401,6 @@
             </div>
           </div>
 
-          <!-- Gender Selection -->
-          <div>
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Gender <span class="text-neon-pink">*</span></label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="male" type="button" onclick="selectSetupGender(this)">Male</button>
-              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="female" type="button" onclick="selectSetupGender(this)">Female</button>
-              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="non_binary" type="button" onclick="selectSetupGender(this)">Non-Binary</button>
-              <button class="gender-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-gender="other" type="button" onclick="selectSetupGender(this)">Other</button>
-            </div>
-          </div>
-
           <!-- Looking For (preferred gender) -->
           <div>
             <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Looking For</label>
@@ -399,14 +408,6 @@
               <button class="genderpref-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-genderpref="male" type="button" onclick="selectSetupGenderPref(this)">Men</button>
               <button class="genderpref-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-genderpref="female" type="button" onclick="selectSetupGenderPref(this)">Women</button>
               <button class="genderpref-btn py-3 px-4 rounded-[10px] bg-neon text-black text-sm font-label tracking-wider active:scale-95" data-genderpref="any" data-selected="true" type="button" onclick="selectSetupGenderPref(this)">Anyone</button>
-            </div>
-          </div>
-
-          <!-- Birthday Picker (was: Age — 年龄由生日推算) -->
-          <div class="group">
-            <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-2">Birthday <span class="text-neon-pink">*</span></label>
-            <div class="relative">
-              <input id="setup-birthday" type="date" class="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-outline focus:border-b-2 focus:border-primary focus:ring-0 px-0 py-3 text-lg font-body placeholder:text-outline-variant transition-all cursor-pointer appearance-none">
             </div>
           </div>
 
@@ -469,6 +470,7 @@
           By continuing, you agree to the Academic Code of Conduct.
         </p>
       </section>
+      </div><!-- /#setup-rest -->
     </main>
 
     <!-- Decorative Element -->
@@ -576,12 +578,12 @@
 
 <!-- MATCH TAB (= 主页一级容器：顶部三切换 + Chat 列表 / 匹配界面) -->
 <div id="tab-match" class="tab-content">
-  <!-- (a) 顶部 bar：匹配设置 | 三切换 [Chat | 恋人 | 朋友] | 通知（一行 flex，避免重叠，§6.2） -->
-  <div class="fixed top-0 left-0 w-full z-40 bg-surface/80 backdrop-blur-xl pt-5 pb-3 px-4 flex items-center gap-2.5">
-    <button id="home-addfriend-btn" class="shrink-0 active:scale-95 duration-200 hover:opacity-70 transition-opacity" onclick="openFriendHub()" title="More">
-      <span class="material-symbols-outlined text-black" style="font-size:24px">more_horiz</span>
+  <!-- (a) 顶部 bar：固定高度 h-14、左右图标与分段控件同轴对齐（本轮反馈8：无阴影、比例统一） -->
+  <div class="fixed top-0 left-0 w-full z-40 bg-surface/80 backdrop-blur-xl h-14 px-2 flex items-center gap-1">
+    <button id="home-addfriend-btn" class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center active:scale-95 duration-200 hover:bg-surface-container-low transition-colors" onclick="openFriendHub()" title="More">
+      <span class="material-symbols-outlined text-black" style="font-size:22px">more_horiz</span>
     </button>
-    <div id="home-mode-switch" class="home-mode-switch flex-1 min-w-0 max-w-[272px] mx-auto">
+    <div id="home-mode-switch" class="home-mode-switch flex-1 min-w-0 max-w-[268px] mx-auto">
       <button id="home-seg-chat" class="home-mode-seg active" data-view="chat" onclick="switchHomeView('chat')">
         <span>Chat</span>
       </button>
@@ -592,9 +594,9 @@
         <span>Friend</span>
       </button>
     </div>
-    <button class="shrink-0 relative active:scale-95 duration-200 hover:opacity-70 transition-opacity" onclick="openNotifications()" title="Notifications">
-      <span class="material-symbols-outlined text-black" style="font-size:24px">notifications_none</span>
-      <span id="notif-badge" class="hidden absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 bg-neon-pink text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
+    <button class="shrink-0 relative w-10 h-10 rounded-full flex items-center justify-center active:scale-95 duration-200 hover:bg-surface-container-low transition-colors" onclick="openNotifications()" title="Notifications">
+      <span class="material-symbols-outlined text-black" style="font-size:22px">notifications_none</span>
+      <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-neon-pink text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
     </button>
   </div>
 
@@ -687,6 +689,14 @@
             <div id="energy-display" class="flex items-center gap-1 flex-1 flex-wrap justify-end"><!-- 动态渲染格子，最多 10 格，超出 +N --></div>
             <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
           </button>
+          <!-- My Tickets（票夹：活动门票 + 二维码） -->
+          <button onclick="openTickets()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-on-surface">confirmation_number</span>
+              <span class="text-sm font-medium tracking-wide">My Tickets</span>
+            </div>
+            <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+          </button>
           <!-- Edit Profile -->
           <button onclick="openEditProfile()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
             <div class="flex items-center gap-4">
@@ -713,10 +723,8 @@
           </button>
         </div>
       </section>
+      <!-- Logout 收进设置页（本轮反馈9：profile 不显示 logout） -->
       <div class="mt-12 mb-20">
-        <button onclick="doLogout()" class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline text-[10px] font-bold tracking-[0.3em] hover:bg-neon-pink hover:text-black transition-all active:scale-95 duration-200">
-          Log Out
-        </button>
         <p class="text-center mt-6 text-[10px] text-outline font-medium tracking-widest" data-no-i18n>Unimatcha v2.4.0</p>
       </div>
     </div>
@@ -897,6 +905,15 @@
         <span class="font-body text-sm text-on-surface">Post anonymously<span class="text-xs text-on-surface-variant ml-2">Shown as "Anonymous", school still labeled</span></span>
         <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
       </label>
+      <!-- 校园墙投票（需审核）：开启后强制发到校园墙，填 2–6 个选项 -->
+      <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">
+        <span class="font-body text-sm text-on-surface">Create a poll<span class="text-xs text-on-surface-variant ml-2">Campus wall only · goes live after review</span></span>
+        <input id="newpost-poll" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostPoll(this.checked)" />
+      </label>
+      <div id="newpost-poll-options" class="hidden space-y-3 pl-1">
+        <div id="poll-option-list" class="space-y-3"></div>
+        <button type="button" onclick="addPollOptionInput()" class="text-[11px] font-bold tracking-widest text-on-surface-variant hover:text-primary underline underline-offset-4">+ Add option</button>
+      </div>
       <input id="post-title" class="w-full text-2xl font-headline font-bold tracking-tight text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none" placeholder="Title" type="text"/>
       <textarea id="post-content" class="w-full min-h-[160px] text-base font-body leading-relaxed text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none resize-none" placeholder="Capture the moment..."></textarea>
       <div id="new-post-images" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -1195,7 +1212,7 @@
 <!-- Add Friend (扫码加好友) popup -->
 <!-- Friend Hub Overlay（本轮反馈3：关系网 + 查找好友 + 扫码加好友，Match-Settings 侧边面板风格） -->
 <div id="friend-hub-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)closeFriendHub()">
-  <div class="slide-left relative z-[60] h-screen w-full max-w-md bg-white overflow-hidden shadow-2xl flex flex-col">
+  <div class="slide-left relative z-[60] h-screen w-[86%] max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col rounded-r-2xl">
     <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
       <div class="flex items-center gap-6 px-6 h-16 w-full">
         <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="friendHubBack()">
@@ -1269,7 +1286,7 @@
 
 <!-- Notifications Overlay -->
 <div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)closeNotifications()">
-  <div class="slide-right relative z-50 h-screen w-full max-w-md bg-surface overflow-y-auto shadow-2xl flex flex-col">
+  <div class="slide-right relative z-50 h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
       <div class="flex justify-between items-center px-6 h-16 w-full">
         <div class="flex items-center gap-6">
@@ -1288,7 +1305,7 @@
 
 <!-- Notification Detail Overlay -->
 <div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
-  <div class="slide-right relative z-[60] h-screen w-full max-w-md bg-surface overflow-y-auto shadow-2xl flex flex-col">
+  <div class="slide-right relative z-[60] h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
       <div class="flex justify-between items-center px-6 h-16 w-full">
         <div class="flex items-center gap-6">
@@ -1505,7 +1522,7 @@
 
 <!-- Match Settings Overlay -->
 <div id="match-settings-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)hideOverlay('match-settings-overlay')">
-  <div class="slide-left relative z-50 h-screen w-full max-w-md bg-white overflow-hidden shadow-2xl flex flex-col">
+  <div class="slide-left relative z-50 h-screen w-[86%] max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col rounded-r-2xl">
     <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
       <div class="flex items-center gap-6 px-6 h-16 w-full">
         <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('match-settings-overlay')">
@@ -1611,6 +1628,18 @@
     <div class="bg-outline-variant/20 h-[1px]"></div>
   </header>
   <main id="content-body" class="pt-24 pb-20 px-6 max-w-3xl mx-auto w-full"></main>
+</div>
+
+<!-- My Tickets Overlay（票夹：活动门票列表 + 二维码） -->
+<div id="tickets-overlay" class="overlay fixed inset-0 z-[60] bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
+    <div class="flex items-center gap-4 px-6 h-16 w-full">
+      <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="hideOverlay('tickets-overlay')">arrow_back</span>
+      <h1 class="text-on-surface font-headline text-xl font-bold tracking-tight">My Tickets</h1>
+    </div>
+    <div class="bg-outline-variant/20 h-[1px]"></div>
+  </header>
+  <main id="tickets-content" class="pt-24 pb-20 px-5 max-w-lg mx-auto w-full"></main>
 </div>
 
 <!-- Contact Us Overlay -->

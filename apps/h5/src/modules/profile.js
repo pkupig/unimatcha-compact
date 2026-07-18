@@ -48,8 +48,85 @@ function fillMetaSelect(id, items, current, placeholder) {
 }
 window.fillMetaSelect = fillMetaSelect;
 
+// ─── 注册必填信息分步向导（本轮反馈3：每项一屏）────────────────
+// 步骤：0 昵称 → 1 真实姓名 → 2 性别 → 3 生日 → 完成后显示其余选填资料表单。
+let setupWizardStep = 0;
+
+function setupWizardGo(i) {
+  setupWizardStep = i;
+  document.querySelectorAll('#setup-wizard .setup-step').forEach(el => {
+    el.classList.toggle('hidden', Number(el.dataset.step) !== i);
+  });
+  const num = document.getElementById('setup-step-num');
+  if (num) num.textContent = `${i + 1} / 4`;
+  const bar = document.getElementById('setup-step-bar');
+  if (bar) bar.style.width = `${(i + 1) * 25}%`;
+  const prev = document.getElementById('setup-prev-btn');
+  if (prev) prev.classList.toggle('hidden', i === 0);
+  const next = document.getElementById('setup-next-btn');
+  if (next) next.textContent = i === 3 ? 'Continue' : 'Next';
+}
+
+function setupWizardValidate(i) {
+  if (i === 0) {
+    if (!document.getElementById('setup-nickname')?.value?.trim()) {
+      window.toast('Please enter a nickname');
+      return false;
+    }
+  } else if (i === 1) {
+    const gn = document.getElementById('setup-givenname')?.value?.trim();
+    const fn = document.getElementById('setup-familyname')?.value?.trim();
+    if (!gn || !fn) {
+      window.toast('Please enter your real name');
+      return false;
+    }
+  } else if (i === 2) {
+    if (!document.querySelector('.gender-btn[data-selected="true"]')) {
+      window.toast('Please select your gender');
+      return false;
+    }
+  } else if (i === 3) {
+    const b = document.getElementById('setup-birthday')?.value;
+    if (!b) {
+      window.toast('Please select your birthday');
+      return false;
+    }
+    const age = ageFromBirthday(b);
+    if (age == null || age < 16 || age > 40) {
+      window.toast('Unimatcha is for students aged 16–40');
+      return false;
+    }
+  }
+  return true;
+}
+
+function setupWizardNext() {
+  if (!setupWizardValidate(setupWizardStep)) return;
+  if (setupWizardStep < 3) {
+    setupWizardGo(setupWizardStep + 1);
+    return;
+  }
+  // 必填四项收齐 → 展示其余选填资料
+  document.getElementById('setup-wizard')?.classList.add('hidden');
+  document.getElementById('setup-rest')?.classList.remove('hidden');
+  document.getElementById('page-profile-setup')?.scrollTo({ top: 0 });
+}
+window.setupWizardNext = setupWizardNext;
+
+function setupWizardPrev() {
+  if (setupWizardStep > 0) setupWizardGo(setupWizardStep - 1);
+}
+window.setupWizardPrev = setupWizardPrev;
+
+function setupWizardReset() {
+  document.getElementById('setup-wizard')?.classList.remove('hidden');
+  document.getElementById('setup-rest')?.classList.add('hidden');
+  setupWizardGo(0);
+}
+
 let setupInitInFlight = false;
 async function initProfileSetupPage() {
+  setupWizardReset();
   // B33: guard against concurrent double-init (showPage may fire more than once
   // before metadata fetches resolve). Cached fetches make a repeat call cheap,
   // but this avoids redundant parallel network round-trips.
@@ -1240,6 +1317,76 @@ async function claimEnergy(claimType) {
   }
 }
 window.claimEnergy = claimEnergy;
+
+// ========================================
+// MY TICKETS（票夹：活动门票 + 二维码，本轮反馈2）
+// ========================================
+function openTickets() {
+  window.openOverlay('tickets-overlay');
+  loadMyTickets();
+}
+window.openTickets = openTickets;
+
+async function loadMyTickets() {
+  const c = document.getElementById('tickets-content');
+  if (!c) return;
+  c.innerHTML = '<p class="text-center text-sm text-on-surface-variant pt-16">Loading…</p>';
+  let tickets = [];
+  try {
+    const res = await window.api('/events/tickets/mine');
+    tickets = (res?.data || res)?.tickets || [];
+  } catch (e) {
+    c.innerHTML = `<div class="text-center pt-16">${window.flatEmptyIcon('cloud_off')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Failed to load tickets</p>
+      <button onclick="loadMyTickets()" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1">Retry</button>
+    </div>`;
+    return;
+  }
+  if (!tickets.length) {
+    c.innerHTML = `<div class="text-center pt-16">${window.flatEmptyIcon('confirmation_number')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No tickets yet</p>
+      <p class="font-body text-sm text-on-surface-variant mt-2">Tickets you get for campus events appear here.</p>
+    </div>`;
+    return;
+  }
+  const fmtTime = (iso) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+  const statusBadge = (t) => {
+    if (t.status === 'used') return '<span class="px-2 py-0.5 rounded-[8px] bg-surface-container-high text-on-surface-variant text-[9px] font-bold tracking-widest">USED</span>';
+    if (t.status === 'cancelled') return '<span class="px-2 py-0.5 rounded-[8px] bg-surface-container-high text-on-surface-variant text-[9px] font-bold tracking-widest">CANCELLED</span>';
+    return '<span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">VALID</span>';
+  };
+  c.innerHTML = tickets.map((t, i) => `
+    <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 overflow-hidden ${t.status !== 'valid' ? 'opacity-60' : ''}">
+      <div class="p-5 pb-4">
+        <div class="flex items-start justify-between gap-3 mb-1.5">
+          <h3 class="font-headline font-extrabold text-base tracking-tight" data-no-i18n>${window.escapeHtml(t.event?.title || 'Event')}</h3>
+          ${statusBadge(t)}
+        </div>
+        <p class="text-xs text-on-surface-variant" data-no-i18n>${fmtTime(t.event?.startAt)}${t.event?.venue ? ' · ' + window.escapeHtml(t.event.venue) : ''}</p>
+        ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(t.event.school)}</p>` : ''}
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="p-5 pt-4 flex items-center gap-5">
+        <div id="ticket-qr-${i}" class="w-[104px] h-[104px] bg-white p-1.5 rounded-[10px] border border-outline-variant/30 shrink-0"></div>
+        <div class="min-w-0">
+          <p class="text-[10px] tracking-[0.2em] text-outline mb-1">TICKET CODE</p>
+          <p class="font-mono text-sm font-bold tracking-wider select-all" data-no-i18n>${window.escapeHtml(t.code)}</p>
+          <p class="text-[10px] text-outline mt-2 leading-relaxed">Show this QR at the entrance</p>
+        </div>
+      </div>
+    </article>`).join('');
+  // 渲染二维码（qrcodejs 已全局加载；核销扫的就是票码）
+  tickets.forEach((t, i) => {
+    const box = document.getElementById(`ticket-qr-${i}`);
+    if (box && window.QRCode) {
+      new window.QRCode(box, { text: t.code, width: 92, height: 92, correctLevel: window.QRCode.CorrectLevel.M });
+    }
+  });
+}
+window.loadMyTickets = loadMyTickets;
 
 // 对方资料渲染器由 match.js 统一负责（renderPartnerProfile 全屏版）；此处仅扩展 showPage。
 setTimeout(() => {

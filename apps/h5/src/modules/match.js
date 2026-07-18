@@ -23,10 +23,10 @@ function switchHomeView(view) {
   if (leftBtn) {
     const icon = leftBtn.querySelector('.material-symbols-outlined');
     if (view === 'chat') {
-      // Chat 视图左上角用三个点（更多菜单语义，本轮反馈）
-      if (icon) icon.textContent = 'more_horiz';
-      leftBtn.title = 'More';
-      leftBtn.onclick = () => window.openFriendHub();
+      // Chat 视图左上角加号 → 小弹出卡（搜索/扫码/关系网 + 深色/语言，本轮反馈7）
+      if (icon) icon.textContent = 'add';
+      leftBtn.title = 'Add';
+      leftBtn.onclick = () => window.toggleChatPlusMenu();
     } else {
       if (icon) icon.textContent = 'tune';
       leftBtn.title = 'Match Settings';
@@ -50,6 +50,42 @@ function switchHomeView(view) {
   ensureQuestionnaireThenMatch(view);
 }
 window.switchHomeView = switchHomeView;
+
+// ─── Chat 视图加号小弹出卡（本轮反馈7）────────────────────────
+// 顺序：搜索 → 扫码 → 关系网；附深色模式/语言。点击项后关卡片再执行。
+function toggleChatPlusMenu() {
+  const existing = document.getElementById('chat-plus-menu');
+  if (existing) { existing.remove(); return; }
+  const items = [
+    { icon: 'search', label: 'Search chats', run: () => window.openFriendHubAt('search') },
+    { icon: 'qr_code_2', label: 'Add by QR', run: () => window.openFriendHubAt('qr') },
+    { icon: 'hub', label: 'Relationship Network', run: () => window.openFriendHubAt('graph') },
+    { icon: 'dark_mode', label: 'Dark mode', run: () => window.toggleDarkMode() },
+    { icon: 'translate', label: 'Language', run: () => window.toggleLang() },
+  ];
+  const wrap = document.createElement('div');
+  wrap.id = 'chat-plus-menu';
+  wrap.innerHTML = `
+    <div class="cpm-backdrop" onclick="toggleChatPlusMenu()"></div>
+    <div class="cpm-card">
+      ${items.map((it, i) => `
+        <button type="button" class="cpm-item" data-i="${i}">
+          <span class="material-symbols-outlined" style="font-size:20px">${it.icon}</span>
+          <span>${it.label}</span>
+        </button>`).join('')}
+    </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('.cpm-item').forEach((btn) => {
+    btn.onclick = () => {
+      const it = items[Number(btn.dataset.i)];
+      toggleChatPlusMenu();
+      it.run();
+    };
+  });
+  // 触发入场动画
+  requestAnimationFrame(() => wrap.querySelector('.cpm-card')?.classList.add('cpm-in'));
+}
+window.toggleChatPlusMenu = toggleChatPlusMenu;
 
 // 查该模式问卷完成度：completed=false -> 引导去填该模式问卷；已填 -> loadMatchTab()。
 // completion 接口异常时不阻断匹配（退化为直接进匹配界面，避免误锁用户）。
