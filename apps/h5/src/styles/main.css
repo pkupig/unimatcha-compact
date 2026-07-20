@@ -317,39 +317,49 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* 底部导航（用户反馈：按 iOS / Instagram 风格）：通栏贴底、毛玻璃 +
-       顶部发丝线、纯图标无文字、选中实心黑/未选灰；滚动隐藏保留。 */
+    /* 底部导航（用户反馈定稿）：悬浮胶囊 + 纯图标 + 选中荧光绿。
+       毛玻璃白底圆胶囊居中悬浮；选中项 = 荧光绿圆底 + 黑色实心图标；滚动隐藏保留。 */
     #bottom-nav {
-      left: 0 !important;
-      right: 0;
-      bottom: 0;
-      width: 100%;
+      left: 50% !important;
+      right: auto;
+      transform: translateX(-50%);
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      width: auto;
       max-width: none;
-      border-radius: 0;
-      background: rgba(249, 249, 249, 0.94);
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.92);
       -webkit-backdrop-filter: blur(20px);
       backdrop-filter: blur(20px);
-      box-shadow: none;
-      border: none;
-      border-top: 0.5px solid rgba(0, 0, 0, 0.12);
-      padding: 0.55rem 2rem calc(0.55rem + env(safe-area-inset-bottom));
-      min-height: 50px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 6px 10px;
+      min-height: 0;
+      gap: 6px;
       transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
     }
-    /* Instagram 式：只留图标，隐藏文字标签 */
+    /* 纯图标（Instagram 式）：隐藏文字标签；每项为等大圆形命中区 */
     #bottom-nav .nav-item span:last-child { display: none; }
-    #bottom-nav .nav-item .material-symbols-outlined { font-size: 27px; }
-    #bottom-nav .nav-item > span:first-child { font-size: 27px !important; }
-    /* 选中态实心图标（iOS 习惯）；Match 的线稿 SVG 用加粗描边表达 */
+    #bottom-nav .nav-item {
+      width: 46px;
+      height: 46px;
+      border-radius: 9999px;
+      justify-content: center;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    #bottom-nav .nav-item .material-symbols-outlined { font-size: 25px; }
+    /* 选中态：荧光绿圆底 + 黑色实心图标（高对比，延续品牌 neon+黑） */
+    #bottom-nav .nav-item.active {
+      background: #CCFF00;
+      color: #000 !important;
+    }
     #bottom-nav .nav-item.active .material-symbols-outlined {
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
     }
-    #bottom-nav .nav-item.active svg { stroke-width: 2.2; }
     #bottom-nav.nav-hide {
-      transform: translateY(110%);
+      transform: translateX(-50%) translateY(calc(100% + 24px));
       opacity: 0;
     }
-    .dark #bottom-nav { background: rgba(21, 21, 26, 0.94); border-top-color: rgba(255, 255, 255, 0.10); }
+    .dark #bottom-nav { background: rgba(31, 31, 38, 0.92); border-color: rgba(255, 255, 255, 0.08); }
 
     .auth-container {
       max-width: 420px;
