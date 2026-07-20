@@ -629,15 +629,16 @@
 <!-- SQUARE TAB -->
 <div id="tab-square" class="tab-content" style="display: none;">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-    <div class="flex justify-center items-center h-16 px-4">
-      <!-- 两段切换 [推荐 | 校园墙]（§6.11 行2130）：选中态荧光绿/黑底白字沿用现有风格 -->
-      <div id="square-tabs" class="flex gap-8 overflow-x-auto hide-scrollbar">
-        <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-0.5 border-b-2 border-transparent">Recommend</button>
-        <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-0.5 border-b-2 border-transparent">Campus Wall</button>
+    <div class="flex justify-center items-center h-11 px-4">
+      <!-- 两段切换 [推荐 | 校园墙]：滑动荧光绿下划线（#square-tab-ink 由 JS 定位并过渡） -->
+      <div id="square-tabs" class="relative flex gap-8">
+        <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
+        <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
+        <span id="square-tab-ink"></span>
       </div>
     </div>
   </header>
-  <main class="pt-20 pb-24 px-4 max-w-2xl mx-auto">
+  <main class="pt-16 pb-24 px-4 max-w-2xl mx-auto">
     <div class="relative mb-4">
       <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">search</span>
       <input id="square-search" type="search" oninput="window.onSquareSearch(this.value)" placeholder="Search posts" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-12 pr-4 py-3 text-sm font-medium text-on-surface placeholder:text-outline-variant focus:outline-none focus:border-black transition-colors" />

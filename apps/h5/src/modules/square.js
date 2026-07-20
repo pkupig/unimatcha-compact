@@ -15,9 +15,27 @@ function isOfficial(p) {
 }
 
 async function loadSquareTab() {
+  // 进入广场时先定位下划线（容器刚变可见，offset 此刻才可测）；
+  // 300ms 后再校一次，防 web 字体晚到导致文字宽度变化错位
+  requestAnimationFrame(positionSquareInk);
+  setTimeout(positionSquareInk, 300);
   window.loadSquareTab2();
 }
 window.loadSquareTab = loadSquareTab;
+
+// 滑动下划线：贴到当前 .square-seg.active 的位置/宽度（CSS transition 负责动画）
+function positionSquareInk() {
+  const ink = document.getElementById('square-tab-ink');
+  const active = document.querySelector('#square-tabs .square-seg.active');
+  if (!ink || !active) return;
+  ink.style.left = active.offsetLeft + 'px';
+  ink.style.width = active.offsetWidth + 'px';
+}
+window.positionSquareInk = positionSquareInk;
+if (!window.__squareInkResizeBound) {
+  window.__squareInkResizeBound = true;
+  window.addEventListener('resize', () => requestAnimationFrame(positionSquareInk));
+}
 
 // Switch the square header between [推荐 | 校园墙] (tab ∈ recommend|campus_wall).
 function switchSquareTab(el, tab) {
@@ -38,6 +56,7 @@ function switchSquareTab(el, tab) {
       btn.classList.toggle('active', btn.dataset.tab === tab || btn === el);
     });
   }
+  positionSquareInk(); // 下划线滑到新选中项
   window.loadSquareTab2();
 }
 window.switchSquareTab = switchSquareTab;

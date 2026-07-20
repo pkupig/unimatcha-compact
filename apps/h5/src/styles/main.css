@@ -777,11 +777,21 @@
     .home-mode-seg.active:hover { background: #CCFF00; }
     .home-mode-seg:active { transform: scale(0.98); }
 
-    /* ---- §6.11 两段切换 [推荐 | 校园墙] 选中态（沿用黑底白字/neon 风格）----
-       square header 按钮渲染由 JS 切换 .active；选中态荧光绿。 */
+    /* ---- §6.11 两段切换 [推荐 | 校园墙] ----
+       选中态文字变黑；下划线由 #square-tab-ink 单独承担并带滑动过渡动画。 */
     .square-seg.active {
       color: #000000;
-      border-bottom-color: #CCFF00;
+    }
+    #square-tab-ink {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      border-radius: 2px;
+      background: #CCFF00;
+      transition: left 0.28s cubic-bezier(0.22, 1, 0.36, 1), width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
     }
 
     /* ---- §6.11 广场间距收紧：行间距与列间距对齐 gap-1.5（本轮反馈7）----
