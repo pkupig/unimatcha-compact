@@ -6,7 +6,8 @@
   <title>Unimatcha · 抹茶</title>
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Be+Vietnam+Pro:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <!-- 全软件统一字体：Plus Jakarta Sans（中文回退系统字体）；JetBrains Mono 仅票码/倒计时 -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS with plugins -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -69,11 +70,11 @@
             "on-secondary-container": "#1b1c1c"
           },
           fontFamily: {
-            "headline": ["Plus Jakarta Sans"],
-            "display": ["Plus Jakarta Sans"],
-            "body": ["Be Vietnam Pro"],
-            "label": ["Be Vietnam Pro"],
-            "mono": ["JetBrains Mono"]
+            "headline": ["Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "sans-serif"],
+            "display": ["Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "sans-serif"],
+            "body": ["Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "sans-serif"],
+            "label": ["Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"]
           },
           borderRadius: {
             "none": "0px",
@@ -736,15 +737,15 @@
 <nav id="bottom-nav" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-4 px-8">
   <button onclick="switchTab('match')" data-tab="match" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
     <span class="material-symbols-outlined">chat_bubble</span>
-    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Match</span>
+    <span class="text-[10px] tracking-widest mt-1">Match</span>
   </button>
   <button onclick="switchTab('square')" data-tab="square" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
     <span class="material-symbols-outlined">eco</span>
-    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Square</span>
+    <span class="text-[10px] tracking-widest mt-1">Square</span>
   </button>
   <button onclick="switchTab('profile')" data-tab="profile" class="nav-item flex flex-col items-center justify-center text-neutral-400 hover:text-black transition-colors">
     <span class="material-symbols-outlined">person</span>
-    <span class="font-['Be_Vietnam_Pro'] text-[10px] tracking-widest mt-1">Profile</span>
+    <span class="text-[10px] tracking-widest mt-1">Profile</span>
   </button>
 </nav>
 

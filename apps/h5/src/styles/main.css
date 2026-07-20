@@ -60,7 +60,8 @@
 
     body {
       min-height: max(884px, 100dvh);
-      font-family: 'Be Vietnam Pro', sans-serif;
+      /* 全软件统一字体：Plus Jakarta Sans + 中文系统回退 */
+      font-family: 'Plus Jakarta Sans', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
       background-color: #f9f9f9;
       color: #1b1b1b;
     }

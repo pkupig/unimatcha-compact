@@ -222,11 +222,11 @@ function renderGraphSvg(g) {
     const ty = p.y > cy ? p.y + rNode + 12 : p.y - rNode - 6;
     return `<g style="cursor:pointer" onclick="openConnectionChatFromGraph('${esc(node.id)}')">
       ${graphAvatar(node, p.x, p.y, rNode)}
-      <text x="${p.x.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-family="'Be Vietnam Pro',sans-serif" font-size="9" font-weight="600" fill="#1b1b1b">${label}</text>
+      <text x="${p.x.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="9" font-weight="600" fill="#1b1b1b">${label}</text>
     </g>`;
   }).join('');
   const selfEl = `<g>${graphAvatar({ id: 'self', nickname: 'You', avatarUrl: (g.self || {}).avatarUrl }, cx, cy, rSelf)}
-    <text x="${cx}" y="${cy + rSelf + 12}" text-anchor="middle" font-family="'Be Vietnam Pro',sans-serif" font-size="9" font-weight="700" fill="#000">You</text></g>`;
+    <text x="${cx}" y="${cy + rSelf + 12}" text-anchor="middle" font-family="'Plus Jakarta Sans',sans-serif" font-size="9" font-weight="700" fill="#000">You</text></g>`;
   return `<svg viewBox="0 0 320 320" width="100%" xmlns="http://www.w3.org/2000/svg">${lines}${nodeEls}${selfEl}</svg>`;
 }
 
