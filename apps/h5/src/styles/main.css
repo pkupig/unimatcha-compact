@@ -347,11 +347,12 @@
       transition: background-color 0.2s ease, color 0.2s ease;
     }
     #bottom-nav .nav-item .material-symbols-outlined { font-size: 29px; }
-    /* 选中态（用户反馈）：图标本身实心荧光绿，不加底色光环 */
+    /* 选中态（用户反馈）：实心荧光绿图标 + 浅灰圆底 */
     #bottom-nav .nav-item.active {
-      background: transparent;
+      background: #efefef;
       color: #CCFF00 !important;
     }
+    .dark #bottom-nav .nav-item.active { background: #2a2a32; }
     #bottom-nav .nav-item.active .material-symbols-outlined {
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
     }
