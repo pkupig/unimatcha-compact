@@ -340,13 +340,13 @@
     /* 纯图标（Instagram 式）：隐藏文字标签；每项为等大圆形命中区 */
     #bottom-nav .nav-item span:last-child { display: none; }
     #bottom-nav .nav-item {
-      width: 46px;
-      height: 46px;
+      width: 50px;
+      height: 50px;
       border-radius: 9999px;
       justify-content: center;
       transition: background-color 0.2s ease, color 0.2s ease;
     }
-    #bottom-nav .nav-item .material-symbols-outlined { font-size: 25px; }
+    #bottom-nav .nav-item .material-symbols-outlined { font-size: 29px; }
     /* 选中态（用户反馈）：图标本身实心荧光绿，不加底色光环 */
     #bottom-nav .nav-item.active {
       background: transparent;
