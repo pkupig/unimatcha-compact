@@ -1051,6 +1051,16 @@
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
 
+    /* ---- match 等待动画：像素风校园视频（public/match-wait.mp4）---- */
+    .match-wait-video {
+      width: min(78vw, 300px);
+      height: auto;
+      border-radius: 16px;
+      display: block;
+      background: #f1f1f1;
+    }
+    .dark .match-wait-video { background: #1f1f26; }
+
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
     @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
     .cl-pulse { animation: cl-pulse 1.8s ease-in-out infinite; }

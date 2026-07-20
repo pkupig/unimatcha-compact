@@ -212,21 +212,23 @@ function renderIdleMatch() {
     ? 'Enter the matching pool to discover up to 5 like-minded companions.'
     : 'Enter the matching pool to discover your intellectual companion.';
   return `<div class="w-full text-center px-8 flex flex-col items-center">
-    <!-- Campus stick-figure scene (idle: random playful actions) -->
-    <div class="relative w-64 h-72 flex items-center justify-center mx-auto">
-      ${renderCampusScene(mode)}
+    ${renderMatchWaitAnim()}
+    <div class="mt-6 flex flex-col items-center">
+      <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-2">${title}</h2>
+      <p class="font-body text-on-surface-variant text-[13px] leading-relaxed max-w-[16rem] mx-auto">${sub}</p>
     </div>
-    <div class="h-24 flex flex-col items-center justify-center">
-      <h2 class="font-headline text-xl font-extrabold tracking-[0.3em] text-on-surface mb-3">${title}</h2>
-      <p class="font-body text-on-surface-variant text-sm leading-relaxed max-w-xs mx-auto">${sub}</p>
-    </div>
-    <div class="mt-10 w-full max-w-xs mx-auto flex flex-col items-center gap-6">
+    <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
       <button class="btn-cta w-full bg-neon text-black" onclick="startMatch()">Join Matching Pool</button>
-      <button class="text-xs font-bold tracking-[0.15rem] text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
+      <button class="text-[11px] font-bold tracking-wide text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
     </div>
   </div>`;
 }
 window.renderIdleMatch = renderIdleMatch;
+
+// 等待/待机动画：像素风校园视频（用户素材，public/match-wait.mp4），循环静音播放
+function renderMatchWaitAnim() {
+  return `<video class="match-wait-video" src="/match-wait.mp4" autoplay muted loop playsinline disablepictureinpicture></video>`;
+}
 
 // ========================================
 // CAMPUS STICK-FIGURE MATCH ANIMATION
@@ -575,21 +577,18 @@ window.renderFriendCandidateCard = renderFriendCandidateCard;
 function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
-      <div class="relative w-64 h-72 flex items-center justify-center mx-auto">
-        ${renderCampusScene(mode)}
-      </div>
-      <div class="h-24 flex flex-col items-center justify-center">
-        <h2 class="font-headline text-xl font-extrabold tracking-[0.3em] text-on-surface mb-1">Matching In Progress...</h2>
-        <p class="text-[10px] tracking-[0.15rem] text-outline mb-1">Next Cycle In</p>
+      ${renderMatchWaitAnim()}
+      <div class="mt-6 flex flex-col items-center">
+        <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-1.5">Matching in progress</h2>
+        <p class="text-[11px] tracking-[0.12em] text-outline uppercase mb-1.5">Next cycle in</p>
         <div class="font-mono text-3xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
       </div>
-      <div class="mt-10 w-full max-w-xs mx-auto flex flex-col items-center gap-6">
+      <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline font-bold text-sm tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
-        <button class="text-xs font-bold tracking-[0.15rem] text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
+        <button class="text-[11px] font-bold tracking-wide text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
       </div>
     </div>`;
   window.startCountdownTick();
-  window.startCampusAnim('waiting');
 }
 
 // 临时对话 48h 剩余倒计时块（恋人卡内）。
