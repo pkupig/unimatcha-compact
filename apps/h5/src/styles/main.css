@@ -346,13 +346,13 @@
       justify-content: center;
       transition: background-color 0.2s ease, color 0.2s ease;
     }
-    #bottom-nav .nav-item .material-symbols-outlined { font-size: 29px; }
-    /* 选中态（用户反馈）：实心荧光绿图标 + 浅灰圆底 */
+    /* 图标再放大，但命中区 50px 不变 → 导航条 Y 向尺寸不变 */
+    #bottom-nav .nav-item .material-symbols-outlined { font-size: 33px; }
+    /* 选中态（定稿）：仅实心荧光绿图标，无底色 */
     #bottom-nav .nav-item.active {
-      background: #efefef;
+      background: transparent;
       color: #CCFF00 !important;
     }
-    .dark #bottom-nav .nav-item.active { background: #2a2a32; }
     #bottom-nav .nav-item.active .material-symbols-outlined {
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
     }
