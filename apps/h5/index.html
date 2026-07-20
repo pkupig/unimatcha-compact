@@ -1211,17 +1211,18 @@
 
 <!-- Add Friend (扫码加好友) popup -->
 <!-- Friend Hub Overlay（本轮反馈3：关系网 + 查找好友 + 扫码加好友，Match-Settings 侧边面板风格） -->
-<div id="friend-hub-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)closeFriendHub()">
-  <div class="slide-left relative z-[60] h-screen w-[86%] max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col rounded-r-2xl">
-    <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
-      <div class="flex items-center gap-6 px-6 h-16 w-full">
+<!-- 好友功能改全屏页面（本轮反馈：不要左侧弹出）：与设置/票夹同款全屏 overlay -->
+<div id="friend-hub-overlay" class="overlay fixed inset-0 z-[60] bg-surface">
+  <div class="relative h-full w-full bg-surface flex flex-col">
+    <header class="sticky top-0 w-full z-10 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
         <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="friendHubBack()">
-          <span class="material-symbols-outlined text-black !text-2xl">arrow_back</span>
+          <span class="material-symbols-outlined text-on-surface !text-2xl">arrow_back</span>
         </button>
-        <h1 id="friend-hub-title" class="font-headline text-xl font-bold tracking-tight text-black">Friends</h1>
+        <h1 id="friend-hub-title" class="font-headline text-xl font-bold tracking-tight text-on-surface">Friends</h1>
       </div>
     </header>
-    <div class="flex-1 overflow-y-auto px-8 py-8">
+    <div class="flex-1 overflow-y-auto px-6 py-8 w-full max-w-md mx-auto">
       <!-- Menu（本轮反馈1：列出功能，点击进入对应卡片） -->
       <div id="friend-hub-menu" class="space-y-4">
         <button onclick="friendHubShow('graph')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
