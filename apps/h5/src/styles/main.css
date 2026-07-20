@@ -740,9 +740,9 @@
       display: flex;
       gap: 3px;
       padding: 3px;
-      /* 反馈：无阴影，仅极浅描边；高度收敛与两侧 40px 圆按钮同轴 */
+      /* 反馈：无阴影，仅极浅描边；高度收敛与两侧 40px 圆按钮同轴；椭圆胶囊形 */
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 12px;
+      border-radius: 9999px;
       background: #ffffff;
       height: 40px;
       align-items: center;
@@ -756,7 +756,7 @@
       text-align: center;
       height: 100%;
       padding: 0 0.65rem;
-      border-radius: 10px;
+      border-radius: 9999px;
       background: transparent;
       color: #1b1b1b;
       font-family: 'Plus Jakarta Sans', sans-serif;
