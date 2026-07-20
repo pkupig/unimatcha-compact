@@ -10,6 +10,7 @@ let afScanner = null;
 let afConnecting = false;
 
 function openFriendHub() {
+  S.friendHubDirect = false; // 经列表进入：返回键先回列表再关闭
   window.openOverlay('friend-hub-overlay');
   const inp = document.getElementById('friend-search-input');
   if (inp) inp.value = '';
@@ -48,10 +49,11 @@ function friendHubShow(view) {
 }
 window.friendHubShow = friendHubShow;
 
-// 顶部返回：在子卡片里则回到列表，否则关闭整个 hub
+// 顶部返回 = 一步关闭回聊天（本轮反馈：返回逻辑）。
+// 入口已统一为加号小卡直达各面板，旧「功能列表」中间页从 UI 不可达，
+// 返回不再经过它，避免「点返回却弹出另一个菜单」的困惑。
 function friendHubBack() {
-  if (S.friendHubView && S.friendHubView !== 'menu') friendHubShow('menu');
-  else closeFriendHub();
+  closeFriendHub();
 }
 window.friendHubBack = friendHubBack;
 // 兼容旧入口名（顶栏按钮、扫码成功后关闭等仍可调用）
@@ -60,6 +62,7 @@ window.openAddFriend = openAddFriend;
 
 // 直接进入指定功能面板（本轮反馈7：加号小卡菜单点选后跳过 menu 列表）
 function openFriendHubAt(view) {
+  S.friendHubDirect = true; // 返回键直接关闭，不回中间列表
   window.openOverlay('friend-hub-overlay');
   const inp = document.getElementById('friend-search-input');
   if (inp) inp.value = '';
