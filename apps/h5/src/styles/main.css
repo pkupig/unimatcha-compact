@@ -317,35 +317,39 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* 底部导航（本轮反馈4）：悬浮圆角胶囊 + 滚动隐藏。
-       原全宽贴底改为悬浮条：左右留边、圆角、白底毛玻璃、投影；
-       .nav-hide（core.js bindNavAutoHide 切换）下滑收起、上滑恢复。 */
+    /* 底部导航（用户反馈：按 iOS / Instagram 风格）：通栏贴底、毛玻璃 +
+       顶部发丝线、纯图标无文字、选中实心黑/未选灰；滚动隐藏保留。 */
     #bottom-nav {
-      left: 50% !important;
-      transform: translateX(-50%);
-      /* 用户反馈：框再小一点——收窄 + 收薄 */
-      width: calc(100% - 96px);
-      max-width: 300px;
-      bottom: calc(12px + env(safe-area-inset-bottom));
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.92);
-      -webkit-backdrop-filter: blur(18px);
-      backdrop-filter: blur(18px);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      padding: 0.4rem 1rem;
-      min-height: 46px;
+      left: 0 !important;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: none;
+      border-radius: 0;
+      background: rgba(249, 249, 249, 0.94);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      box-shadow: none;
+      border: none;
+      border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+      padding: 0.55rem 2rem calc(0.55rem + env(safe-area-inset-bottom));
+      min-height: 50px;
       transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
     }
-    /* 图标与文字随框同步缩小 */
-    #bottom-nav .nav-item .material-symbols-outlined { font-size: 22px; }
-    #bottom-nav .nav-item > span:first-child { font-size: 26px !important; }
-    #bottom-nav .nav-item span:last-child { font-size: 9px; margin-top: 2px; }
+    /* Instagram 式：只留图标，隐藏文字标签 */
+    #bottom-nav .nav-item span:last-child { display: none; }
+    #bottom-nav .nav-item .material-symbols-outlined { font-size: 27px; }
+    #bottom-nav .nav-item > span:first-child { font-size: 27px !important; }
+    /* 选中态实心图标（iOS 习惯）；Match 的线稿 SVG 用加粗描边表达 */
+    #bottom-nav .nav-item.active .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+    }
+    #bottom-nav .nav-item.active svg { stroke-width: 2.2; }
     #bottom-nav.nav-hide {
-      transform: translateX(-50%) translateY(calc(100% + 24px));
+      transform: translateY(110%);
       opacity: 0;
     }
-    .dark #bottom-nav { background: rgba(31, 31, 38, 0.92); border-color: rgba(255, 255, 255, 0.06); }
+    .dark #bottom-nav { background: rgba(21, 21, 26, 0.94); border-top-color: rgba(255, 255, 255, 0.10); }
 
     .auth-container {
       max-width: 420px;
