@@ -197,7 +197,6 @@ async function loadMatchTab() {
     const container = document.getElementById('match-content');
     if (container) {
       container.innerHTML = window.renderIdleMatch();
-      window.startCampusAnim('idle');
     }
   }
 }
@@ -230,153 +229,6 @@ function renderMatchWaitAnim() {
   return `<video class="match-wait-video" src="/match-wait.mp4" autoplay muted loop playsinline disablepictureinpicture></video>`;
 }
 
-// ========================================
-// CAMPUS STICK-FIGURE MATCH ANIMATION
-// 一个简笔线条画的小人在校园里活动：黑色描边 #1b1b1b + 荧光绿点缀 #CCFF00（恋人/朋友同色，§6.9）。
-// 人物男女由 S.currentUser?.profile?.gender 决定：'female' 用女版（马尾/裙子），否则男版（短发/帽子/裤子）。
-// 两版共用同一套动作动画，只换发型/服饰这类简笔特征。
-// ========================================
-
-// idle 随机动作池（每约 2.5s 随机切一个）：走路 / 蹦跳 / 挥手 / 转圈 / 看书 / 伸懒腰 / 踢腿
-const CAMPUS_IDLE_ACTIONS = ['walk', 'jump', 'wave', 'spin', 'read', 'stretch', 'kick'];
-// waiting 等待动作池（searching 态循环切换）：来回踱步 / 看手表 / 晃腿张望 / 跺脚
-const CAMPUS_WAIT_ACTIONS = ['pace', 'check-watch', 'glance', 'stomp'];
-
-// 返回校园场景 SVG（背景 + 按性别选择的人物）。荧光绿 #CCFF00 为唯一点缀色，
-// 朋友/恋人同色（靠图标/文字区分），保持简笔风格。人物根 <g> 带 id="campus-figure"，动作切换靠换 class 触发 css @keyframes。
-function renderCampusScene(mode) {
-  const accent = '#CCFF00';
-  const gender = S.currentUser?.profile?.gender;
-  const female = gender === 'female';
-  // 头发：女版马尾（带点缀发圈），男版短发碎刘海
-  const hair = female
-    ? `<path class="campus-hair" d="M83 40 q-7 -16 17 -18 q24 2 17 18 q3 -9 -4 -16" fill="none" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/>
-       <path class="campus-ponytail" d="M116 34 q14 6 11 22 q-1 8 -7 12" fill="none" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/>
-       <circle cx="116" cy="33" r="3.4" fill="${accent}" stroke="#1b1b1b" stroke-width="1.6"/>`
-    : `<path class="campus-hair" d="M84 36 q3 -13 16 -13 q13 0 16 13 q-5 -6 -16 -6 q-9 0 -16 6" fill="#1b1b1b" stroke="#1b1b1b" stroke-width="2" stroke-linejoin="round"/>`;
-  // 帽子（仅男版）：点缀帽檐
-  const cap = female ? '' : `<path d="M84 28 q16 -10 33 0 l-2 -3 q-15 -8 -29 0 z" fill="${accent}" stroke="#1b1b1b" stroke-width="2" stroke-linejoin="round"/>`;
-  // 下装：女版梯形裙（裙摆下露两条腿），男版两条裤腿
-  const lower = female
-    ? `<path class="campus-skirt" d="M90 120 L110 120 L118 140 L82 140 Z" fill="none" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
-       <g class="campus-leg campus-leg-l"><line x1="93" y1="140" x2="90" y2="170" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="90" y1="170" x2="83" y2="172" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>
-       <g class="campus-leg campus-leg-r"><line x1="107" y1="140" x2="110" y2="170" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="110" y1="170" x2="117" y2="172" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>`
-    : `<g class="campus-leg campus-leg-l"><line x1="95" y1="120" x2="90" y2="170" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="90" y1="170" x2="83" y2="172" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>
-       <g class="campus-leg campus-leg-r"><line x1="105" y1="120" x2="110" y2="170" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="110" y1="170" x2="117" y2="172" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>`;
-
-  return `<svg class="campus-scene" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1b1b1b" aria-hidden="true">
-    <!-- ===== 背景：简笔校园 ===== -->
-    <!-- 云朵 -->
-    <g class="campus-cloud" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M28 34 q-3 -10 9 -10 q4 -8 14 -4 q10 -3 11 7 q9 0 6 7 z"/>
-    </g>
-    <!-- 教学楼 + 窗户 + 旗杆 -->
-    <g class="campus-building" stroke-width="2" stroke-linejoin="round">
-      <rect x="128" y="44" width="46" height="56"/>
-      <line x1="128" y1="58" x2="174" y2="58"/>
-      <rect x="134" y="64" width="9" height="9"/>
-      <rect x="148" y="64" width="9" height="9"/>
-      <rect x="162" y="64" width="9" height="9"/>
-      <rect x="134" y="80" width="9" height="9"/>
-      <rect x="148" y="80" width="9" height="9" fill="${accent}" stroke="#1b1b1b"/>
-      <rect x="162" y="80" width="9" height="9"/>
-      <rect x="146" y="93" width="10" height="7"/>
-      <!-- 旗杆 + 点缀小旗 -->
-      <line x1="124" y1="36" x2="124" y2="100"/>
-      <path d="M124 38 l13 4 l-13 4 z" fill="${accent}" stroke="#1b1b1b"/>
-    </g>
-    <!-- 树 -->
-    <g class="campus-tree" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="34" y1="100" x2="34" y2="78"/>
-      <circle cx="34" cy="66" r="14"/>
-      <path d="M27 64 q7 6 14 0"/>
-    </g>
-    <!-- 路灯 -->
-    <g class="campus-lamp" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="186" y1="100" x2="186" y2="60"/>
-      <path d="M186 60 q-8 0 -8 8"/>
-      <circle cx="178" cy="70" r="3.5" fill="${accent}" stroke="#1b1b1b"/>
-    </g>
-    <!-- 地面线 -->
-    <line x1="6" y1="100" x2="194" y2="100" stroke-width="2"/>
-    <line x1="14" y1="108" x2="40" y2="108" stroke-width="1.5" opacity="0.5"/>
-    <line x1="150" y1="108" x2="186" y2="108" stroke-width="1.5" opacity="0.5"/>
-
-    <!-- ===== 人物（act-* class 由 JS 切换以驱动动作）===== -->
-    <g id="campus-figure" class="campus-figure act-walk">
-      <!-- 影子 -->
-      <ellipse class="campus-shadow" cx="100" cy="176" rx="20" ry="3.5" fill="#1b1b1b" stroke="none" opacity="0.12"/>
-      <!-- 头 -->
-      <g class="campus-head">
-        <circle cx="100" cy="34" r="16" fill="#ffffff" stroke="#1b1b1b" stroke-width="3"/>
-        <circle cx="94" cy="33" r="1.8" fill="#1b1b1b" stroke="none"/>
-        <circle cx="106" cy="33" r="1.8" fill="#1b1b1b" stroke="none"/>
-        <path d="M94 40 q6 5 12 0" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"/>
-        ${cap}
-        ${hair}
-      </g>
-      <!-- 颈 + 身体 -->
-      <line x1="100" y1="50" x2="100" y2="60" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/>
-      <line class="campus-torso" x1="100" y1="60" x2="100" y2="120" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/>
-      <!-- 点缀色书包（斜挎带 + 包体） -->
-      <path d="M100 64 L112 96" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>
-      <rect class="campus-bag" x="106" y="92" width="16" height="18" rx="3" fill="${accent}" stroke="#1b1b1b" stroke-width="2"/>
-      <!-- 手臂 -->
-      <g class="campus-arm campus-arm-l"><line x1="100" y1="68" x2="80" y2="86" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="80" y1="86" x2="76" y2="100" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>
-      <g class="campus-arm campus-arm-r"><line x1="100" y1="68" x2="120" y2="86" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/><line x1="120" y1="86" x2="124" y2="100" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round"/></g>
-      <!-- 看书时出现的小书（默认隐藏，act-read 时显示） -->
-      <g class="campus-book" stroke-width="2" stroke-linejoin="round">
-        <path d="M84 96 L100 92 L100 106 L84 110 Z" fill="#ffffff" stroke="#1b1b1b"/>
-        <path d="M116 96 L100 92 L100 106 L116 110 Z" fill="#ffffff" stroke="#1b1b1b"/>
-        <line x1="100" y1="92" x2="100" y2="106" stroke="#1b1b1b"/>
-      </g>
-      <!-- 看手表时的小表盘（默认隐藏，act-check-watch 时显示） -->
-      <circle class="campus-watch" cx="76" cy="100" r="4" fill="${accent}" stroke="#1b1b1b" stroke-width="1.6"/>
-      <!-- 下装（腿/裙） -->
-      ${lower}
-    </g>
-  </svg>`;
-}
-window.renderCampusScene = renderCampusScene;
-
-// 启动校园人物动画。mode = 'idle' | 'waiting'。入口先 stopCampusAnim() 清旧 interval。
-function startCampusAnim(mode) {
-  stopCampusAnim();
-  const fig = document.getElementById('campus-figure');
-  if (!fig) return;
-  const pool = mode === 'waiting' ? CAMPUS_WAIT_ACTIONS : CAMPUS_IDLE_ACTIONS;
-  const setAction = (name) => {
-    fig.className.baseVal = fig.className.baseVal
-      .split(/\s+/)
-      .filter(c => c && !c.startsWith('act-'))
-      .concat('act-' + name)
-      .join(' ');
-  };
-  let last = null;
-  const pick = () => {
-    if (pool.length === 1) return pool[0];
-    let n;
-    do { n = pool[Math.floor(Math.random() * pool.length)]; } while (n === last);
-    last = n;
-    return n;
-  };
-  setAction(pick());
-  const every = mode === 'waiting' ? 3000 : 2500;
-  S.campusAnimTimer = setInterval(() => {
-    const f = document.getElementById('campus-figure');
-    if (!f) { stopCampusAnim(); return; } // DOM 已被替换：自我清理，防泄漏
-    setAction(pick());
-  }, every);
-}
-window.startCampusAnim = startCampusAnim;
-
-function stopCampusAnim() {
-  if (S.campusAnimTimer) {
-    clearInterval(S.campusAnimTimer);
-    S.campusAnimTimer = null;
-  }
-}
-window.stopCampusAnim = stopCampusAnim;
 
 // A4/A6/A7: 对方资料缺失（partner 为 null / 不完整 / 账户变更）时的容错卡片。
 function renderPartnerMissing(message) {
@@ -486,7 +338,6 @@ function renderRomanticMatchTab(container, data) {
 
   // idle / 其它：进池入口。
   container.innerHTML = window.renderIdleMatch();
-  window.startCampusAnim('idle');
 }
 
 // ─── 朋友分支（最多 5 张候选卡，C 规则 §6.5） ──────────────────
@@ -532,7 +383,6 @@ function renderFriendMatchTab(container, data) {
 
   // idle / 其它：进池入口（荧光绿点缀）。
   container.innerHTML = window.renderIdleMatch();
-  window.startCampusAnim('idle');
 }
 
 // 单张朋友候选卡。临时候选显示剩余倒计时；已确认朋友显示 Friends 标记。
@@ -852,7 +702,6 @@ function stopCountdownTick() {
     S.countdownInterval = null;
   }
   // 顺带清理校园简笔画人物的随机动作 interval（搭车清理避免泄漏）。
-  stopCampusAnim();
 }
 window.stopCountdownTick = stopCountdownTick;
 

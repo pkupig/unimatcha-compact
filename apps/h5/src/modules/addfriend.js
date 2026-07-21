@@ -82,7 +82,7 @@ window.closeAddFriend = closeAddFriend;
 
 function switchAddFriendView(view) {
   const isScan = view === 'scan';
-  const base = 'af-seg flex-1 py-2 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-colors ';
+  const base = 'af-seg flex-1 py-2 rounded-full font-headline text-xs font-bold tracking-wider transition-colors ';
   document.getElementById('af-view-qr')?.classList.toggle('hidden', isScan);
   document.getElementById('af-view-scan')?.classList.toggle('hidden', !isScan);
   const segQr = document.getElementById('af-seg-qr');

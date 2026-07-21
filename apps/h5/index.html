@@ -122,9 +122,7 @@
 
     <!-- Brand core -->
     <section class="relative z-10 flex flex-col items-center text-center px-8 splash-in">
-      <div class="w-[76px] h-[76px] bg-neon rounded-[22px] flex items-center justify-center mb-8 splash-logo">
-        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12 C 13.7 9 17 9.3 17 12.5 C 17 16 12 16.6 9.3 13.4"/><path d="M12 12 C 10.3 15 7 14.7 7 11.5 C 7 8 12 7.4 14.7 10.6"/></svg>
-      </div>
+      <img src="/icons/icon-192.png" alt="Unimatcha" class="w-[76px] h-[76px] rounded-[22px] mb-8 splash-logo">
       <h1 class="font-headline text-[34px] font-extrabold tracking-[0.18em] text-primary leading-none" data-no-i18n>UNIMATCHA</h1>
       <p class="mt-4 font-body text-[13px] text-on-surface-variant tracking-wide">One thoughtful match, every week.</p>
     </section>
@@ -483,15 +481,6 @@
       </section>
       </div><!-- /#setup-rest -->
     </main>
-
-    <!-- Decorative Element -->
-    <div class="fixed top-1/4 -left-12 opacity-5 pointer-events-none select-none">
-      <svg fill="none" height="400" viewBox="0 0 200 400" width="200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 10L190 390M190 10L10 390" stroke="currentColor" stroke-width="0.5"></path>
-        <circle cx="100" cy="200" r="80" stroke="currentColor" stroke-width="0.5"></circle>
-        <rect height="120" stroke="currentColor" stroke-width="0.5" width="120" x="40" y="140"></rect>
-      </svg>
-    </div>
   </div>
 
   <!-- Questionnaire Page -->
@@ -553,15 +542,6 @@
           </label>
         </div>
       </section>
-
-      <!-- Decorative Line Art -->
-      <div class="mt-24 flex justify-center opacity-10">
-        <svg fill="none" height="100" viewBox="0 0 200 100" width="200" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 90C40 70 60 10 100 50C140 90 160 30 190 10" stroke="black" stroke-width="0.5"></path>
-          <circle cx="100" cy="50" r="30" stroke="black" stroke-width="0.5"></circle>
-          <rect height="40" stroke="black" stroke-width="0.5" transform="rotate(45 100 50)" width="40" x="80" y="30"></rect>
-        </svg>
-      </div>
     </main>
 
     <!-- Navigation Footer -->
@@ -777,9 +757,9 @@
     </header>
     <!-- 模式选项卡 Romantic / Friend（§6.4 行2033-2044）：偏好按模式分离 -->
     <div class="px-8 pt-5 pb-1 sticky top-[57px] bg-white z-[9]">
-      <div class="flex border border-black p-1 rounded-[10px]">
-        <button id="pref-mode-romantic" class="pref-mode-tab flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="romantic" onclick="switchPrefMode('romantic')">Romantic</button>
-        <button id="pref-mode-friend" class="pref-mode-tab flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="friend" onclick="switchPrefMode('friend')">Friend</button>
+      <div class="flex border border-outline-variant/60 p-1 rounded-full">
+        <button id="pref-mode-romantic" class="pref-mode-tab flex-1 py-2.5 rounded-full font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="romantic" onclick="switchPrefMode('romantic')">Romantic</button>
+        <button id="pref-mode-friend" class="pref-mode-tab flex-1 py-2.5 rounded-full font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="friend" onclick="switchPrefMode('friend')">Friend</button>
       </div>
     </div>
     <div class="flex-1 overflow-y-auto max-h-[75vh] px-8 py-6 flex flex-col gap-8">
@@ -789,10 +769,10 @@
         <div class="mb-6">
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
         </div>
-        <div class="flex border border-black p-1 rounded-[10px]">
-          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectGenderSegment('male')">Male</button>
-          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectGenderSegment('female')">Female</button>
-          <button class="gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectGenderSegment('all')">All</button>
+        <div class="flex border border-outline-variant/60 p-1 rounded-full">
+          <button class="gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectGenderSegment('male')">Male</button>
+          <button class="gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectGenderSegment('female')">Female</button>
+          <button class="gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectGenderSegment('all')">All</button>
         </div>
       </section>
       <section>
@@ -813,10 +793,10 @@
           <div class="mb-6">
             <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
           </div>
-          <div class="flex border border-black p-1 rounded-[10px]">
-            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectFriendGenderSegment('male')">Male</button>
-            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectFriendGenderSegment('female')">Female</button>
-            <button class="friend-gender-seg flex-1 py-3 rounded-[10px] font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectFriendGenderSegment('all')">All</button>
+          <div class="flex border border-outline-variant/60 p-1 rounded-full">
+            <button class="friend-gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectFriendGenderSegment('male')">Male</button>
+            <button class="friend-gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectFriendGenderSegment('female')">Female</button>
+            <button class="friend-gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="all" onclick="selectFriendGenderSegment('all')">All</button>
           </div>
         </section>
         <!-- 兴趣优先级（从用户 profile 兴趣动态渲染 chip，最多选 3 个最高优先级，§9） -->
@@ -879,16 +859,6 @@
           </div>
         </section>
       </div><!-- /#filter-shared-section -->
-
-      <div class="pt-4 flex justify-center opacity-5">
-        <svg fill="none" height="80" viewbox="0 0 100 100" width="80" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 50C10 27.9086 27.9086 10 50 10C72.0914 10 90 27.9086 90 50C90 72.0914 72.0914 90 50 90C27.9086 90 10 72.0914 10 50Z" stroke="black" stroke-width="0.5"></path>
-          <path d="M50 10V90" stroke="black" stroke-width="0.5"></path>
-          <path d="M10 50H90" stroke="black" stroke-width="0.5"></path>
-          <path d="M21.7 21.7L78.3 78.3" stroke="black" stroke-width="0.5"></path>
-          <path d="M78.3 21.7L21.7 78.3" stroke="black" stroke-width="0.5"></path>
-        </svg>
-      </div>
     </div>
   </div>
 </div>
@@ -932,13 +902,6 @@
         </button>
       </div>
       <input id="post-image-input" type="file" accept="image/*" multiple onchange="handlePostImages(event)" class="hidden" />
-    </div>
-    <div class="mt-20 opacity-10 pointer-events-none select-none">
-      <svg class="stroke-primary stroke-[0.5px]" fill="none" height="100" viewbox="0 0 200 100" width="200" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0 50C50 50 50 0 100 0C150 0 150 100 200 100"></path>
-        <circle cx="100" cy="50" r="40"></circle>
-        <line x1="0" x2="200" y1="0" y2="100"></line>
-      </svg>
     </div>
   </main>
 </div>
@@ -1164,12 +1127,6 @@
           <input id="edit-gift-4" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 5"/>
         </div>
       </section>
-      <div class="pt-12 pb-8 flex justify-center opacity-10">
-        <svg fill="none" height="60" viewbox="0 0 200 60" width="200" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 30H200" stroke="black" stroke-width="0.5"></path>
-          <circle cx="100" cy="30" r="20" stroke="black" stroke-width="0.5"></circle>
-        </svg>
-      </div>
     </div>
     <div class="absolute bottom-0 left-0 w-full h-24 bottom-sheet-gradient pointer-events-none"></div>
   </div>
@@ -1233,30 +1190,7 @@
       </div>
     </header>
     <div class="flex-1 overflow-y-auto px-6 py-8 w-full max-w-md mx-auto">
-      <!-- Menu（本轮反馈1：列出功能，点击进入对应卡片） -->
-      <div id="friend-hub-menu" class="space-y-4">
-        <button onclick="friendHubShow('graph')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
-          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">hub</span><span class="font-headline font-bold text-sm tracking-tight text-black">Relationship Network</span></div>
-          <span class="material-symbols-outlined text-black">chevron_right</span>
-        </button>
-        <button onclick="friendHubShow('search')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
-          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">search</span><span class="font-headline font-bold text-sm tracking-tight text-black">Search chats</span></div>
-          <span class="material-symbols-outlined text-black">chevron_right</span>
-        </button>
-        <button onclick="friendHubShow('qr')" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
-          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">qr_code_2</span><span class="font-headline font-bold text-sm tracking-tight text-black">Add by QR</span></div>
-          <span class="material-symbols-outlined text-black">chevron_right</span>
-        </button>
-        <button onclick="toggleDarkMode()" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
-          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">dark_mode</span><span class="font-headline font-bold text-sm tracking-tight text-black">Dark mode</span></div>
-          <span class="material-symbols-outlined text-black">contrast</span>
-        </button>
-        <button onclick="toggleLang()" class="w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]">
-          <div class="flex items-center gap-4"><span class="material-symbols-outlined text-black">translate</span><span class="font-headline font-bold text-sm tracking-tight text-black">Language · 中/EN</span></div>
-          <span class="material-symbols-outlined text-black">chevron_right</span>
-        </button>
-      </div>
-      <!-- Panel: Relationship Network -->
+            <!-- Panel: Relationship Network -->
       <div id="friend-hub-panel-graph" class="hidden space-y-4">
         <div id="friend-graph" class="w-full rounded-[10px] border border-outline-variant/30 bg-surface-container-lowest overflow-hidden flex items-center justify-center" style="min-height:300px"><span class="text-outline text-sm">Loading…</span></div>
         <p class="text-[10px] text-outline tracking-wider leading-relaxed">Line thickness shows closeness (chats + post interaction). Tap a node to open the chat.</p>
@@ -1271,9 +1205,9 @@
       </div>
       <!-- Panel: Add by QR -->
       <div id="friend-hub-panel-qr" class="hidden space-y-4">
-        <div class="flex border border-black p-1 rounded-[10px]">
-          <button id="af-seg-qr" type="button" class="af-seg flex-1 py-2 rounded-[10px] font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('qr')">My QR</button>
-          <button id="af-seg-scan" type="button" class="af-seg flex-1 py-2 rounded-[10px] font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('scan')">Scan</button>
+        <div class="flex border border-outline-variant/60 p-1 rounded-full">
+          <button id="af-seg-qr" type="button" class="af-seg flex-1 py-2 rounded-full font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('qr')">My QR</button>
+          <button id="af-seg-scan" type="button" class="af-seg flex-1 py-2 rounded-full font-headline text-xs font-bold tracking-wider" onclick="switchAddFriendView('scan')">Scan</button>
         </div>
         <div id="af-view-qr" class="flex flex-col items-center">
           <div id="addfriend-qr" class="w-[180px] h-[180px] bg-white rounded-[10px] border border-outline-variant/40 flex items-center justify-center overflow-hidden"></div>
@@ -1559,10 +1493,10 @@
           <span class="h-[1px] w-8 bg-black"></span>
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Match Basis</h2>
         </div>
-        <div class="flex border border-black p-1 rounded-[10px]">
-          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="questionnaire" onclick="setMatchBasis('questionnaire')">Questionnaire</button>
-          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="profile" onclick="setMatchBasis('profile')">Profile</button>
-          <button class="match-basis-seg flex-1 py-3 font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98] rounded-[10px]" data-value="both" onclick="setMatchBasis('both')">Both</button>
+        <div class="flex border border-outline-variant/60 p-1 rounded-full">
+          <button class="match-basis-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="questionnaire" onclick="setMatchBasis('questionnaire')">Questionnaire</button>
+          <button class="match-basis-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="profile" onclick="setMatchBasis('profile')">Profile</button>
+          <button class="match-basis-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="both" onclick="setMatchBasis('both')">Both</button>
         </div>
       </section>
       <!-- (c) Extra info -->
