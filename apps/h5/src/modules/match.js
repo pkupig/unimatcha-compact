@@ -450,7 +450,7 @@ function renderSearchingSkeleton(container, mode) {
         <div class="font-mono text-3xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
-        <button class="w-full bg-transparent text-neon-pink border-2 border-neon-pink py-5 rounded-[10px] font-headline font-bold text-sm tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
+        <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
         <button class="text-[11px] font-bold tracking-wide text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
       </div>
     </div>`;
