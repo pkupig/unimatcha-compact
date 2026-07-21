@@ -226,18 +226,17 @@ function renderIdleMatch() {
 }
 window.renderIdleMatch = renderIdleMatch;
 
-// ── 等待动画：Organic Loaders 实心版（设计文件 CSS 移植；无粒子）──
-// 恋人匹配 = #2 呼吸双球融合；朋友匹配 = #20 呼吸集群。
-// 点「开始匹配」前：浅灰静止（animation paused）；进入匹配中：荧光绿 + 动画。
+// ── 等待动画：直接嵌入设计文件本体（/loaders.html = 原 HTML 原样，iframe 渲染）──
+// 恋人 = #2 呼吸双球融合；朋友 = #20 呼吸集群。active=false 浅灰静止，true 荧光绿播放。
 function renderMatchWaitAnim(active) {
   const friend = (S.activeMatchMode || 'romantic') === 'friend';
-  const inner = friend
-    ? '<div class="l20"><i style="--a:0deg"></i><i style="--a:72deg"></i><i style="--a:144deg"></i><i style="--a:216deg"></i><i style="--a:288deg"></i></div>'
-    : '<div class="l2"><i></i><i></i></div>';
-  return `<div class="match-anim ${active ? 'match-anim--on' : ''}">${inner}</div>`;
+  const v = friend ? '20' : '2';
+  const color = active ? '%23CCFF00' : (document.documentElement.classList.contains('dark') ? '%233a3a42' : '%23d6d6d6');
+  const run = active ? '1' : '0';
+  return `<div class="match-anim"><iframe class="match-anim-frame" src="/loaders.html?v=${v}&run=${run}&color=${color}" scrolling="no" frameborder="0" aria-hidden="true"></iframe></div>`;
 }
 
-// 兼容旧调用点：CSS 动画无需 JS 驱动
+// 兼容旧调用点：iframe 内 CSS 动画自驱动
 function startCampusAnim() {}
 window.startCampusAnim = startCampusAnim;
 function stopCampusAnim() {}
