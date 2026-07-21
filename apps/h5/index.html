@@ -113,6 +113,15 @@
   <!-- Toast Notification -->
   <div id="toast"></div>
 
+  <!-- Organic Loaders 粘连滤镜（匹配等待动画用） -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"></feGaussianBlur>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo"></feColorMatrix>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"></feComposite>
+    </filter>
+  </defs></svg>
+
   <!-- Splash Screen（重设计：平面简约——荧光方块 logo + 字标 + 底部进度线） -->
   <div id="splash" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden">
     <!-- Skip -->

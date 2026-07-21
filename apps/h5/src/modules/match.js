@@ -213,7 +213,7 @@ function renderIdleMatch() {
     ? 'Enter the matching pool to discover up to 5 like-minded companions.'
     : 'Enter the matching pool to discover your intellectual companion.';
   return `<div class="w-full text-center px-8 flex flex-col items-center">
-    ${renderMatchWaitAnim()}
+    ${renderMatchWaitAnim(false)}
     <div class="mt-6 flex flex-col items-center">
       <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-2">${title}</h2>
       <p class="font-body text-on-surface-variant text-[13px] leading-relaxed max-w-[16rem] mx-auto">${sub}</p>
@@ -226,91 +226,21 @@ function renderIdleMatch() {
 }
 window.renderIdleMatch = renderIdleMatch;
 
-// ── 等待动画：Organic Loaders（Solid 实心版，源自设计文件；粒子点阵版不用）──
-// 场函数取自 Organic Loaders 设计稿：每帧对 100×100 采样网格求场强 0..1，
-// 写入 alpha 通道后放大绘制，得到柔边实心墨色有机体。idle / waiting 各一组随机选。
-function renderMatchWaitAnim() {
-  return `<div class="relative w-52 h-52 flex items-center justify-center mx-auto"><canvas class="match-loader" width="200" height="200"></canvas></div>`;
+// ── 等待动画：Organic Loaders 实心版（设计文件 CSS 移植；无粒子）──
+// 恋人匹配 = #2 呼吸双球融合；朋友匹配 = #20 呼吸集群。
+// 点「开始匹配」前：浅灰静止（animation paused）；进入匹配中：荧光绿 + 动画。
+function renderMatchWaitAnim(active) {
+  const friend = (S.activeMatchMode || 'romantic') === 'friend';
+  const inner = friend
+    ? '<div class="l20"><i style="--a:0deg"></i><i style="--a:72deg"></i><i style="--a:144deg"></i><i style="--a:216deg"></i><i style="--a:288deg"></i></div>'
+    : '<div class="l2"><i></i><i></i></div>';
+  return `<div class="match-anim ${active ? 'match-anim--on' : ''}"><div class="match-anim-scale">${inner}</div></div>`;
 }
 
-const _TAU = Math.PI * 2;
-const _clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
-function _smooth(e0, e1, x) { const t = _clamp01((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); }
-function _radial(d, R, edge = 7) { return 1 - _smooth(R - edge, R + edge, d); }
-function _meta(dx, dy, cs) {
-  let s = 0;
-  for (const c of cs) { const ex = dx - c.x, ey = dy - c.y; s += (c.r * c.r) / (ex * ex + ey * ey + 0.01); }
-  return _smooth(0.8, 1.25, s);
-}
-const MATCH_LOADERS = {
-  // —— idle 组：呼吸/形变类 ——
-  blob: { field: (dx, dy, t) => { const a = Math.atan2(dy, dx), d = Math.hypot(dx, dy); const R = 44 + 7 * Math.sin(3 * a + t * 1.3) + 4 * Math.sin(2 * a - t); return _radial(d, R); } },
-  amoeba: { field: (dx, dy, t) => { const a = Math.atan2(dy, dx), d = Math.hypot(dx, dy); const R = 43 + 8 * Math.sin(5 * a - t) + 4 * Math.sin(3 * a + t * 1.3); return _radial(d, R); } },
-  spin: { field: (dx, dy, t) => { const a = Math.atan2(dy, dx), d = Math.hypot(dx, dy); const R = 44 + 6 * Math.sin(2 * a - t * 1.2) + 5 * Math.sin(4 * a + t * 0.7); return _radial(d, R); } },
-  squircle: { field: (dx, dy, t) => { const s = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(t * 1.8)), R = 46 * s; const f = Math.pow(Math.abs(dx) / R, 4) + Math.pow(Math.abs(dy) / R, 4); return 1 - _smooth(0.75, 1.2, f); } },
-  petals: { pre: t => { const c = [{ x: 0, y: 0, r: 11 }]; for (let k = 0; k < 6; k++) { const pa = k * Math.PI / 3; const dist = 16 + 18 * (0.5 + 0.5 * Math.sin(t * 1.6 - k * 0.55)); c.push({ x: dist * Math.cos(pa), y: dist * Math.sin(pa), r: 12 }); } return c; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-  yin: { pre: t => { const rot = t * 0.8; return [{ x: 20 * Math.cos(rot), y: 20 * Math.sin(rot), r: 21 }, { x: 20 * Math.cos(rot + Math.PI), y: 20 * Math.sin(rot + Math.PI), r: 21 }]; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-  // —— waiting 组：运动/进行中类 ——
-  orbit: { pre: t => { const c = []; for (let k = 0; k < 3; k++) { const a = t * 1.1 + k * 2.0944; c.push({ x: 34 * Math.cos(a), y: 34 * Math.sin(a), r: 15 }); } return c; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-  comet: { pre: t => { const c = []; for (let k = 0; k < 7; k++) { const a = t * 2.2 - k * 0.45; c.push({ x: 44 * Math.cos(a), y: 44 * Math.sin(a), r: 14 - k * 1.6 }); } return c; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-  rings: { field: (dx, dy, t) => { const d = Math.hypot(dx, dy); let best = 0; for (let k = 0; k < 3; k++) { const ph = ((t * 0.5 + k / 3) % 1 + 1) % 1, r = ph * 72, fade = Math.sin(ph * Math.PI); best = Math.max(best, (1 - _smooth(4, 9, Math.abs(d - r))) * fade); } return best; } },
-  lava: { pre: t => { const yA = -38 + 48 * Math.sin(t * 0.9), yB = 38 - 48 * Math.sin(t * 0.9); return [{ x: 0, y: yA, r: 22 }, { x: 0, y: yB, r: 22 }]; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-  mitosis: { pre: t => { const sep = Math.abs(Math.sin(t * 1.1)), d = sep * 30, r = 24 - 6 * sep; return [{ x: -d, y: 0, r }, { x: d, y: 0, r }]; }, field: (dx, dy, t, c) => _meta(dx, dy, c) },
-};
-const LOADER_POOLS = {
-  idle: ['blob', 'amoeba', 'spin', 'squircle', 'petals', 'yin'],
-  waiting: ['orbit', 'comet', 'rings', 'lava', 'mitosis'],
-};
-
-// 保留原函数名（调用点/清理路径不变）：mode = 'idle' | 'waiting'
-function startCampusAnim(mode) {
-  stopCampusAnim();
-  const cv = document.querySelector('#match-content .match-loader');
-  if (!cv) return;
-  const pool = LOADER_POOLS[mode === 'waiting' ? 'waiting' : 'idle'];
-  const cfg = MATCH_LOADERS[pool[Math.floor(Math.random() * pool.length)]];
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  const N = 168, SCALE = 200 / N;
-  cv.width = cv.height = Math.round(200 * DPR);
-  const off = document.createElement('canvas'); off.width = off.height = N;
-  const octx = off.getContext('2d');
-  const img = octx.createImageData(N, N);
-  const data = img.data;
-  const ink = document.documentElement.classList.contains('dark') ? [236, 236, 240] : [16, 19, 17];
-  for (let i = 0; i < N * N; i++) { data[i * 4] = ink[0]; data[i * 4 + 1] = ink[1]; data[i * 4 + 2] = ink[2]; data[i * 4 + 3] = 0; }
-  const ctx = cv.getContext('2d');
-  const TIME = 0.45;
-  const tick = (now) => {
-    if (!cv.isConnected) { stopCampusAnim(); return; }
-    const t = now / 1000 * TIME;
-    const state = cfg.pre ? cfg.pre(t) : null;
-    let p = 3;
-    for (let j = 0; j < N; j++) {
-      const dy = (j + 0.5) * SCALE - 100;
-      for (let i = 0; i < N; i++) {
-        const dx = (i + 0.5) * SCALE - 100;
-        const amt = cfg.field(dx, dy, t, state);
-        data[p] = amt <= 0 ? 0 : Math.min(255, (amt * 255) | 0);
-        p += 4;
-      }
-    }
-    octx.putImageData(img, 0, 0);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(off, 0, 0, cv.width, cv.height);
-    S.campusAnimTimer = requestAnimationFrame(tick);
-  };
-  S.campusAnimTimer = requestAnimationFrame(tick);
-}
+// 兼容旧调用点：CSS 动画无需 JS 驱动
+function startCampusAnim() {}
 window.startCampusAnim = startCampusAnim;
-
-function stopCampusAnim() {
-  if (S.campusAnimTimer) {
-    cancelAnimationFrame(S.campusAnimTimer);
-    S.campusAnimTimer = null;
-  }
-}
+function stopCampusAnim() {}
 window.stopCampusAnim = stopCampusAnim;
 window.stopCampusAnim = stopCampusAnim;
 
@@ -514,7 +444,7 @@ window.renderFriendCandidateCard = renderFriendCandidateCard;
 function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
-      ${renderMatchWaitAnim()}
+      ${renderMatchWaitAnim(true)}
       <div class="mt-6 flex flex-col items-center">
         <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-1.5">Matching in progress</h2>
         <p class="text-[11px] tracking-[0.12em] text-outline uppercase mb-1.5">Next cycle in</p>

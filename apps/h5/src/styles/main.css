@@ -833,8 +833,34 @@
       margin: 0 12px;
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
-    /* ---- match 等待动画画布（Organic Loaders 实心版）---- */
-    .match-loader { display: block; width: 200px; height: 200px; }
+    /* ---- match 等待动画（Organic Loaders 实心版）----
+       恋人 .l2 双球融合 / 朋友 .l20 呼吸集群；--ink 控色：
+       待机浅灰且暂停，.match-anim--on（匹配中）荧光绿 + 播放。 */
+    .match-anim {
+      width: 200px; height: 200px;
+      display: flex; align-items: center; justify-content: center;
+      --ink: #d6d6d6;
+    }
+    .match-anim--on { --ink: #CCFF00; }
+    .match-anim:not(.match-anim--on) * { animation-play-state: paused !important; }
+    .dark .match-anim { --ink: #3a3a42; }
+    .dark .match-anim--on { --ink: #CCFF00; }
+    .match-anim-scale { transform: scale(1.7); }
+    .l2 { width: 96px; height: 96px; filter: url(#goo); position: relative; }
+    .l2 i { position: absolute; width: 38px; height: 38px; background: var(--ink); border-radius: 50%; top: 29px; }
+    .l2 i:nth-child(1) { left: 8px; animation: l2a 2.4s ease-in-out infinite; }
+    .l2 i:nth-child(2) { right: 8px; animation: l2b 2.4s ease-in-out infinite; }
+    @keyframes l2a { 0%,100% { transform: translateX(18px) scale(.85); } 50% { transform: translateX(0) scale(1.1); } }
+    @keyframes l2b { 0%,100% { transform: translateX(-18px) scale(.85); } 50% { transform: translateX(0) scale(1.1); } }
+    .l20 { width: 96px; height: 96px; filter: url(#goo); animation: spinCCW 5s linear infinite; position: relative; }
+    .l20 i { position: absolute; inset: 0; margin: auto; width: 24px; height: 24px; background: var(--ink); border-radius: 50%; }
+    .l20 i:nth-child(1) { animation: cl20 2s ease-in-out infinite; }
+    .l20 i:nth-child(2) { animation: cl20 2s ease-in-out infinite .25s; }
+    .l20 i:nth-child(3) { animation: cl20 2s ease-in-out infinite .5s; }
+    .l20 i:nth-child(4) { animation: cl20 2s ease-in-out infinite .75s; }
+    .l20 i:nth-child(5) { animation: cl20 2s ease-in-out infinite 1s; }
+    @keyframes cl20 { 0%,100% { transform: rotate(var(--a)) translateY(8px); } 50% { transform: rotate(var(--a)) translateY(26px); } }
+    @keyframes spinCCW { to { transform: rotate(-360deg); } }
 
     
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
