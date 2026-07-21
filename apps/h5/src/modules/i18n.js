@@ -91,6 +91,56 @@ const ZH = {
   'University / School': '学校', City: '城市', Major: '专业', Nationality: '国籍',
   Gender: '性别', 'Looking For': '想认识', Birthday: '生日', 'Academic Year': '学业阶段',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
+  // ── 中文态补漏（本轮反馈）──
+  'Enter your academic credentials': '输入你的账号信息',
+  'Create your academic profile': '创建你的账号',
+  'Welcome Back': '欢迎回来', 'Academic Manifesto': '关于我',
+  'Your Academic Identity': '你的头像',
+  'By continuing, you agree to the Academic Code of Conduct.': '继续即表示你同意社区行为准则。',
+  Upload: '上传', Start: '开始', 'Maybe Later': '稍后再说',
+  'Complete Your Match Profile': '完善匹配资料',
+  'Complete a questionnaire to unlock that mode.': '完成问卷即可解锁对应模式的匹配。',
+  'Enter the matching pool to discover your intellectual companion.': '加入匹配池，遇见与你同频的人。',
+  'Enter the matching pool to discover up to 5 like-minded companions.': '加入匹配池，认识最多 5 位志同道合的朋友。',
+  'Matching in progress': '匹配进行中', 'Next cycle in': '距下轮公布',
+  'No suitable match this week. See you next Friday.': '本周暂无合适匹配，下周五见。',
+  'Both of you must tap "Confirm Partner" in chat within 48 hours': '48 小时内双方都在聊天中点「确认为恋人」即可',
+  'Both must tap "Confirm Friend" in chat within 48 hours': '48 小时内双方都点「确认为好友」即可',
+  '3 cells · refunded if no match': '3 格能量 · 未匹配到全额退回',
+  '1 cell per guaranteed match · refunded if short': '每保底 1 人 1 格 · 不足退回',
+  'Student Verification': '学生认证', 'Student ID Card': '学生卡',
+  'Tap to upload': '点击上传', 'School Email': '学校邮箱', 'Verification Code': '验证码',
+  'Send code': '发验证码', 'Submit for review': '提交审核',
+  'Upload a clear photo of your student ID — an admin will review it.': '上传清晰的学生卡照片，管理员将进行审核。',
+  Category: '类别', Description: '描述', 'Contact (optional)': '联系方式（选填）',
+  'App bug': '应用问题', 'Report a user': '举报用户', 'Inappropriate content': '不当内容', Other: '其他',
+  'Submit Report': '提交反馈',
+  'Questions, feedback or partnership inquiries:': '咨询、反馈或合作请联系：',
+  'Send Email': '发送邮件',
+  Today: '今天', Yesterday: '昨天', Earlier: '更早', 'Load More': '加载更多',
+  'Scan to connect instantly.': '扫一扫，立即互加。',
+  'Point at your friend\'s QR — or enter their code:': '对准好友的二维码，或输入 TA 的编号：',
+  'YOUR CODE': '你的编号', 'TICKET CODE': '票码',
+  'Cover Selection': '封面', Replace: '更换', Grade: '年级', School: '学校',
+  'Photo Portfolio': '照片集', 'Change Photo Portfolio': '管理照片集',
+  'Real name': '真实姓名',
+  '· up to 5 gifts you\'d love — shown to your partner': '· 最多 5 件想要的礼物，仅伴侣可见',
+  '· only shown to confirmed partners': '· 仅对确认的伴侣可见',
+  'Friend Candidates': '朋友候选',
+};
+
+// placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）
+const ZH_PLACEHOLDER = {
+  'Search posts': '搜索帖子', 'Type your response...': '输入消息…',
+  'Add an observation...': '写下你的评论…', 'Search your chats': '搜索会话',
+  'Title': '标题', 'Capture the moment...': '记录此刻…',
+  'Add new interest...': '添加兴趣…', 'e.g. Photography': '例如：摄影',
+  'The Scholar': '你的昵称', 'Given name (名)': '名', 'Family name (姓)': '姓',
+  'Anything else to help matching...': '还有什么想让匹配知道的…',
+  'Tell us what happened...': '告诉我们发生了什么…',
+  'Email or phone for follow-up': '便于回访的邮箱或电话',
+  'A short line about you': '一句话介绍自己',
+  'Enter your current password': '输入当前密码', 'At least 8 characters': '至少 8 位',
 };
 let observer = null;
 function getLang() {
@@ -125,7 +175,20 @@ function translateTree(root) {
     let n;
     while ((n = walker.nextNode())) nodes.push(n);
     nodes.forEach(translateTextNode);
+    translatePlaceholders(root);
   } catch (e) {}
+}
+
+// 输入框占位符翻译（属性不在文本节点机制内，单独处理）
+function translatePlaceholders(root) {
+  if (!root.querySelectorAll) return;
+  const els = [...root.querySelectorAll('input[placeholder], textarea[placeholder]')];
+  if (root.nodeType === 1 && root.hasAttribute('placeholder')) els.push(root);
+  els.forEach((el) => {
+    if (isInNoI18n(el)) return;
+    const p = el.getAttribute('placeholder');
+    if (p && ZH_PLACEHOLDER[p]) el.setAttribute('placeholder', ZH_PLACEHOLDER[p]);
+  });
 }
 function startI18n() {
   if (getLang() !== 'zh') return;

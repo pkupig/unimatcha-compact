@@ -804,7 +804,6 @@
           <div class="mb-3">
             <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Interest Priority</h2>
           </div>
-          <p class="font-body text-xs text-stone-500 mb-6">Pick up to 3 interests from your profile to prioritize when matching.</p>
           <div id="friend-priority-interests" class="flex flex-wrap gap-2"><!-- JS 从 profile 兴趣动态渲染 chip，onclick=toggleFriendPriorityInterest(value) --></div>
         </section>
       </div><!-- /#filter-friend-section -->
@@ -845,14 +844,12 @@
             <div class="flex justify-between items-center py-5 border-b border-stone-100">
               <div class="space-y-1">
                 <p class="font-headline font-bold text-sm tracking-tight">Only Same School</p>
-                <p class="font-body text-xs text-stone-500">Discover peers within your faculty</p>
               </div>
               <input id="filter-same-school" type="checkbox" class="ink-switch" />
             </div>
             <div class="flex justify-between items-center py-5 border-b border-stone-100">
               <div class="space-y-1">
                 <p class="font-headline font-bold text-sm tracking-tight">Same City</p>
-                <p class="font-body text-xs text-stone-500">Prioritize local campus connections</p>
               </div>
               <input id="filter-same-city" type="checkbox" class="ink-switch" />
             </div>
@@ -882,7 +879,7 @@
       </div>
       <!-- 匿名开关（§6.11 行2132 / 规则 7）：匿名仍标注学校 -->
       <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">
-        <span class="font-body text-sm text-on-surface">Post anonymously<span class="text-xs text-on-surface-variant ml-2">Shown as "Anonymous", school still labeled</span></span>
+        <span class="font-body text-sm text-on-surface">Post anonymously</span>
         <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
       </label>
       <!-- 校园墙投票（需审核）：开启后强制发到校园墙，填 2–6 个选项 -->
@@ -1213,7 +1210,7 @@
           <div id="addfriend-qr" class="w-[180px] h-[180px] bg-white rounded-[10px] border border-outline-variant/40 flex items-center justify-center overflow-hidden"></div>
           <p class="mt-3 text-[10px] tracking-widest text-outline">YOUR CODE</p>
           <p id="addfriend-mycode" class="font-mono text-sm font-bold tracking-widest text-on-surface select-all">—</p>
-          <p class="mt-3 text-[10px] text-outline text-center leading-relaxed">Let a friend scan this — or share the code — to connect and chat instantly.</p>
+          <p class="mt-3 text-[10px] text-outline text-center leading-relaxed">Scan to connect instantly.</p>
         </div>
         <div id="af-view-scan" class="hidden">
           <div id="addfriend-reader" class="w-full aspect-square bg-black/80 rounded-[10px] overflow-hidden mb-2"></div>
@@ -1516,14 +1513,14 @@
         <!-- 恋人增强：固定消耗 3 格能量（仅恋爱模式 match setting 显示，§本轮反馈3） -->
         <div id="romantic-enhance-item" class="match-setting-item border-b border-stone-100 pb-4">
           <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
-            <span class="font-body text-sm text-on-surface leading-relaxed">Romantic Enhance<span class="block text-xs text-stone-500 mt-0.5">Costs 3 energy cells. Prioritized matching with a guarantee — energy is refunded if no match this round.</span></span>
+            <span class="font-body text-sm text-on-surface leading-relaxed">Romantic Enhance<span class="block text-xs text-stone-500 mt-0.5">3 cells · refunded if no match</span></span>
             <input id="romantic-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('romantic')" />
           </label>
         </div>
         <!-- 朋友增强：1–5 格保底滑块（仅朋友模式 match setting 显示，§本轮反馈3） -->
         <div id="friend-enhance-item" class="match-setting-item pt-1">
           <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
-            <span class="font-body text-sm text-on-surface leading-relaxed">Friend Enhance<span class="block text-xs text-stone-500 mt-0.5">Guarantee N friend matches — energy is refunded if not enough this round.</span></span>
+            <span class="font-body text-sm text-on-surface leading-relaxed">Friend Enhance<span class="block text-xs text-stone-500 mt-0.5">1 cell per guaranteed match · refunded if short</span></span>
             <input id="friend-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('friend')" />
           </label>
           <div id="friend-cells-wrap" class="mt-5 hidden">
@@ -1635,7 +1632,7 @@
   <div class="w-full max-w-md bg-white shadow-2xl rounded-[10px] overflow-hidden">
     <header class="px-6 pt-7 pb-4 text-center">
       <h2 class="font-headline text-xl font-extrabold tracking-tight text-black">Complete Your Match Profile</h2>
-      <p class="mt-2 text-xs text-on-surface-variant tracking-wide leading-relaxed">Both questionnaires are optional. Complete one to unlock matching in that mode. Fill in just one, or do it later.</p>
+      <p class="mt-2 text-xs text-on-surface-variant tracking-wide leading-relaxed">Complete a questionnaire to unlock that mode.</p>
     </header>
     <div class="px-6 pb-6 space-y-3">
       <!-- 恋人问卷卡 -->
@@ -1644,7 +1641,6 @@
           <span class="material-symbols-outlined" style="font-size:22px;line-height:1">auto_awesome</span>
           <div class="min-w-0">
             <p class="font-headline font-bold text-sm tracking-tight text-black">Romantic Questionnaire</p>
-            <p class="text-[11px] text-on-surface-variant tracking-wide truncate">Build your profile for romantic matches</p>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -1658,7 +1654,6 @@
           <span class="material-symbols-outlined" style="font-size:22px;line-height:1">group</span>
           <div class="min-w-0">
             <p class="font-headline font-bold text-sm tracking-tight text-black">Friend Questionnaire</p>
-            <p class="text-[11px] text-on-surface-variant tracking-wide truncate">Build your profile for like-minded friends</p>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -1683,7 +1678,6 @@
       </button>
     </header>
     <div class="px-6 pb-2">
-      <p class="text-xs text-on-surface-variant tracking-wide mb-4 leading-relaxed">Energy powers Enhanced matching (Romantic: 3 cells flat / Friend: 1 cell per guaranteed match).</p>
       <!-- 三档卡片：cells / priceCny 由 JS 用 /energy/packages 回填，data-pkg 兜底默认档 -->
       <div id="energy-packages" class="grid grid-cols-3 gap-3">
         <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_30" data-cells="30" data-price="30" onclick="selectEnergyPackage('pkg_30', this)">
