@@ -837,7 +837,7 @@
        恋人 .l2 双球融合 / 朋友 .l20 呼吸集群；--ink 控色：
        待机浅灰且暂停，.match-anim--on（匹配中）荧光绿 + 播放。 */
     .match-anim {
-      width: 200px; height: 200px;
+      width: 160px; height: 160px;
       display: flex; align-items: center; justify-content: center;
       --ink: #d6d6d6;
     }
@@ -845,7 +845,6 @@
     .match-anim:not(.match-anim--on) * { animation-play-state: paused !important; }
     .dark .match-anim { --ink: #3a3a42; }
     .dark .match-anim--on { --ink: #CCFF00; }
-    .match-anim-scale { transform: scale(1.7); }
     .l2 { width: 96px; height: 96px; filter: url(#goo); position: relative; }
     .l2 i { position: absolute; width: 38px; height: 38px; background: var(--ink); border-radius: 50%; top: 29px; }
     .l2 i:nth-child(1) { left: 8px; animation: l2a 2.4s ease-in-out infinite; }

@@ -234,7 +234,7 @@ function renderMatchWaitAnim(active) {
   const inner = friend
     ? '<div class="l20"><i style="--a:0deg"></i><i style="--a:72deg"></i><i style="--a:144deg"></i><i style="--a:216deg"></i><i style="--a:288deg"></i></div>'
     : '<div class="l2"><i></i><i></i></div>';
-  return `<div class="match-anim ${active ? 'match-anim--on' : ''}"><div class="match-anim-scale">${inner}</div></div>`;
+  return `<div class="match-anim ${active ? 'match-anim--on' : ''}">${inner}</div>`;
 }
 
 // 兼容旧调用点：CSS 动画无需 JS 驱动
