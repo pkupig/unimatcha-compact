@@ -230,7 +230,7 @@ window.renderIdleMatch = renderIdleMatch;
 // 场函数取自 Organic Loaders 设计稿：每帧对 100×100 采样网格求场强 0..1，
 // 写入 alpha 通道后放大绘制，得到柔边实心墨色有机体。idle / waiting 各一组随机选。
 function renderMatchWaitAnim() {
-  return `<div class="relative w-56 h-56 flex items-center justify-center mx-auto"><canvas class="match-loader" width="200" height="200"></canvas></div>`;
+  return `<div class="relative w-52 h-52 flex items-center justify-center mx-auto"><canvas class="match-loader" width="200" height="200"></canvas></div>`;
 }
 
 const _TAU = Math.PI * 2;
@@ -269,7 +269,9 @@ function startCampusAnim(mode) {
   if (!cv) return;
   const pool = LOADER_POOLS[mode === 'waiting' ? 'waiting' : 'idle'];
   const cfg = MATCH_LOADERS[pool[Math.floor(Math.random() * pool.length)]];
-  const N = 100, SCALE = 200 / N;
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const N = 168, SCALE = 200 / N;
+  cv.width = cv.height = Math.round(200 * DPR);
   const off = document.createElement('canvas'); off.width = off.height = N;
   const octx = off.getContext('2d');
   const img = octx.createImageData(N, N);
@@ -293,9 +295,10 @@ function startCampusAnim(mode) {
       }
     }
     octx.putImageData(img, 0, 0);
-    ctx.clearRect(0, 0, 200, 200);
+    ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(off, 0, 0, 200, 200);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, cv.width, cv.height);
     S.campusAnimTimer = requestAnimationFrame(tick);
   };
   S.campusAnimTimer = requestAnimationFrame(tick);
