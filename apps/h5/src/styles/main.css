@@ -834,8 +834,8 @@
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
-    .match-anim { width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
-    .match-anim-frame { width: 160px; height: 160px; border: 0; pointer-events: none; background: transparent; }
+    .match-anim { width: 208px; height: 208px; display: flex; align-items: center; justify-content: center; }
+    .match-anim-frame { width: 192px; height: 192px; border: 0; pointer-events: none; background: transparent; }
 
 
     

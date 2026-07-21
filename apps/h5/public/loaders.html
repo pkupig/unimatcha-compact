@@ -8,7 +8,7 @@
      运动参数与原文件逐值一致；改用 SVG 原生圆 + goo 滤镜（HTML 元素上的
      CSS filter:url() 在 iOS/部分环境不生效，SVG 内滤镜全平台稳定），
      SMIL 驱动，run=0 时 pauseAnimations() 停在初始帧。 -->
-<svg id="stage" width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+<svg id="stage" width="192" height="192" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="goo">
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
