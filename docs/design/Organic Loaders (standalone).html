@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Organic Loaders</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #ffffff; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
+    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #ffffff; z-index: 9999; }
+    #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
+    #__bundler_placeholder { color: #999; font-size: 14px; }
+  </style>
+  <noscript>
+    <style>#__bundler_loading { display: none; }</style>
+    <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
+      This page requires JavaScript to display.
+    </div>
+  </noscript>
+</head>
+<body>
+  <div id="__bundler_thumbnail">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#0a0a0a" d="M600 240 C700 230 790 310 785 400 C780 495 700 565 600 560 C500 555 415 490 420 395 C425 305 500 250 600 240 Z"></path>
+  </svg>
+</div>
+  <div id="__bundler_loading">Unpacking...</div>
+
+  <script>
+    
+document.addEventListener('DOMContentLoaded', async function() {
+  const loading = document.getElementById('__bundler_loading');
+  function setStatus(msg) { if (loading) loading.textContent = msg; }
+
+  const FONT_MIME = /^(font[/]|application[/](x-)?font-|application[/]vnd\.ms-fontobject)/i;
+  const MIME_TOKEN = /^[\w.+-]+[/][\w.+-]+$/;
+  function toBase64(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin);
+  }
+
+  // Error sink persists across replaceWith since it's on window, not the DOM.
+  window.addEventListener('error', function(e) {
+    // Failed resource loads (CSP-blocked links, scripts, images) fire plain
+    // events at the element — warn only; real JS errors carry message/error.
+    if (!e.message && !e.error && e.target && e.target !== window) {
+      console.warn('[bundle] resource failed to load:',
+        e.target.tagName, String(e.target.src || e.target.href || ''));
+      return;
+    }
+    var p = document.body || document.documentElement;
+    var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
+    d.id = '__bundler_err';
+    d.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;border:1px solid #5c2b2e;z-index:99999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
+      '[bundle] ' + (e.message || e.type) +
+      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '');
+  }, true);
+
+  try {
+    const manifestEl = document.querySelector('script[type="__bundler/manifest"]');
+    const templateEl = document.querySelector('script[type="__bundler/template"]');
+    if (!manifestEl || !templateEl) {
+      setStatus('Error: missing bundle data');
+      console.error('[bundler] Missing script tags — manifestEl:', !!manifestEl, 'templateEl:', !!templateEl);
+      return;
+    }
+
+    const manifest = JSON.parse(manifestEl.textContent);
+    let template = JSON.parse(templateEl.textContent);
+
+    // Nested page bundles (iframe targets). Each ships ONCE, in the ROOT
+    // document's manifest; frame srcs carry an about:blank#<uuid> marker
+    // instead of a substitutable uuid. Every document mints the blobs for
+    // its OWN frames — from local text at the root, or text obtained from
+    // its DIRECT parent over the relay protocol below — so each frame
+    // navigation stays same-origin with its initiator and a deduped page
+    // loads at any depth on any host, including a file:// download's
+    // opaque origins (where a blob minted by one document cannot be
+    // navigated to by another).
+    const pageOrderEl = document.querySelector('script[type="__bundler/page_order"]');
+    const pageOrder = pageOrderEl ? JSON.parse(pageOrderEl.textContent) : [];
+    const pageSet = new Set(pageOrder);
+    const pageTexts = {};
+
+    // ── Nested-page text protocol (parent-chain relay) ──
+    // Page bundles ship once, in the ROOT document's manifest. Every
+    // document mints the blobs for its OWN frames, obtaining page text
+    // through a strict parent-chain relay: a document only ever SENDS to
+    // its direct parent (which, for every document the publisher's own
+    // runtime minted, is another publisher document) and only ACCEPTS
+    // text from that direct parent; requests from below are honored only
+    // for the document's own child frames, and the ROOT never sends
+    // upward at all. That last rule is load-bearing: the artifact host's
+    // frame-ancestors allows claude.ai (and friends) to frame an
+    // artifact, so window.top can be a FOREIGN document — a top-addressed
+    // protocol would hand page uuids to that ancestor and accept forged
+    // "page text" from it, minting attacker HTML as an artifact-origin
+    // blob document. The chain never touches the ancestor: requests stop
+    // at the root, replies are origin-addressed per hop (never '*' when
+    // an origin exists), and both directions are origin-gated (on https
+    // a foreign sender's origin can never equal this document's; in
+    // opaque contexts — file:// — everything serializes as 'null', where
+    // an embedded EXTERNAL frame still fails the gate by carrying its
+    // own real origin, and a sandboxed child of such a frame is excluded
+    // by the own-child-frames check plus uuid unguessability). Shape is
+    // deny-by-default: one request form, one reply form, no error
+    // replies.
+    // window.origin is the SERIALIZED SECURITY origin ('null' in opaque
+    // contexts such as a sandboxed preview iframe) — location.origin is
+    // computed from the URL and stays 'https://…' even when the document
+    // is sandboxed, which would misgate every opaque chain.
+    const OWN_TARGET = /^https?:[/][/]/.test(window.origin || '')
+      ? window.origin
+      : '*';
+    function trustedOrigin(e) {
+      if (e.origin === window.origin) return true; // https chains; opaque==opaque
+      // file:// trees: Chrome serializes the file document's origin as
+      // 'file://' while the blob: documents it mints serialize as 'null',
+      // so the two legitimate shapes can never string-match — accept the
+      // pair in both directions. https origins never serialize as either,
+      // and sender identity (own child frame / direct parent) is checked
+      // separately.
+      return (
+        (e.origin === 'null' &&
+          (window.origin === 'file://' ||
+            window.location.protocol === 'file:')) ||
+        (/^file:/.test(e.origin) && window.origin === 'null')
+      );
+    }
+    // Non-empty only in the root document (nested bundles ship an empty
+    // island), so it doubles as the root marker: the root answers from
+    // local text and treats a miss as authoritative — never relaying to
+    // its (possibly foreign) parent.
+    const isPageRoot = pageOrder.length > 0;
+    const blobUrls = {};
+    const resourceBlobs = {};
+    const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    const pendingFrames = {}; // uuid -> [{el, frag}] awaiting text for own frames
+    const pendingRelays = {}; // uuid -> [childWindow] awaiting text to pass down
+    function mountPage(el, frag, text) {
+      const pageBlob = new Blob([text], { type: 'text/html' });
+      const u = URL.createObjectURL(pageBlob);
+      resourceBlobs[u] = pageBlob;
+      el.src = u + frag;
+    }
+    function deliverPage(uuid, text) {
+      const frames = pendingFrames[uuid];
+      delete pendingFrames[uuid];
+      if (frames) for (const f of frames) mountPage(f.el, f.frag, text);
+      const relays = pendingRelays[uuid];
+      delete pendingRelays[uuid];
+      if (relays) {
+        for (const cw of relays) {
+          try { cw.postMessage({ __bundler_page: uuid, __bundler_text: text }, OWN_TARGET); } catch (err) { /* gone */ }
+        }
+      }
+    }
+    function ownFrameWindows() {
+      const out = [];
+      for (const f of Array.from(document.querySelectorAll('iframe'))) {
+        try { if (f.contentWindow) out.push(f.contentWindow); } catch (err) { /* detached */ }
+      }
+      return out;
+    }
+    window.addEventListener('message', function (e) {
+      const d = e.data;
+      if (!d || typeof d !== 'object' || !e.source) return;
+      // Origin gate first; the structural checks below (own-child-frames
+      // for requests, direct-parent + solicited-uuid for replies, the
+      // root's never-relay rule) are what hold in fully opaque chains
+      // where origin strings can't discriminate — a sandboxed root's
+      // FOREIGN wrapper still fails all three even though both serialize
+      // as real-vs-'null' rather than matching.
+      if (!trustedOrigin(e)) return;
+      if (typeof d.__bundler_need === 'string' && UUID_SHAPE.test(d.__bundler_need)) {
+        // Requests are honored only for this document's own child frames.
+        if (ownFrameWindows().indexOf(e.source) < 0) return;
+        const uuid = d.__bundler_need;
+        const text = pageTexts[uuid];
+        if (typeof text === 'string') {
+          try { e.source.postMessage({ __bundler_page: uuid, __bundler_text: text }, OWN_TARGET); } catch (err) { /* gone */ }
+          return;
+        }
+        if (isPageRoot || window.parent === window) return; // authoritative miss
+        const waiting = pendingRelays[uuid];
+        if (waiting) {
+          if (waiting.indexOf(e.source) < 0) waiting.push(e.source);
+          return;
+        }
+        // Never-answered uuids would otherwise accumulate forever under a
+        // request spray; past the cap (far above any real page count) new
+        // relays are dropped rather than remembered.
+        if (Object.keys(pendingRelays).length >= 128) return;
+        pendingRelays[uuid] = [e.source];
+        window.parent.postMessage({ __bundler_need: uuid }, OWN_TARGET);
+      } else if (
+        typeof d.__bundler_page === 'string' &&
+        UUID_SHAPE.test(d.__bundler_page) &&
+        typeof d.__bundler_text === 'string'
+      ) {
+        // The shape test is load-bearing beyond tidiness: the solicited
+        // check below uses the in operator, which matches prototype keys
+        // ('__proto__', 'constructor') — an unshaped key would reach
+        // deliverPage and throw, painting the error banner.
+        // Text is accepted only from the direct parent — the document
+        // that minted this one.
+        if (e.source !== window.parent || window.parent === window) return;
+        if (!(d.__bundler_page in pendingFrames) && !(d.__bundler_page in pendingRelays)) return;
+        deliverPage(d.__bundler_page, d.__bundler_text);
+      }
+    });
+
+    const uuids = Object.keys(manifest);
+    setStatus('Unpacking ' + uuids.length + ' assets...');
+
+    await Promise.all(uuids.map(async (uuid) => {
+      const entry = manifest[uuid];
+      try {
+        const binaryStr = atob(entry.data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        let finalBytes = bytes;
+        if (entry.compressed) {
+          if (typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('gzip');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            writer.write(bytes);
+            writer.close();
+            const chunks = [];
+            let totalLen = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+              totalLen += value.length;
+            }
+            finalBytes = new Uint8Array(totalLen);
+            let offset = 0;
+            for (const chunk of chunks) { finalBytes.set(chunk, offset); offset += chunk.length; }
+          } else {
+            console.warn('DecompressionStream not available, asset ' + uuid + ' may not render');
+          }
+        }
+
+        if (pageSet.has(uuid)) {
+          pageTexts[uuid] = new TextDecoder().decode(finalBytes);
+          return;
+        }
+        if (FONT_MIME.test(entry.mime) && MIME_TOKEN.test(entry.mime)) {
+          // Strict artifact hosts allow font-src data: but not blob:.
+          blobUrls[uuid] = 'data:' + entry.mime + ';base64,' +
+            (entry.compressed ? toBase64(finalBytes) : entry.data);
+        } else {
+          const blob = new Blob([finalBytes], { type: entry.mime });
+          blobUrls[uuid] = URL.createObjectURL(blob);
+          resourceBlobs[blobUrls[uuid]] = blob;
+        }
+      } catch (err) {
+        console.error('Failed to decode asset ' + uuid + ':', err);
+        const blob = new Blob([], { type: entry.mime });
+        blobUrls[uuid] = URL.createObjectURL(blob);
+        resourceBlobs[blobUrls[uuid]] = blob;
+      }
+    }));
+
+    const extResEl = document.querySelector('script[type="__bundler/ext_resources"]');
+    const extResources = extResEl ? JSON.parse(extResEl.textContent) : [];
+    const resourceMap = {};
+    for (const entry of extResources) {
+      if (blobUrls[entry.uuid]) resourceMap[entry.id] = blobUrls[entry.uuid];
+    }
+
+    // Artifact-host CSP (connect-src 'self') refuses fetch() of blob: URLs —
+    // consumers read these Blobs directly. Survives the swap like the error sink.
+    window.__resourceBlobs = resourceBlobs;
+
+    setStatus('Rendering...');
+    // Page uuids have no blob here — they ride inside about:blank#<uuid>
+    // frame markers the pass below resolves after the swap.
+    for (const uuid of uuids) {
+      if (pageSet.has(uuid)) continue;
+      template = template.split(uuid).join(blobUrls[uuid]);
+    }
+
+    // Strip integrity + crossorigin — blob URLs from a file:// document inherit
+    // a null origin, so crossorigin forces a CORS fetch that SRI then rejects.
+    // The manifest bytes are ours; SRI protects against CDN compromise, not this.
+    template = template.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '');
+
+    const resourceScript = '<script>window.__resources = ' +
+      JSON.stringify(resourceMap).replace(/<\//g, '<\\/') +
+      ';</' + 'script>';
+    // Inject after <head> so the DOCTYPE stays first; prepending the script
+    // would push the parser into quirks mode. DOMParser always emits a <head>
+    // (synthesizing one if the source HTML omitted it) but may carry
+    // attributes through, so match the full opening tag. slice() rather than
+    // replace() keeps us clear of $-pattern substitution in resourceScript.
+    const headOpen = template.match(/<head[^>]*>/i);
+    if (headOpen) {
+      const i = headOpen.index + headOpen[0].length;
+      template = template.slice(0, i) + resourceScript + template.slice(i);
+    }
+
+    // Parse the template and swap the root element. Scripts inserted via
+    // DOMParser/replaceWith are inert per spec — re-create each with
+    // createElement so they execute, awaiting onload for src scripts to
+    // preserve ordering (React before ReactDOM before Babel before text/babel).
+    const doc = new DOMParser().parseFromString(template, 'text/html');
+    document.documentElement.replaceWith(doc.documentElement);
+
+    // Resolve page-frame markers: mint this document's own blob for each
+    // framed page — from local text when this is the root, otherwise by
+    // asking the direct parent over the relay protocol above. An
+    // unanswered request leaves the frame on about:blank, the same
+    // degraded state as a refused embed.
+    {
+      const MARKER = /^about:blank#([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(#.*)?$/;
+      const needed = [];
+      for (const el of Array.from(document.querySelectorAll('iframe'))) {
+        const m = MARKER.exec(el.getAttribute('src') || '');
+        if (!m) continue;
+        const text = pageTexts[m[1]];
+        if (typeof text === 'string') {
+          mountPage(el, m[2] || '', text);
+        } else if (window.parent !== window && !isPageRoot) {
+          const had = pendingFrames[m[1]];
+          (pendingFrames[m[1]] = had || []).push({ el: el, frag: m[2] || '' });
+          if (!had) needed.push(m[1]);
+        }
+      }
+      for (const uuid of needed) {
+        window.parent.postMessage({ __bundler_need: uuid }, OWN_TARGET);
+      }
+    }
+
+    const dead = Array.from(document.scripts);
+    for (const old of dead) {
+      const s = document.createElement('script');
+      for (const a of old.attributes) s.setAttribute(a.name, a.value);
+      s.textContent = old.textContent;
+      // text/babel scripts with a src: read and inline. transformScriptTags
+      // does XHR against the src, but blob:null/ from a file:// origin is
+      // silently dropped. Inlining makes it a plain inline babel script,
+      // which transformScriptTags handles unconditionally.
+      if ((s.type === 'text/babel' || s.type === 'text/jsx') && s.src) {
+        const pre = resourceBlobs[s.src.split('#')[0]];
+        s.textContent = pre ? await pre.text() : await (await fetch(s.src)).text();
+        s.removeAttribute('src');
+      }
+      const p = s.src ? new Promise(function(r) { s.onload = s.onerror = r; }) : null;
+      old.replaceWith(s);
+      if (p) await p;
+    }
+    // Babel standalone auto-transforms type=text/babel on DOMContentLoaded,
+    // which fired before we swapped the document. Trigger manually if present.
+    if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
+      window.Babel.transformScriptTags();
+    }
+  } catch (err) {
+    setStatus('Error unpacking: ' + err.message);
+    console.error('Bundle unpack error:', err);
+  }
+});
+
+  </script>
+
+  <script type="__bundler/manifest">
+{}
+  </script>
+
+  <script type="__bundler/ext_resources">
+[]
+  </script>
+
+  <script type="__bundler/page_order">
+[]
+  </script>
+
+  <script type="__bundler/template">
+"<!DOCTYPE html>\n<html lang=\"en\"><head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Organic Loaders<\u002Ftitle>\n<style>\n  :root { --ink: #0a0a0a; --paper: #ffffff; }\n  * { box-sizing: border-box; }\n  html, body { margin: 0; background: var(--paper); color: var(--ink); }\n  body {\n    font-family: ui-sans-serif, system-ui, sans-serif;\n    -webkit-font-smoothing: antialiased;\n    padding: 48px;\n    min-height: 100vh;\n  }\n  .nav { width: fit-content; margin: 0 auto 18px; display: flex; gap: 16px; }\n  .nav a { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #999; text-decoration: none; }\n  .nav a.on { color: var(--ink); }\n  .nav a:hover { color: var(--ink); }\n  .grid {\n    display: grid;\n    grid-template-columns: repeat(auto-fill, 200px);\n    gap: 1px;\n    background: #ececec;\n    border: 1px solid #ececec;\n    justify-content: center;\n    margin: 0 auto;\n  }\n  .cell {\n    width: 200px;\n    height: 200px;\n    background: var(--paper);\n    display: grid;\n    place-items: center;\n    position: relative;\n    overflow: hidden;\n  }\n  .stage { width: 96px; height: 96px; display: grid; place-items: center; position: relative; }\n  svg { display: block; overflow: visible; }\n\n  /* ============ 1. Morphing blob ============ */\n  .l1 {\n    width: 78px; height: 78px; background: var(--ink);\n    animation: l1morph 4s ease-in-out infinite, l1spin 9s linear infinite;\n  }\n  @keyframes l1morph {\n    0%,100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }\n    34%     { border-radius: 72% 28% 38% 62% / 30% 65% 35% 70%; }\n    67%     { border-radius: 34% 66% 56% 44% / 68% 40% 60% 32%; }\n  }\n  @keyframes l1spin { to { transform: rotate(360deg); } }\n\n  /* ============ 2. Breathing metaball pair ============ */\n  .l2 { width: 96px; height: 96px; filter: url(#goo); position: relative; }\n  .l2 i { position: absolute; width: 38px; height: 38px; background: var(--ink); border-radius: 50%; top: 29px; }\n  .l2 i:nth-child(1) { left: 8px; animation: l2a 2.4s ease-in-out infinite; }\n  .l2 i:nth-child(2) { right: 8px; animation: l2b 2.4s ease-in-out infinite; }\n  @keyframes l2a { 0%,100% { transform: translateX(18px) scale(.85); } 50% { transform: translateX(0) scale(1.1); } }\n  @keyframes l2b { 0%,100% { transform: translateX(-18px) scale(.85); } 50% { transform: translateX(0) scale(1.1); } }\n\n  /* ============ 3. Orbiting gooey dots ============ */\n  .l3 { width: 96px; height: 96px; filter: url(#goo); animation: spinCW 2.6s linear infinite; }\n  .l3 i { position: absolute; width: 30px; height: 30px; background: var(--ink); border-radius: 50%; }\n  .l3 i:nth-child(1) { top: 4px; left: 33px; }\n  .l3 i:nth-child(2) { bottom: 6px; left: 8px; }\n  .l3 i:nth-child(3) { bottom: 6px; right: 8px; }\n  @keyframes spinCW { to { transform: rotate(360deg); } }\n\n  /* ============ 5. Jelly squish ============ */\n  .l5 { width: 76px; height: 76px; background: var(--ink); border-radius: 46% 54% 52% 48% / 52% 48% 52% 48%; animation: l5 1.8s cubic-bezier(.5,0,.5,1) infinite; }\n  @keyframes l5 {\n    0%,100% { transform: scale(1,1); }\n    30%     { transform: scale(1.15,.82) translateY(6px); }\n    55%     { transform: scale(.86,1.16) translateY(-6px); }\n    75%     { transform: scale(1.06,.94); }\n  }\n\n  /* ============ 6. Mitosis ============ */\n  .l6 { width: 96px; height: 60px; filter: url(#goo); position: relative; }\n  .l6 i { position: absolute; top: 11px; left: 33px; width: 38px; height: 38px; background: var(--ink); border-radius: 50%; }\n  .l6 i:nth-child(1) { animation: l6a 2.2s ease-in-out infinite; }\n  .l6 i:nth-child(2) { animation: l6b 2.2s ease-in-out infinite; }\n  @keyframes l6a { 0%,100% { transform: translateX(0) scale(1); } 50% { transform: translateX(-22px) scale(.82); } }\n  @keyframes l6b { 0%,100% { transform: translateX(0) scale(1); } 50% { transform: translateX(22px) scale(.82); } }\n\n  /* ============ 9. Trefoil blob spin ============ */\n  .l9 { width: 80px; height: 80px; background: var(--ink); animation: l9morph 3s ease-in-out infinite, spinCW 6s linear infinite; }\n  @keyframes l9morph {\n    0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }\n    50%     { border-radius: 30% 70% 70% 30% / 30% 52% 48% 70%; }\n  }\n\n  /* ============ 10. Pulsing blob rings ============ */\n  .l10 { position: relative; width: 96px; height: 96px; }\n  .l10 i { position: absolute; inset: 0; margin: auto; width: 30px; height: 30px; background: var(--ink); border-radius: 42% 58% 55% 45% / 48% 52% 48% 52%; animation: l10 2.4s ease-out infinite; }\n  .l10 i:nth-child(2) { animation-delay: .8s; }\n  .l10 i:nth-child(3) { animation-delay: 1.6s; }\n  @keyframes l10 {\n    0%   { transform: scale(.3) rotate(0deg); opacity: 1; }\n    100% { transform: scale(2.4) rotate(160deg); opacity: 0; }\n  }\n\n  /* ============ 13. Bounce blob ============ */\n  .l13 { position: relative; width: 60px; height: 96px; }\n  .l13 i { position: absolute; top: 0; left: 6px; width: 48px; height: 48px; background: var(--ink); border-radius: 50%; animation: l13 1.3s cubic-bezier(.7,0,.3,1) infinite; }\n  @keyframes l13 {\n    0%,100% { transform: translateY(0) scale(1,1); }\n    45%     { transform: translateY(44px) scale(1.18,.82); }\n    50%     { transform: translateY(46px) scale(1.22,.78); }\n    55%     { transform: translateY(44px) scale(1.18,.82); }\n  }\n\n  /* ============ 15. Gooey comet spinner ============ */\n  .l15 { width: 96px; height: 96px; filter: url(#goo); animation: spinCW 1.6s linear infinite; }\n  .l15 i { position: absolute; top: 4px; left: 35px; width: 26px; height: 26px; background: var(--ink); border-radius: 50%; transform-origin: 13px 44px; }\n  .l15 i:nth-child(1) { opacity: 1; }\n  .l15 i:nth-child(2) { transform: rotate(-26deg) scale(.8); }\n  .l15 i:nth-child(3) { transform: rotate(-52deg) scale(.6); }\n  .l15 i:nth-child(4) { transform: rotate(-78deg) scale(.42); }\n\n  /* ============ 17. Radial petals (gooey) ============ */\n  .l17 { width: 96px; height: 96px; filter: url(#goo); }\n  .l17 i { position: absolute; inset: 0; margin: auto; width: 26px; height: 26px; background: var(--ink); border-radius: 50%; }\n  .l17 i:nth-child(1) { animation: pet 1.8s ease-in-out infinite; transform: rotate(0deg) translateY(-26px); }\n  .l17 i:nth-child(2) { animation: pet 1.8s ease-in-out infinite .3s; }\n  .l17 i:nth-child(3) { animation: pet 1.8s ease-in-out infinite .6s; }\n  .l17 i:nth-child(4) { animation: pet 1.8s ease-in-out infinite .9s; }\n  .l17 i:nth-child(5) { animation: pet 1.8s ease-in-out infinite 1.2s; }\n  .l17 i:nth-child(6) { animation: pet 1.8s ease-in-out infinite 1.5s; }\n  @keyframes pet { 0%,100% { transform: rotate(var(--a)) translateY(-14px) scale(.5); } 50% { transform: rotate(var(--a)) translateY(-30px) scale(1); } }\n\n  /* ============ 19. Interlocking yin blobs ============ */\n  .l19 { width: 90px; height: 90px; filter: url(#goo); animation: spinCW 3s ease-in-out infinite; position: relative; }\n  .l19 i { position: absolute; width: 44px; height: 44px; background: var(--ink); border-radius: 50%; top: 23px; }\n  .l19 i:nth-child(1) { left: 8px; animation: l19a 2.4s ease-in-out infinite; }\n  .l19 i:nth-child(2) { right: 8px; animation: l19b 2.4s ease-in-out infinite; }\n  @keyframes l19a { 0%,100% { transform: scale(1); } 50% { transform: scale(.6) translateX(20px); } }\n  @keyframes l19b { 0%,100% { transform: scale(.6) translateX(-20px); } 50% { transform: scale(1); } }\n\n  /* ============ 20. Breathing cluster ============ */\n  .l20 { width: 96px; height: 96px; filter: url(#goo); animation: spinCCW 5s linear infinite; }\n  .l20 i { position: absolute; inset: 0; margin: auto; width: 24px; height: 24px; background: var(--ink); border-radius: 50%; }\n  .l20 i:nth-child(1) { animation: cl 2s ease-in-out infinite; }\n  .l20 i:nth-child(2) { animation: cl 2s ease-in-out infinite .25s; }\n  .l20 i:nth-child(3) { animation: cl 2s ease-in-out infinite .5s; }\n  .l20 i:nth-child(4) { animation: cl 2s ease-in-out infinite .75s; }\n  .l20 i:nth-child(5) { animation: cl 2s ease-in-out infinite 1s; }\n  @keyframes cl { 0%,100% { transform: rotate(var(--a)) translateY(8px); } 50% { transform: rotate(var(--a)) translateY(26px); } }\n  @keyframes spinCCW { to { transform: rotate(-360deg); } }\n\n<\u002Fstyle>\n<\u002Fhead>\n<body>\n\n<!-- shared SVG filters -->\n<svg width=\"0\" height=\"0\" style=\"position:absolute\">\n  <defs>\n    <filter id=\"goo\">\n      <feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"6\" result=\"blur\"><\u002FfeGaussianBlur>\n      <feColorMatrix in=\"blur\" mode=\"matrix\" values=\"1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9\" result=\"goo\"><\u002FfeColorMatrix>\n      <feComposite in=\"SourceGraphic\" in2=\"goo\" operator=\"atop\"><\u002FfeComposite>\n    <\u002Ffilter>\n    <filter id=\"wobble\">\n      <feTurbulence type=\"fractalNoise\" baseFrequency=\"0.012 0.018\" numOctaves=\"2\" seed=\"3\" result=\"n\">\n        <animate attributeName=\"seed\" values=\"1;2;3;4;5;6;7;8;1\" dur=\"3s\" repeatCount=\"indefinite\"><\u002Fanimate>\n      <\u002FfeTurbulence>\n      <feDisplacementMap in=\"SourceGraphic\" in2=\"n\" scale=\"14\"><\u002FfeDisplacementMap>\n    <\u002Ffilter>\n    <filter id=\"wobble2\">\n      <feTurbulence type=\"fractalNoise\" baseFrequency=\"0.02\" numOctaves=\"2\" seed=\"7\" result=\"n\">\n        <animate attributeName=\"baseFrequency\" values=\"0.02;0.045;0.02\" dur=\"4s\" repeatCount=\"indefinite\"><\u002Fanimate>\n      <\u002FfeTurbulence>\n      <feDisplacementMap in=\"SourceGraphic\" in2=\"n\" scale=\"20\"><\u002FfeDisplacementMap>\n    <\u002Ffilter>\n  <\u002Fdefs>\n<\u002Fsvg>\n\n\n\n<div class=\"nav\">\n  <a href=\"Organic Loaders.html\" class=\"on\">Solid<\u002Fa>\n  <a href=\"Organic Loaders — Particles.html\">Particles<\u002Fa>\n<\u002Fdiv>\n\n<div class=\"grid\" id=\"grid\"><\u002Fdiv>\n\n<script>\nconst grid = document.getElementById('grid');\n\n// Helper to make a cell with arbitrary inner HTML\nfunction cell(inner) {\n  const c = document.createElement('div');\n  c.className = 'cell';\n  const s = document.createElement('div');\n  s.className = 'stage';\n  s.innerHTML = inner;\n  c.appendChild(s);\n  grid.appendChild(c);\n  return s;\n}\n\n// 1 morphing blob\ncell('<div class=\"l1\"><\u002Fdiv>');\n\n// 2 breathing metaball pair\ncell('<div class=\"l2\"><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 3 orbiting gooey dots\ncell('<div class=\"l3\"><i><\u002Fi><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 4 amoeba path morph (SMIL)\ncell(`<svg width=\"96\" height=\"96\" viewBox=\"0 0 100 100\">\n  <path fill=\"#0a0a0a\" d=\"M50 12 C72 12 88 28 88 50 C88 72 72 88 50 88 C28 88 12 72 12 50 C12 28 28 12 50 12 Z\">\n    <animate attributeName=\"d\" dur=\"4s\" repeatCount=\"indefinite\"\n      values=\"M50 14 C70 12 86 30 86 50 C86 72 72 86 50 86 C28 86 14 72 14 50 C14 28 30 16 50 14 Z;\n              M52 16 C76 18 84 34 82 54 C80 76 66 84 46 86 C26 88 16 70 16 48 C16 26 28 14 52 16 Z;\n              M48 14 C72 10 88 26 86 48 C84 70 74 88 50 86 C30 84 12 74 14 50 C16 28 24 18 48 14 Z;\n              M50 14 C70 12 86 30 86 50 C86 72 72 86 50 86 C28 86 14 72 14 50 C14 28 30 16 50 14 Z\"\n      calcMode=\"spline\" keyTimes=\"0;0.34;0.67;1\" keySplines=\"0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1\"/>\n  <\u002Fpath>\n<\u002Fsvg>`);\n\n// 5 jelly squish\ncell('<div class=\"l5\"><\u002Fdiv>');\n\n// 6 mitosis\ncell('<div class=\"l6\"><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 7 turbulence wobble circle\ncell(`<svg width=\"96\" height=\"96\" viewBox=\"0 0 100 100\">\n  <circle cx=\"50\" cy=\"50\" r=\"34\" fill=\"#0a0a0a\" filter=\"url(#wobble)\"/>\n<\u002Fsvg>`);\n\n// 8 liquid wave fill in blob\ncell(`<svg width=\"96\" height=\"96\" viewBox=\"0 0 100 100\">\n  <defs><clipPath id=\"c8\"><circle cx=\"50\" cy=\"50\" r=\"40\"/><\u002FclipPath><\u002Fdefs>\n  <circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"none\" stroke=\"#0a0a0a\" stroke-width=\"3\"/>\n  <g clip-path=\"url(#c8)\">\n    <path fill=\"#0a0a0a\" d=\"M-50 55 q25 -12 50 0 t50 0 t50 0 t50 0 v60 h-250 Z\">\n      <animateTransform attributeName=\"transform\" type=\"translate\" dur=\"2.2s\" repeatCount=\"indefinite\" values=\"0 0; 50 0\"/>\n      <animate attributeName=\"d\" dur=\"3s\" repeatCount=\"indefinite\"\n        values=\"M-50 55 q25 -12 50 0 t50 0 t50 0 t50 0 v60 h-250 Z;\n                M-50 50 q25 12 50 0 t50 0 t50 0 t50 0 v60 h-250 Z;\n                M-50 55 q25 -12 50 0 t50 0 t50 0 t50 0 v60 h-250 Z\"/>\n    <\u002Fpath>\n  <\u002Fg>\n<\u002Fsvg>`);\n\n// 9 trefoil blob spin\ncell('<div class=\"l9\"><\u002Fdiv>');\n\n// 10 pulsing blob rings\ncell('<div class=\"l10\"><i><\u002Fi><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 11 gooey worm trail\ncell(`<div style=\"width:96px;height:96px;filter:url(#goo);position:relative\" id=\"worm\"><\u002Fdiv>`);\n\n// 12 inkblot grow (turbulence + scale)\ncell(`<svg width=\"96\" height=\"96\" viewBox=\"0 0 100 100\">\n  <circle cx=\"50\" cy=\"50\" r=\"30\" fill=\"#0a0a0a\" filter=\"url(#wobble2)\">\n    <animate attributeName=\"r\" values=\"6;38;6\" dur=\"2.6s\" repeatCount=\"indefinite\" calcMode=\"spline\" keyTimes=\"0;0.5;1\" keySplines=\"0.4 0 0.6 1;0.4 0 0.6 1\"/>\n  <\u002Fcircle>\n<\u002Fsvg>`);\n\n// 13 bounce blob\ncell('<div class=\"l13\"><i><\u002Fi><\u002Fdiv>');\n\n// 14 superellipse pulse (path morph squircle)\ncell(`<svg width=\"96\" height=\"96\" viewBox=\"0 0 100 100\">\n  <path fill=\"#0a0a0a\" d=\"M50 14 C76 14 86 24 86 50 C86 76 76 86 50 86 C24 86 14 76 14 50 C14 24 24 14 50 14Z\">\n    <animate attributeName=\"d\" dur=\"2.4s\" repeatCount=\"indefinite\"\n      values=\"M50 14 C76 14 86 24 86 50 C86 76 76 86 50 86 C24 86 14 76 14 50 C14 24 24 14 50 14Z;\n              M50 26 C66 26 74 34 74 50 C74 66 66 74 50 74 C34 74 26 66 26 50 C26 34 34 26 50 26Z;\n              M50 14 C76 14 86 24 86 50 C86 76 76 86 50 86 C24 86 14 76 14 50 C14 24 24 14 50 14Z\"\n      calcMode=\"spline\" keyTimes=\"0;0.5;1\" keySplines=\"0.45 0 0.55 1;0.45 0 0.55 1\"/>\n  <\u002Fpath>\n<\u002Fsvg>`);\n\n// 15 gooey comet spinner\ncell('<div class=\"l15\"><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 16 two-blob lava (vertical gooey)\ncell(`<div style=\"width:70px;height:96px;filter:url(#goo);position:relative\">\n  <i style=\"position:absolute;left:14px;width:42px;height:42px;background:#0a0a0a;border-radius:50%;animation:lavaA 3.4s ease-in-out infinite\"><\u002Fi>\n  <i style=\"position:absolute;left:14px;width:42px;height:42px;background:#0a0a0a;border-radius:50%;animation:lavaB 3.4s ease-in-out infinite\"><\u002Fi>\n<\u002Fdiv>`);\n\n// 17 radial petals\n{\n  const s = cell('<div class=\"l17\"><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n  s.querySelectorAll('.l17 i').forEach((el,k)=> el.style.setProperty('--a', (k*60)+'deg'));\n}\n\n// 18 dripping blob (gooey drop)\ncell(`<div style=\"width:70px;height:96px;filter:url(#goo);position:relative\">\n  <i style=\"position:absolute;left:11px;top:8px;width:48px;height:40px;background:#0a0a0a;border-radius:46% 54% 60% 40% / 60% 60% 40% 40%\"><\u002Fi>\n  <i style=\"position:absolute;left:27px;top:38px;width:16px;height:16px;background:#0a0a0a;border-radius:50%;animation:drip 2.4s ease-in infinite\"><\u002Fi>\n<\u002Fdiv>`);\n\n// 19 interlocking yin blobs\ncell('<div class=\"l19\"><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n\n// 20 breathing cluster\n{\n  const s = cell('<div class=\"l20\"><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><i><\u002Fi><\u002Fdiv>');\n  s.querySelectorAll('.l20 i').forEach((el,k)=> el.style.setProperty('--a', (k*72)+'deg'));\n}\n\n// build worm (11): 6 trailing dots following a sine path\n(function(){\n  const host = document.getElementById('worm');\n  const N = 6;\n  const dots = [];\n  for (let i=0;i<N;i++){\n    const d = document.createElement('i');\n    const sz = 30 - i*3;\n    d.style.cssText = `position:absolute;width:${sz}px;height:${sz}px;background:#0a0a0a;border-radius:50%`;\n    host.appendChild(d); dots.push(d);\n  }\n  let t = 0;\n  function frame(){\n    t += 0.03;\n    for (let i=0;i<N;i++){\n      const tt = t - i*0.28;\n      const cx = 48 + 30*Math.cos(tt);\n      const cy = 48 + 24*Math.sin(tt*1.6);\n      const sz = parseFloat(dots[i].style.width);\n      dots[i].style.left = (cx - sz/2) + 'px';\n      dots[i].style.top  = (cy - sz/2) + 'px';\n    }\n    requestAnimationFrame(frame);\n  }\n  frame();\n})();\n\n// extra keyframes injected for lava + drip\nconst extra = document.createElement('style');\nextra.textContent = `\n  @keyframes lavaA { 0%,100% { transform: translateY(48px) scale(.9); } 50% { transform: translateY(4px) scale(1.05); } }\n  @keyframes lavaB { 0%,100% { transform: translateY(4px) scale(1.05); } 50% { transform: translateY(48px) scale(.9); } }\n  @keyframes drip { 0%,15% { transform: translateY(0) scale(.4); } 55% { transform: translateY(34px) scale(1); } 80%,100% { transform: translateY(52px) scale(0); } }\n`;\ndocument.head.appendChild(extra);\n<\u002Fscript>\n\n\n<\u002Fbody><\u002Fhtml>"
+  </script>
+</body>
+</html>
