@@ -549,7 +549,7 @@ window.openChat = openChat;
 
 // #3a：聊天头部头像点击 → 查看对方公开资料
 function openChatPartnerProfile() {
-  if (S.chatPartnerId) window.viewPartnerProfile(S.chatPartnerId);
+  if (S.chatPartnerId) window.viewPartnerProfile(S.chatPartnerId, S.chatMatchId);
 }
 window.openChatPartnerProfile = openChatPartnerProfile;
 

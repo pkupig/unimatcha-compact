@@ -326,6 +326,7 @@ function renderRomanticMatchTab(container, data) {
         </div>
       </div>`;
     startRemainingTick(m.remainingMs);
+    reportMatchEvent(matchId, 'viewed'); // P1-6：看到本周匹配卡
     return;
   }
 
@@ -393,6 +394,7 @@ function renderFriendMatchTab(container, data) {
       </div>`;
     // 临时候选带 48h 倒计时：用统一 ticker 刷新所有 .friend-remaining 节点
     startFriendRemainingTick(matches);
+    matches.slice(0, 5).forEach((c) => reportMatchEvent(c.matchId, 'viewed')); // P1-6
     return;
   }
 
@@ -764,10 +766,26 @@ function startMatchPolling() {
 window.startMatchPolling = startMatchPolling;
 
 // ========================================
+// 行为埋点（P1-6）：viewed=看到匹配卡；openedProfile=打开对方资料。
+// 服务端按 (matchId, actorId, type) 去重，这里再做会话内去重省请求。
+// ========================================
+const reportedMatchEvents = new Set();
+function reportMatchEvent(matchId, type) {
+  if (!matchId) return;
+  const key = matchId + ':' + type;
+  if (reportedMatchEvents.has(key)) return;
+  reportedMatchEvents.add(key);
+  window.api('/matching/feedback/events', 'POST', { events: [{ matchId, type }] })
+    .catch(() => reportedMatchEvents.delete(key)); // 失败允许下次重试
+}
+window.reportMatchEvent = reportMatchEvent;
+
+// ========================================
 // PARTNER PROFILE
 // ========================================
-async function viewPartnerProfile(userId) {
+async function viewPartnerProfile(userId, matchId) {
   S.viewingProfileId = userId; // #3b：备注按钮用它
+  if (matchId) reportMatchEvent(matchId, 'openedProfile');
   window.openOverlay('partner-profile-overlay');
   try {
     const data = await window.api(`/users/${userId}/public-profile`);
