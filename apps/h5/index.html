@@ -281,7 +281,7 @@
   <div id="page-profile-setup" class="page">
     <!-- TopAppBar -->
     <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center">
         <button class="p-2 -ml-2 hover:bg-surface-container-low transition-colors active:scale-95 duration-150" onclick="showPage('page-auth')">
           <span class="material-symbols-outlined text-on-surface">arrow_back</span>
         </button>
@@ -692,7 +692,7 @@
           </button>
           <!-- My Tickets（票夹：活动门票 + 二维码） -->
           <button onclick="openTickets()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center">
               <span class="material-symbols-outlined text-on-surface">confirmation_number</span>
               <span class="text-sm font-medium tracking-wide">My Tickets</span>
             </div>
@@ -700,7 +700,7 @@
           </button>
           <!-- Edit Profile -->
           <button onclick="openEditProfile()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center">
               <span class="material-symbols-outlined text-on-surface">person_outline</span>
               <span class="text-sm font-medium tracking-wide">Edit Profile</span>
             </div>
@@ -708,7 +708,7 @@
           </button>
           <!-- Contact Us -->
           <button onclick="openContactUs()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center">
               <span class="material-symbols-outlined text-on-surface">mail_outline</span>
               <span class="text-sm font-medium tracking-wide">Contact Us</span>
             </div>
@@ -716,7 +716,7 @@
           </button>
           <!-- Settings -->
           <button onclick="openSettings()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center">
               <span class="material-symbols-outlined text-on-surface">settings</span>
               <span class="text-sm font-medium tracking-wide">Settings</span>
             </div>
@@ -915,7 +915,7 @@
 <!-- Post Detail Overlay -->
 <div id="post-detail-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center px-6 h-16 w-full max-w-none">
-    <div class="flex items-center gap-4">
+    <div class="flex items-center">
       <button class="flex items-center gap-3 group" onclick="closePostDetail()">
         <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
         <h1 class="font-headline font-bold tracking-[0.15em] text-on-surface text-[10px] mt-0.5">Post</h1>
@@ -930,7 +930,7 @@
           <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
           <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center">
           <div class="flex-1 border-b border-outline focus-within:border-primary transition-colors py-2">
             <input id="comment-input" class="w-full bg-transparent border-none p-0 focus:ring-0 placeholder:text-outline-variant text-sm font-body" placeholder="Add an observation..." type="text"/>
           </div>
@@ -947,7 +947,7 @@
   <div id="chat-bg" class="absolute z-0 bg-cover bg-center pointer-events-none" style="display:none;top:-30px;left:-30px;right:-30px;bottom:-30px;filter:blur(9px) brightness(0.93);"></div>
   <header class="bg-surface/80 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-outline-variant/20">
     <div class="flex justify-between items-center px-6 h-16 w-full">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center">
         <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity" onclick="closeChat()">arrow_back</span>
         <div class="flex items-center gap-3">
           <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-8 h-8 rounded-full object-cover cursor-pointer" src=""/>
@@ -1277,7 +1277,7 @@
 <div id="settings-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
     <div class="flex justify-between items-center px-6 h-16 w-full">
-      <div class="flex items-center gap-4">
+      <div class="flex items-center">
         <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="hideOverlay('settings-overlay')">arrow_back</span>
         <h1 class="text-on-surface font-headline text-xl font-bold tracking-tight">Settings</h1>
       </div>
@@ -1315,7 +1315,7 @@
       </div>
       <div class="space-y-0">
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="toggleLang()">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">translate</span>
             <div class="flex flex-col">
               <span class="text-on-surface text-sm font-medium tracking-wide">Language</span>
@@ -1326,7 +1326,7 @@
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="toggleDarkMode()">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">dark_mode</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Dark mode</span>
           </div>
@@ -1410,7 +1410,7 @@
       </div>
       <div class="space-y-0">
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('help')">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">help_outline</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Help Center</span>
           </div>
@@ -1418,7 +1418,7 @@
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('safety')">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">shield</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Safety Tips</span>
           </div>
@@ -1426,7 +1426,7 @@
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openReportProblem()">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">flag</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Report a Problem</span>
           </div>
@@ -1442,7 +1442,7 @@
       </div>
       <div class="space-y-0">
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('terms')">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">gavel</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Terms of Service</span>
           </div>
@@ -1450,7 +1450,7 @@
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('privacy')">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">policy</span>
             <span class="text-on-surface text-sm font-medium tracking-wide">Privacy Policy</span>
           </div>
@@ -1486,7 +1486,7 @@
       <!-- (a) Retake Questionnaire -->
       <section>
         <button class="group w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]" onclick="retakeQuestionnaire()">
-          <div class="flex items-center gap-4">
+          <div class="flex items-center">
             <span class="material-symbols-outlined text-black">tune</span>
             <span class="font-headline font-bold text-sm tracking-tight text-black">Retake Questionnaire</span>
           </div>
@@ -1496,16 +1496,14 @@
       <!-- (c) Extra info -->
       <!-- (Match Basis 段已按用户要求移除；后端 matchBasis 保持默认 both) -->
       <section class="space-y-4">
-        <div class="flex items-center gap-4">
-          <span class="h-[1px] w-8 bg-black"></span>
+        <div class="flex items-center">
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Extra Info</h2>
         </div>
         <textarea id="match-extra-info" maxlength="500" rows="4" placeholder="Anything else to help matching..." class="w-full bg-white border border-black rounded-[10px] px-4 py-3 text-sm font-medium text-black placeholder:text-stone-400 focus:outline-none focus:border-black resize-none"></textarea>
       </section>
       <!-- (d) 增强模式（从 Modify Preferences 移入；恋人/朋友分别放，§6.4 J 规则） -->
       <section class="space-y-4">
-        <div class="flex items-center gap-4">
-          <span class="h-[1px] w-8 bg-black"></span>
+        <div class="flex items-center">
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Enhanced Mode</h2>
         </div>
         <!-- 恋人增强：固定消耗 3 格能量（仅恋爱模式 match setting 显示，§本轮反馈3） -->
