@@ -406,8 +406,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     el.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1)' : 'none';
     el.style.transform = y ? 'translateY(' + y + 'px)' : '';
   });
-  const THRESH = 70;   // 触发刷新的下拉距离
-  const MAXPULL = 110; // 指示器最大下降距离
+  const THRESH = 70; // 触发刷新的下拉距离（下拉距离不设上限，阻尼跟手）
   let startY = 0, pulling = false, dist = 0, refreshing = false;
   const setPos = (y, animate) => {
     ind.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s' : 'none';
@@ -431,7 +430,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     if (!pulling || refreshing) return;
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
-    dist = Math.min(MAXPULL, dy * 0.5); // 阻尼
+    dist = dy * 0.5; // 阻尼，不设上限（用户反馈：拉多少都行）
     ind.style.opacity = String(Math.min(1, dist / 40));
     // 跟手下降 + 随进度旋转一圈
     setPos(dist, false);
@@ -445,8 +444,9 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     if (dist < THRESH) { reset(); return; }
     refreshing = true;
     ind.classList.add('ptr-spinning');
+    // 内容与指示器一起停在阈值位，刷新完成后 reset() 同步回弹
     setPos(THRESH, true);
-    setContent(0, true);
+    setContent(THRESH, true);
     const started = Date.now();
     try { await Promise.resolve(onRefresh()); } catch (e) { /* 刷新失败由各自 loader 兜底提示 */ }
     // 动画最少停留 600ms，让用户看得到刷新发生了
