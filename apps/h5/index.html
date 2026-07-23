@@ -642,7 +642,12 @@
       <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">search</span>
       <input id="square-search" type="search" oninput="window.onSquareSearch(this.value)" placeholder="Search posts" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-12 pr-4 py-3 text-sm font-medium text-on-surface placeholder:text-outline-variant focus:outline-none focus:border-black transition-colors" />
     </div>
-    <div id="square-feed" class="grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start">
+    <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
+    <div id="square-pager" class="overflow-hidden">
+      <div id="square-track" class="flex w-full">
+        <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
+        <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
+      </div>
     </div>
   </main>
   <!-- 发帖按钮：圆形、纯色无投影、上移避开悬浮导航（用户反馈） -->

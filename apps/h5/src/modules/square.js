@@ -14,12 +14,34 @@ function isOfficial(p) {
   return !!p && p.authorType && p.authorType !== 'USER';
 }
 
+// 双页翻页器辅助：按 tab 取 feed 容器 / 轨道定位
+function feedEl(tab) {
+  const t = (tab || S.squareTab) === 'campus_wall' ? 'campus_wall' : 'recommend';
+  return document.getElementById('square-feed-' + t);
+}
+function trackEl() { return document.getElementById('square-track'); }
+function pagerWidth() { return document.getElementById('square-pager')?.clientWidth || window.innerWidth; }
+function trackOffset(tab) { return tab === 'campus_wall' ? -pagerWidth() : 0; }
+function setTrack(x, animate) {
+  const t = trackEl();
+  if (!t) return;
+  t.style.transition = animate ? 'transform 0.28s cubic-bezier(0.22,1,0.36,1)' : 'none';
+  t.style.transform = 'translateX(' + x + 'px)';
+}
+if (!window.__squarePagerResizeBound) {
+  window.__squarePagerResizeBound = true;
+  window.addEventListener('resize', () => setTrack(trackOffset(S.squareTab), false));
+}
+
 async function loadSquareTab() {
   // 进入广场时先定位下划线（容器刚变可见，offset 此刻才可测）；
   // 300ms 后再校一次，防 web 字体晚到导致文字宽度变化错位
   requestAnimationFrame(positionSquareInk);
   setTimeout(positionSquareInk, 300);
-  window.loadSquareTab2();
+  setTrack(trackOffset(S.squareTab), false);
+  // 双页都加载：滑动时另一页已是真实内容
+  window.loadSquareTab2('recommend');
+  window.loadSquareTab2('campus_wall');
 }
 window.loadSquareTab = loadSquareTab;
 
@@ -57,26 +79,25 @@ function switchSquareTab(el, tab) {
     });
   }
   positionSquareInk(); // 下划线滑到新选中项
-  window.loadSquareTab2();
+  setTrack(trackOffset(tab), true); // 轨道滑到目标页
+  window.loadSquareTab2(tab);
 }
 window.switchSquareTab = switchSquareTab;
 
-// 左右滑动切换 [推荐 | 校园墙]（用户反馈：界面跟手滑动）：
-// 横向意图锁定后信息流随手指平移（反方向边缘阻尼），松手过阈值则滑出→切换→
-// 从另一侧滑入；未过阈值弹回。竖向滚动/下拉刷新经方向锁互不干扰。
+// 左右滑动切换 [推荐 | 校园墙]：双页轨道跟手拖动——拖动过程中另一页的
+// 真实内容随之进入视口（ViewPager 式），松手过阈值滑到该页，否则弹回。
+// 方向锁与竖向滚动/下拉刷新互不干扰。
 function bindSquareSwipe() {
   const el = document.getElementById('tab-square');
   if (!el || el.dataset.swipeBound) return;
   el.dataset.swipeBound = '1';
-  const feed = () => el.querySelector('main');
-  let sx = 0, sy = 0, active = false, horiz = null, dx = 0, animating = false;
+  let sx = 0, sy = 0, active = false, horiz = null, dx = 0;
   el.addEventListener('touchstart', (e) => {
-    if (animating) return;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     active = true; horiz = null; dx = 0;
   }, { passive: true });
   el.addEventListener('touchmove', (e) => {
-    if (!active || animating) return;
+    if (!active) return;
     dx = e.touches[0].clientX - sx;
     const dy = e.touches[0].clientY - sy;
     if (horiz === null && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) {
@@ -84,41 +105,21 @@ function bindSquareSwipe() {
       el.dataset.horizLock = horiz ? '1' : '0';
     }
     if (!horiz) return;
-    const m = feed(); if (!m) return;
     const target = dx < 0 ? 'campus_wall' : 'recommend';
-    const damp = target === S.squareTab ? 0.25 : 1; // 边缘方向阻尼
-    m.style.transition = 'none';
-    m.style.transform = 'translateX(' + (dx * damp) + 'px)';
+    const damp = target === S.squareTab ? 0.3 : 1; // 越界方向橡皮筋
+    setTrack(trackOffset(S.squareTab) + dx * damp, false);
   }, { passive: true });
   const settle = () => {
     if (!active) return;
     active = false;
     el.dataset.horizLock = '0';
-    const m = feed(); if (!m || !horiz) return;
+    if (!horiz) return;
     const target = dx < 0 ? 'campus_wall' : 'recommend';
-    const W = el.clientWidth || 360;
     if (Math.abs(dx) >= 70 && target !== S.squareTab) {
-      animating = true;
-      m.style.transition = 'transform 0.16s ease-in';
-      m.style.transform = 'translateX(' + (dx < 0 ? -W : W) + 'px)';
-      setTimeout(() => {
-        const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
-        window.switchSquareTab(btn, target);
-        m.style.transition = 'none';
-        m.style.transform = 'translateX(' + (dx < 0 ? W : -W) + 'px)';
-        // setTimeout 而非 rAF：后台/节流环境 rAF 可能不触发，会卡死 animating 状态
-        setTimeout(() => {
-          m.style.transition = 'transform 0.26s cubic-bezier(0.22,1,0.36,1)';
-          m.style.transform = 'translateX(0)';
-          setTimeout(() => { m.style.transition = ''; m.style.transform = ''; animating = false; }, 300);
-        }, 30);
-        // 保险：无论如何 800ms 后解除锁定
-        setTimeout(() => { animating = false; }, 800);
-      }, 170);
+      const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
+      window.switchSquareTab(btn, target); // 内部会把轨道动画滑到目标页
     } else {
-      m.style.transition = 'transform 0.28s cubic-bezier(0.22,1,0.36,1)';
-      m.style.transform = 'translateX(0)';
-      setTimeout(() => { m.style.transition = ''; m.style.transform = ''; }, 320);
+      setTrack(trackOffset(S.squareTab), true); // 弹回当前页
     }
   };
   el.addEventListener('touchend', settle, { passive: true });
@@ -147,13 +148,13 @@ window.onSquareSearch = onSquareSearch;
 
 // Load the current tab's feed: GET /square/v2/recommend or /campus-wall.
 // Campus wall with no profile.school → empty state prompting to complete it.
-async function loadSquareTab2() {
-  const container = document.getElementById('square-feed');
+async function loadSquareTab2(tabArg) {
+  const tab = (tabArg || S.squareTab) === 'campus_wall' ? 'campus_wall' : 'recommend';
+  const container = feedEl(tab);
   if (!container) return;
-  // Tab-switch race guard: tag this request; if a newer one starts (user
-  // switched tab) before we resolve, drop this stale response.
-  const seq = ++S.squareReqSeq;
-  const tab = S.squareTab === 'campus_wall' ? 'campus_wall' : 'recommend';
+  // 竞态守卫按 tab 分桶：两页并行加载互不覆盖
+  if (!S.squareReqSeqs) S.squareReqSeqs = { recommend: 0, campus_wall: 0 };
+  const seq = ++S.squareReqSeqs[tab];
   const search = (S.squareSearchQuery || '').trim();
   const endpoint = tab === 'campus_wall' ? '/square/v2/campus-wall' : '/square/v2/recommend';
   try {
@@ -166,19 +167,19 @@ async function loadSquareTab2() {
       window.api(url),
       wantAds ? fetchSquareAds() : Promise.resolve([]),
     ]);
-    if (seq !== S.squareReqSeq) return; // superseded by a newer load
+    if (seq !== S.squareReqSeqs[tab]) return; // superseded by a newer load
     const env = unwrap(data);
     // Campus wall asks the user to complete their school first.
     if (tab === 'campus_wall' && env.needProfileSchool) {
-      S.squarePosts = [];
-      renderSquareNeedSchool();
+      if (tab === S.squareTab) S.squarePosts = [];
+      renderSquareNeedSchool(tab);
       return;
     }
     const posts = Array.isArray(env) ? env : (env.items || env.posts || []);
-    S.squarePosts = posts;
-    renderSquareFeed(posts, ads);
+    if (tab === S.squareTab) S.squarePosts = posts; // 缓存当前页数据（点赞/详情同步用）
+    renderSquareFeed(posts, ads, tab);
   } catch (e) {
-    if (seq !== S.squareReqSeq) return; // superseded; don't clobber newer view
+    if (seq !== S.squareReqSeqs[tab]) return; // superseded; don't clobber newer view
     console.error('loadSquareTab2 error:', e);
     container.innerHTML = `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('cloud_off')}
@@ -194,8 +195,8 @@ window.loadSquareTab2 = loadSquareTab2;
 window.loadSquarePosts = loadSquareTab2;
 
 // Campus-wall gate: shown when the user has no school on their profile.
-function renderSquareNeedSchool() {
-  const container = document.getElementById('square-feed');
+function renderSquareNeedSchool(tab) {
+  const container = feedEl(tab);
   if (!container) return;
   container.innerHTML = `<div class="col-span-2 text-center py-24">
     ${window.flatEmptyIcon('school')}
@@ -211,8 +212,8 @@ function renderSquareNeedSchool() {
 //  - campus_wall + USER                     → bentoWideCard (中卡，单列，头像/学校在上)
 //  - recommend  + USER                      → bentoSmallCard (小卡，双列网格 grid-cols-2 gap-3)
 // Consecutive small cards are bucketed two-at-a-time into a 2-col grid.
-function renderSquareFeed(posts, ads = []) {
-  const container = document.getElementById('square-feed');
+function renderSquareFeed(posts, ads = [], tab) {
+  const container = feedEl(tab);
   if (!container) return;
   if (!posts.length) {
     container.innerHTML = `<div class="col-span-2 text-center py-24">
@@ -227,7 +228,7 @@ function renderSquareFeed(posts, ads = []) {
     if (isOfficial(p)) return 'large';
     // 校园墙帖（board=campus_wall，API 返回大写）始终用竖排大卡——即使在推荐里也保持校园墙样式（本轮反馈5a）。
     if (String(p.board || '').toLowerCase() === 'campus_wall') return 'wide';
-    return S.squareTab === 'campus_wall' ? 'wide' : 'small';
+    return ((tab || S.squareTab) === 'campus_wall') ? 'wide' : 'small';
   };
   // 单一 dense 网格（容器在 index.html 设为 grid grid-cols-2 + grid-flow-row-dense）：
   // 小卡占 1 列（每行两个），官方大卡 / 校园墙卡跨 2 列（整行）。dense 自动回填空格，
@@ -286,14 +287,16 @@ function scheduleMasonry() {
   });
 }
 function layoutSquareMasonry() {
-  const c = document.getElementById('square-feed');
-  if (!c) return;
-  const R = 2, G = 6; // auto-row 高 / row-gap（与 main.css #square-feed 保持一致）
-  const items = Array.from(c.children);
-  items.forEach(it => { it.style.gridRowEnd = 'auto'; });
-  const heights = items.map(it => it.getBoundingClientRect().height);
-  items.forEach((it, i) => {
-    it.style.gridRowEnd = `span ${Math.max(1, Math.ceil((heights[i] + G) / (R + G)))}`;
+  const R = 2, G = 6; // auto-row 高 / row-gap（与 main.css .square-feed-grid 保持一致）
+  ['recommend', 'campus_wall'].forEach((t) => {
+    const c = feedEl(t);
+    if (!c) return;
+    const items = Array.from(c.children);
+    items.forEach(it => { it.style.gridRowEnd = 'auto'; });
+    const heights = items.map(it => it.getBoundingClientRect().height);
+    items.forEach((it, i) => {
+      it.style.gridRowEnd = `span ${Math.max(1, Math.ceil((heights[i] + G) / (R + G)))}`;
+    });
   });
 }
 window.layoutSquareMasonry = layoutSquareMasonry;
@@ -667,9 +670,7 @@ function syncPostLikeState(postId, liked, likeCount) {
 // Patch the rendered list card for a post in place (avoids full list reload).
 // Used when the detail page changes a post's like/comment counts (A12/A14).
 function patchSquareCard(postId, { liked, likeCount, commentCount } = {}) {
-  const container = document.getElementById('square-feed');
-  if (!container) return;
-  const card = container.querySelector(`[data-post-id="${postId}"]`);
+  const card = document.querySelector('#square-track [data-post-id="' + postId + '"]');
   if (!card) return;
   if (liked != null || likeCount != null) {
     const btn = card.querySelector('[data-like-icon]')?.closest('button');
