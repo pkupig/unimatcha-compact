@@ -764,11 +764,11 @@
         <button id="pref-mode-friend" class="pref-mode-tab flex-1 py-2.5 rounded-full font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center" data-mode="friend" onclick="switchPrefMode('friend')">Friend</button>
       </div>
     </div>
-    <div class="flex-1 overflow-y-auto max-h-[75vh] px-8 py-6 flex flex-col gap-8">
+    <div class="flex-1 overflow-y-auto max-h-[70vh] px-6 py-4 flex flex-col gap-5">
       <!-- 恋人偏好区（仅 Target Gender + University Stage；年龄/同校/同城已移至下方共享区） -->
-      <div id="filter-romantic-section" class="space-y-12">
+      <div id="filter-romantic-section" class="space-y-7">
       <section>
-        <div class="mb-6">
+        <div class="mb-3">
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
         </div>
         <div class="flex border border-outline-variant/60 p-1 rounded-full">
@@ -778,7 +778,7 @@
         </div>
       </section>
       <section>
-        <div class="mb-6">
+        <div class="mb-3">
           <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">University Stage</h2>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -790,7 +790,7 @@
       </div><!-- /#filter-romantic-section -->
 
       <!-- 朋友偏好区（仅 Target Gender + Interest Priority；年龄/同校/同城用下方共享区） -->
-      <div id="filter-friend-section" class="space-y-12" style="display:none">
+      <div id="filter-friend-section" class="space-y-7" style="display:none">
         <section>
           <div class="mb-6">
             <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
@@ -813,7 +813,7 @@
       <!-- 共享区（恋人/朋友共用，始终显示）：Age Range + School Filter。
            控件 id 不变（#filter-age-min/max/any、age-range-display、#filter-same-school/#filter-same-city），
            match.js fillRomanticPrefs/fillFriendPrefs/saveFilterPrefs 读取逻辑无需改。 -->
-      <div id="filter-shared-section" class="space-y-12">
+      <div id="filter-shared-section" class="space-y-7">
         <section>
           <div class="space-y-4">
             <div class="flex justify-between items-end">
@@ -833,7 +833,7 @@
               </div>
             </div>
             <label class="flex items-center gap-3 pt-2 cursor-pointer select-none">
-              <input id="filter-age-any" type="checkbox" class="w-4 h-4" style="accent-color:#CCFF00" onchange="toggleAgeAny()"/>
+              <input id="filter-age-any" type="checkbox" class="w-4 h-4 neon-check" onchange="toggleAgeAny()"/>
               <span class="font-label text-[10px] tracking-widest text-outline">Any age</span>
             </label>
           </div>
@@ -843,13 +843,13 @@
             <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">School Filter</h2>
           </div>
           <div class="space-y-2">
-            <div class="flex justify-between items-center py-5 border-b border-stone-100">
+            <div class="flex justify-between items-center py-3.5 border-b border-stone-100">
               <div class="space-y-1">
                 <p class="font-headline font-bold text-sm tracking-tight">Only Same School</p>
               </div>
               <input id="filter-same-school" type="checkbox" class="ink-switch" />
             </div>
-            <div class="flex justify-between items-center py-5 border-b border-stone-100">
+            <div class="flex justify-between items-center py-3.5 border-b border-stone-100">
               <div class="space-y-1">
                 <p class="font-headline font-bold text-sm tracking-tight">Same City</p>
               </div>
@@ -1000,37 +1000,33 @@
       <button class="bg-neon text-black px-5 py-1.5 rounded-[10px] font-bold text-sm tracking-widest hover:bg-primary-container transition-all" onclick="saveEditProfile()">Save</button>
     </header>
     <div class="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-12">
-      <section class="relative space-y-6">
-        <div class="flex items-center justify-between gap-6">
-          <div class="relative group shrink-0">
-            <div id="edit-avatar" class="w-28 h-28 bg-surface-container-low border-4 border-outline-variant shadow-sm rounded-full flex items-center justify-center overflow-hidden cursor-pointer" onclick="document.getElementById('edit-avatar-file')?.click()">
+      <!-- 头像 + 封面：同行居中对齐，仅图形无描述文字 -->
+      <section>
+        <div class="flex items-center gap-4">
+          <div class="relative shrink-0">
+            <div id="edit-avatar" class="w-24 h-24 bg-surface-container-low rounded-full flex items-center justify-center overflow-hidden cursor-pointer border border-outline-variant/40" onclick="document.getElementById('edit-avatar-file')?.click()">
               <img alt="Profile photo" class="w-full h-full object-cover" src=""/>
             </div>
+            <span class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-neon text-black flex items-center justify-center pointer-events-none"><span class="material-symbols-outlined" style="font-size:15px">photo_camera</span></span>
             <input id="edit-avatar-file" type="file" accept="image/*" class="hidden" onchange="handleAvatarFile(event, 'edit')"/>
           </div>
-          <div class="flex-1">
-            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2">Cover Selection</label>
-            <div id="edit-cover-preview" class="h-32 bg-surface-container-low border border-outline-variant rounded-[10px] relative overflow-hidden">
-              <img alt="Cover Photo" class="w-full h-full object-cover grayscale opacity-60" src=""/>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <button class="bg-surface/80 backdrop-blur-sm px-4 py-1.5 rounded-[10px] text-[10px] font-bold tracking-tighter border border-outline-variant hover:bg-surface transition-colors" onclick="document.getElementById('edit-cover-file').click()">Replace</button>
-                <input id="edit-cover-file" type="file" onchange="handleCoverFile(event)" class="hidden" />
-              </div>
-            </div>
+          <div id="edit-cover-preview" class="relative flex-1 h-24 bg-surface-container-low rounded-[12px] overflow-hidden cursor-pointer" onclick="document.getElementById('edit-cover-file').click()">
+            <img alt="Cover Photo" class="w-full h-full object-cover" src=""/>
+            <span class="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-neon text-black flex items-center justify-center pointer-events-none"><span class="material-symbols-outlined" style="font-size:15px">photo_camera</span></span>
+            <input id="edit-cover-file" type="file" onchange="handleCoverFile(event)" class="hidden" onclick="event.stopPropagation()" />
           </div>
         </div>
-        <button class="text-[11px] font-bold tracking-widest text-on-surface underline decoration-outline-variant underline-offset-4" onclick="document.getElementById('edit-photo-grid')?.scrollIntoView({behavior:'smooth',block:'center'})">Change Photo Portfolio</button>
       </section>
       <section class="space-y-10">
         <div class="space-y-2">
           <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Nickname</label>
-          <input id="edit-nickname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-lg placeholder:text-surface-dim" type="text" value=""/>
+          <input id="edit-nickname" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-medium text-base" type="text" value=""/>
         </div>
         <div class="space-y-2">
           <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Real name <span class="font-medium tracking-normal text-outline normal-case">· only shown to confirmed partners</span></label>
           <div class="grid grid-cols-2 gap-4">
-            <input id="edit-givenname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-base placeholder:text-surface-dim" type="text" value="" placeholder="Given name (名)"/>
-            <input id="edit-familyname" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-medium text-base placeholder:text-surface-dim" type="text" value="" placeholder="Family name (姓)"/>
+            <input id="edit-givenname" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-medium text-sm" type="text" value="" placeholder="Given name (名)"/>
+            <input id="edit-familyname" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-medium text-sm" type="text" value="" placeholder="Family name (姓)"/>
           </div>
         </div>
         <div class="space-y-2">
@@ -1038,14 +1034,14 @@
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Bio</label>
             <span class="text-[10px] font-medium text-outline"><span id="edit-bio-count">0</span> / 250</span>
           </div>
-          <textarea id="edit-bio" maxlength="250" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-body text-base leading-relaxed resize-none" rows="3"></textarea>
+          <textarea id="edit-bio" maxlength="250" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-body text-sm leading-relaxed resize-none" rows="3"></textarea>
         </div>
         <div class="space-y-2">
           <div class="flex justify-between items-baseline">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Description</label>
             <span class="text-[10px] font-medium text-outline"><span id="edit-signature-count">0</span> / 100</span>
           </div>
-          <textarea id="edit-signature" maxlength="100" placeholder="A short line about you" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary font-body text-base leading-relaxed resize-none placeholder:text-outline-variant" rows="2"></textarea>
+          <textarea id="edit-signature" maxlength="100" placeholder="A short line about you" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-body text-sm leading-relaxed resize-none" rows="2"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-8">
           <div class="space-y-2">
@@ -1117,13 +1113,13 @@
         </div>
       </section>
       <section class="space-y-3">
-        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Gift jar <span class="font-medium tracking-normal text-outline normal-case">· up to 5 gifts you'd love — shown to your partner</span></label>
+        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Gift jar</label>
         <div class="space-y-2">
-          <input id="edit-gift-0" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 1"/>
-          <input id="edit-gift-1" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 2"/>
-          <input id="edit-gift-2" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 3"/>
-          <input id="edit-gift-3" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 4"/>
-          <input id="edit-gift-4" class="w-full bg-transparent border-0 border-b border-outline py-1.5 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-surface-dim" type="text" placeholder="Gift 5"/>
+          <input id="edit-gift-0" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm" type="text" placeholder="Gift 1"/>
+          <input id="edit-gift-1" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm" type="text" placeholder="Gift 2"/>
+          <input id="edit-gift-2" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm" type="text" placeholder="Gift 3"/>
+          <input id="edit-gift-3" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm" type="text" placeholder="Gift 4"/>
+          <input id="edit-gift-4" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm" type="text" placeholder="Gift 5"/>
         </div>
       </section>
     </div>
@@ -1165,12 +1161,12 @@
     <!-- 学校邮箱 + 验证码 -->
     <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2">School Email</label>
     <div class="flex gap-2 mb-1 items-end">
-      <input id="verify-email" type="email" placeholder="you@university.ac.uk" class="flex-1 min-w-0 bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm placeholder:text-outline-variant"/>
+      <input id="verify-email" type="email" placeholder="you@university.ac.uk" class="flex-1 min-w-0 bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm"/>
       <button id="verify-sendcode-btn" type="button" class="btn-secondary text-[10px] px-3 py-2 whitespace-nowrap shrink-0" onclick="sendVerifyCode()">Send code</button>
     </div>
     <p id="verify-code-hint" class="text-[10px] text-neon-pink mb-3 hidden"></p>
     <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant mb-2 mt-3">Verification Code</label>
-    <input id="verify-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="w-full bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-base tracking-[0.3em] placeholder:text-outline-variant mb-6"/>
+    <input id="verify-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-base tracking-[0.3em] mb-6"/>
     <button type="button" class="btn-cta w-full" onclick="submitVerification()">Submit for review</button>
   </div>
 </div>
@@ -1196,9 +1192,9 @@
       </div>
       <!-- Panel: Find Friends -->
       <div id="friend-hub-panel-search" class="hidden space-y-4">
-        <div class="flex items-center gap-2 border-b border-black pb-1">
-          <span class="material-symbols-outlined text-outline">search</span>
-          <input id="friend-search-input" type="text" placeholder="Search your chats" class="flex-1 bg-transparent border-0 py-1.5 text-sm text-black focus:ring-0 focus:outline-none placeholder:text-outline" oninput="onFriendSearchInput()"/>
+        <div class="flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2.5">
+          <span class="material-symbols-outlined text-outline" style="font-size:20px">search</span>
+          <input id="friend-search-input" type="text" placeholder="Search your chats" class="flex-1 bg-transparent border-0 p-0 text-sm text-on-surface focus:ring-0 focus:outline-none placeholder:text-outline" oninput="onFriendSearchInput()"/>
         </div>
         <div id="friend-search-results" class="space-y-2"></div>
       </div>
@@ -1219,7 +1215,7 @@
           <p id="addfriend-cam-error" class="hidden text-[10px] text-neon-pink mb-2">Camera unavailable — enter the code manually below.</p>
           <p class="text-[10px] text-outline mb-2 text-center">Point at your friend's QR — or enter their code:</p>
           <div class="flex gap-2 items-end">
-            <input id="addfriend-code-input" type="text" placeholder="CLXXXXXXXX" class="flex-1 min-w-0 bg-transparent border-0 border-b border-outline py-2 px-0 focus:ring-0 focus:border-b-2 focus:border-primary text-sm uppercase tracking-widest placeholder:text-outline-variant" onkeydown="if(event.key==='Enter'){event.preventDefault();submitConnectCode();}"/>
+            <input id="addfriend-code-input" type="text" placeholder="CLXXXXXXXX" class="flex-1 min-w-0 bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm uppercase tracking-widest" onkeydown="if(event.key==='Enter'){event.preventDefault();submitConnectCode();}"/>
             <button type="button" class="btn-cta px-4 py-2 text-xs shrink-0" onclick="submitConnectCode()">Add</button>
           </div>
         </div>
@@ -1278,7 +1274,7 @@
     <div class="bg-outline-variant/20 h-[1px]"></div>
   </header>
   <main class="pt-24 pb-20 px-5">
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Account</h3>
       </div>
@@ -1302,7 +1298,7 @@
       </div>
     </section>
     <!-- Preferences：语言 / 深色模式（本轮反馈4：中英文切换入口进设置） -->
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Preferences</h3>
       </div>
@@ -1328,7 +1324,7 @@
         <div class="h-[1px] bg-outline-variant/20"></div>
       </div>
     </section>
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Nudge</h3>
       </div>
@@ -1342,7 +1338,7 @@
         <p class="text-[10px] text-outline">e.g. "nudged me on the head" / "拍了拍我的头"</p>
       </div>
     </section>
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Privacy</h3>
       </div>
@@ -1379,7 +1375,7 @@
         <div class="h-[1px] bg-outline-variant/20"></div>
       </div>
     </section>
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Notifications</h3>
       </div>
@@ -1397,7 +1393,7 @@
       </div>
     </section>
     <!-- Support Section -->
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Support</h3>
       </div>
@@ -1429,7 +1425,7 @@
       </div>
     </section>
     <!-- Legal Section -->
-    <section class="mb-14">
+    <section class="mb-10">
       <div class="flex items-center mb-6">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Legal</h3>
       </div>

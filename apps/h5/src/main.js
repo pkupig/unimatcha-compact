@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, '#home-chat-view, #home-match-view');
   window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.(), 'main');
   // 底部导航滚动隐藏（三个 tab 滚动容器都绑）
+  window.bindSheetDragClose('filter-overlay');
   ['tab-match', 'tab-square', 'tab-profile'].forEach(id =>
     window.bindNavAutoHide(document.getElementById(id)));
 });

@@ -460,6 +460,34 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
 }
 window.attachPullToRefresh = attachPullToRefresh;
 
+// 底部弹层下拉关闭（用户反馈：偏好弹出后可向下拉关掉）。
+// 抓手/头部区域跟手下拉，超过 110px 松手即关闭，否则弹回。
+function bindSheetDragClose(overlayId) {
+  const overlay = document.getElementById(overlayId);
+  const sheet = overlay?.querySelector('.bottom-sheet-transition');
+  const header = sheet?.querySelector('header');
+  if (!header || header.dataset.dragBound) return;
+  header.dataset.dragBound = '1';
+  let sy = 0, dy = 0, drag = false;
+  header.addEventListener('touchstart', (e) => { sy = e.touches[0].clientY; dy = 0; drag = true; }, { passive: true });
+  header.addEventListener('touchmove', (e) => {
+    if (!drag) return;
+    dy = Math.max(0, e.touches[0].clientY - sy);
+    sheet.style.transition = 'none';
+    sheet.style.transform = 'translateY(' + dy + 'px)';
+  }, { passive: true });
+  const end = () => {
+    if (!drag) return;
+    drag = false;
+    sheet.style.transition = '';
+    sheet.style.transform = '';
+    if (dy > 110) window.hideOverlay(overlayId);
+  };
+  header.addEventListener('touchend', end);
+  header.addEventListener('touchcancel', end);
+}
+window.bindSheetDragClose = bindSheetDragClose;
+
 function flatEmptyIcon(icon, tone = 'muted') {
   const box = tone === 'neon' ? 'background:#CCFF00;color:#000' : 'background:#efefef;color:#8a8a8a';
   return `<div class="w-16 h-16 mx-auto mb-6 rounded-[18px] flex items-center justify-center" style="${box}">

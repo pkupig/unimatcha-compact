@@ -456,6 +456,16 @@
     input[type="range"].ink-range:disabled::-webkit-slider-thumb { background: #777777; }
     input[type="range"].ink-range:disabled::-moz-range-thumb { background: #777777; }
 
+    /* 荧光绿勾选框：覆盖 Tailwind forms 插件默认蓝色（黑色对勾） */
+    input[type="checkbox"].neon-check { border-radius: 6px; }
+    input[type="checkbox"].neon-check:checked,
+    input[type="checkbox"].neon-check:checked:hover,
+    input[type="checkbox"].neon-check:checked:focus {
+      background-color: #CCFF00;
+      border-color: #CCFF00;
+      background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+    }
+
     /* Square monochrome switch — checkbox-backed (JS reads .checked), visual only */
     input[type="checkbox"].ink-switch {
       -webkit-appearance: none;
@@ -837,8 +847,8 @@
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
-    .match-anim { width: 208px; height: 208px; display: flex; align-items: center; justify-content: center; }
-    .match-anim-frame { width: 192px; height: 192px; border: 0; pointer-events: none; background: transparent; }
+    .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
+    .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }
 
 
     

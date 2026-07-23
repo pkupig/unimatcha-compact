@@ -611,18 +611,8 @@ async function openEditProfile() {
     ? `<img alt="Profile photo" src="${window.safeUrl(p.avatarUrl)}" class="w-full h-full object-cover">`
     : '<div class="w-full h-full flex flex-col items-center justify-center text-outline"><span class="material-symbols-outlined text-3xl">add_a_photo</span><span class="text-[9px] font-bold tracking-widest mt-1">Add Photo</span></div>';
   const cover = S.currentUser?.profile?.coverUrl;
-  const coverEl = document.getElementById('edit-cover-preview');
-  if (coverEl) {
-    if (cover) {
-      coverEl.style.backgroundImage = `url(${window.safeCssUrl(cover)})`;
-      coverEl.style.backgroundSize = 'cover';
-      coverEl.style.backgroundPosition = 'center';
-    } else {
-      // No cover yet: light-gray placeholder so the area reads as a fillable slot.
-      coverEl.style.backgroundImage = '';
-      coverEl.style.backgroundColor = '#e5e5e5';
-    }
-  }
+  const coverImg = document.querySelector('#edit-cover-preview img');
+  if (coverImg) coverImg.src = cover ? cover : 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%278%27 height=%278%27%3E%3Crect width=%278%27 height=%278%27 fill=%27%23e5e5e5%27/%3E%3C/svg%3E';
   window.renderPhotoSlots();
   window.openOverlay('edit-profile-overlay');
   // Populate dropdowns (cached after first load) and select current values
@@ -804,8 +794,8 @@ async function handleCoverFile(event) {
     const url = await window.uploadImageFile(file);
     await window.api('/profiles/me', 'PUT', { coverUrl: url });
     if (S.currentUser) S.currentUser.profile = { ...(S.currentUser.profile || {}), coverUrl: url };
-    const el = document.getElementById('edit-cover-preview');
-    if (el) el.style.backgroundImage = `url(${window.safeCssUrl(url)})`;
+    const img = document.querySelector('#edit-cover-preview img');
+    if (img) img.src = window.safeUrl ? url : url;
     window.toast('Cover updated');
   } catch (e) {
     window.toast('Cover upload failed: ' + e.message);

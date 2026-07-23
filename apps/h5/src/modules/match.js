@@ -446,10 +446,8 @@ function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
       ${renderMatchWaitAnim(true)}
-      <div class="mt-6 flex flex-col items-center">
-        <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-1.5">Matching in progress</h2>
-        <p class="text-[11px] tracking-[0.12em] text-outline uppercase mb-1.5">Next cycle in</p>
-        <div class="font-mono text-3xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
+      <div class="mt-8 flex flex-col items-center">
+        <div class="font-mono text-4xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
@@ -1301,13 +1299,8 @@ async function openMatchSettings() {
   } catch (e) {}
   const extra = document.getElementById('match-extra-info');
   if (extra) extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
-  // 增强开关回填（按当前匹配模式，§10.5）：Match Settings 现负责增强字段。
-  if (mode === 'romantic') {
-    S.enhanced.romantic.enabled = !!prefs.enhancedModeEnabled;
-  } else {
-    S.enhanced.friend.enabled = !!prefs.enhancedModeEnabled;
-    S.enhanced.friend.cells = Math.min(5, Math.max(1, prefs.friendEnhancedCells || 1));
-  }
+  // 增强开关是纯客户端状态（后端只认 startMatch 扣费路径，偏好端点有意拒收该字段）。
+  // 不再用 prefs 回填——此前回填总是 false，导致「打开增强保存后再进来又关了」。
   // 仅显示当前匹配模式的增强项（恋爱 match setting 只显示恋爱增强，朋友只显示朋友增强，§本轮反馈3）
   const rItem = document.getElementById('romantic-enhance-item');
   const fItem = document.getElementById('friend-enhance-item');
