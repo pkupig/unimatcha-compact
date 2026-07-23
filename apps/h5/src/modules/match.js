@@ -1287,23 +1287,9 @@ window.updateEnhanceUI = updateEnhanceUI;
 
 // ========================================
 // MATCH SETTINGS（左上角图标入口）
-// matchBasis 三选 + extraMatchInfo 自由文本；retake 问卷入口移入此面板内。
+// extraMatchInfo 自由文本 + 增强模式；retake 问卷入口在此面板内。
+// （Match Basis 三选已按用户要求移除，后端 matchBasis 保持存量值/默认 both）
 // ========================================
-const MATCH_BASIS_WHITELIST = ['questionnaire', 'profile', 'both'];
-
-function updateMatchBasisUI() {
-  document.querySelectorAll('.match-basis-seg').forEach(el => {
-    if (el.dataset.value === S.matchBasis) {
-      el.style.background = '#CCFF00';
-      el.style.color = '#000';
-    } else {
-      el.style.background = 'transparent';
-      el.style.color = '#1b1b1b';
-    }
-  });
-}
-window.updateMatchBasisUI = updateMatchBasisUI;
-
 async function openMatchSettings() {
   window.openOverlay('match-settings-overlay');
   ensureEnhancedShape();
@@ -1313,10 +1299,8 @@ async function openMatchSettings() {
     const data = await window.api('/matching/preferences?mode=' + mode);
     prefs = data?.data || data || {};
   } catch (e) {}
-  S.matchBasis = MATCH_BASIS_WHITELIST.includes(prefs.matchBasis) ? prefs.matchBasis : 'both';
   const extra = document.getElementById('match-extra-info');
   if (extra) extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
-  window.updateMatchBasisUI();
   // 增强开关回填（按当前匹配模式，§10.5）：Match Settings 现负责增强字段。
   if (mode === 'romantic') {
     S.enhanced.romantic.enabled = !!prefs.enhancedModeEnabled;
@@ -1338,17 +1322,6 @@ function closeMatchSettings() {
 }
 window.closeMatchSettings = closeMatchSettings;
 
-async function setMatchBasis(v) {
-  if (!MATCH_BASIS_WHITELIST.includes(v)) return;
-  S.matchBasis = v;
-  window.updateMatchBasisUI();
-  try {
-    await window.api('/matching/preferences', 'PUT', { mode: S.activeMatchMode || 'romantic', matchBasis: v });
-  } catch (e) {
-    window.toast('Failed: ' + e.message);
-  }
-}
-window.setMatchBasis = setMatchBasis;
 
 async function saveMatchSettings() {
   ensureEnhancedShape();
