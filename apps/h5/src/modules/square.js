@@ -61,27 +61,68 @@ function switchSquareTab(el, tab) {
 }
 window.switchSquareTab = switchSquareTab;
 
-// 左右滑动切换 [推荐 | 校园墙]（用户反馈）：水平位移显著大于垂直才触发，
-// 不干扰纵向滚动与下拉刷新。
+// 左右滑动切换 [推荐 | 校园墙]（用户反馈：界面跟手滑动）：
+// 横向意图锁定后信息流随手指平移（反方向边缘阻尼），松手过阈值则滑出→切换→
+// 从另一侧滑入；未过阈值弹回。竖向滚动/下拉刷新经方向锁互不干扰。
 function bindSquareSwipe() {
   const el = document.getElementById('tab-square');
   if (!el || el.dataset.swipeBound) return;
   el.dataset.swipeBound = '1';
-  let sx = 0, sy = 0, tracking = false;
+  const feed = () => el.querySelector('main');
+  let sx = 0, sy = 0, active = false, horiz = null, dx = 0, animating = false;
   el.addEventListener('touchstart', (e) => {
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+    if (animating) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    active = true; horiz = null; dx = 0;
   }, { passive: true });
-  el.addEventListener('touchend', (e) => {
-    if (!tracking) return;
-    tracking = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  el.addEventListener('touchmove', (e) => {
+    if (!active || animating) return;
+    dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (horiz === null && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) {
+      horiz = Math.abs(dx) > Math.abs(dy);
+      el.dataset.horizLock = horiz ? '1' : '0';
+    }
+    if (!horiz) return;
+    const m = feed(); if (!m) return;
     const target = dx < 0 ? 'campus_wall' : 'recommend';
-    if (target === S.squareTab) return;
-    const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
-    window.switchSquareTab(btn, target);
+    const damp = target === S.squareTab ? 0.25 : 1; // 边缘方向阻尼
+    m.style.transition = 'none';
+    m.style.transform = 'translateX(' + (dx * damp) + 'px)';
   }, { passive: true });
+  const settle = () => {
+    if (!active) return;
+    active = false;
+    el.dataset.horizLock = '0';
+    const m = feed(); if (!m || !horiz) return;
+    const target = dx < 0 ? 'campus_wall' : 'recommend';
+    const W = el.clientWidth || 360;
+    if (Math.abs(dx) >= 70 && target !== S.squareTab) {
+      animating = true;
+      m.style.transition = 'transform 0.16s ease-in';
+      m.style.transform = 'translateX(' + (dx < 0 ? -W : W) + 'px)';
+      setTimeout(() => {
+        const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
+        window.switchSquareTab(btn, target);
+        m.style.transition = 'none';
+        m.style.transform = 'translateX(' + (dx < 0 ? W : -W) + 'px)';
+        // setTimeout 而非 rAF：后台/节流环境 rAF 可能不触发，会卡死 animating 状态
+        setTimeout(() => {
+          m.style.transition = 'transform 0.26s cubic-bezier(0.22,1,0.36,1)';
+          m.style.transform = 'translateX(0)';
+          setTimeout(() => { m.style.transition = ''; m.style.transform = ''; animating = false; }, 300);
+        }, 30);
+        // 保险：无论如何 800ms 后解除锁定
+        setTimeout(() => { animating = false; }, 800);
+      }, 170);
+    } else {
+      m.style.transition = 'transform 0.28s cubic-bezier(0.22,1,0.36,1)';
+      m.style.transform = 'translateX(0)';
+      setTimeout(() => { m.style.transition = ''; m.style.transform = ''; }, 320);
+    }
+  };
+  el.addEventListener('touchend', settle, { passive: true });
+  el.addEventListener('touchcancel', settle, { passive: true });
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bindSquareSwipe);

@@ -428,6 +428,8 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
   }, { passive: true });
   container.addEventListener('touchmove', (e) => {
     if (!pulling || refreshing) return;
+    // 横滑切换进行中（square 左右切 tab）：下拉手势让位，避免双写 transform
+    if (container.dataset.horizLock === '1') { dist = 0; ind.classList.remove('ptr-ready'); ind.style.opacity = '0'; return; } // 只藏指示器，内容 transform 归横滑手势管
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
     dist = dy * 0.5; // 阻尼，不设上限（用户反馈：拉多少都行）
