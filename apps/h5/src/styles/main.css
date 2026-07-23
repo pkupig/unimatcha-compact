@@ -23,7 +23,9 @@
     .nav-item:hover { color: #000; }
     .nav-item.active { color: #000 !important; font-weight: 700; }
     /* Tab content panels - fill viewport over page-home */
-    [id^="tab-"] { position: fixed; inset: 0; z-index: 41; background: #f9f9f9; overflow-y: auto; }
+    /* overscroll-behavior: 阻断 iOS 橡皮筋回弹与页内下拉手势（背景揭示/下拉刷新）叠加打架 */
+    [id^="tab-"] { position: fixed; inset: 0; z-index: 41; background: #f9f9f9; overflow-y: auto; overscroll-behavior-y: contain; }
+    body { overscroll-behavior-y: none; }
 
     /* 圆角图标：强制 Rounded 家族 + 默认轴值，避免被各处内联 wght 或 Outlined 回退覆盖。
        字体家族与 index.html 加载的 'Material Symbols Rounded' 匹配。 */

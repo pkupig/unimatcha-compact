@@ -572,6 +572,8 @@ function setupBgPullReveal() {
   const EASE = 'cubic-bezier(0.22,1,0.36,1)';
   const getMask = () => scroller.querySelector('.profile-blur-mask');
   const getFg = () => document.getElementById('profile-foreground');
+  // 未设封面时禁用揭示（否则下拉露出的是灰色占位，观感像页面坏了）
+  const hasCover = () => !!S.currentUser?.profile?.coverUrl;
   let startY = 0, pulling = false;
   // 下拉中：背景揭示清晰 + 前景整体跟手下移
   const apply = (delta) => {
@@ -588,6 +590,7 @@ function setupBgPullReveal() {
     if (fg) { fg.style.transition = 'transform 0.45s ' + EASE; fg.style.transform = 'translateY(0)'; }
   };
   scroller.addEventListener('touchstart', (e) => {
+    if (!hasCover()) return;
     if (scroller.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; }
   }, { passive: true });
   scroller.addEventListener('touchmove', (e) => {
@@ -599,6 +602,7 @@ function setupBgPullReveal() {
   scroller.addEventListener('touchcancel', reset);
   // 桌面：顶部继续上滚也能揭示并轻微下移前景，停止后弹回
   scroller.addEventListener('wheel', (e) => {
+    if (!hasCover()) return;
     if (scroller.scrollTop <= 0 && e.deltaY < 0) {
       const mask = getMask(), fg = getFg();
       if (mask) { mask.style.transition = 'opacity 0.12s linear'; mask.style.opacity = String(Math.max(0, parseFloat(mask.style.opacity || '1') - 0.18)); }
