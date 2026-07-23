@@ -38,6 +38,10 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 
 ## 每日日志
 
+### 2026-07-21
+- 完成（遗留功能收尾，已上线 a5d208d）：①**P1-6 行为埋点**——H5 接入 viewed/openedProfile 上报（POST /matching/feedback/events）：恋人匹配卡/朋友候选卡渲染报 viewed，聊天头像打开对方资料报 openedProfile；会话内 Set 去重、失败允许重试，实测请求体正确且去重生效。②**内容页中文版**——帮助中心/安全提示/用户协议/隐私政策四页完整中文翻译（CONTENT_PAGES_ZH），中文态整页切换、英文态原文回退，实测双语正确。③**生产库核验**——square_poll_votes/events/event_tickets 三表与 square_posts 新列（postType/reviewStatus/eventId）确认已在生产库建好（投票/活动功能的唯一约束随新表创建无需 --accept-data-loss）。
+- 待办：matching-ml 接真实 LLM（LLM_BACKEND=mock，需 API key）；官网 hero 视频改版待定；P0-3 公布 cron 运营切换；帮助中心内容后续可从 FAQ 数据源统一维护。
+
 ### 2026-07-18
 - 完成（投票+活动两大功能 & 九项界面改造，全栈落地并 E2E 全绿）：①**校园墙投票（审核制）**——SquarePost 加 postType/pollOptions/reviewStatus + SquarePollVote 表；人人可发起（强制校园墙、2-6 选项），创建即 pending 仅作者可见，学生会审本校/团队审全量（/admin/square/polls，团队视图带 hasUnionReviewer 徽标），审核结果通知作者；H5 发帖开关+选项输入、卡片占比条投票/改票；admin-web /moderation 加投票审核 tab。②**活动+门票**——新 events 模块（Event/EventTicket），学生会/团队发布活动同时生成广场活动帖（feed 直出时间/地点/票价），购票 mock 支付、容量条件自增防超卖、票码核销防重复；H5 活动卡+详情购票+「我的票夹」（票卡+二维码 qrcodejs）；admin-web 新 /events 页（发布/停售/取消/购票名单/入场核销）。③注册必填信息（昵称/姓名/性别/生日）改分步向导每项一屏（空值拦截+进度条）。④底部导航改悬浮胶囊+滚动下滑隐藏上滑恢复；⑤启动页重设计（平面 logo+进度线，去圆环点阵）；⑥四个侧滑面板改 86% 宽留边+圆角；⑦Chat 左上角改加号→小弹出卡（搜索/扫码/关系网/深色/语言，直达面板）；⑧match 顶栏去阴影、40px 同轴对齐；⑨profile 移除 Logout。验证：API tsc+jest 20/20、H5 vite build、admin-web next build 全过；后端 E2E 12 步全绿（pending 拦投票/作者自见/审核/投票改票/通知/活动 feed/超卖守卫/票夹/核销防重复/名单）；浏览器实测向导四步、投票 UI、购票到票夹二维码、底导隐藏、加号菜单、顶栏对齐。注意：**Dockerfile 的 prisma db push 无 --accept-data-loss，本次新列唯一约束需在服务器手动跑一次 db push --accept-data-loss 再起容器**。
 - 完成（H5 三项跟进：通知图标扁平化 / Chat 三点图标 / 下拉刷新，已上线）：①通知列表与详情的图标盘去描边改浅灰圆角方块（.notif-icon-plate，深色模式适配），通知空态/加载失败态统一 flatEmptyIcon；②match 界面 Chat 视图左上角 forum→more_horiz 三个点；③新增 attachPullToRefresh 通用下拉刷新组件（core.js）——白色圆片从顶栏下滑出、跟手下降+按进度旋转、过阈值变绿松手转圈刷新、最少展示 600ms 后收回；绑定 match 页（chat 视图刷会话/匹配视图刷状态）与 square 页（刷当前信息流）。验证：vite build 过、浏览器合成 TouchEvent 实测下拉全生命周期（跟手 110px/ready 态/转圈/触发一次刷新/收回）、真实 like 通知图标盘渲染正确、无控制台报错；已提交推送（f53e449）并重建线上 h5 容器，线上 bundle 已含新代码。
