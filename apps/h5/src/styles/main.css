@@ -727,7 +727,7 @@
        过阈值 .ptr-ready 图标转荧光绿，刷新中 .ptr-spinning 图标持续转圈。 */
     .ptr-indicator {
       position: absolute;
-      top: 20px; /* translateY(0) 时藏在顶栏后（z-index 低于顶栏），下拉时从顶栏下滑出 */
+      top: 0; /* 藏于顶栏后，下拉滑出；悬停位（+70px）落在顶栏与回弹内容中间 */
       left: 50%;
       width: 40px;
       height: 40px;
@@ -747,7 +747,8 @@
       color: #1b1b1b;
       transition: color 0.15s ease;
     }
-    .ptr-indicator.ptr-ready .material-symbols-outlined { color: #7ea600; }
+    .ptr-indicator.ptr-ready .material-symbols-outlined,
+    .ptr-indicator.ptr-spinning .material-symbols-outlined { color: #CCFF00; }
     .ptr-indicator.ptr-spinning .material-symbols-outlined {
       animation: ptr-spin 0.7s linear infinite;
     }
