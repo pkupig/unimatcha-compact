@@ -61,6 +61,34 @@ function switchSquareTab(el, tab) {
 }
 window.switchSquareTab = switchSquareTab;
 
+// 左右滑动切换 [推荐 | 校园墙]（用户反馈）：水平位移显著大于垂直才触发，
+// 不干扰纵向滚动与下拉刷新。
+function bindSquareSwipe() {
+  const el = document.getElementById('tab-square');
+  if (!el || el.dataset.swipeBound) return;
+  el.dataset.swipeBound = '1';
+  let sx = 0, sy = 0, tracking = false;
+  el.addEventListener('touchstart', (e) => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+  }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const target = dx < 0 ? 'campus_wall' : 'recommend';
+    if (target === S.squareTab) return;
+    const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
+    window.switchSquareTab(btn, target);
+  }, { passive: true });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindSquareSwipe);
+} else {
+  bindSquareSwipe();
+}
+
 // Normalize an API envelope that may be { data: {...} } or the payload itself.
 function unwrap(data) {
   return (data && (data.data || data)) || {};

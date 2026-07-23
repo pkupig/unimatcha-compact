@@ -733,7 +733,7 @@
       height: 40px;
       border-radius: 9999px;
       background: #ffffff;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+      box-shadow: none;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -753,7 +753,7 @@
       animation: ptr-spin 0.7s linear infinite;
     }
     @keyframes ptr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .dark .ptr-indicator { background: #24242c; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+    .dark .ptr-indicator { background: #24242c; box-shadow: none; }
     .dark .ptr-indicator .material-symbols-outlined { color: #ececf0; }
 
     /* ---- 启动页重设计（平面简约）：logo 缓入 + 底部进度线 ---- */
