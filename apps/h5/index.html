@@ -672,10 +672,6 @@
         <span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">St. Jude's</span>
       </div>
       <div id="profile-photos-strip" class="flex gap-2 overflow-x-auto w-full px-6 mt-3"></div>
-      <div class="flex flex-col items-center w-full mt-3">
-        <div id="profile-match-info" class="w-full bg-surface-container-lowest border border-outline-variant/20 py-1.5 px-4 flex items-center justify-center rounded-[10px]">
-          <div class="flex items-center gap-2"><div class="status-orb status-orb--idle" style="--orb:#9aa0a6"></div><span class="text-[10px] tracking-wide text-on-surface-variant font-body">Not matching</span></div>
-        </div>
       </div>
     </section>
     <div class="px-6 relative z-10 bg-background">
@@ -685,14 +681,14 @@
           <button id="profile-energy-section" onclick="openEnergyModal()" class="w-full flex items-center justify-between py-4 border-b border-outline-variant/20 gap-3 group text-left">
             <div class="flex items-center gap-4 shrink-0">
               <span class="material-symbols-outlined text-on-surface" style="font-variation-settings:'FILL' 1">flash_on</span>
-              <span class="text-sm font-medium tracking-wide">ENERGY</span>
+              <span class="text-sm font-medium tracking-wide">Energy</span>
             </div>
             <div id="energy-display" class="flex items-center gap-1 flex-1 flex-wrap justify-end"><!-- 动态渲染格子，最多 10 格，超出 +N --></div>
             <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
           </button>
           <!-- My Tickets（票夹：活动门票 + 二维码） -->
           <button onclick="openTickets()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center">
+            <div class="flex items-center gap-4">
               <span class="material-symbols-outlined text-on-surface">confirmation_number</span>
               <span class="text-sm font-medium tracking-wide">My Tickets</span>
             </div>
@@ -700,7 +696,7 @@
           </button>
           <!-- Edit Profile -->
           <button onclick="openEditProfile()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center">
+            <div class="flex items-center gap-4">
               <span class="material-symbols-outlined text-on-surface">person_outline</span>
               <span class="text-sm font-medium tracking-wide">Edit Profile</span>
             </div>
@@ -708,7 +704,7 @@
           </button>
           <!-- Contact Us -->
           <button onclick="openContactUs()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center">
+            <div class="flex items-center gap-4">
               <span class="material-symbols-outlined text-on-surface">mail_outline</span>
               <span class="text-sm font-medium tracking-wide">Contact Us</span>
             </div>
@@ -716,7 +712,7 @@
           </button>
           <!-- Settings -->
           <button onclick="openSettings()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
-            <div class="flex items-center">
+            <div class="flex items-center gap-4">
               <span class="material-symbols-outlined text-on-surface">settings</span>
               <span class="text-sm font-medium tracking-wide">Settings</span>
             </div>

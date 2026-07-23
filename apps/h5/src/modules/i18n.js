@@ -127,6 +127,10 @@ const ZH = {
   '· up to 5 gifts you\'d love — shown to your partner': '· 最多 5 件想要的礼物，仅伴侣可见',
   '· only shown to confirmed partners': '· 仅对确认的伴侣可见',
   'Friend Candidates': '朋友候选',
+  Energy: '能量',
+  'Add your school to view the campus wall': '填写学校后解锁校园墙',
+  'Set your school in your profile to unlock it': '在资料中填写学校即可查看本校动态',
+  'Complete profile': '去完善资料',
 };
 
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）

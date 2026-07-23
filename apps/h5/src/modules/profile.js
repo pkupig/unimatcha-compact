@@ -414,31 +414,7 @@ async function loadProfileTab() {
   if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">${window.escapeHtml(profile.school || 'University')}</span>`;
   // 学生认证按钮（右上角）状态
   window.renderVerifyButton();
-  // 匹配状态：脉动灯 + 文字。按「两个队列的实时状态」显示四种之一：
-  // 恋人队列匹配中→Matching with partners；朋友队列→Matching with friends；
-  // 两个队列都在→...& friends；两个都没在→Not matching（没有匹配状态，用户要求）。
-  const isMatching = (st) => st === 'searching' || st === 'matched' || st === 'confirming' || st === 'no_match';
-  const renderMatchInfo = (romState, friState) => {
-    const rom = isMatching(romState);
-    const fri = isMatching(friState);
-    let text, color, phase;
-    if (rom && fri) { text = 'Matching with partners & friends'; color = '#FF2EC4'; phase = 'matching'; }
-    else if (rom) { text = 'Matching with partners'; color = '#FF2EC4'; phase = 'matching'; }
-    else if (fri) { text = 'Matching with friends'; color = '#CCFF00'; phase = 'matching'; }
-    else { text = 'Not matching'; color = '#9aa0a6'; phase = 'idle'; } // 没有匹配：灰点 + 提示
-    return `<div class="flex items-center gap-2"><div class="status-orb status-orb--${phase}" style="--orb:${color}"></div><span class="text-[10px] tracking-wide text-on-surface-variant font-body">${text}</span></div>`;
-  };
-  try {
-    // 同时查询两个队列的状态，组合出三种文字之一。按 {success,data} 解包（state 在 data 内）。
-    const [romRes, friRes] = await Promise.all([
-      window.api('/matching/status?mode=romantic').catch(() => null),
-      window.api('/matching/status?mode=friend').catch(() => null),
-    ]);
-    const romState = romRes?.data?.state || romRes?.state || 'idle';
-    const friState = friRes?.data?.state || friRes?.state || 'idle';
-    const matchInfo = document.getElementById('profile-match-info');
-    if (matchInfo) matchInfo.innerHTML = renderMatchInfo(romState, friState);
-  } catch (e) {}
+  // （匹配状态条已按用户要求从 profile 移除，随之取消两路 /matching/status 查询）
   // Dynamic profile background: driven by the cover set in Edit Profile.
   // Targets #profile-bg if present, else the cover image inside #tab-profile.
   // Always set a visible source: cover when available, else a neutral gray
@@ -1097,16 +1073,17 @@ window.savePreferences = savePreferences;
 // ========================================
 
 // Render the Profile-top ENERGY bar from S.energy. 方形带圆角小方块（.energy-cell）：
-// 可用能量=荧光绿实心格，已用能量=灰描边空心格，最多渲染 10 格，超出用 +N。
+// 可用能量=荧光绿实心格，已用能量=灰描边空心格，最多渲染 5 格，超出用 +N。
+const ENERGY_MAX_CELLS = 5;
 function renderEnergyDisplay() {
   const box = document.getElementById('energy-display');
   if (!box) return;
   const avail = Math.max(0, S.energy?.availableEnergy || 0);
   const total = Math.max(avail, S.energy?.totalEnergy || 0);
   box.innerHTML = '';
-  // 先渲染实心（可用）格，再补已用的空心格，总数封顶 10。
-  const filled = Math.min(avail, 10);
-  const empty = Math.min(Math.max(total - avail, 0), 10 - filled);
+  // 先渲染实心（可用）格，再补已用的空心格，总数封顶 5（用户反馈）。
+  const filled = Math.min(avail, ENERGY_MAX_CELLS);
+  const empty = Math.min(Math.max(total - avail, 0), ENERGY_MAX_CELLS - filled);
   for (let i = 0; i < filled; i++) {
     const cell = document.createElement('div');
     cell.className = 'energy-cell shrink-0';
@@ -1117,10 +1094,10 @@ function renderEnergyDisplay() {
     cell.className = 'energy-cell energy-cell--empty shrink-0';
     box.appendChild(cell);
   }
-  if (total > 10) { // 超出显示 +N（按总量计）
+  if (total > ENERGY_MAX_CELLS) { // 超出显示 +N（按总量计）
     const more = document.createElement('span');
     more.className = 'text-[10px] text-outline ml-1 shrink-0';
-    more.textContent = `+${total - 10}`;
+    more.textContent = `+${total - ENERGY_MAX_CELLS}`;
     box.appendChild(more);
   }
   if (filled === 0 && empty === 0) {
