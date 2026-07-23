@@ -392,7 +392,7 @@ window.bindNavAutoHide = bindNavAutoHide;
 // container 为滚动容器（#tab-match / #tab-square 这类 overflow-y:auto 的固定层）。
 // 顶部下拉时圆形指示器跟手下降并随进度旋转，过阈值松手 → 图标转圈 + 执行
 // onRefresh()（返回 Promise），完成后收回。指示器动画最少展示 600ms 避免闪跳。
-function attachPullToRefresh(container, onRefresh) {
+function attachPullToRefresh(container, onRefresh, contentSelector) {
   if (!container || container.dataset.ptrBound) return;
   container.dataset.ptrBound = '1';
   const ind = document.createElement('div');
@@ -400,6 +400,12 @@ function attachPullToRefresh(container, onRefresh) {
   ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
   container.appendChild(ind);
   const iconEl = ind.querySelector('.material-symbols-outlined');
+  // 内容跟手（用户反馈：页面也要随下拉滑动）；未传选择器则仅指示器动
+  const getMovers = () => contentSelector ? [...container.querySelectorAll(contentSelector)] : [];
+  const setContent = (y, animate) => getMovers().forEach((el) => {
+    el.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1)' : 'none';
+    el.style.transform = y ? 'translateY(' + y + 'px)' : '';
+  });
   const THRESH = 70;   // 触发刷新的下拉距离
   const MAXPULL = 110; // 指示器最大下降距离
   let startY = 0, pulling = false, dist = 0, refreshing = false;
@@ -411,6 +417,7 @@ function attachPullToRefresh(container, onRefresh) {
     ind.classList.remove('ptr-ready', 'ptr-spinning');
     ind.style.opacity = '0';
     setPos(0, true);
+    setContent(0, true);
   };
   container.addEventListener('touchstart', (e) => {
     if (refreshing) return;
@@ -428,6 +435,7 @@ function attachPullToRefresh(container, onRefresh) {
     ind.style.opacity = String(Math.min(1, dist / 40));
     // 跟手下降 + 随进度旋转一圈
     setPos(dist, false);
+    setContent(dist, false);
     if (iconEl) iconEl.style.transform = `rotate(${(dist / THRESH) * 360}deg)`;
     ind.classList.toggle('ptr-ready', dist >= THRESH);
   }, { passive: true });
@@ -438,6 +446,7 @@ function attachPullToRefresh(container, onRefresh) {
     refreshing = true;
     ind.classList.add('ptr-spinning');
     setPos(THRESH, true);
+    setContent(0, true);
     const started = Date.now();
     try { await Promise.resolve(onRefresh()); } catch (e) { /* 刷新失败由各自 loader 兜底提示 */ }
     // 动画最少停留 600ms，让用户看得到刷新发生了

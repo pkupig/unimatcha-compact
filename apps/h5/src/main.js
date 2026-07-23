@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.attachPullToRefresh(document.getElementById('tab-match'), () => {
     const v = S.homeView || 'chat';
     return v === 'chat' ? window.loadSessions?.() : window.loadMatchTab?.();
-  });
-  window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.());
+  }, '#home-chat-view, #home-match-view');
+  window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.(), 'main');
   // 底部导航滚动隐藏（三个 tab 滚动容器都绑）
   ['tab-match', 'tab-square', 'tab-profile'].forEach(id =>
     window.bindNavAutoHide(document.getElementById(id)));
