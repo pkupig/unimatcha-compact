@@ -646,48 +646,46 @@
     </div>
   </main>
   <!-- 发帖按钮：圆形、纯色无投影、上移避开悬浮导航（用户反馈） -->
-  <button onclick="openNewPost()" class="fixed bottom-32 right-5 w-14 h-14 bg-neon text-black rounded-full flex items-center justify-center active:scale-90 transition-transform z-50">
+  <button onclick="openNewPost()" class="fixed bottom-44 right-5 w-14 h-14 bg-neon text-black rounded-full flex items-center justify-center active:scale-90 transition-transform z-50">
     <span class="material-symbols-outlined text-2xl">add</span>
   </button>
 </div>
 
-<!-- PROFILE TAB -->
+<!-- PROFILE TAB（重构：hero 固定区 = 背景+头像，滚动/下拉都不动；功能列表独立滚动） -->
 <div id="tab-profile" class="tab-content" style="display: none;">
-  <!-- 学生认证按钮（右上角，状态由 renderVerifyButton 渲染：未认证=Verify / 审核中=Pending / 已认证=对号） -->
+  <!-- 学生认证按钮（右上角，状态由 renderVerifyButton 渲染） -->
   <button id="verify-btn" type="button" class="absolute top-6 right-6 z-30"></button>
-  <main class="pb-32 max-w-lg mx-auto">
-    <div class="relative w-full overflow-hidden h-[28rem] mb-[-18rem]">
-      <img id="profile-bg" alt="Campus Background" class="w-full h-full object-cover object-[center_22%]" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23e5e5e5'/%3E%3C/svg%3E"/>
-      <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(249,249,249,0) 35%, rgba(249,249,249,0.4) 55%, rgba(249,249,249,0.85) 72%, #f9f9f9 82%)"></div>
-      <div class="profile-blur-mask"></div>
-    </div>
-    <div id="profile-foreground" class="relative z-10 will-change-transform">
-    <section class="flex flex-col items-center px-6 relative z-10 mb-2">
-      <div class="relative mb-3">
-        <div id="profile-avatar" class="w-24 h-24 bg-surface-container-highest overflow-hidden rounded-full border border-outline-variant/50">
-          <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23d4d4d4'/%3E%3C/svg%3E"/>
-        </div>
+  <!-- 顶部固定 hero：封面背景 + 头像/昵称/学校（不参与滚动） -->
+  <div id="profile-hero" class="absolute top-0 left-0 w-full z-0 overflow-hidden" style="height:320px">
+    <img id="profile-bg" alt="Campus Background" class="absolute inset-0 w-full h-full object-cover object-[center_30%]" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23e5e5e5'/%3E%3C/svg%3E"/>
+    <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(249,249,249,0) 30%, rgba(249,249,249,0.55) 62%, #f9f9f9 96%)"></div>
+    <div class="profile-blur-mask"></div>
+    <div class="absolute left-0 right-0 bottom-2 flex flex-col items-center z-10 px-6">
+      <div id="profile-avatar" class="w-24 h-24 bg-surface-container-highest overflow-hidden rounded-full border border-outline-variant/50 mb-3">
+        <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23d4d4d4'/%3E%3C/svg%3E"/>
       </div>
       <h2 id="profile-name" class="font-headline text-xl font-bold tracking-tight mb-1 text-on-surface">Elara Vance</h2>
       <div id="profile-meta" class="flex gap-2">
         <span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">St. Jude's</span>
       </div>
-      <div id="profile-photos-strip" class="flex gap-2 overflow-x-auto w-full px-6 mt-3"></div>
-      </div>
-    </section>
-    <div class="px-6 relative z-10 bg-background">
+      <div id="profile-photos-strip" class="hidden"></div>
+    </div>
+  </div>
+  <!-- 功能列表：hero 下方独立滚动区（头像永远不会被它盖住） -->
+  <main id="profile-scroll" class="absolute left-0 right-0 bottom-0 overflow-y-auto" style="top:320px; overscroll-behavior-y: contain;">
+    <div id="profile-menu-inner" class="px-6 pt-2 pb-32 max-w-lg mx-auto bg-background relative">
       <section class="space-y-2">
         <div class="flex flex-col">
-          <!-- ENERGY（§6.10 + §10.5(1)）：与下方列表项同层级，左标签 + 中能量格 + 右 Buy -->
+          <!-- Energy -->
           <button id="profile-energy-section" onclick="openEnergyModal()" class="w-full flex items-center justify-between py-4 border-b border-outline-variant/20 gap-3 group text-left">
             <div class="flex items-center gap-4 shrink-0">
               <span class="material-symbols-outlined text-on-surface" style="font-variation-settings:'FILL' 1">flash_on</span>
               <span class="text-sm font-medium tracking-wide">Energy</span>
             </div>
-            <div id="energy-display" class="flex items-center gap-1 flex-1 flex-wrap justify-end"><!-- 动态渲染格子，最多 10 格，超出 +N --></div>
+            <div id="energy-display" class="flex items-center gap-1 flex-1 flex-wrap justify-end"></div>
             <span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
           </button>
-          <!-- My Tickets（票夹：活动门票 + 二维码） -->
+          <!-- My Tickets -->
           <button onclick="openTickets()" class="flex items-center justify-between py-4 border-b border-outline-variant/20 group">
             <div class="flex items-center gap-4">
               <span class="material-symbols-outlined text-on-surface">confirmation_number</span>
@@ -721,11 +719,7 @@
           </button>
         </div>
       </section>
-      <!-- Logout 收进设置页（本轮反馈9：profile 不显示 logout） -->
-      <div class="mt-12 mb-20">
-        <p class="text-center mt-6 text-[10px] text-outline font-medium tracking-widest" data-no-i18n>Unimatcha v2.4.0</p>
-      </div>
-    </div>
+      <p class="text-center mt-10 text-[10px] text-outline font-medium tracking-widest" data-no-i18n>Unimatcha v2.4.0</p>
     </div>
   </main>
 </div>

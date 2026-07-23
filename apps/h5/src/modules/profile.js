@@ -564,15 +564,15 @@ window.submitVerification = submitVerification;
 // 下拉揭示清晰背景图：背景默认模糊（越往下越糊），在 profile 页顶部继续下拉时
 // 随距离渐变显现清晰图（调 .profile-blur-mask 的 opacity），松手 transition 弹回模糊。
 function setupBgPullReveal() {
-  const scroller = document.getElementById('tab-profile');
+  const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
   scroller.dataset.pullBound = '1';
   const THRESHOLD = 220; // 下拉约 220px 背景完全清晰
   const DAMP = 0.45;     // 前景内容跟手位移阻尼
   const EASE = 'cubic-bezier(0.22,1,0.36,1)';
-  const getMask = () => scroller.querySelector('.profile-blur-mask');
+  const getMask = () => document.querySelector('#profile-hero .profile-blur-mask');
   // 同步移动的内容：前景整块 + 右上角认证按钮（背景图层是它们的兄弟节点，保持不动）
-  const getMovers = () => [document.getElementById('profile-foreground'), document.getElementById('verify-btn')].filter(Boolean);
+  const getMovers = () => [document.getElementById('profile-menu-inner')].filter(Boolean);
   // 封面揭示仅在设了封面时叠加（无封面只做内容位移，不再露灰色占位）
   const hasCover = () => !!S.currentUser?.profile?.coverUrl;
   let startY = 0, pulling = false, lastDelta = 0, refreshing = false;
