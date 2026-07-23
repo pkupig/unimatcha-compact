@@ -571,26 +571,26 @@ function setupBgPullReveal() {
   const DAMP = 0.45;     // 前景内容跟手位移阻尼
   const EASE = 'cubic-bezier(0.22,1,0.36,1)';
   const getMask = () => scroller.querySelector('.profile-blur-mask');
-  const getFg = () => document.getElementById('profile-foreground');
-  // 未设封面时禁用揭示（否则下拉露出的是灰色占位，观感像页面坏了）
+  // 同步移动的内容：前景整块 + 右上角认证按钮（背景图层是它们的兄弟节点，保持不动）
+  const getMovers = () => [document.getElementById('profile-foreground'), document.getElementById('verify-btn')].filter(Boolean);
+  // 封面揭示仅在设了封面时叠加（无封面只做内容位移，不再露灰色占位）
   const hasCover = () => !!S.currentUser?.profile?.coverUrl;
   let startY = 0, pulling = false;
-  // 下拉中：背景揭示清晰 + 前景整体跟手下移
+  // 下拉中：背景固定，其余内容整体跟手下移；有封面时同时揭示清晰背景
   const apply = (delta) => {
-    const mask = getMask(), fg = getFg();
-    if (mask) { mask.style.transition = 'none'; mask.style.opacity = String(Math.max(0, 1 - delta / THRESHOLD)); }
-    if (fg) { fg.style.transition = 'none'; fg.style.transform = 'translateY(' + (delta * DAMP) + 'px)'; }
+    const mask = getMask();
+    if (mask && hasCover()) { mask.style.transition = 'none'; mask.style.opacity = String(Math.max(0, 1 - delta / THRESHOLD)); }
+    getMovers().forEach((el) => { el.style.transition = 'none'; el.style.transform = 'translateY(' + (delta * DAMP) + 'px)'; });
   };
-  // 松手/结束：背景弹回模糊 + 前景弹回原位
+  // 松手/结束：内容弹回原位（背景全程未动）
   const reset = () => {
     if (!pulling) return;
     pulling = false;
-    const mask = getMask(), fg = getFg();
+    const mask = getMask();
     if (mask) { mask.style.transition = 'opacity 0.45s ' + EASE; mask.style.opacity = '1'; }
-    if (fg) { fg.style.transition = 'transform 0.45s ' + EASE; fg.style.transform = 'translateY(0)'; }
+    getMovers().forEach((el) => { el.style.transition = 'transform 0.45s ' + EASE; el.style.transform = 'translateY(0)'; });
   };
   scroller.addEventListener('touchstart', (e) => {
-    if (!hasCover()) return;
     if (scroller.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; }
   }, { passive: true });
   scroller.addEventListener('touchmove', (e) => {
@@ -602,15 +602,18 @@ function setupBgPullReveal() {
   scroller.addEventListener('touchcancel', reset);
   // 桌面：顶部继续上滚也能揭示并轻微下移前景，停止后弹回
   scroller.addEventListener('wheel', (e) => {
-    if (!hasCover()) return;
     if (scroller.scrollTop <= 0 && e.deltaY < 0) {
-      const mask = getMask(), fg = getFg();
-      if (mask) { mask.style.transition = 'opacity 0.12s linear'; mask.style.opacity = String(Math.max(0, parseFloat(mask.style.opacity || '1') - 0.18)); }
-      if (fg) { fg.style.transition = 'transform 0.12s linear'; const cur = parseFloat((String(fg.style.transform).match(/-?[\d.]+/) || [0])[0]) || 0; fg.style.transform = 'translateY(' + Math.min(70, cur + 16) + 'px)'; }
+      const mask = getMask();
+      if (mask && hasCover()) { mask.style.transition = 'opacity 0.12s linear'; mask.style.opacity = String(Math.max(0, parseFloat(mask.style.opacity || '1') - 0.18)); }
+      getMovers().forEach((el) => {
+        el.style.transition = 'transform 0.12s linear';
+        const cur = parseFloat((String(el.style.transform).match(/-?[\d.]+/) || [0])[0]) || 0;
+        el.style.transform = 'translateY(' + Math.min(70, cur + 16) + 'px)';
+      });
       clearTimeout(scroller._bgWheelT);
       scroller._bgWheelT = setTimeout(() => {
         if (mask) { mask.style.transition = 'opacity 0.45s ' + EASE; mask.style.opacity = '1'; }
-        if (fg) { fg.style.transition = 'transform 0.45s ' + EASE; fg.style.transform = 'translateY(0)'; }
+        getMovers().forEach((el) => { el.style.transition = 'transform 0.45s ' + EASE; el.style.transform = 'translateY(0)'; });
       }, 350);
     }
   }, { passive: true });
