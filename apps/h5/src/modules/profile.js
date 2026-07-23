@@ -561,94 +561,12 @@ async function submitVerification() {
 }
 window.submitVerification = submitVerification;
 
-// 下拉揭示清晰背景图：背景默认模糊（越往下越糊），在 profile 页顶部继续下拉时
-// 随距离渐变显现清晰图（调 .profile-blur-mask 的 opacity），松手 transition 弹回模糊。
+// profile 下拉刷新：与 match/square 完全同一组件同一手感（用户要求一致、不做自定义幅度控制）。
+// 内容（头像+功能区）整体跟手，背景 hero 层固定；松手过阈值刷新资料。
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
-  scroller.dataset.pullBound = '1';
-  const THRESHOLD = 220; // 下拉约 220px 背景完全清晰
-  const DAMP = 0.45;     // 前景内容跟手位移阻尼
-  const EASE = 'cubic-bezier(0.22,1,0.36,1)';
-  const getMask = () => document.querySelector('#profile-hero .profile-blur-mask');
-  // 同步移动的内容：前景整块 + 右上角认证按钮（背景图层是它们的兄弟节点，保持不动）
-  const getMovers = () => [document.getElementById('profile-menu-inner')].filter(Boolean);
-  // 封面揭示仅在设了封面时叠加（无封面只做内容位移，不再露灰色占位）
-  const hasCover = () => !!S.currentUser?.profile?.coverUrl;
-  let startY = 0, pulling = false, lastDelta = 0, refreshing = false;
-  // 下拉刷新指示器（复用全局 .ptr-indicator 样式，用户选定：内容跟手 + 下拉刷新）
-  const REFRESH_AT = 150; // 原始下拉距离阈值（内容位移约 = ×DAMP）
-  let ind = scroller.querySelector(':scope > .ptr-indicator');
-  if (!ind) {
-    ind = document.createElement('div');
-    ind.className = 'ptr-indicator';
-    ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
-    scroller.appendChild(ind);
-  }
-  const indIcon = ind.querySelector('.material-symbols-outlined');
-  const setInd = (y, animate) => {
-    ind.style.transition = animate ? 'transform 0.3s ' + EASE + ', opacity 0.3s' : 'none';
-    ind.style.transform = 'translateX(-50%) translateY(' + y + 'px)';
-  };
-  const hideInd = () => { ind.classList.remove('ptr-ready', 'ptr-spinning'); ind.style.opacity = '0'; setInd(0, true); };
-  // 下拉中：背景固定，其余内容整体跟手下移；指示器随进度下降旋转；有封面同时揭示背景
-  const apply = (delta) => {
-    const mask = getMask();
-    if (mask && hasCover()) { mask.style.transition = 'none'; mask.style.opacity = String(Math.max(0, 1 - delta / THRESHOLD)); }
-    getMovers().forEach((el) => { el.style.transition = 'none'; el.style.transform = 'translateY(' + (delta * DAMP) + 'px)'; });
-    const p = Math.min(1, delta / REFRESH_AT);
-    ind.style.opacity = String(Math.min(1, p * 1.6));
-    setInd(Math.min(90, delta * 0.4), false);
-    if (indIcon) indIcon.style.transform = 'rotate(' + (p * 360) + 'deg)';
-    ind.classList.toggle('ptr-ready', delta >= REFRESH_AT);
-  };
-  // 内容与背景蒙层弹回原位
-  const springBack = () => {
-    const mask = getMask();
-    if (mask) { mask.style.transition = 'opacity 0.45s ' + EASE; mask.style.opacity = '1'; }
-    getMovers().forEach((el) => { el.style.transition = 'transform 0.45s ' + EASE; el.style.transform = 'translateY(0)'; });
-  };
-  // 松手：过阈值 → 转圈刷新资料（最少 600ms）再收回；未过 → 直接弹回
-  const release = async () => {
-    if (!pulling || refreshing) { pulling = false; return; }
-    pulling = false;
-    if (lastDelta < REFRESH_AT) { hideInd(); springBack(); return; }
-    refreshing = true;
-    ind.classList.add('ptr-spinning');
-    setInd(70, true);
-    springBack();
-    const started = Date.now();
-    try { await Promise.resolve(window.loadProfileTab()); } catch (e) {}
-    setTimeout(() => { refreshing = false; hideInd(); }, Math.max(0, 600 - (Date.now() - started)));
-  };
-  scroller.addEventListener('touchstart', (e) => {
-    if (refreshing) return;
-    if (scroller.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; lastDelta = 0; }
-  }, { passive: true });
-  scroller.addEventListener('touchmove', (e) => {
-    if (!pulling || refreshing) return;
-    const delta = e.touches[0].clientY - startY;
-    if (delta > 0 && scroller.scrollTop <= 0) { lastDelta = delta; apply(delta); }
-  }, { passive: true });
-  scroller.addEventListener('touchend', release);
-  scroller.addEventListener('touchcancel', () => { pulling = false; hideInd(); springBack(); });
-  // 桌面：顶部继续上滚也能揭示并轻微下移前景，停止后弹回
-  scroller.addEventListener('wheel', (e) => {
-    if (scroller.scrollTop <= 0 && e.deltaY < 0) {
-      const mask = getMask();
-      if (mask && hasCover()) { mask.style.transition = 'opacity 0.12s linear'; mask.style.opacity = String(Math.max(0, parseFloat(mask.style.opacity || '1') - 0.18)); }
-      getMovers().forEach((el) => {
-        el.style.transition = 'transform 0.12s linear';
-        const cur = parseFloat((String(el.style.transform).match(/-?[\d.]+/) || [0])[0]) || 0;
-        el.style.transform = 'translateY(' + Math.min(70, cur + 16) + 'px)';
-      });
-      clearTimeout(scroller._bgWheelT);
-      scroller._bgWheelT = setTimeout(() => {
-        if (mask) { mask.style.transition = 'opacity 0.45s ' + EASE; mask.style.opacity = '1'; }
-        getMovers().forEach((el) => { el.style.transition = 'transform 0.45s ' + EASE; el.style.transform = 'translateY(0)'; });
-      }, 350);
-    }
-  }, { passive: true });
+  window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner');
 }
 window.setupBgPullReveal = setupBgPullReveal;
 
