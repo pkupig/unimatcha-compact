@@ -575,31 +575,63 @@ function setupBgPullReveal() {
   const getMovers = () => [document.getElementById('profile-foreground'), document.getElementById('verify-btn')].filter(Boolean);
   // 封面揭示仅在设了封面时叠加（无封面只做内容位移，不再露灰色占位）
   const hasCover = () => !!S.currentUser?.profile?.coverUrl;
-  let startY = 0, pulling = false;
-  // 下拉中：背景固定，其余内容整体跟手下移；有封面时同时揭示清晰背景
+  let startY = 0, pulling = false, lastDelta = 0, refreshing = false;
+  // 下拉刷新指示器（复用全局 .ptr-indicator 样式，用户选定：内容跟手 + 下拉刷新）
+  const REFRESH_AT = 150; // 原始下拉距离阈值（内容位移约 = ×DAMP）
+  let ind = scroller.querySelector(':scope > .ptr-indicator');
+  if (!ind) {
+    ind = document.createElement('div');
+    ind.className = 'ptr-indicator';
+    ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
+    scroller.appendChild(ind);
+  }
+  const indIcon = ind.querySelector('.material-symbols-outlined');
+  const setInd = (y, animate) => {
+    ind.style.transition = animate ? 'transform 0.3s ' + EASE + ', opacity 0.3s' : 'none';
+    ind.style.transform = 'translateX(-50%) translateY(' + y + 'px)';
+  };
+  const hideInd = () => { ind.classList.remove('ptr-ready', 'ptr-spinning'); ind.style.opacity = '0'; setInd(0, true); };
+  // 下拉中：背景固定，其余内容整体跟手下移；指示器随进度下降旋转；有封面同时揭示背景
   const apply = (delta) => {
     const mask = getMask();
     if (mask && hasCover()) { mask.style.transition = 'none'; mask.style.opacity = String(Math.max(0, 1 - delta / THRESHOLD)); }
     getMovers().forEach((el) => { el.style.transition = 'none'; el.style.transform = 'translateY(' + (delta * DAMP) + 'px)'; });
+    const p = Math.min(1, delta / REFRESH_AT);
+    ind.style.opacity = String(Math.min(1, p * 1.6));
+    setInd(Math.min(90, delta * 0.4), false);
+    if (indIcon) indIcon.style.transform = 'rotate(' + (p * 360) + 'deg)';
+    ind.classList.toggle('ptr-ready', delta >= REFRESH_AT);
   };
-  // 松手/结束：内容弹回原位（背景全程未动）
-  const reset = () => {
-    if (!pulling) return;
-    pulling = false;
+  // 内容与背景蒙层弹回原位
+  const springBack = () => {
     const mask = getMask();
     if (mask) { mask.style.transition = 'opacity 0.45s ' + EASE; mask.style.opacity = '1'; }
     getMovers().forEach((el) => { el.style.transition = 'transform 0.45s ' + EASE; el.style.transform = 'translateY(0)'; });
   };
+  // 松手：过阈值 → 转圈刷新资料（最少 600ms）再收回；未过 → 直接弹回
+  const release = async () => {
+    if (!pulling || refreshing) { pulling = false; return; }
+    pulling = false;
+    if (lastDelta < REFRESH_AT) { hideInd(); springBack(); return; }
+    refreshing = true;
+    ind.classList.add('ptr-spinning');
+    setInd(70, true);
+    springBack();
+    const started = Date.now();
+    try { await Promise.resolve(window.loadProfileTab()); } catch (e) {}
+    setTimeout(() => { refreshing = false; hideInd(); }, Math.max(0, 600 - (Date.now() - started)));
+  };
   scroller.addEventListener('touchstart', (e) => {
-    if (scroller.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; }
+    if (refreshing) return;
+    if (scroller.scrollTop <= 0) { startY = e.touches[0].clientY; pulling = true; lastDelta = 0; }
   }, { passive: true });
   scroller.addEventListener('touchmove', (e) => {
-    if (!pulling) return;
+    if (!pulling || refreshing) return;
     const delta = e.touches[0].clientY - startY;
-    if (delta > 0) apply(delta);
+    if (delta > 0 && scroller.scrollTop <= 0) { lastDelta = delta; apply(delta); }
   }, { passive: true });
-  scroller.addEventListener('touchend', reset);
-  scroller.addEventListener('touchcancel', reset);
+  scroller.addEventListener('touchend', release);
+  scroller.addEventListener('touchcancel', () => { pulling = false; hideInd(); springBack(); });
   // 桌面：顶部继续上滚也能揭示并轻微下移前景，停止后弹回
   scroller.addEventListener('wheel', (e) => {
     if (scroller.scrollTop <= 0 && e.deltaY < 0) {
