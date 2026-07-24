@@ -1279,7 +1279,7 @@
   </header>
   <main class="pt-24 pb-20 px-5">
     <section class="mb-10">
-      <div class="flex items-center mb-6">
+      <div class="flex items-center mb-3">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Account</h3>
       </div>
       <div class="space-y-0">
@@ -1288,14 +1288,12 @@
             <span class="text-on-surface text-sm font-medium tracking-wide">Email</span>
             <span id="settings-email" class="text-on-surface-variant text-sm" data-no-i18n>user@university.edu</span>
           </div>
-          <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="showChangePassword()">
           <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Password</span>
-            <span class="text-on-surface-variant text-sm">Tap to change password</span>
-          </div>
+                      </div>
           <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
@@ -1303,7 +1301,7 @@
     </section>
     <!-- Preferences：语言 / 深色模式（本轮反馈4：中英文切换入口进设置） -->
     <section class="mb-10">
-      <div class="flex items-center mb-6">
+      <div class="flex items-center mb-3">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Preferences</h3>
       </div>
       <div class="space-y-0">
@@ -1312,8 +1310,7 @@
             <span class="material-symbols-outlined text-on-surface">translate</span>
             <div class="flex flex-col">
               <span class="text-on-surface text-sm font-medium tracking-wide">Language</span>
-              <span class="text-on-surface-variant text-sm" data-no-i18n>中文 / English</span>
-            </div>
+                          </div>
           </div>
           <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
         </div>
@@ -1326,32 +1323,38 @@
           <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">contrast</span>
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Push Notifications</span>
+                      </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="pushEnabled" onclick="toggleSetting('pushEnabled')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
       </div>
     </section>
     <section class="mb-10">
-      <div class="flex items-center mb-6">
+      <div class="flex items-center mb-3">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Nudge</h3>
       </div>
       <div class="space-y-2">
-        <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">When someone nudges you, it reads:</label>
         <div class="flex items-center gap-2">
           <span class="text-sm text-on-surface-variant shrink-0">…nudged me</span>
-          <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="on the head" class="flex-1 bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary text-on-surface"/>
+          <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="on the head" class="flex-1 min-w-0 bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm text-on-surface"/>
           <button id="nudge-save-btn" onclick="saveNudgeSuffix()" class="bg-neon text-black rounded-full px-4 py-2 font-headline text-[10px] font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50 shrink-0">Save</button>
         </div>
-        <p class="text-[10px] text-outline">e.g. "nudged me on the head" / "拍了拍我的头"</p>
       </div>
     </section>
     <section class="mb-10">
-      <div class="flex items-center mb-6">
+      <div class="flex items-center mb-3">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Privacy</h3>
       </div>
       <div class="space-y-0">
         <div class="group flex items-center justify-between py-4">
           <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Show my profile</span>
-            <span class="text-on-surface-variant text-sm">Allow others to view your profile</span>
-          </div>
+                      </div>
           <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showProfile" onclick="toggleSetting('privacy.showProfile')">
             <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
           </div>
@@ -1360,8 +1363,7 @@
         <div class="group flex items-center justify-between py-4">
           <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Show online status</span>
-            <span class="text-on-surface-variant text-sm">Let your match see when you are active</span>
-          </div>
+                      </div>
           <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showOnline" onclick="toggleSetting('privacy.showOnline')">
             <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
           </div>
@@ -1370,26 +1372,8 @@
         <div class="group flex items-center justify-between py-4">
           <div class="flex flex-col">
             <span class="text-on-surface text-sm font-medium tracking-wide">Show my moments</span>
-            <span class="text-on-surface-variant text-sm">Display your moments to others</span>
-          </div>
+                      </div>
           <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showMoments" onclick="toggleSetting('privacy.showMoments')">
-            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
-          </div>
-        </div>
-        <div class="h-[1px] bg-outline-variant/20"></div>
-      </div>
-    </section>
-    <section class="mb-10">
-      <div class="flex items-center mb-6">
-        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Notifications</h3>
-      </div>
-      <div class="space-y-0">
-        <div class="group flex items-center justify-between py-4">
-          <div class="flex flex-col">
-            <span class="text-on-surface text-sm font-medium tracking-wide">Push Notifications</span>
-            <span class="text-on-surface-variant text-sm">Match results, messages and likes</span>
-          </div>
-          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="pushEnabled" onclick="toggleSetting('pushEnabled')">
             <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
           </div>
         </div>
@@ -1398,7 +1382,7 @@
     </section>
     <!-- Support Section -->
     <section class="mb-10">
-      <div class="flex items-center mb-6">
+      <div class="flex items-center mb-3">
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Support</h3>
       </div>
       <div class="space-y-0">
@@ -1426,14 +1410,7 @@
           <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
         </div>
         <div class="h-[1px] bg-outline-variant/20"></div>
-      </div>
-    </section>
-    <!-- Legal Section -->
-    <section class="mb-10">
-      <div class="flex items-center mb-6">
-        <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Legal</h3>
-      </div>
-      <div class="space-y-0">
+
         <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openContentPage('terms')">
           <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">gavel</span>
