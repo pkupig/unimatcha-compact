@@ -225,6 +225,47 @@ function toggleLang() {
   window.location.reload(); // 重载后干净地应用/还原
 }
 window.toggleLang = toggleLang;
+
+// 语言切换确认弹窗（用户反馈：要有确定按钮，不再点击即切）
+function openLangDialog() {
+  const cur = getLang();
+  let sel = cur;
+  const zhUI = cur === 'zh';
+  const back = document.createElement('div');
+  back.className = 'fixed inset-0 z-[999] bg-black/40 backdrop-blur-[2px] flex items-center justify-center px-8';
+  const opt = (val, label) =>
+    '<button data-lang-opt="' + val + '" class="w-full flex items-center justify-between px-4 py-3.5 rounded-[12px] border transition-all ' +
+    (val === sel ? 'border-neon bg-neon/10' : 'border-outline-variant/50') + '">' +
+    '<span class="font-headline font-bold text-sm">' + label + '</span>' +
+    '<span class="material-symbols-outlined lang-check text-neon ' + (val === sel ? '' : 'opacity-0') + '" style="font-variation-settings:\'FILL\' 1;font-size:20px">check_circle</span></button>';
+  back.innerHTML =
+    '<div class="w-full max-w-xs bg-surface rounded-[16px] shadow-2xl p-6" data-no-i18n>' +
+    '<h3 class="font-headline font-extrabold text-lg tracking-tight text-on-surface mb-4">' + (zhUI ? '语言 / Language' : 'Language / 语言') + '</h3>' +
+    '<div class="space-y-2 mb-6">' + opt('zh', '中文') + opt('en', 'English') + '</div>' +
+    '<div class="flex gap-3">' +
+    '<button data-lang-cancel class="flex-1 py-3 rounded-full border border-outline-variant font-headline text-xs font-bold tracking-widest text-on-surface-variant active:scale-95">' + (zhUI ? '取消' : 'Cancel') + '</button>' +
+    '<button data-lang-ok class="flex-1 py-3 rounded-full bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95">' + (zhUI ? '确定' : 'Confirm') + '</button>' +
+    '</div></div>';
+  document.body.appendChild(back);
+  const paint = () => back.querySelectorAll('[data-lang-opt]').forEach((b) => {
+    const on = b.dataset.langOpt === sel;
+    b.className = 'w-full flex items-center justify-between px-4 py-3.5 rounded-[12px] border transition-all ' + (on ? 'border-neon bg-neon/10' : 'border-outline-variant/50');
+    b.querySelector('.lang-check').classList.toggle('opacity-0', !on);
+  });
+  back.addEventListener('click', (e) => {
+    const optBtn = e.target.closest('[data-lang-opt]');
+    if (optBtn) { sel = optBtn.dataset.langOpt; paint(); return; }
+    if (e.target.closest('[data-lang-cancel]') || e.target === back) { back.remove(); return; }
+    if (e.target.closest('[data-lang-ok]')) {
+      back.remove();
+      if (sel !== cur) {
+        try { localStorage.setItem(LANG_KEY, sel); } catch (err) {}
+        window.location.reload();
+      }
+    }
+  });
+}
+window.openLangDialog = openLangDialog;
 window.getLang = getLang;
 
 // boot

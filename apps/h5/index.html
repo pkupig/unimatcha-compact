@@ -758,7 +758,7 @@
           <span class="material-symbols-outlined" data-icon="close">close</span>
         </button>
         <h1 class="font-headline font-bold tracking-tighter text-black">Preferences</h1>
-        <button class="font-headline font-bold tracking-tighter text-black hover:bg-stone-100 transition-colors px-3 py-1 active:scale-[0.98]" onclick="saveFilterPrefs()">Save</button>
+        <button id="filter-save-btn" class="bg-neon text-black rounded-full px-5 py-2 font-headline text-xs font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50" onclick="saveFilterPrefs()">Save</button>
       </div>
     </header>
     <!-- 模式选项卡 Romantic / Friend（§6.4 行2033-2044）：偏好按模式分离 -->
@@ -1001,7 +1001,7 @@
     <header class="flex justify-between items-center px-6 h-16 shrink-0 border-b border-outline-variant/20 bg-surface/80 backdrop-blur-xl z-30">
       <button class="text-on-surface-variant font-medium tracking-tight hover:text-on-surface transition-colors" onclick="hideOverlay('edit-profile-overlay')">Cancel</button>
       <h1 class="font-headline font-extrabold tracking-tight text-lg">Edit Profile</h1>
-      <button class="bg-neon text-black px-5 py-1.5 rounded-[10px] font-bold text-sm tracking-widest hover:bg-primary-container transition-all" onclick="saveEditProfile()">Save</button>
+      <button id="edit-save-btn" class="bg-neon text-black rounded-full px-5 py-2 font-headline text-xs font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50" onclick="saveEditProfile()">Save</button>
     </header>
     <div class="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-12">
       <!-- 头像 + 封面：同行居中对齐，仅图形无描述文字 -->
@@ -1307,7 +1307,7 @@
         <h3 class="font-headline text-xs font-black tracking-[0.2em] text-outline">Preferences</h3>
       </div>
       <div class="space-y-0">
-        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="toggleLang()">
+        <div class="group flex items-center justify-between py-4 cursor-pointer hover:bg-surface-container-low transition-colors" onclick="openLangDialog()">
           <div class="flex items-center">
             <span class="material-symbols-outlined text-on-surface">translate</span>
             <div class="flex flex-col">
@@ -1337,7 +1337,7 @@
         <div class="flex items-center gap-2">
           <span class="text-sm text-on-surface-variant shrink-0">…nudged me</span>
           <input id="settings-nudge-suffix" type="text" maxlength="40" placeholder="on the head" class="flex-1 bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary text-on-surface"/>
-          <button onclick="saveNudgeSuffix()" class="px-4 py-2 rounded-[10px] bg-neon text-black text-[10px] font-bold tracking-widest active:scale-95 shrink-0">Save</button>
+          <button id="nudge-save-btn" onclick="saveNudgeSuffix()" class="bg-neon text-black rounded-full px-4 py-2 font-headline text-[10px] font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50 shrink-0">Save</button>
         </div>
         <p class="text-[10px] text-outline">e.g. "nudged me on the head" / "拍了拍我的头"</p>
       </div>
@@ -1526,7 +1526,7 @@
         </div>
       </section>
       <section>
-        <button class="w-full bg-neon text-black py-4 font-headline font-bold text-sm tracking-widest rounded-[10px] active:scale-[0.98] transition-all" onclick="saveMatchSettings()">Save</button>
+        <button id="ms-save-btn" class="w-full bg-neon text-black py-4 font-headline font-bold text-sm tracking-widest rounded-full active:scale-[0.98] transition-all disabled:opacity-50" onclick="saveMatchSettings()">Save</button>
       </section>
     </div>
   </div>

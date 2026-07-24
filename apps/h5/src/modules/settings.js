@@ -18,12 +18,15 @@ window.openSettings = openSettings;
 // 保存「别人拍我」时显示的后缀（本轮反馈3）
 async function saveNudgeSuffix() {
   const v = document.getElementById('settings-nudge-suffix')?.value || '';
+  window.btnBusy('nudge-save-btn', true);
   try {
     await window.api('/chat/nudge-suffix', 'PUT', { suffix: v });
     if (S.currentUser) S.currentUser.settings = { ...(S.currentUser.settings || {}), nudgeSuffix: v };
     window.toast('Saved');
   } catch (e) {
     window.toast('Failed: ' + (e?.message || 'try again'));
+  } finally {
+    window.btnBusy('nudge-save-btn', false);
   }
 }
 window.saveNudgeSuffix = saveNudgeSuffix;

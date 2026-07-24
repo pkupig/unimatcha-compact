@@ -488,6 +488,21 @@ function bindSheetDragClose(overlayId) {
 }
 window.bindSheetDragClose = bindSheetDragClose;
 
+// 保存按钮忙碌态：禁用 + 文案切到 Saving…，结束恢复（防连点 + 给出真实进行中反馈）
+function btnBusy(id, busy) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (busy) {
+    el.dataset.label = el.textContent;
+    el.disabled = true;
+    el.textContent = window.getLang && window.getLang() === 'zh' ? '保存中…' : 'Saving…';
+  } else {
+    el.disabled = false;
+    if (el.dataset.label) el.textContent = el.dataset.label;
+  }
+}
+window.btnBusy = btnBusy;
+
 function flatEmptyIcon(icon, tone = 'muted') {
   const box = tone === 'neon' ? 'background:#CCFF00;color:#000' : 'background:#efefef;color:#8a8a8a';
   return `<div class="w-16 h-16 mx-auto mb-6 rounded-[18px] flex items-center justify-center" style="${box}">

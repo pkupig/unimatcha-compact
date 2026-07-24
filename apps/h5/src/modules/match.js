@@ -62,7 +62,7 @@ function toggleChatPlusMenu() {
     { icon: 'qr_code_2', label: 'Add by QR', run: () => window.openFriendHubAt('qr') },
     { icon: 'hub', label: 'Relationship Network', run: () => window.openFriendHubAt('graph') },
     { icon: 'dark_mode', label: 'Dark mode', run: () => window.toggleDarkMode() },
-    { icon: 'translate', label: 'Language', run: () => window.toggleLang() },
+    { icon: 'translate', label: 'Language', run: () => window.openLangDialog() },
   ];
   const wrap = document.createElement('div');
   wrap.id = 'chat-plus-menu';
@@ -1063,12 +1063,15 @@ async function saveFilterPrefs(mode) {
       universityStage: (S.filterStages && S.filterStages.length) ? S.filterStages.join(',') : null,
     };
   }
+  window.btnBusy('filter-save-btn', true);
   try {
     await window.api('/matching/preferences', 'PUT', prefs);
     window.toast('Preferences saved');
     window.closeFilterSheet();
   } catch (e) {
     window.toast('Failed: ' + e.message);
+  } finally {
+    window.btnBusy('filter-save-btn', false);
   }
 }
 window.saveFilterPrefs = saveFilterPrefs;
@@ -1324,12 +1327,15 @@ async function saveMatchSettings() {
   // 提交并预扣能量。这里不再把 enhancedModeEnabled/friendEnhancedCells 发到 /matching/preferences：
   // 后端只认 /matching/start 的扣费路径，偏好端点已拒收这两个字段（防免费白嫖增强）。
   const body = { mode, extraMatchInfo };
+  window.btnBusy('ms-save-btn', true);
   try {
     await window.api('/matching/preferences', 'PUT', body);
     window.toast('Settings saved');
     window.closeMatchSettings();
   } catch (e) {
     window.toast('Failed: ' + e.message);
+  } finally {
+    window.btnBusy('ms-save-btn', false);
   }
 }
 window.saveMatchSettings = saveMatchSettings;

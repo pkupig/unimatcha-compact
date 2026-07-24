@@ -643,6 +643,7 @@ function closeEditProfile() {
 window.closeEditProfile = closeEditProfile;
 
 async function saveEditProfile() {
+  window.btnBusy('edit-save-btn', true);
   const nickname = document.getElementById('edit-nickname')?.value?.trim();
   const bio = document.getElementById('edit-bio')?.value?.trim();
   if (!nickname) {
@@ -697,6 +698,8 @@ async function saveEditProfile() {
     window.loadProfileTab();
   } catch (e) {
     window.toast('Failed: ' + e.message);
+  } finally {
+    window.btnBusy('edit-save-btn', false);
   }
 }
 
