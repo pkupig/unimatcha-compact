@@ -38,6 +38,10 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 
 ## 每日日志
 
+### 2026-07-24
+- 完成（问卷双语 + 题目导航，已上线 9d1cea5 并生产验证）：①**题库双语**——Question 加 titleEn 列，75 题（恋人50/朋友25）全部由子代理翻译成口语化英文并写入 seed；新增幂等回填脚本 prisma/backfill-question-en.ts（按中文题面 updateMany，编入 dist）；生产容器内跑回填 75/75 全更新。②**H5**——英文态显示 titleEn（缺省回退中文）、开场提示双语、量表五档/问卷页/卡片残留补中文键；新增**题目导航弹层**（网格跳任意题：绿=已答/描边=未答/圈=当前）。③线上 E2E：英文态 50 题全英文、跳第 30 题正确；中文态原题+「非常同意」+答题后导航绿块标记，全部通过。④界面批量优化七项（3671d86）：匹配中只留动画+倒计时（动画 240px）、Any age 勾选荧光绿、偏好弹层收紧+下拉关闭、修增强开关被 preferences 回填重置的「保存不了」bug、设置排版、编辑资料重排（头像封面对齐相机角标/全输入去下划线改软填充/礼物罐精简）、认证与聊天搜索去下划线。
+- 排障（本机 Docker Desktop 4.78 起不来）：根因 = Inference 服务的残损 unix socket（AppData\Local\Docker\run\dockerInference 系统级不可删）导致启动即崩溃；run 目录整体改名重建后仍触发用户点了 Reset to factory defaults，重置后首启轮询中。开发库 titleEn 回填待 Docker 恢复后补跑（生产不受影响）。
+
 ### 2026-07-21
 - 完成（遗留功能收尾，已上线 a5d208d）：①**P1-6 行为埋点**——H5 接入 viewed/openedProfile 上报（POST /matching/feedback/events）：恋人匹配卡/朋友候选卡渲染报 viewed，聊天头像打开对方资料报 openedProfile；会话内 Set 去重、失败允许重试，实测请求体正确且去重生效。②**内容页中文版**——帮助中心/安全提示/用户协议/隐私政策四页完整中文翻译（CONTENT_PAGES_ZH），中文态整页切换、英文态原文回退，实测双语正确。③**生产库核验**——square_poll_votes/events/event_tickets 三表与 square_posts 新列（postType/reviewStatus/eventId）确认已在生产库建好（投票/活动功能的唯一约束随新表创建无需 --accept-data-loss）。
 - 待办：matching-ml 接真实 LLM（LLM_BACKEND=mock，需 API key）；官网 hero 视频改版待定；P0-3 公布 cron 运营切换；帮助中心内容后续可从 FAQ 数据源统一维护。
