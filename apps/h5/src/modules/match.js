@@ -163,7 +163,27 @@ function ensureEnhancedShape() {
   if (!S.enhanced.friend || typeof S.enhanced.friend !== 'object') {
     S.enhanced.friend = { enabled: false, cells: 1 };
   }
+  // 按用户从本地恢复（后端有意不存增强字段；不持久化则重启后开关归零=「保存没用」）
+  const uid = S.currentUser?.id;
+  if (uid && S.enhanced._uid !== uid) {
+    try {
+      const saved = JSON.parse(localStorage.getItem('cl_enhanced_' + uid) || 'null');
+      if (saved) {
+        S.enhanced.romantic = { ...S.enhanced.romantic, ...saved.romantic };
+        S.enhanced.friend = { ...S.enhanced.friend, ...saved.friend };
+      }
+    } catch (e) {}
+    S.enhanced._uid = uid;
+  }
   return S.enhanced;
+}
+
+function persistEnhanced() {
+  const uid = S.currentUser?.id;
+  if (!uid) return;
+  try {
+    localStorage.setItem('cl_enhanced_' + uid, JSON.stringify({ romantic: S.enhanced.romantic, friend: S.enhanced.friend }));
+  } catch (e) {}
 }
 window.ensureEnhancedShape = ensureEnhancedShape;
 
@@ -1243,10 +1263,12 @@ window.toggleFriendPriorityInterest = toggleFriendPriorityInterest;
 // ========================================
 // 切换增强开关（恋人/朋友各自独立）。朋友显隐 1–5 滑块；能量不足时提示去充值。
 function toggleEnhance(mode) {
+  // (persist at end)
   ensureEnhancedShape();
   const m = mode === 'friend' ? 'friend' : 'romantic';
   S.enhanced[m].enabled = !S.enhanced[m].enabled;
   updateEnhanceUI(m);
+  persistEnhanced();
   const cost = m === 'romantic' ? 3 : (S.enhanced.friend.cells || 1);
   if (S.enhanced[m].enabled && (S.energy?.availableEnergy ?? 0) < cost) {
     window.toast('Not enough energy — top up');
@@ -1264,6 +1286,7 @@ function updateFriendCells(v) {
   if (disp) disp.textContent = cells;
   const cost = document.getElementById('friend-cells-cost');
   if (cost) cost.textContent = cells;
+  persistEnhanced();
 }
 window.updateFriendCells = updateFriendCells;
 
@@ -1327,6 +1350,7 @@ async function saveMatchSettings() {
   // 提交并预扣能量。这里不再把 enhancedModeEnabled/friendEnhancedCells 发到 /matching/preferences：
   // 后端只认 /matching/start 的扣费路径，偏好端点已拒收这两个字段（防免费白嫖增强）。
   const body = { mode, extraMatchInfo };
+  persistEnhanced();
   window.btnBusy('ms-save-btn', true);
   try {
     await window.api('/matching/preferences', 'PUT', body);

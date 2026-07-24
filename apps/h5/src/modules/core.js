@@ -11,7 +11,9 @@ async function api(path, method = 'GET', body = null) {
   if (token) headers.Authorization = `Bearer ${token}`;
   const opts = {
     method,
-    headers
+    headers,
+    // API 无 Cache-Control 时浏览器会启发式缓存 GET，导致「保存成功但重开读到旧值」
+    cache: 'no-store'
   };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`${S.API}${path}`, opts);
