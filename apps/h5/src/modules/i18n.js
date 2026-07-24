@@ -131,6 +131,18 @@ const ZH = {
   'Add your school to view the campus wall': '填写学校后解锁校园墙',
   'Set your school in your profile to unlock it': '在资料中填写学校即可查看本校动态',
   'Complete profile': '去完善资料',
+  // ── 问卷 ──
+  'Strongly Agree': '非常同意', Agree: '同意', Neutral: '中立', Disagree: '不同意', 'Strongly Disagree': '非常不同意',
+  'Assessment Progress': '答题进度', Previous: '上一题', Submit: '提交', Answered: '已答', Unanswered: '未答',
+  Retake: '重新填写', 'Your answer...': '写下你的回答…',
+  // ── 卡片残留 ──
+  'Shared Interests': '共同兴趣', 'This Week\'s Match': '本周匹配',
+  'Confirm Partner': '确认为恋人', 'Confirm Friend': '确认为好友',
+  'You have confirmed, waiting for their response': '你已确认，等待对方回应',
+  'This connection has ended. You can no longer send messages.': '这段连接已结束，无法再发送消息。',
+  Reply: '回复', 'No observations yet. Share the first one.': '还没有评论，来抢沙发。',
+  Sponsored: '赞助', 'Student Union': '学生会', 'Official Team': '官方团队', Official: '官方',
+  VALID: '有效', USED: '已使用', CANCELLED: '已作废',
 };
 
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）

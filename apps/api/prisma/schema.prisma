@@ -404,6 +404,7 @@ model Question {
 
   type        QuestionType
   title       String
+  titleEn     String? // 英文题面：H5 英文态显示（缺省回退中文 title）
   description String?
   isRequired  Boolean      @default(true)
   isEnabled   Boolean      @default(true)

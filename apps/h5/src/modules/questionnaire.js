@@ -69,11 +69,17 @@ window.dismissQuestionnaireCards = dismissQuestionnaireCards;
 // questionnaire page in the chosen mode.
 async function startQuestionnaire(mode = 'romantic') {
   // 作答前的「犀利提示」：做好心理准备 + 声明无冒犯之意 + 答案保密（本轮反馈）
-  const ok = await window.confirmCard({
+  const zh = typeof window.getLang === 'function' && window.getLang() === 'zh';
+  const ok = await window.confirmCard(zh ? {
     title: '开始前，先说一句',
     body: '接下来的问题会比较犀利、直接，请先做好心理准备。这些问题绝无任何冒犯之意，只是为了更真实地了解你、给你更精准的匹配。你的所有作答都会严格保密、不会公开给任何人。凭第一反应、如实作答就好。',
     confirmLabel: '我准备好了',
     cancelLabel: '再想想',
+  } : {
+    title: 'Before you start',
+    body: 'The questions ahead are direct and personal — be ready. No offence is intended: honest answers simply make your matches better. Everything you answer is strictly confidential and never shown to anyone. Go with your first instinct.',
+    confirmLabel: "I'm ready",
+    cancelLabel: 'Maybe later',
   });
   if (!ok) return; // 取消则留在卡片页，不进入问卷
   window.closeOverlay('questionnaire-cards');
@@ -176,7 +182,9 @@ function renderQuestion() {
   if (wm) wm.textContent = `Q.${String(num).padStart(2, '0')}`;
   if (pBar) pBar.style.width = `${num / total * 100}%`;
   const qText = document.getElementById('q-text');
-  if (qText) qText.textContent = q.title || q.text || q.question;
+  // 英文态优先英文题面（titleEn），中文态用中文原题；缺英文时回退中文
+  const zh = typeof window.getLang === 'function' && window.getLang() === 'zh';
+  if (qText) qText.textContent = (zh ? q.title : (q.titleEn || q.title)) || q.text || q.question;
   const optC = document.getElementById('q-options');
   if (!optC) return;
   if (q.type === 'SCALE') {
@@ -213,6 +221,38 @@ function renderQuestion() {
   }
 }
 window.renderQuestion = renderQuestion;
+
+// ── 题目导航（用户反馈：可任选题目，标记已答/未答）──
+function openQNav() {
+  const questions = S.questionnaire?.questions || [];
+  const grid = document.getElementById('q-nav-grid');
+  if (!grid || !questions.length) return;
+  const answers = currentAnswers();
+  const isAnswered = (qq) => {
+    const v = answers[qq.id];
+    if (v === undefined || v === null || v === '') return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    return true;
+  };
+  grid.innerHTML = questions.map((qq, i) => {
+    const done = isAnswered(qq);
+    const cur = i === S.currentQuestion;
+    const base = 'w-9 h-9 rounded-[10px] font-headline text-xs font-bold flex items-center justify-center active:scale-90 transition-transform';
+    const look = done ? 'bg-neon text-black' : 'border border-outline-variant text-on-surface-variant';
+    const ring = cur ? ' ring-2 ring-black dark:ring-white' : '';
+    return '<button class="' + base + ' ' + look + ring + '" onclick="jumpToQuestion(' + i + ')">' + (i + 1) + '</button>';
+  }).join('');
+  window.openOverlay('q-nav-overlay');
+}
+window.openQNav = openQNav;
+
+function jumpToQuestion(i) {
+  flushCurrentTextAnswer();
+  S.currentQuestion = i;
+  window.hideOverlay('q-nav-overlay');
+  window.renderQuestion();
+}
+window.jumpToQuestion = jumpToQuestion;
 
 function answerSingle(qId, val) {
   currentAnswers()[qId] = val;
@@ -297,7 +337,8 @@ async function submitAnswers() {
     S.currentQuestion = firstMissing;
     window.renderQuestion();
     const q = questions[firstMissing];
-    const label = q.title || q.text || q.question || 'this question';
+    const zh = typeof window.getLang === 'function' && window.getLang() === 'zh';
+    const label = (zh ? q.title : (q.titleEn || q.title)) || q.text || q.question || 'this question';
     window.toast('Please answer required question: ' + label);
     return;
   }
