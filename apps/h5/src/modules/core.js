@@ -532,22 +532,31 @@ function swipePanel(el) {
       target = 'questionnaire'; panel = document.getElementById('page-questionnaire');
     }
   }, { passive: true });
+  // 非 passive：手势锁定为水平后要 preventDefault 掐断竖向滚动，
+  // 否则页面会边滑边上下滚，看起来是斜着走（用户反馈：只能水平移动）。
   document.addEventListener('touchmove', (e) => {
     if (!edge || !panel) return;
     const t = e.touches[0];
     dx = t.clientX - sx;
     const dy = Math.abs(t.clientY - sy);
-    if (horiz === null && (Math.abs(dx) > 10 || dy > 10)) horiz = Math.abs(dx) > dy;
-    if (!horiz || dx <= 0) return;
+    if (horiz === null && (Math.abs(dx) > 10 || dy > 10)) {
+      horiz = Math.abs(dx) > dy;
+      if (horiz) panel.style.touchAction = 'none'; // 锁定后本次手势不再触发滚动
+    }
+    if (!horiz) return;
+    if (e.cancelable) e.preventDefault(); // 阻断竖向滚动/橡皮筋
+    if (dx <= 0) return;
     panel.style.transition = 'none';
+    // 只做水平位移：绝不写入 Y 分量
     panel.style.transform = 'translateX(' + dx + 'px)';
     panel.style.opacity = String(Math.max(0.4, 1 - dx / (window.innerWidth * 1.2)));
-  }, { passive: true });
+  }, { passive: false });
   const finish = () => {
     if (!edge) return;
     edge = false;
     const p = panel, tg = target;
     panel = null; target = null;
+    if (p) p.style.touchAction = ''; // 手势结束恢复滚动能力
     if (!p || !horiz) return;
     const W = window.innerWidth;
     if (dx >= 80) {
