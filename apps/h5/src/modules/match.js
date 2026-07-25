@@ -468,6 +468,7 @@ function renderSearchingSkeleton(container, mode) {
       ${renderMatchWaitAnim(true)}
       <div class="mt-8 flex flex-col items-center">
         <div class="font-mono text-4xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
+        ${lastEnhancedRound[mode] ? '<span class="mt-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
@@ -559,41 +560,69 @@ window.openConnectionChat = openConnectionChat;
 // ========================================
 // 进池：透传增强意向（J 规则 §10.5）。body{mode,enhanced,cells}；恋人忽略 cells（后端固定 3）。
 // 开增强前校验能量：availableEnergy<cost 则引导充值（openEnergyModal）。
+// 本轮以增强身份进池的会话内标记（searching 骨架显示徽标用）
+const lastEnhancedRound = { romantic: false, friend: false };
+
 async function startMatch() {
   const mode = S.activeMatchMode || 'romantic';
   ensureEnhancedShape();
   const enh = S.enhanced[mode] || {};
-  // enhanced 必为 boolean（是否开启增强）。
   const enhanced = !!enh.enabled;
-  // cells：朋友模式必为 1–5 的正整数（保证匹配朋友数 N，cost===cells），绝不传 0/undefined；
-  // 恋人模式不传 cells（后端固定 3 格）。
   const cells = mode === 'friend'
     ? Math.min(5, Math.max(1, parseInt(S.enhanced.friend.cells, 10) || 1))
     : undefined;
-  // 开增强前能量校验（恋人固定 3 格，朋友按 cells）。
   if (enhanced) {
     const cost = mode === 'romantic' ? 3 : cells;
+    // 新鲜余额再校验（S.energy 可能是冷启动默认 0 或旧值）
+    await window.loadEnergyBar?.();
     const avail = S.energy?.availableEnergy ?? 0;
     if (avail < cost) {
       window.toast('Not enough energy — top up');
       window.openEnergyModal?.();
       return;
     }
+    // 显式确认：增强按轮付费，绝不静默扣（审计确认的重复扣费根因）
+    const zh = typeof window.getLang === 'function' && window.getLang() === 'zh';
+    const ok = await window.confirmCard(zh ? {
+      title: '本轮使用增强匹配？',
+      body: '将立即消耗 ' + cost + ' 格能量（当前 ' + avail + ' 格）。' + (mode === 'romantic' ? '本轮未匹配到会全额退回。' : '保底不足会按缺口退回。'),
+      confirmLabel: '消耗 ' + cost + ' 格并进入',
+      cancelLabel: '先不用增强',
+    } : {
+      title: 'Use Enhanced this round?',
+      body: cost + ' energy cells will be spent now (you have ' + avail + '). ' + (mode === 'romantic' ? 'Fully refunded if no match this round.' : 'Shortfall refunded if the guarantee is not met.'),
+      confirmLabel: 'Spend ' + cost + ' & join',
+      cancelLabel: 'Join without it',
+    });
+    if (!ok) {
+      // 用户选择不用增强：本次按普通身份进池，开关复位
+      S.enhanced[mode].enabled = false;
+      persistEnhanced();
+      updateEnhanceUI(mode);
+    }
   }
+  const useEnhanced = !!S.enhanced[mode].enabled;
   // 乐观渲染：立即进入搜索中动画
+  lastEnhancedRound[mode] = useEnhanced;
   ensureMatchStatusBucket()[mode] = { mode, state: 'searching' };
   window.renderMatchTab(S.matchStatus[mode]);
   try {
-    const body = { mode, enhanced };
+    const body = { mode, enhanced: useEnhanced };
     if (mode === 'friend') body.cells = cells;
     await window.api('/matching/start', 'POST', body);
-    window.toast('Entered matching pool');
-    // 预扣已发生，刷新能量余额（profile.js 提供；未实现时静默跳过）
+    window.toast(useEnhanced ? 'Entered pool · Enhanced (' + (mode === 'romantic' ? 3 : cells) + ' cells)' : 'Entered matching pool');
     window.loadEnergyBar?.();
+    // 按轮付费语义：本轮已消耗，开关复位（后端轮末也会清 enhancedModeEnabled）。
+    // 下轮想继续增强需重新打开——避免「开一次永远扣」。
+    if (useEnhanced) {
+      S.enhanced[mode].enabled = false;
+      persistEnhanced();
+      updateEnhanceUI(mode);
+    }
   } catch (e) {
+    lastEnhancedRound[mode] = false;
     window.toast('Failed: ' + e.message);
   }
-  // 与服务器真实状态同步
   window.loadMatchTab();
 }
 window.startMatch = startMatch;
@@ -1262,18 +1291,25 @@ window.toggleFriendPriorityInterest = toggleFriendPriorityInterest;
 // 增强模式开关（J 规则 §6.4 / §10.5）
 // ========================================
 // 切换增强开关（恋人/朋友各自独立）。朋友显隐 1–5 滑块；能量不足时提示去充值。
-function toggleEnhance(mode) {
-  // (persist at end)
+async function toggleEnhance(mode) {
   ensureEnhancedShape();
   const m = mode === 'friend' ? 'friend' : 'romantic';
-  S.enhanced[m].enabled = !S.enhanced[m].enabled;
+  const tg = document.getElementById(m + '-enhance-toggle');
+  const turningOn = !S.enhanced[m].enabled;
+  if (turningOn) {
+    // 先拉新鲜余额（S.energy 冷启动恒为 0，会误判）；不足则不翻转、不持久化
+    await window.loadEnergyBar?.();
+    const cost = m === 'romantic' ? 3 : (S.enhanced.friend.cells || 1);
+    if ((S.energy?.availableEnergy ?? 0) < cost) {
+      if (tg) tg.checked = false;
+      window.toast('Not enough energy — top up');
+      window.openEnergyModal?.();
+      return;
+    }
+  }
+  S.enhanced[m].enabled = turningOn;
   updateEnhanceUI(m);
   persistEnhanced();
-  const cost = m === 'romantic' ? 3 : (S.enhanced.friend.cells || 1);
-  if (S.enhanced[m].enabled && (S.energy?.availableEnergy ?? 0) < cost) {
-    window.toast('Not enough energy — top up');
-    window.openEnergyModal?.();
-  }
 }
 window.toggleEnhance = toggleEnhance;
 
@@ -1318,21 +1354,21 @@ async function openMatchSettings() {
   window.openOverlay('match-settings-overlay');
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
-  let prefs = {};
-  try {
-    const data = await window.api('/matching/preferences?mode=' + mode);
-    prefs = data?.data || data || {};
-  } catch (e) {}
-  const extra = document.getElementById('match-extra-info');
-  if (extra) extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
-  // 增强开关是纯客户端状态（后端只认 startMatch 扣费路径，偏好端点有意拒收该字段）。
-  // 不再用 prefs 回填——此前回填总是 false，导致「打开增强保存后再进来又关了」。
-  // 仅显示当前匹配模式的增强项（恋爱 match setting 只显示恋爱增强，朋友只显示朋友增强，§本轮反馈3）
+  // 网络请求前先同步就位：区块显隐 + 开关状态 + 清空文本（修弱网下旧模式残留可交互窗口）
   const rItem = document.getElementById('romantic-enhance-item');
   const fItem = document.getElementById('friend-enhance-item');
   if (rItem) rItem.style.display = mode === 'romantic' ? '' : 'none';
   if (fItem) fItem.style.display = mode === 'friend' ? '' : 'none';
   window.updateEnhanceUI(mode);
+  const extra = document.getElementById('match-extra-info');
+  if (extra) extra.value = '';
+  window.loadEnergyBar?.(); // 能量新鲜度（增强校验用）
+  let prefs = {};
+  try {
+    const data = await window.api('/matching/preferences?mode=' + mode);
+    prefs = data?.data || data || {};
+  } catch (e) {}
+  if (extra) extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
 }
 window.openMatchSettings = openMatchSettings;
 

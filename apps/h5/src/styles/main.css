@@ -135,8 +135,8 @@
     /* 荧光绿按钮保持黑字（必须排在 .text-black 覆盖之后） */
     .dark .bg-neon { color: #000 !important; }
     /* 聊天气泡 / 头像 */
-    .dark .chat-bubble { background: #1f1f26 !important; color: #ececf0 !important; border-color: #34343c !important; }
-    .dark .chat-bubble.mine { background: #2a2a32 !important; color: #ececf0 !important; }
+    .dark .chat-bubble { background: #2a2a32 !important; color: #ececf0 !important; }
+    .dark .chat-bubble.mine { background: #CCFF00 !important; color: #000 !important; }
     .dark .chat-avatar--fallback { background: #34343c !important; color: #ddd !important; }
 
     /* ====== Ivory & Ink button tiers ====== */
@@ -395,20 +395,19 @@
     .notif-item.unread .notif-dot { display: block; }
     .notif-item:not(.unread) { opacity: 0.6; }
 
-    /* Chat Bubble Styles (Ivory & Ink) — .chat-row[data-id] and .chat-time are load-bearing (read receipts) */
-    .chat-row { display: flex; align-items: flex-end; gap: 12px; }
-    .chat-row.mine { flex-direction: row-reverse; }
+    /* Chat Bubble（简洁版）：无头像无边框，对方浅灰/我方荧光绿，小尾角。
+       .chat-row[data-id] 与 .chat-time 为已读回执逻辑依赖，勿改名。 */
+    .chat-row { display: flex; }
+    .chat-row.mine { justify-content: flex-end; }
     .chat-avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
-    .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14px; text-transform: uppercase; }
-    .chat-col { max-width: 80%; display: flex; flex-direction: column; align-items: flex-start; }
+    .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-weight: 700; font-size: 14px; text-transform: uppercase; }
+    .chat-col { max-width: 78%; display: flex; flex-direction: column; align-items: flex-start; }
     .chat-row.mine .chat-col { align-items: flex-end; }
-    /* Partner: white block, thin border + neon left accent, 10px corners (本轮反馈11：去黑) */
-    .chat-bubble { padding: 20px; font-size: 14px; line-height: 1.625; background: #ffffff; color: #1b1b1b; border: 1px solid rgba(198, 198, 198, 0.4); border-left: 2px solid #CCFF00; border-radius: 10px; }
-    /* Mine: soft light-grey block, dark text, neon right accent (本轮反馈11：去纯黑底) */
-    .chat-bubble.mine { background: #ececec; color: #1b1b1b; border: 1px solid rgba(198, 198, 198, 0.4); border-left: none; border-right: 2px solid #CCFF00; box-shadow: none; }
-    .chat-image { max-width: 100%; max-height: 16rem; object-fit: cover; cursor: pointer; border: 1px solid rgba(198, 198, 198, 0.4); border-radius: 10px; display: block; }
-    .chat-image + .chat-bubble { margin-top: 8px; }
-    .chat-time { font-size: 9px; color: #a3a3a3; margin-top: 8px; text-transform: uppercase; letter-spacing: -0.03em; display: block; }
+    .chat-bubble { padding: 10px 14px; font-size: 15px; line-height: 1.45; background: #f1f1f1; color: #1b1b1b; border: none; border-radius: 18px 18px 18px 6px; word-break: break-word; }
+    .chat-bubble.mine { background: #CCFF00; color: #000; border: none; border-radius: 18px 18px 6px 18px; box-shadow: none; }
+    .chat-image { max-width: 100%; max-height: 16rem; object-fit: cover; cursor: pointer; border: none; border-radius: 14px; display: block; }
+    .chat-image + .chat-bubble { margin-top: 6px; }
+    .chat-time { font-size: 9px; color: #b6b6b6; margin-top: 3px; letter-spacing: 0; display: block; }
     .chat-time.mine { text-align: right; }
 
     @keyframes slideDown {

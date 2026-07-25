@@ -490,6 +490,44 @@ function bindSheetDragClose(overlayId) {
 }
 window.bindSheetDragClose = bindSheetDragClose;
 
+// ── 全局滑动返回（用户反馈：所有界面左缘右滑=返回）──
+// 关闭最顶层打开的 overlay（带专属清理的走各自 close），问卷页返回主页。
+const SWIPE_BACK_CLOSE = {
+  'chat-overlay': () => window.closeChat?.(),
+  'friend-hub-overlay': () => window.closeFriendHub?.(),
+  'notifications-overlay': () => window.closeNotifications?.(),
+  'post-detail-overlay': () => window.closePostDetail?.(),
+  'verify-overlay': () => window.closeVerify?.(),
+  'milestone-overlay': () => window.closeOverlay?.('milestone-overlay'),
+};
+function topOpenOverlay() {
+  const act = [...document.querySelectorAll('.overlay.active')].filter((el) => el.id);
+  if (!act.length) return null;
+  return act.reduce((a, b) =>
+    (parseInt(getComputedStyle(b).zIndex, 10) || 0) >= (parseInt(getComputedStyle(a).zIndex, 10) || 0) ? b : a);
+}
+(function bindEdgeSwipeBack() {
+  let sx = 0, sy = 0, edge = false;
+  document.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    edge = t.clientX <= 28; // 左缘起手才算返回手势
+    sx = t.clientX; sy = t.clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!edge) return;
+    edge = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
+    if (dx < 70 || dx < dy * 1.5) return;
+    const ov = topOpenOverlay();
+    if (ov) { (SWIPE_BACK_CLOSE[ov.id] || (() => window.hideOverlay(ov.id)))(); return; }
+    if (document.getElementById('page-questionnaire')?.classList.contains('active')) {
+      window.showPage('page-home');
+      window.switchTab('match');
+    }
+  }, { passive: true });
+})();
+
 // 保存按钮忙碌态：禁用 + 文案切到 Saving…，结束恢复（防连点 + 给出真实进行中反馈）
 function btnBusy(id, busy) {
   const el = document.getElementById(id);

@@ -143,6 +143,8 @@ const ZH = {
   Reply: '回复', 'No observations yet. Share the first one.': '还没有评论，来抢沙发。',
   Sponsored: '赞助', 'Student Union': '学生会', 'Official Team': '官方团队', Official: '官方',
   VALID: '有效', USED: '已使用', CANCELLED: '已作废',
+  'Applies the next time you join the pool': '将在下次进入匹配池时生效',
+  'Enhanced this round': '本轮已增强',
 };
 
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）

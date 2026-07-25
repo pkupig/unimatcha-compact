@@ -699,7 +699,6 @@ function messageHtml(m, myId) {
   }
   const readMark = mine && m.isRead ? ' · Read' : '';
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
-    ${avatarHtml(mine)}
     <div class="chat-col">
       ${body}
       <div class="chat-time ${mine ? 'mine' : ''}" ${mine && m.isRead ? 'data-read="1"' : ''}>${window.formatPostTime(m.createdAt)}${readMark}</div>
