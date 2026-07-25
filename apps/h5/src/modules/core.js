@@ -294,7 +294,7 @@ function promptCard({ title = 'Enter a value', label = '', placeholder = '', val
   return new Promise((resolve) => {
     const esc = window.escapeHtml || ((s) => s);
     const back = appCardBackdrop();
-    const fieldCls = 'w-full bg-transparent border-0 border-b border-outline focus:border-primary focus:border-b-2 focus:ring-0 focus:outline-none py-2 text-sm font-body';
+    const fieldCls = 'w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none';
     const field = multiline
       ? `<textarea data-card-input rows="3" class="${fieldCls} resize-none" placeholder="${esc(placeholder)}"></textarea>`
       : `<input data-card-input type="text" class="${fieldCls}" placeholder="${esc(placeholder)}"/>`;
@@ -490,14 +490,13 @@ function bindSheetDragClose(overlayId) {
 }
 window.bindSheetDragClose = bindSheetDragClose;
 
-// ── 全局滑动返回（用户反馈：所有界面左缘右滑=返回）──
-// 关闭最顶层打开的 overlay（带专属清理的走各自 close），问卷页返回主页。
+// ── 滑动返回（仅限「左上角有返回按钮」的界面；面板跟手横移）──
+// 判定：面板内存在返回箭头（arrow_back / arrow_forward 关闭键）才允许滑动退出。
 const SWIPE_BACK_CLOSE = {
   'chat-overlay': () => window.closeChat?.(),
   'friend-hub-overlay': () => window.closeFriendHub?.(),
   'notifications-overlay': () => window.closeNotifications?.(),
   'post-detail-overlay': () => window.closePostDetail?.(),
-  'verify-overlay': () => window.closeVerify?.(),
   'milestone-overlay': () => window.closeOverlay?.('milestone-overlay'),
 };
 function topOpenOverlay() {
@@ -506,26 +505,65 @@ function topOpenOverlay() {
   return act.reduce((a, b) =>
     (parseInt(getComputedStyle(b).zIndex, 10) || 0) >= (parseInt(getComputedStyle(a).zIndex, 10) || 0) ? b : a);
 }
+// 有返回按钮 = 面板内含 arrow_back（或通知面板的 arrow_forward 关闭键）
+function hasBackButton(el) {
+  if (!el) return false;
+  return [...el.querySelectorAll('.material-symbols-outlined')]
+    .some((i) => { const t = (i.textContent || '').trim(); return t === 'arrow_back' || t === 'arrow_forward'; });
+}
+// 跟手位移的面板节点（overlay 内的主内容容器）
+function swipePanel(el) {
+  return el.querySelector('.slide-left, .slide-right, .bottom-sheet-transition') || el.firstElementChild || el;
+}
 (function bindEdgeSwipeBack() {
-  let sx = 0, sy = 0, edge = false;
+  let sx = 0, sy = 0, edge = false, target = null, panel = null, horiz = null, dx = 0;
   document.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
-    edge = t.clientX <= 28; // 左缘起手才算返回手势
-    sx = t.clientX; sy = t.clientY;
-  }, { passive: true });
-  document.addEventListener('touchend', (e) => {
+    edge = t.clientX <= 30;
+    sx = t.clientX; sy = t.clientY; horiz = null; dx = 0; target = null; panel = null;
     if (!edge) return;
-    edge = false;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
-    if (dx < 70 || dx < dy * 1.5) return;
     const ov = topOpenOverlay();
-    if (ov) { (SWIPE_BACK_CLOSE[ov.id] || (() => window.hideOverlay(ov.id)))(); return; }
-    if (document.getElementById('page-questionnaire')?.classList.contains('active')) {
-      window.showPage('page-home');
-      window.switchTab('match');
+    if (ov && hasBackButton(ov)) { target = ov; panel = swipePanel(ov); }
+    else if (!ov && document.getElementById('page-questionnaire')?.classList.contains('active')) {
+      target = 'questionnaire'; panel = document.getElementById('page-questionnaire');
     }
   }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!edge || !panel) return;
+    const t = e.touches[0];
+    dx = t.clientX - sx;
+    const dy = Math.abs(t.clientY - sy);
+    if (horiz === null && (Math.abs(dx) > 10 || dy > 10)) horiz = Math.abs(dx) > dy;
+    if (!horiz || dx <= 0) return;
+    panel.style.transition = 'none';
+    panel.style.transform = 'translateX(' + dx + 'px)';
+    panel.style.opacity = String(Math.max(0.4, 1 - dx / (window.innerWidth * 1.2)));
+  }, { passive: true });
+  const finish = () => {
+    if (!edge) return;
+    edge = false;
+    const p = panel, tg = target;
+    panel = null; target = null;
+    if (!p || !horiz) return;
+    const W = window.innerWidth;
+    if (dx >= 80) {
+      p.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
+      p.style.transform = 'translateX(' + W + 'px)';
+      p.style.opacity = '0';
+      setTimeout(() => {
+        p.style.transition = ''; p.style.transform = ''; p.style.opacity = '';
+        if (tg === 'questionnaire') { window.showPage('page-home'); window.switchTab('match'); }
+        else (SWIPE_BACK_CLOSE[tg.id] || (() => window.hideOverlay(tg.id)))();
+      }, 200);
+    } else {
+      p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1), opacity 0.25s';
+      p.style.transform = 'translateX(0)';
+      p.style.opacity = '';
+      setTimeout(() => { p.style.transition = ''; p.style.transform = ''; }, 280);
+    }
+  };
+  document.addEventListener('touchend', finish, { passive: true });
+  document.addEventListener('touchcancel', finish, { passive: true });
 })();
 
 // 保存按钮忙碌态：禁用 + 文案切到 Saving…，结束恢复（防连点 + 给出真实进行中反馈）

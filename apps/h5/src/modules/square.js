@@ -1002,7 +1002,7 @@ function renderPollOptionInputs(count) {
   const n = Math.min(6, Math.max(2, count));
   list.innerHTML = Array.from({ length: n }, (_, i) => `
     <input type="text" maxlength="50" placeholder="Option ${i + 1}"
-      class="poll-option-input w-full bg-transparent border-0 border-b border-outline py-2 px-0 text-sm focus:ring-0 focus:border-b-2 focus:border-primary placeholder:text-outline-variant"/>`).join('');
+      class="poll-option-input w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>`).join('');
   // 值用属性赋值回填（不拼 HTML）：escapeHtml 不转义引号，含 " 的选项会截断属性甚至注入
   [...list.querySelectorAll('input')].forEach((el, i) => { el.value = existing[i] || ''; });
 }

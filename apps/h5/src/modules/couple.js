@@ -187,12 +187,21 @@ function renderCoupleHub(space) {
     const du = a.daysUntil;
     const future = du >= 0;
     const label = du > 0 ? `${du} day${du === 1 ? '' : 's'} to go` : du === 0 ? 'Today' : `${-du} day${du === -1 ? '' : 's'} ago`;
-    const bg = future ? 'bg-neon-pink/10 border-neon-pink/30' : 'bg-surface-container border-outline-variant/20';
+    const d = new Date(String(a.date).slice(0, 10) + 'T00:00:00');
+    const mon = isNaN(d) ? '--' : d.toLocaleString('en', { month: 'short' }).toUpperCase();
+    const day = isNaN(d) ? '--' : String(d.getDate()).padStart(2, '0');
+    const yr = isNaN(d) ? '' : d.getFullYear();
     const imgs = a.images || [];
-    const thumb = imgs[0] ? `<div class="relative w-12 h-12 rounded-[8px] overflow-hidden shrink-0 bg-surface-container"><img src="${window.safeUrl(imgs[0])}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">${imgs.length > 1 ? `<span class="absolute bottom-0 right-0 px-1 bg-black/65 text-white text-[9px] font-bold rounded-tl-[6px]">${imgs.length}</span>` : ''}</div>` : '';
-    return `<button onclick="openAnniversaryDetail('${a.id}')" class="w-full text-left ${bg} border rounded-[10px] p-4 flex items-center justify-between gap-3 active:scale-[0.99]">
-      <div class="flex items-center gap-3 min-w-0">${thumb}<div class="min-w-0"><p class="text-sm font-bold text-on-surface truncate">${esc(a.title)}</p><p class="text-[10px] text-outline tracking-wider mt-0.5">${esc(String(a.date).slice(0, 10))}${a.note ? ' · note' : ''}</p></div></div>
-      <span class="text-xs font-bold ${future ? 'text-neon-pink' : 'text-outline'} tracking-widest shrink-0">${label}</span>
+    const thumb = imgs[0] ? `<div class="relative w-11 h-11 rounded-[8px] overflow-hidden shrink-0 bg-surface-container"><img src="${window.safeUrl(imgs[0])}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">${imgs.length > 1 ? `<span class="absolute bottom-0 right-0 px-1 bg-black/65 text-white text-[9px] font-bold rounded-tl-[6px]">${imgs.length}</span>` : ''}</div>` : '';
+    // 日历样式：左侧撕历（月份条 + 大日号），右侧标题与倒计时
+    return `<button onclick="openAnniversaryDetail('${a.id}')" class="w-full text-left bg-surface-container-lowest border border-outline-variant/25 rounded-[12px] p-3 flex items-center gap-3 active:scale-[0.99]">
+      <div class="shrink-0 w-14 rounded-[10px] overflow-hidden border border-outline-variant/30 bg-white">
+        <div class="${future ? 'bg-neon text-black' : 'bg-surface-container text-outline'} text-[9px] font-bold tracking-widest text-center py-0.5">${mon}</div>
+        <div class="text-center py-1"><p class="font-headline text-xl font-extrabold leading-none text-on-surface">${day}</p><p class="text-[8px] text-outline mt-0.5">${yr}</p></div>
+      </div>
+      ${thumb}
+      <div class="min-w-0 flex-1"><p class="text-sm font-bold text-on-surface truncate">${esc(a.title)}</p><p class="text-[10px] text-outline tracking-wider mt-0.5">${label}${a.note ? ' · note' : ''}</p></div>
+      <span class="material-symbols-outlined text-outline-variant shrink-0" style="font-size:18px">chevron_right</span>
     </button>`;
   };
   const anniUpcoming = annis.filter((a) => a.daysUntil >= 0).sort((a, b) => a.daysUntil - b.daysUntil);
@@ -203,7 +212,7 @@ function renderCoupleHub(space) {
     : `<p class="text-sm text-outline italic">No anniversaries yet.</p>`;
   const anniSection = section(
     'Anniversaries',
-    `<div class="flex items-center gap-1">${annis.length ? `<button onclick="openAnniversaryAll()" class="text-on-surface hover:text-neon-pink" title="View all"><span class="material-symbols-outlined" style="font-size:20px">list</span></button>` : ''}<button onclick="openAddAnniversary()" class="text-on-surface hover:text-neon-pink"><span class="material-symbols-outlined" style="font-size:20px">add</span></button></div>`,
+    `<div class="flex items-center gap-1">${annis.length ? `<button onclick="openAnniversaryAll()" class="text-on-surface hover:text-on-surface" title="View all"><span class="material-symbols-outlined" style="font-size:20px">list</span></button>` : ''}<button onclick="openAddAnniversary()" class="text-on-surface hover:text-on-surface"><span class="material-symbols-outlined" style="font-size:20px">add</span></button></div>`,
     anniBody,
   );
 
@@ -232,7 +241,7 @@ function renderCoupleHub(space) {
   const scheduleBody = `
     <div class="grid grid-cols-2 gap-3">
       <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-[10px] p-3">
-        <div class="flex items-center justify-between mb-2"><p class="text-[9px] font-bold tracking-widest text-outline">YOU</p><button onclick="openAddSchedule()" class="text-outline hover:text-neon-pink"><span class="material-symbols-outlined" style="font-size:16px">add</span></button></div>
+        <div class="flex items-center justify-between mb-2"><p class="text-[9px] font-bold tracking-widest text-outline">YOU</p><button onclick="openAddSchedule()" class="text-outline hover:text-on-surface"><span class="material-symbols-outlined" style="font-size:16px">add</span></button></div>
         ${schedCol(schedule.me, true)}
       </div>
       <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-[10px] p-3">
@@ -244,7 +253,7 @@ function renderCoupleHub(space) {
 
   // 礼物罐（小卡片，点进去才看对方想要的；自己的不显示）
   const giftSection = `<div class="mb-5"><button onclick="openGiftJar()" class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-[10px] p-4 flex items-center justify-between active:scale-[0.99]">
-    <div class="flex items-center gap-3"><span class="material-symbols-outlined text-neon-pink">redeem</span><div class="text-left"><p class="text-sm font-bold text-on-surface">Gift jar</p><p class="text-[10px] text-outline">See what ${esc(pName)} wants</p></div></div>
+    <div class="flex items-center gap-3"><span class="material-symbols-outlined text-on-surface">redeem</span><div class="text-left"><p class="text-sm font-bold text-on-surface">Gift jar</p><p class="text-[10px] text-outline">See what ${esc(pName)} wants</p></div></div>
     <span class="material-symbols-outlined text-outline">chevron_right</span>
   </button></div>`;
 
@@ -253,18 +262,18 @@ function renderCoupleHub(space) {
     ? bucket
         .map((b) => {
           const hasRecord = b.done && (b.doneNote || (b.doneImages && b.doneImages.length));
-          return `<div class="flex items-center gap-3 py-2 border-b border-outline-variant/15 last:border-0">
+          return `<div class="bookmark-item flex items-center gap-3 py-2.5 pl-3 pr-2 mb-2 last:mb-0 bg-surface-container-lowest rounded-r-[10px]">
         <button onclick="coupleTickBucket('${b.id}', ${b.done ? 'true' : 'false'})" class="shrink-0 w-5 h-5 rounded-[6px] border ${b.done ? 'bg-neon border-neon' : 'border-outline'} flex items-center justify-center">${b.done ? '<span class="material-symbols-outlined text-black" style="font-size:16px">check</span>' : ''}</button>
-        <button onclick="coupleViewBucket('${b.id}')" class="flex-1 text-left ${b.done ? '' : 'pointer-events-none'}"><p class="text-sm ${b.done ? 'line-through text-outline' : 'text-on-surface'}">${esc(b.text)}${hasRecord ? ' <span class="material-symbols-outlined text-neon-pink align-middle" style="font-size:14px">photo</span>' : ''}</p></button>
-        ${b.done ? '' : `<button onclick="coupleDelBucket('${b.id}')" class="text-outline hover:text-neon-pink shrink-0"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>`}
+        <button onclick="coupleViewBucket('${b.id}')" class="flex-1 text-left ${b.done ? '' : 'pointer-events-none'}"><p class="text-sm ${b.done ? 'line-through text-outline' : 'text-on-surface'}">${esc(b.text)}${hasRecord ? ' <span class="material-symbols-outlined text-outline align-middle" style="font-size:14px">photo</span>' : ''}</p></button>
+        ${b.done ? '' : `<button onclick="coupleDelBucket('${b.id}')" class="text-outline hover:text-on-surface shrink-0"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>`}
       </div>`;
         })
         .join('')
     : `<p class="text-sm text-outline italic">Nothing planned yet.</p>`;
   const bucketSection = section(
     'Plans & checklist',
-    `<button onclick="coupleAddBucket()" class="text-on-surface hover:text-neon-pink"><span class="material-symbols-outlined" style="font-size:20px">add</span></button>`,
-    `<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-[10px] p-3">${bucketBody}</div>`,
+    `<button onclick="coupleAddBucket()" class="text-on-surface hover:text-on-surface"><span class="material-symbols-outlined" style="font-size:20px">add</span></button>`,
+    `<div class="p-1">${bucketBody}</div>`,
   );
 
   // 主按钮：发送我爱你（每天一次）。Open Chat 已移除（本轮反馈4）；底部仅保留结束关系
@@ -321,7 +330,7 @@ function coupleEditCover(ev) {
     <p class="text-sm text-on-surface-variant mb-5">Set your own cover for this space — your partner sets theirs separately.</p>
     <div class="flex flex-col gap-3">
       <button data-pick class="w-full py-3 rounded-[10px] bg-neon text-black text-xs font-bold tracking-widest">Choose photo</button>
-      ${hasCover ? `<button data-remove class="w-full py-3 rounded-[10px] border border-neon-pink text-neon-pink text-xs font-bold tracking-widest">Remove</button>` : ''}
+      ${hasCover ? `<button data-remove class="w-full py-3 rounded-[10px] border border-outline text-on-surface text-xs font-bold tracking-widest">Remove</button>` : ''}
       <button data-x class="w-full py-3 rounded-[10px] border border-outline-variant text-on-surface text-xs font-bold tracking-widest">Cancel</button>
     </div>`);
   back.querySelector('[data-x]').onclick = () => back.remove();
@@ -369,7 +378,7 @@ function coupleEditStatus() {
     <h3 class="font-headline font-extrabold text-lg mb-4">Today's status</h3>
     <div class="grid grid-cols-4 gap-2 mb-5">${chips}</div>
     <p class="text-[9px] font-bold tracking-widest text-outline mb-1">OR WRITE YOUR OWN</p>
-    <input id="cp-status-input" type="text" placeholder="Custom status…" class="w-full bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary mb-5"/>
+    <input id="cp-status-input" type="text" placeholder="Custom status…" class="w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>
     <div class="flex gap-3">
       <button data-x class="flex-1 py-3 rounded-[10px] border border-outline-variant text-on-surface text-xs font-bold tracking-widest">Cancel</button>
       <button data-ok class="flex-1 py-3 rounded-[10px] bg-neon text-black text-xs font-bold tracking-widest">Save</button>
@@ -404,7 +413,7 @@ window.coupleQuickCraving = coupleQuickCraving;
 
 // 近期安排（起止时间）
 function openAddSchedule() {
-  const fld = 'w-full bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary';
+  const fld = 'w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none';
   const back = couplePopup(`
     <h3 class="font-headline font-extrabold text-lg mb-4">What are you up to?</h3>
     <input id="cp-sch-text" type="text" placeholder="e.g. Library then gym" class="${fld} mb-4"/>
@@ -435,7 +444,7 @@ window.coupleDelSchedule = coupleDelSchedule;
 
 // 纪念日（日历选日期）
 function openAddAnniversary() {
-  const fld = 'w-full bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary';
+  const fld = 'w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none';
   const back = couplePopup(`
     <h3 class="font-headline font-extrabold text-lg mb-4">New anniversary</h3>
     <input id="cp-anni-title" type="text" placeholder="e.g. First date" class="${fld} mb-4"/>
@@ -468,7 +477,7 @@ function openAnniversaryDetail(id) {
   const a = (S.coupleSpace?.anniversaries || []).find((x) => x.id === id);
   if (!a) return;
   const urls = (a.images || []).slice(); // 多图（本轮反馈4）
-  const fld = 'w-full bg-transparent border-0 border-b border-outline py-2 text-sm focus:ring-0 focus:border-b-2 focus:border-primary';
+  const fld = 'w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none';
   const back = couplePopup(`
     <h3 class="font-headline font-extrabold text-lg mb-4">Anniversary</h3>
     <input id="cp-anni-title" type="text" value="${esc(a.title)}" class="${fld} mb-4"/>
@@ -478,7 +487,7 @@ function openAnniversaryDetail(id) {
     <div id="cp-anni-preview" class="mb-3"></div>
     <button data-photo class="text-[11px] font-bold tracking-widest text-on-surface underline underline-offset-2 mb-5 inline-flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:16px">add_a_photo</span>Add photos</button>
     <div class="flex gap-3">
-      <button data-del class="px-4 py-3 rounded-[10px] border border-neon-pink text-neon-pink text-xs font-bold tracking-widest">Delete</button>
+      <button data-del class="px-4 py-3 rounded-[10px] border border-outline text-on-surface text-xs font-bold tracking-widest">Delete</button>
       <button data-ok class="flex-1 py-3 rounded-[10px] bg-neon text-black text-xs font-bold tracking-widest">Save</button>
     </div>
     <button data-x class="w-full mt-3 text-[10px] text-outline tracking-widest">Close</button>`);
@@ -517,7 +526,7 @@ function openAnniversaryAll() {
         const label = du > 0 ? `${du}d` : du === 0 ? 'Today' : `${-du}d ago`;
         return `<button onclick="document.querySelectorAll('.cp-all-pop').forEach((e)=>e.remove());openAnniversaryDetail('${a.id}')" class="w-full text-left flex items-center justify-between gap-3 py-2.5 border-b border-outline-variant/15 last:border-0">
           <div class="min-w-0"><p class="text-sm font-bold text-on-surface truncate">${esc(a.title)}</p><p class="text-[10px] text-outline">${esc(String(a.date).slice(0, 10))}</p></div>
-          <span class="text-xs font-bold ${future ? 'text-neon-pink' : 'text-outline'} shrink-0">${label}</span>
+          <span class="text-xs font-bold ${future ? 'text-on-surface' : 'text-outline'} shrink-0">${label}</span>
         </button>`;
       }).join('')
     : '<p class="text-sm text-outline italic">No anniversaries.</p>';
@@ -572,7 +581,7 @@ function openCompleteBucket(id, text) {
   const back = couplePopup(`
     <h3 class="font-headline font-extrabold text-lg mb-1">Mark done</h3>
     <p class="text-sm text-on-surface-variant mb-4">${esc(text)}</p>
-    <textarea id="cp-bk-note" rows="2" placeholder="Add a note (optional)" class="w-full bg-transparent border-0 border-b border-outline py-2 text-sm resize-none focus:ring-0 focus:border-b-2 focus:border-primary mb-3"></textarea>
+    <textarea id="cp-bk-note" rows="2" placeholder="Add a note (optional)" class="w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"></textarea>
     <div id="cp-bk-preview" class="mb-3"></div>
     <button data-photo class="text-[11px] font-bold tracking-widest text-on-surface underline underline-offset-2 mb-5 inline-flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:16px">add_a_photo</span>Add photos</button>
     <div class="flex gap-3">
@@ -600,7 +609,7 @@ function coupleViewBucket(id) {
   const note = item.doneNote ? `<p class="text-sm leading-relaxed text-on-surface">${esc(item.doneNote)}</p>` : '<p class="text-sm text-outline italic">No note added.</p>';
   const back = couplePopup(`
     <h3 class="font-headline font-extrabold text-lg mb-1">${esc(item.text)}</h3>
-    <p class="text-[10px] font-bold tracking-widest text-neon-pink mb-3">COMPLETED</p>
+    <p class="text-[10px] font-bold tracking-widest text-outline mb-3">COMPLETED</p>
     ${img}${note}
     <button data-x class="w-full mt-6 py-3 rounded-[10px] border border-outline-variant text-on-surface text-xs font-bold tracking-widest">Close</button>`);
   back.querySelector('[data-x]').onclick = () => back.remove();

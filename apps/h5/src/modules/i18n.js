@@ -145,6 +145,14 @@ const ZH = {
   VALID: '有效', USED: '已使用', CANCELLED: '已作废',
   'Applies the next time you join the pool': '将在下次进入匹配池时生效',
   'Enhanced this round': '本轮已增强',
+  // ── 情侣空间 ──
+  Anniversaries: '纪念日', 'Craving today': '今天想吃', "What I'm up to": '近期安排',
+  'Plans & checklist': '计划清单', 'Gift jar': '礼物罐', 'End Relationship': '解除关系',
+  'Send I love you': '发送我爱你', 'Sent today — see you tomorrow': '今天已发送 · 明天再来',
+  'No anniversaries yet.': '还没有纪念日', 'Nothing planned yet.': '还没有计划',
+  'No update': '暂无更新', 'Tap edit': '点击编辑', "Add what you're up to": '添加你的安排',
+  YOU: '我', Today: '今天', 'View all': '查看全部', Remove: '移除', Note: '备注',
+  'Add anniversary': '添加纪念日', 'Add plan': '添加计划', Title: '标题', Date: '日期',
 };
 
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）

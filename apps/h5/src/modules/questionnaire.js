@@ -200,7 +200,7 @@ function renderQuestion() {
       </label>`;
     }).join('');
   } else if (q.type === 'TEXT') {
-    optC.innerHTML = `<textarea class="w-full bg-transparent border-b border-outline-variant/30 focus:border-primary focus:ring-0 px-4 py-3 text-base font-body leading-relaxed placeholder:text-outline resize-none transition-all duration-200" rows="4" placeholder="Your answer..." oninput="answerText('${q.id}', this.value)">${window.escapeHtml(answers[q.id] || '')}</textarea>`;
+    optC.innerHTML = `<textarea class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" rows="4" placeholder="Your answer..." oninput="answerText('${q.id}', this.value)">${window.escapeHtml(answers[q.id] || '')}</textarea>`;
   } else {
     const options = q.options || [];
     optC.innerHTML = options.map(o => {
