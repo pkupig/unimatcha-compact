@@ -512,8 +512,12 @@ function hasBackButton(el) {
     .some((i) => { const t = (i.textContent || '').trim(); return t === 'arrow_back' || t === 'arrow_forward'; });
 }
 // 跟手位移的面板节点（overlay 内的主内容容器）
+// 跟手位移的节点：一律用 overlay/page 根节点。
+// （不能取 firstElementChild——多数弹层的第一个子元素是 fixed 定位的页眉，
+// 只位移它会出现「只有页眉在滑、内容不动」；根节点带 transform 后，其内部
+// fixed 子元素也会随之移动，页眉与内容整体同步。）
 function swipePanel(el) {
-  return el.querySelector('.slide-left, .slide-right, .bottom-sheet-transition') || el.firstElementChild || el;
+  return el;
 }
 (function bindEdgeSwipeBack() {
   let sx = 0, sy = 0, edge = false, target = null, panel = null, horiz = null, dx = 0;
