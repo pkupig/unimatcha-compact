@@ -21,7 +21,8 @@ function feedEl(tab) {
 }
 function trackEl() { return document.getElementById('square-track'); }
 function pagerWidth() { return document.getElementById('square-pager')?.clientWidth || window.innerWidth; }
-function trackOffset(tab) { return tab === 'campus_wall' ? -pagerWidth() : 0; }
+const PAGE_GAP = 12; // 两页之间留白 = 2× 帖子间距（与 index.html 轨道 gap 保持一致）
+function trackOffset(tab) { return tab === 'campus_wall' ? -(pagerWidth() + PAGE_GAP) : 0; }
 function setTrack(x, animate) {
   const t = trackEl();
   if (!t) return;
@@ -93,9 +94,11 @@ function bindSquareSwipe() {
   el.dataset.swipeBound = '1';
   let sx = 0, sy = 0, active = false, horiz = null, dx = 0;
   el.addEventListener('touchstart', (e) => {
+    if (window.__fabDragging) { active = false; return; } // 正在拖动加号：不切页
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     active = true; horiz = null; dx = 0;
   }, { passive: true });
+  // 非 passive：判定为横滑后 preventDefault 掐断竖向滚动，保证只水平移动（用户反馈）
   el.addEventListener('touchmove', (e) => {
     if (!active) return;
     dx = e.touches[0].clientX - sx;
@@ -103,16 +106,19 @@ function bindSquareSwipe() {
     if (horiz === null && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) {
       horiz = Math.abs(dx) > Math.abs(dy);
       el.dataset.horizLock = horiz ? '1' : '0';
+      if (horiz) el.style.touchAction = 'none';
     }
     if (!horiz) return;
+    if (e.cancelable) e.preventDefault();
     const target = dx < 0 ? 'campus_wall' : 'recommend';
     const damp = target === S.squareTab ? 0.3 : 1; // 越界方向橡皮筋
     setTrack(trackOffset(S.squareTab) + dx * damp, false);
-  }, { passive: true });
+  }, { passive: false });
   const settle = () => {
     if (!active) return;
     active = false;
     el.dataset.horizLock = '0';
+    el.style.touchAction = ''; // 恢复滚动
     if (!horiz) return;
     const target = dx < 0 ? 'campus_wall' : 'recommend';
     if (Math.abs(dx) >= 70 && target !== S.squareTab) {
@@ -178,6 +184,18 @@ function clearSquareSearch() {
 }
 window.clearSquareSearch = clearSquareSearch;
 
+// 点搜索区域以外 → 收起搜索条（用户反馈）
+if (!window.__squareSearchOutsideBound) {
+  window.__squareSearchOutsideBound = true;
+  document.addEventListener('click', (e) => {
+    const bar = document.getElementById('square-search-bar');
+    if (!bar || bar.classList.contains('hidden')) return;
+    if (bar.contains(e.target)) return;
+    if (document.getElementById('square-search-btn')?.contains(e.target)) return;
+    window.toggleSquareSearch(false);
+  }, true);
+}
+
 // ── 发帖按钮可拖动（用户反馈：不要固定死）──
 // 拖动后位置记住（localStorage），点击仍是发帖；边缘吸附并夹在安全区内。
 function bindFabDrag() {
@@ -201,14 +219,17 @@ function bindFabDrag() {
   } catch (e) {}
   let sx = 0, sy = 0, ox = 0, oy = 0, moved = false, dragging = false;
   fab.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
     const t = e.touches[0];
     const r = fab.getBoundingClientRect();
     sx = t.clientX; sy = t.clientY; ox = r.left; oy = r.top;
     moved = false; dragging = true;
+    window.__fabDragging = true; // 拖加号期间禁用页面横滑切页（用户反馈：不能同时进行）
     fab.style.transition = 'none';
   }, { passive: true });
   fab.addEventListener('touchmove', (e) => {
     if (!dragging) return;
+    e.stopPropagation();
     const t = e.touches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
     if (!moved && Math.abs(dx) + Math.abs(dy) < 6) return; // 小抖动仍算点击
@@ -219,6 +240,7 @@ function bindFabDrag() {
   const end = () => {
     if (!dragging) return;
     dragging = false;
+    window.__fabDragging = false;
     fab.style.transition = '';
     if (!moved) return;
     // 左右就近吸附
