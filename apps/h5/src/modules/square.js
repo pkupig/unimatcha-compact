@@ -146,6 +146,101 @@ function onSquareSearch(text) {
 }
 window.onSquareSearch = onSquareSearch;
 
+// ── 搜索：右上角图标展开搜索条，输入后点「Search」或回车执行（用户反馈：需要搜索按钮）──
+function toggleSquareSearch(force) {
+  const bar = document.getElementById('square-search-bar');
+  if (!bar) return;
+  const show = force != null ? force : bar.classList.contains('hidden');
+  bar.classList.toggle('hidden', !show);
+  const input = document.getElementById('square-search');
+  if (show) setTimeout(() => input?.focus(), 50);
+  else if (input && input.value) { input.value = ''; runSquareSearch(); }
+  window.positionSquareInk?.();
+}
+window.toggleSquareSearch = toggleSquareSearch;
+
+function runSquareSearch() {
+  const input = document.getElementById('square-search');
+  const q = (input?.value || '').trim();
+  clearTimeout(S._squareSearchTimer);
+  S.squareSearchQuery = q;
+  document.getElementById('square-search-clear')?.classList.toggle('hidden', !q);
+  input?.blur();
+  window.loadSquareTab2(S.squareTab);
+}
+window.runSquareSearch = runSquareSearch;
+
+function clearSquareSearch() {
+  const input = document.getElementById('square-search');
+  if (input) input.value = '';
+  runSquareSearch();
+  input?.focus();
+}
+window.clearSquareSearch = clearSquareSearch;
+
+// ── 发帖按钮可拖动（用户反馈：不要固定死）──
+// 拖动后位置记住（localStorage），点击仍是发帖；边缘吸附并夹在安全区内。
+function bindFabDrag() {
+  const fab = document.getElementById('square-fab');
+  if (!fab || fab.dataset.dragBound) return;
+  fab.dataset.dragBound = '1';
+  const KEY = 'cl_fab_pos';
+  const place = (x, y) => {
+    const w = fab.offsetWidth || 56, h2 = fab.offsetHeight || 56;
+    const maxX = window.innerWidth - w - 8, maxY = window.innerHeight - h2 - 8;
+    const cx = Math.max(8, Math.min(maxX, x)), cy = Math.max(70, Math.min(maxY, y));
+    fab.style.left = cx + 'px';
+    fab.style.top = cy + 'px';
+    fab.style.right = 'auto';
+    fab.style.bottom = 'auto';
+    return { x: cx, y: cy };
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && typeof saved.x === 'number') place(saved.x, saved.y);
+  } catch (e) {}
+  let sx = 0, sy = 0, ox = 0, oy = 0, moved = false, dragging = false;
+  fab.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    const r = fab.getBoundingClientRect();
+    sx = t.clientX; sy = t.clientY; ox = r.left; oy = r.top;
+    moved = false; dragging = true;
+    fab.style.transition = 'none';
+  }, { passive: true });
+  fab.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < 6) return; // 小抖动仍算点击
+    moved = true;
+    if (e.cancelable) e.preventDefault(); // 拖动时不滚页面
+    place(ox + dx, oy + dy);
+  }, { passive: false });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    fab.style.transition = '';
+    if (!moved) return;
+    // 左右就近吸附
+    const r = fab.getBoundingClientRect();
+    const toRight = r.left + r.width / 2 > window.innerWidth / 2;
+    fab.style.transition = 'left 0.2s ease-out, top 0.2s ease-out';
+    const pos = place(toRight ? window.innerWidth - r.width - 20 : 20, r.top);
+    try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch (e) {}
+    setTimeout(() => { fab.style.transition = ''; }, 220);
+  };
+  fab.addEventListener('touchend', end);
+  fab.addEventListener('touchcancel', end);
+  // 拖动过后的这次 touch 不触发点击
+  fab.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+  window.addEventListener('resize', () => {
+    const r = fab.getBoundingClientRect();
+    if (fab.style.left) place(r.left, r.top);
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindFabDrag);
+else bindFabDrag();
+
 // Load the current tab's feed: GET /square/v2/recommend or /campus-wall.
 // Campus wall with no profile.school → empty state prompting to complete it.
 async function loadSquareTab2(tabArg) {

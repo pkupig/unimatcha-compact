@@ -632,20 +632,33 @@
 <!-- SQUARE TAB -->
 <div id="tab-square" class="tab-content" style="display: none;">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-    <div class="flex justify-center items-center h-11 px-4">
+    <div class="relative flex justify-center items-center h-11 px-4">
       <!-- 两段切换 [推荐 | 校园墙]：滑动荧光绿下划线（#square-tab-ink 由 JS 定位并过渡） -->
       <div id="square-tabs" class="relative flex gap-8">
         <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
         <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
         <span id="square-tab-ink"></span>
       </div>
+      <!-- 搜索入口：右上角图标，点开展开搜索条（用户反馈） -->
+      <button id="square-search-btn" onclick="toggleSquareSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform" title="Search">
+        <span class="material-symbols-outlined text-on-surface" style="font-size:21px">search</span>
+      </button>
+
     </div>
+    <!-- 展开式搜索条：默认隐藏，含显式搜索按钮 -->
+    <div id="square-search-bar" class="hidden px-4 pb-3">
+      <div class="flex items-center gap-2">
+        <div class="flex-1 flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2.5">
+          <span class="material-symbols-outlined text-outline" style="font-size:19px">search</span>
+          <input id="square-search" type="search" enterkeyhint="search" placeholder="Search posts" onkeydown="if(event.key===&#39;Enter&#39;){event.preventDefault();runSquareSearch();}" class="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" />
+          <button id="square-search-clear" onclick="clearSquareSearch()" class="hidden text-outline active:scale-90"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+        </div>
+        <button onclick="runSquareSearch()" class="shrink-0 px-4 py-2.5 rounded-full bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform">Search</button>
+      </div>
+    </div>
+
   </header>
   <main class="pt-16 pb-24 px-4 max-w-2xl mx-auto">
-    <div class="relative mb-4">
-      <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">search</span>
-      <input id="square-search" type="search" oninput="window.onSquareSearch(this.value)" placeholder="Search posts" class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-12 pr-4 py-3 text-sm font-medium text-on-surface placeholder:text-outline-variant focus:outline-none focus:border-black transition-colors" />
-    </div>
     <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
     <div id="square-pager" class="overflow-hidden">
       <div id="square-track" class="flex w-full">
@@ -655,7 +668,7 @@
     </div>
   </main>
   <!-- 发帖按钮：圆形、纯色无投影、上移避开悬浮导航（用户反馈） -->
-  <button onclick="openNewPost()" class="fixed bottom-52 right-5 w-14 h-14 bg-neon text-black rounded-full flex items-center justify-center active:scale-90 transition-transform z-50">
+  <button id="square-fab" onclick="openNewPost()" class="fixed bottom-52 right-5 w-14 h-14 bg-neon text-black rounded-full flex items-center justify-center active:scale-90 transition-transform z-50 touch-none">
     <span class="material-symbols-outlined text-2xl">add</span>
   </button>
 </div>
