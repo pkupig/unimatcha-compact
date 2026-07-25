@@ -566,6 +566,13 @@ const lastEnhancedRound = { romantic: false, friend: false };
 async function startMatch() {
   const mode = S.activeMatchMode || 'romantic';
   ensureEnhancedShape();
+  // 先过问卷门槛再谈扣费：否则用户确认了花费却被后端以「请先完成问卷」拒绝
+  try {
+    const res = await window.api('/questionnaire/completion?type=' + mode);
+    const d = res?.data ?? res ?? {};
+    const done = !!(d[mode] ?? d)?.completed;
+    if (!done) { promptFillQuestionnaire(mode); return; }
+  } catch (e) { /* 完成度查询失败：不拦，交给后端判定 */ }
   const enh = S.enhanced[mode] || {};
   const enhanced = !!enh.enabled;
   const cells = mode === 'friend'
