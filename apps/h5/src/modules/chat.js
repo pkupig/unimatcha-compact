@@ -686,7 +686,7 @@ function messageHtml(m, myId) {
   // 仅在缺少 kind 的旧消息上回退到内容子串匹配（后端内容为 "X nudged Y"），避免误伤普通消息。
   const isNudge = (m.kind === 'nudge') || (!m.kind && text.indexOf('nudged') !== -1);
   if (!m.imageUrl && isNudge) {
-    return `<div data-id="${attrEscape(m.id)}" class="w-full text-center text-[11px] text-on-surface-variant py-1.5 italic">${window.escapeHtml(text)}</div>`;
+    return `<div data-id="${attrEscape(m.id)}" data-no-i18n class="w-full text-center text-[11px] text-on-surface-variant py-1.5 italic">${window.escapeHtml(text)}</div>`;
   }
   let body = '';
   if (m.imageUrl) {
@@ -695,7 +695,7 @@ function messageHtml(m, myId) {
       onclick="openChatImage(this.src)"/>`;
   }
   if (text) {
-    body += `<div class="chat-bubble ${mine ? 'mine' : ''}">${window.escapeHtml(text)}</div>`;
+    body += `<div class="chat-bubble ${mine ? 'mine' : ''}" data-no-i18n>${window.escapeHtml(text)}</div>`;
   }
   const readMark = mine && m.isRead ? ' · Read' : '';
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">

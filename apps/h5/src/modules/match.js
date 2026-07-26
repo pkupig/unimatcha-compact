@@ -601,8 +601,9 @@ async function startMatch() {
       confirmLabel: 'Spend ' + cost + ' & join',
       cancelLabel: 'Join without it',
     });
+    if (ok === null) return; // 点背景关闭 = 中止，不进池也不动开关（审计 #10）
     if (!ok) {
-      // 用户选择不用增强：本次按普通身份进池，开关复位
+      // 显式选择「不用增强」：本次按普通身份进池，开关复位
       S.enhanced[mode].enabled = false;
       persistEnhanced();
       updateEnhanceUI(mode);
@@ -616,15 +617,25 @@ async function startMatch() {
   try {
     const body = { mode, enhanced: useEnhanced };
     if (mode === 'friend') body.cells = cells;
-    await window.api('/matching/start', 'POST', body);
-    window.toast(useEnhanced ? 'Entered pool · Enhanced (' + (mode === 'romantic' ? 3 : cells) + ' cells)' : 'Entered matching pool');
-    window.loadEnergyBar?.();
-    // 按轮付费语义：本轮已消耗，开关复位（后端轮末也会清 enhancedModeEnabled）。
-    // 下轮想继续增强需重新打开——避免「开一次永远扣」。
-    if (useEnhanced) {
-      S.enhanced[mode].enabled = false;
-      persistEnhanced();
-      updateEnhanceUI(mode);
+    const res = await window.api('/matching/start', 'POST', body);
+    const st = (res?.data ?? res) || {};
+    // 后端在「已在池中」时早返回，不写增强标记也不扣费。此时绝不能报成功、
+    // 更不能复位开关（审计 #3：否则用户以为买了增强，实际是空操作）。
+    const alreadyIn = /already matching/i.test(String(st.message || ''));
+    if (alreadyIn) {
+      lastEnhancedRound[mode] = false;
+      window.toast(useEnhanced
+        ? 'Already in this round\'s pool — leave the pool first to join with Enhanced'
+        : 'Already in the matching pool');
+    } else {
+      window.toast(useEnhanced ? 'Entered pool · Enhanced (' + (mode === 'romantic' ? 3 : cells) + ' cells)' : 'Entered matching pool');
+      window.loadEnergyBar?.();
+      // 按轮付费语义：确实扣费进池后才复位开关
+      if (useEnhanced) {
+        S.enhanced[mode].enabled = false;
+        persistEnhanced();
+        updateEnhanceUI(mode);
+      }
     }
   } catch (e) {
     lastEnhancedRound[mode] = false;
@@ -1303,6 +1314,9 @@ async function toggleEnhance(mode) {
   const m = mode === 'friend' ? 'friend' : 'romantic';
   const tg = document.getElementById(m + '-enhance-toggle');
   const turningOn = !S.enhanced[m].enabled;
+  // await 期间把 checkbox 拉回受控状态并禁用，避免「显示开着但状态是关」的窗口（审计 #11）
+  if (tg) { tg.checked = !!S.enhanced[m].enabled; tg.disabled = true; }
+  try {
   if (turningOn) {
     // 先拉新鲜余额（S.energy 冷启动恒为 0，会误判）；不足则不翻转、不持久化
     await window.loadEnergyBar?.();
@@ -1317,6 +1331,7 @@ async function toggleEnhance(mode) {
   S.enhanced[m].enabled = turningOn;
   updateEnhanceUI(m);
   persistEnhanced();
+  } finally { if (tg) tg.disabled = false; }
 }
 window.toggleEnhance = toggleEnhance;
 
@@ -1368,14 +1383,25 @@ async function openMatchSettings() {
   if (fItem) fItem.style.display = mode === 'friend' ? '' : 'none';
   window.updateEnhanceUI(mode);
   const extra = document.getElementById('match-extra-info');
-  if (extra) extra.value = '';
+  if (extra) { extra.value = ''; extra.dataset.dirty = ''; extra.oninput = () => { extra.dataset.dirty = '1'; }; }
   window.loadEnergyBar?.(); // 能量新鲜度（增强校验用）
-  let prefs = {};
+  // 竞态令牌：只有「最后一次打开、且模式未变」的响应才回填（审计 #12）
+  const seq = (openMatchSettings._seq = (openMatchSettings._seq || 0) + 1);
+  let prefs = null;
   try {
     const data = await window.api('/matching/preferences?mode=' + mode);
     prefs = data?.data || data || {};
-  } catch (e) {}
-  if (extra) extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
+  } catch (e) { prefs = null; }
+  if (seq !== openMatchSettings._seq || mode !== (S.activeMatchMode || 'romantic')) return;
+  if (prefs === null) {
+    // 加载失败：不要把空白当权威值——标记后由 saveMatchSettings 跳过该字段，
+    // 避免把服务器上已有的补充信息清空
+    if (extra) extra.dataset.loadFailed = '1';
+    window.toast('Preferences failed to load');
+    return;
+  }
+  if (extra) extra.dataset.loadFailed = '';
+  if (extra && extra.dataset.dirty !== '1') extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
 }
 window.openMatchSettings = openMatchSettings;
 
@@ -1388,11 +1414,15 @@ window.closeMatchSettings = closeMatchSettings;
 async function saveMatchSettings() {
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
-  const extraMatchInfo = document.getElementById('match-extra-info')?.value || '';
+  const extraEl = document.getElementById('match-extra-info');
+  const extraMatchInfo = extraEl?.value || '';
+  // 偏好没加载成功且用户没动过输入框：这次保存不带 extraMatchInfo，
+  // 否则空白会覆盖掉服务器上原有的文本
+  const skipExtra = extraEl?.dataset.loadFailed === '1' && extraEl?.dataset.dirty !== '1';
   // 增强开关只在客户端状态 S.enhanced 里，join pool (startMatch → POST /matching/start) 时才
   // 提交并预扣能量。这里不再把 enhancedModeEnabled/friendEnhancedCells 发到 /matching/preferences：
   // 后端只认 /matching/start 的扣费路径，偏好端点已拒收这两个字段（防免费白嫖增强）。
-  const body = { mode, extraMatchInfo };
+  const body = skipExtra ? { mode } : { mode, extraMatchInfo };
   persistEnhanced();
   window.btnBusy('ms-save-btn', true);
   try {

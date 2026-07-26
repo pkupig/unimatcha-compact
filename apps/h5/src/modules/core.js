@@ -284,7 +284,8 @@ function confirmCard({ title = 'Are you sure?', body = '', confirmLabel = 'Confi
     const done = (val) => { back.remove(); resolve(val); };
     back.querySelector('[data-card-ok]').onclick = () => done(true);
     back.querySelector('[data-card-cancel]').onclick = () => done(false);
-    back.onclick = (e) => { if (e.target === back) done(false); };
+    // 点背景 = 中止（null），与显式点「取消」(false) 区分：调用方可据此不做降级动作
+    back.onclick = (e) => { if (e.target === back) done(null); };
     document.body.appendChild(back);
   });
 }
@@ -521,7 +522,19 @@ function swipePanel(el) {
 }
 (function bindEdgeSwipeBack() {
   let sx = 0, sy = 0, edge = false, target = null, panel = null, horiz = null, dx = 0;
+  // 无条件复位：任何中断路径（多指、touchcancel、重入）都必须能把 inline 样式清干净，
+  // 否则弹层会永久停在「偏移+半透明+不可滚动」状态（审计 #1/#16）。
+  const resetPanel = (p) => {
+    if (!p) return;
+    p.style.transition = '';
+    p.style.transform = '';
+    p.style.opacity = '';
+    p.style.touchAction = '';
+  };
   document.addEventListener('touchstart', (e) => {
+    // 手势进行中又落下第二根手指：忽略这次 touchstart，保留原手势状态
+    if (panel && e.touches.length > 1) return;
+    resetPanel(panel); // 上一轮若被中断，先清干净
     const t = e.touches[0];
     edge = t.clientX <= 30;
     sx = t.clientX; sy = t.clientY; horiz = null; dx = 0; target = null; panel = null;
@@ -532,8 +545,7 @@ function swipePanel(el) {
       target = 'questionnaire'; panel = document.getElementById('page-questionnaire');
     }
   }, { passive: true });
-  // 非 passive：手势锁定为水平后要 preventDefault 掐断竖向滚动，
-  // 否则页面会边滑边上下滚，看起来是斜着走（用户反馈：只能水平移动）。
+  // 非 passive：手势锁定为水平后 preventDefault 掐断竖向滚动（只水平移动）
   document.addEventListener('touchmove', (e) => {
     if (!edge || !panel) return;
     const t = e.touches[0];
@@ -541,38 +553,37 @@ function swipePanel(el) {
     const dy = Math.abs(t.clientY - sy);
     if (horiz === null && (Math.abs(dx) > 10 || dy > 10)) {
       horiz = Math.abs(dx) > dy;
-      if (horiz) panel.style.touchAction = 'none'; // 锁定后本次手势不再触发滚动
+      if (horiz) panel.style.touchAction = 'none';
     }
     if (!horiz) return;
-    if (e.cancelable) e.preventDefault(); // 阻断竖向滚动/橡皮筋
+    if (e.cancelable) e.preventDefault();
     if (dx <= 0) return;
     panel.style.transition = 'none';
-    // 只做水平位移：绝不写入 Y 分量
     panel.style.transform = 'translateX(' + dx + 'px)';
     panel.style.opacity = String(Math.max(0.4, 1 - dx / (window.innerWidth * 1.2)));
   }, { passive: false });
   const finish = () => {
-    if (!edge) return;
-    edge = false;
-    const p = panel, tg = target;
-    panel = null; target = null;
-    if (p) p.style.touchAction = ''; // 手势结束恢复滚动能力
-    if (!p || !horiz) return;
+    const p = panel, tg = target, wasEdge = edge, wasHoriz = horiz, moved = dx;
+    edge = false; panel = null; target = null;
+    if (!p) return;
+    // 先无条件解除滚动锁（不受 edge/horiz 早退影响）
+    p.style.touchAction = '';
+    if (!wasEdge || !wasHoriz) { resetPanel(p); return; }
     const W = window.innerWidth;
-    if (dx >= 80) {
+    if (moved >= 80) {
       p.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
       p.style.transform = 'translateX(' + W + 'px)';
       p.style.opacity = '0';
       setTimeout(() => {
-        p.style.transition = ''; p.style.transform = ''; p.style.opacity = '';
+        resetPanel(p);
         if (tg === 'questionnaire') { window.showPage('page-home'); window.switchTab('match'); }
-        else (SWIPE_BACK_CLOSE[tg.id] || (() => window.hideOverlay(tg.id)))();
+        else if (tg) (SWIPE_BACK_CLOSE[tg.id] || (() => window.hideOverlay(tg.id)))();
       }, 200);
     } else {
       p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1), opacity 0.25s';
       p.style.transform = 'translateX(0)';
       p.style.opacity = '';
-      setTimeout(() => { p.style.transition = ''; p.style.transform = ''; }, 280);
+      setTimeout(() => resetPanel(p), 280);
     }
   };
   document.addEventListener('touchend', finish, { passive: true });

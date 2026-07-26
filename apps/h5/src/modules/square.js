@@ -94,6 +94,7 @@ function bindSquareSwipe() {
   el.dataset.swipeBound = '1';
   let sx = 0, sy = 0, active = false, horiz = null, dx = 0;
   el.addEventListener('touchstart', (e) => {
+    if (active && e.touches.length > 1) return; // 手势中多指：忽略，不重置状态
     if (window.__fabDragging) { active = false; return; } // 正在拖动加号：不切页
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     active = true; horiz = null; dx = 0;
@@ -117,9 +118,10 @@ function bindSquareSwipe() {
   const settle = () => {
     if (!active) return;
     active = false;
+    // 无条件复位（不受 !horiz 早退影响）：锁、标志、轨道都要回到位
     el.dataset.horizLock = '0';
-    el.style.touchAction = ''; // 恢复滚动
-    if (!horiz) return;
+    el.style.touchAction = '';
+    if (!horiz) { setTrack(trackOffset(S.squareTab), true); return; }
     const target = dx < 0 ? 'campus_wall' : 'recommend';
     if (Math.abs(dx) >= 70 && target !== S.squareTab) {
       const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
@@ -128,8 +130,9 @@ function bindSquareSwipe() {
       setTrack(trackOffset(S.squareTab), true); // 弹回当前页
     }
   };
-  el.addEventListener('touchend', settle, { passive: true });
-  el.addEventListener('touchcancel', settle, { passive: true });
+  // 绑到 document：触点所在卡片被 innerHTML 替换后事件不再冒泡到 #tab-square（审计 #2）
+  document.addEventListener('touchend', settle, { passive: true });
+  document.addEventListener('touchcancel', settle, { passive: true });
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bindSquareSwipe);
@@ -160,9 +163,22 @@ function toggleSquareSearch(force) {
   bar.classList.toggle('hidden', !show);
   const input = document.getElementById('square-search');
   if (show) setTimeout(() => input?.focus(), 50);
-  else if (input && input.value) { input.value = ''; runSquareSearch(); }
+  // 收起只隐藏：保留关键词与结果（审计 #4/#5/#15——此前收起即清空，
+  // 点搜索结果进详情返回后结果全没了）。清空只由 X 按钮触发。
+  syncSearchPadding();
   window.positionSquareInk?.();
 }
+
+// 搜索条展开会撑高顶栏：同步内容区上边距，避免首行结果被压在顶栏下（审计 #6/#8/#13/#17）
+function syncSearchPadding() {
+  const header = document.querySelector('#tab-square header');
+  const main = document.querySelector('#tab-square main');
+  if (!header || !main) return;
+  requestAnimationFrame(() => {
+    main.style.paddingTop = (header.offsetHeight + 6) + 'px';
+  });
+}
+window.syncSearchPadding = syncSearchPadding;
 window.toggleSquareSearch = toggleSquareSearch;
 
 function runSquareSearch() {
@@ -171,6 +187,9 @@ function runSquareSearch() {
   clearTimeout(S._squareSearchTimer);
   S.squareSearchQuery = q;
   document.getElementById('square-search-clear')?.classList.toggle('hidden', !q);
+  // 搜索条收起后信息流仍是过滤结果：右上角图标变荧光绿提示「当前有筛选」
+  const btn = document.getElementById('square-search-btn');
+  if (btn) btn.style.color = q ? '#CCFF00' : '';
   input?.blur();
   window.loadSquareTab2(S.squareTab);
 }
@@ -192,6 +211,7 @@ if (!window.__squareSearchOutsideBound) {
     if (!bar || bar.classList.contains('hidden')) return;
     if (bar.contains(e.target)) return;
     if (document.getElementById('square-search-btn')?.contains(e.target)) return;
+    if (document.getElementById('square-pager')?.contains(e.target)) return; // 点信息流不收起
     window.toggleSquareSearch(false);
   }, true);
 }
@@ -256,7 +276,10 @@ function bindFabDrag() {
   // 拖动过后的这次 touch 不触发点击
   fab.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
   window.addEventListener('resize', () => {
+    // 广场页隐藏时 rect 全 0，按它重排会把按钮甩到左上角（审计 #9/#14）
+    if (!fab.offsetParent) return;
     const r = fab.getBoundingClientRect();
+    if (!r.width || !r.height) return;
     if (fab.style.left) place(r.left, r.top);
   });
 }
@@ -787,8 +810,9 @@ function syncPostLikeState(postId, liked, likeCount) {
 // Patch the rendered list card for a post in place (avoids full list reload).
 // Used when the detail page changes a post's like/comment counts (A12/A14).
 function patchSquareCard(postId, { liked, likeCount, commentCount } = {}) {
-  const card = document.querySelector('#square-track [data-post-id="' + postId + '"]');
-  if (!card) return;
+  const cards = [...document.querySelectorAll('#square-track [data-post-id="' + postId + '"]')];
+  if (!cards.length) return;
+  cards.forEach((card) => {
   if (liked != null || likeCount != null) {
     const btn = card.querySelector('[data-like-icon]')?.closest('button');
     if (btn) {
@@ -802,6 +826,7 @@ function patchSquareCard(postId, { liked, likeCount, commentCount } = {}) {
     const cc = card.querySelector('[data-comment-count]');
     if (cc) cc.textContent = String(Math.max(0, commentCount));
   }
+  });
 }
 
 // ========================================
@@ -1088,10 +1113,17 @@ window.likePdPost = likePdPost;
 // NEW POST
 // ========================================
 function openNewPost() {
+  // 校园墙需要学校：无学校时直接引导补资料，避免图片白传后被后端拒（审计 #19）
+  if (S.squareTab === 'campus_wall' && !(S.currentUser?.profile?.school)) {
+    window.toast('Add your school in your profile first');
+    window.switchTab('profile');
+    return;
+  }
   S.newPostImages = [];
   // Default the new-post destination to the tab the user is currently viewing
   // (recommend or campus_wall), and reset the anonymous + poll toggles.
   S.newPostBoard = S.squareTab === 'campus_wall' ? 'campus_wall' : 'recommend';
+  S.newPostBoardOrigin = S.newPostBoard; // 取消投票时还原用
   S.newPostAnonymous = false;
   S.newPostPoll = false;
   const titleEl = document.getElementById('post-title');
@@ -1136,6 +1168,11 @@ function toggleNewPostPoll(checked) {
   S.newPostPoll = !!checked;
   const box = document.getElementById('newpost-poll-options');
   if (box) box.classList.toggle('hidden', !checked);
+  if (!checked) {
+    // 取消投票：去向还原为打开发帖时所在的页面（审计 #7/#18）
+    selectNewPostBoard(S.newPostBoardOrigin || 'recommend');
+    return;
+  }
   if (checked) {
     // 投票只发校园墙
     selectNewPostBoard('campus_wall');
