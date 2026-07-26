@@ -14,6 +14,9 @@ import './modules/notifications.js';
 import './modules/settings.js';
 import './modules/milestone.js';
 
+// 启动成功标记（index.html 的看门狗据此判断是否需要自愈重载）
+window.__appBooted = true;
+
 // ---- bootstrap ----
 // ========================================
 // DOM INITIALIZATION
