@@ -416,8 +416,9 @@ function renderSquareFeed(posts, ads = [], tab) {
   if (ads.length) observeAdImpressions(container);
 }
 
-// ── 瀑布流：#square-feed 为 grid-auto-rows:2px + row-gap:6px 的网格，
-// 每张卡按自身内容高度换算 grid-row span（n ≥ (h+G)/(R+G)），列内自然错落。
+// ── 瀑布流：#square-feed 为 grid-auto-rows:1px + row-gap:0 的网格，
+// 每张卡按自身内容高度 + 6px 间距换算 grid-row span（n = ⌈h⌉+SP），
+// 卡片垂直间距恒为 6px（旧 2px 行 + 6px 行距方案取整后会浮动到 6–13px）。
 let masonryRaf = null;
 function scheduleMasonry() {
   if (masonryRaf) return;
@@ -427,7 +428,7 @@ function scheduleMasonry() {
   });
 }
 function layoutSquareMasonry() {
-  const R = 2, G = 6; // auto-row 高 / row-gap（与 main.css .square-feed-grid 保持一致）
+  const R = 1, SP = 6; // auto-row 高（row-gap 为 0）/ 卡片垂直间距（与 main.css .square-feed-grid 保持一致）
   ['recommend', 'campus_wall'].forEach((t) => {
     const c = feedEl(t);
     if (!c) return;
@@ -435,7 +436,7 @@ function layoutSquareMasonry() {
     items.forEach(it => { it.style.gridRowEnd = 'auto'; });
     const heights = items.map(it => it.getBoundingClientRect().height);
     items.forEach((it, i) => {
-      it.style.gridRowEnd = `span ${Math.max(1, Math.ceil((heights[i] + G) / (R + G)))}`;
+      it.style.gridRowEnd = `span ${Math.max(1, Math.ceil(heights[i]) + SP)}`;
     });
   });
 }
@@ -940,17 +941,19 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
   const isAuthor = authorKey?.type === 'token'
     ? (!!authorKey.value && cm.anonymousAuthorToken === authorKey.value)
     : (!!authorKey?.value && cm.userId === authorKey.value);
-  return `<div class="flex gap-4${isReply ? ' pl-12' : ''}">
+  // 楼层收紧：回复行头像缩小并缩进到父楼内容起点（32px 头像 + 12px 间距）
+  const avSize = isReply ? 'w-7 h-7' : 'w-8 h-8';
+  return `<div class="flex gap-3${isReply ? ' pl-11' : ''}">
     ${avatar
-      ? `<img src="${window.safeUrl(avatar)}" class="w-8 h-8 rounded-full object-cover shrink-0">`
-      : `<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
+      ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
+      : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
     <div class="flex-1 min-w-0">
-      <div class="flex items-baseline justify-between mb-2 gap-2">
-        <span class="flex items-center gap-2 min-w-0"><span class="font-headline font-bold text-sm truncate">${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
+      <div class="flex items-baseline justify-between gap-2">
+        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
         <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0">${window.formatPostTime(cm.createdAt)}</span>
       </div>
-      <p class="text-on-surface-variant text-sm leading-relaxed">${window.escapeHtml(cm.content || '')}</p>
-      <button class="mt-3 text-[10px] font-bold tracking-widest text-primary/60 hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
+      <p class="text-on-surface text-sm leading-relaxed mt-1">${window.escapeHtml(cm.content || '')}</p>
+      <button class="mt-1.5 text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
     </div>
   </div>`;
 }
@@ -1010,10 +1013,14 @@ function renderPostDetail(post) {
         </span>
       </div>
     </article>
-    <div class="px-6 pt-12 bg-surface">
-      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-10 text-on-surface-variant">Observations (${commentTotal})</h3>
-      <div class="space-y-10">
-        ${comments.map(cm => renderPdComment(cm, cm.id, false, authorKey) + (cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')).join('') || '<p class="text-sm text-outline italic">No observations yet. Share the first one.</p>'}
+    <div class="px-6 pt-8 bg-surface">
+      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span></h3>
+      <div class="space-y-7">
+        ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')
+          || `<div class="py-10 text-center">
+                <span class="material-symbols-outlined text-outline-variant" style="font-size:28px">forum</span>
+                <p class="text-sm text-outline mt-2">No observations yet. Share the first one.</p>
+              </div>`}
       </div>
     </div>`;
 }
@@ -1137,6 +1144,9 @@ function openNewPost() {
   if (pollEl) pollEl.checked = false;
   const pollBox = document.getElementById('newpost-poll-options');
   if (pollBox) pollBox.classList.add('hidden');
+  // 投票仅校园墙可用：从推荐页打开时整行隐藏（用户反馈）
+  const pollRow = document.getElementById('newpost-poll-row');
+  if (pollRow) pollRow.classList.toggle('hidden', S.newPostBoard !== 'campus_wall');
   renderPollOptionInputs(2);
   window.renderNewPostImages();
   window.openOverlay('overlay-new-post');
@@ -1151,7 +1161,7 @@ function renderPollOptionInputs(count) {
   const n = Math.min(6, Math.max(2, count));
   list.innerHTML = Array.from({ length: n }, (_, i) => `
     <input type="text" maxlength="50" placeholder="Option ${i + 1}"
-      class="poll-option-input w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>`).join('');
+      class="poll-option-input w-full bg-surface-container-lowest rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>`).join('');
   // 值用属性赋值回填（不拼 HTML）：escapeHtml 不转义引号，含 " 的选项会截断属性甚至注入
   [...list.querySelectorAll('input')].forEach((el, i) => { el.value = existing[i] || ''; });
 }

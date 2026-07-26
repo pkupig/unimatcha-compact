@@ -65,13 +65,13 @@ const ZH = {
   // ── 广场 ──
   Recommend: '推荐', 'Campus Wall': '校园墙', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',
-  'Post anonymously': '匿名发布', 'Failed to load posts': '帖子加载失败',
+  'Post anonymously': '匿名发布', 'Posting to': '发布到', 'Failed to load posts': '帖子加载失败',
   'Check your connection and try again': '请检查网络后重试', Retry: '重试',
   // ── 能量购买 ──
   cells: '格', 'Select a package': '请选择套餐', 'Select a payment method': '请选择支付方式',
   'WeChat Pay': '微信支付', Alipay: '支付宝', 'Card (Stripe)': '银行卡 (Stripe)',
   // ── 投票 / 活动 / 票夹 ──
-  'Create a poll': '发起投票', 'Campus wall only · goes live after review': '仅校园墙 · 审核通过后展示',
+  'Create a poll': '发起投票', 'Goes live after review': '审核通过后展示',
   '+ Add option': '+ 添加选项', 'My Tickets': '我的票夹', 'No tickets yet': '还没有门票',
   'Tickets you get for campus events appear here.': '购买的校园活动门票会出现在这里。',
   'Show this QR at the entrance': '入场时出示此二维码',
@@ -140,7 +140,7 @@ const ZH = {
   'Confirm Partner': '确认为恋人', 'Confirm Friend': '确认为好友',
   'You have confirmed, waiting for their response': '你已确认，等待对方回应',
   'This connection has ended. You can no longer send messages.': '这段连接已结束，无法再发送消息。',
-  Reply: '回复', 'No observations yet. Share the first one.': '还没有评论，来抢沙发。',
+  Reply: '回复', Observations: '评论', 'No observations yet. Share the first one.': '还没有评论，来抢沙发。',
   Sponsored: '赞助', 'Student Union': '学生会', 'Official Team': '官方团队', Official: '官方',
   VALID: '有效', USED: '已使用', CANCELLED: '已作废',
   'Applies the next time you join the pool': '将在下次进入匹配池时生效',

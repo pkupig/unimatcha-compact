@@ -918,27 +918,14 @@
       Publish
     </button>
   </header>
-  <main class="flex-1 overflow-y-auto px-6 py-8">
-    <div class="space-y-8">
-      <!-- 发帖去向由进入时所在页面决定（用户反馈：不再切换），此处仅只读提示 -->
-      <div id="newpost-board-note" class="flex items-center gap-2 text-[11px] text-outline">
-        <span class="material-symbols-outlined" style="font-size:15px">place_item</span>
+  <main class="flex-1 overflow-y-auto px-6 py-6">
+    <div class="space-y-6">
+      <!-- 发帖去向由进入时所在页面决定（用户反馈：不再切换），chip 式只读提示 -->
+      <div id="newpost-board-note" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-low text-[11px] text-on-surface-variant">
+        <span class="material-symbols-outlined" style="font-size:14px">place_item</span>
         <span>Posting to <b id="newpost-board-label" class="text-on-surface">Recommend</b></span>
       </div>
-      <!-- 匿名开关（§6.11 行2132 / 规则 7）：匿名仍标注学校 -->
-      <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">
-        <span class="font-body text-sm text-on-surface">Post anonymously</span>
-        <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
-      </label>
-      <!-- 校园墙投票（需审核）：开启后强制发到校园墙，填 2–6 个选项 -->
-      <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">
-        <span class="font-body text-sm text-on-surface">Create a poll<span class="text-xs text-on-surface-variant ml-2">Campus wall only · goes live after review</span></span>
-        <input id="newpost-poll" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostPoll(this.checked)" />
-      </label>
-      <div id="newpost-poll-options" class="hidden space-y-3 pl-1">
-        <div id="poll-option-list" class="space-y-3"></div>
-        <button type="button" onclick="addPollOptionInput()" class="text-[11px] font-bold tracking-widest text-on-surface-variant hover:text-primary underline underline-offset-4">+ Add option</button>
-      </div>
+      <!-- 写作区优先：标题 / 正文 / 图片 -->
       <input id="post-title" class="w-full text-2xl font-headline font-bold tracking-tight text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none" placeholder="Title" type="text"/>
       <textarea id="post-content" class="w-full min-h-[160px] text-base font-body leading-relaxed text-on-surface placeholder:text-outline-variant bg-transparent border-0 rounded-none focus:ring-0 focus:outline-none resize-none" placeholder="Capture the moment..."></textarea>
       <div id="new-post-images" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -947,6 +934,25 @@
         </button>
       </div>
       <input id="post-image-input" type="file" accept="image/*" multiple onchange="handlePostImages(event)" class="hidden" />
+      <!-- 选项组：圆角卡片分组，开关行统一 -->
+      <section class="rounded-[14px] bg-surface-container-low overflow-hidden">
+        <!-- 匿名开关（§6.11 行2132 / 规则 7）：匿名仍标注学校 -->
+        <label class="flex items-center justify-between gap-4 px-4 py-3.5 cursor-pointer select-none">
+          <span class="font-body text-sm text-on-surface">Post anonymously</span>
+          <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
+        </label>
+        <!-- 校园墙投票（需审核）：整行仅校园墙发帖时显示（推荐页不出现），2–6 个选项 -->
+        <div id="newpost-poll-row" class="border-t border-outline-variant/20">
+          <label class="flex items-center justify-between gap-4 px-4 py-3.5 cursor-pointer select-none">
+            <span class="font-body text-sm text-on-surface">Create a poll<span class="block text-xs text-on-surface-variant mt-0.5">Goes live after review</span></span>
+            <input id="newpost-poll" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostPoll(this.checked)" />
+          </label>
+          <div id="newpost-poll-options" class="hidden space-y-2.5 px-4 pb-4">
+            <div id="poll-option-list" class="space-y-2.5"></div>
+            <button type="button" onclick="addPollOptionInput()" class="text-[11px] font-bold tracking-widest text-on-surface-variant hover:text-primary underline underline-offset-4">+ Add option</button>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 </div>
@@ -964,16 +970,17 @@
   <main class="pt-16 w-full max-w-screen-md mx-auto">
     <div id="pd-content"></div>
     <section class="px-6 pb-16 bg-surface">
-      <div class="mt-12 pt-8 border-t border-primary">
+      <div class="mt-8 pt-5 border-t border-outline-variant/20">
         <div id="pd-reply-bar" class="hidden items-center justify-between mb-3">
           <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
           <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
         </div>
-        <div class="flex items-center">
-          <div class="flex-1 border-b border-outline focus-within:border-primary transition-colors py-2">
-            <input id="comment-input" class="w-full bg-transparent border-none p-0 focus:ring-0 placeholder:text-outline-variant text-sm font-body" placeholder="Add an observation..." type="text"/>
-          </div>
-          <button class="font-headline font-bold text-xs tracking-widest active:scale-[0.98] transition-transform" onclick="submitPdComment()">Send</button>
+        <!-- 软填充胶囊输入 + 圆形发送键（对齐全站去下划线改软填充的输入样式） -->
+        <div class="flex items-center gap-2">
+          <input id="comment-input" class="flex-1 min-w-0 bg-surface-container-low rounded-full border-0 px-4 py-2.5 text-sm font-body placeholder:text-outline-variant focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Add an observation..." type="text"/>
+          <button class="w-10 h-10 shrink-0 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform" onclick="submitPdComment()" aria-label="Send">
+            <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+          </button>
         </div>
       </div>
     </section>
