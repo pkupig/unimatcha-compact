@@ -775,6 +775,13 @@
       </div>
     </header>
     <!-- （模式选项卡已移除：偏好按进入时的匹配模式确定，用户反馈） -->
+    <div class="flex-1 overflow-y-auto max-h-[70vh] px-6 py-4 flex flex-col gap-5">
+      <!-- 恋人偏好区（仅 Target Gender + University Stage；年龄/同校/同城在下方共享区） -->
+      <div id="filter-romantic-section" class="space-y-7">
+      <section>
+        <div class="mb-3">
+          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Target Gender</h2>
+        </div>
         <div class="flex border border-outline-variant/60 p-1 rounded-full">
           <button class="gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="male" onclick="selectGenderSegment('male')">Male</button>
           <button class="gender-seg flex-1 py-3 rounded-full font-headline text-xs font-bold tracking-wider text-black hover:bg-stone-50 transition-all duration-200 active:scale-[0.98]" data-value="female" onclick="selectGenderSegment('female')">Female</button>
