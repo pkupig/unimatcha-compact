@@ -71,7 +71,7 @@ export function adLargeCard(ad) {
       </div>`
     // 后端 schema 要求至少 1 图，这里仍兜底：无图时徽章走顶部标题行
     : `<div class="px-3 pt-3"><span class="sponsored-badge">Sponsored</span></div>`;
-  return `<article data-ad-id="${ad.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[10px] overflow-hidden" onclick="onAdClick('${ad.id}')">
+  return `<article data-ad-id="${ad.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[6px] overflow-hidden" onclick="onAdClick('${ad.id}')">
     ${media}
     <div class="space-y-1 min-w-0 px-3 pt-2 pb-3">
       ${ad.title ? `<h3 class="font-headline font-bold text-lg tracking-tight">${esc(ad.title)}</h3>` : ''}

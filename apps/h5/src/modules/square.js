@@ -643,7 +643,7 @@ function bentoTextCard(p) {
   const header = (badge || school)
     ? `<div class="flex items-center justify-between gap-2 mb-3">${badge || '<span></span>'}${school}</div>`
     : '';
-  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[10px]" onclick="openPostDetail('${p.id}')">
+  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[6px]" onclick="openPostDetail('${p.id}')">
     ${header}
     ${p.title ? `<h3 class="font-headline font-bold text-lg tracking-tight mb-2">${window.escapeHtml(p.title)}</h3>` : ''}
     ${eventStrip(p)}
@@ -663,7 +663,7 @@ function bentoLargeCard(p) {
   const badge = officialBadge(p);
   const school = schoolBadge(p);
   // 图片贴满卡片上/左/右边缘（卡片 overflow-hidden 裁出圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
-  return `<article data-post-id="${p.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[10px] overflow-hidden" onclick="openPostDetail('${p.id}')">
+  return `<article data-post-id="${p.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[6px] overflow-hidden" onclick="openPostDetail('${p.id}')">
     <div class="relative overflow-hidden aspect-[4/5] bg-surface-container">
       <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${window.safeUrl(img)}" onerror="this.style.display='none'">
       ${badge ? `<div class="absolute top-4 left-4">${badge}</div>` : ''}
@@ -699,7 +699,7 @@ function bentoSmallCard(p) {
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
     : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}">${schoolOverlay}<p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
   // 图片/彩色文字块贴满卡片上/左/右边缘（卡片 overflow-hidden 裁圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
-  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest rounded-[10px] overflow-hidden cursor-pointer" onclick="openPostDetail('${p.id}')">
+  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest rounded-[6px] overflow-hidden cursor-pointer" onclick="openPostDetail('${p.id}')">
     ${media}
     <div class="flex items-start justify-between gap-2 px-2 pb-2 pt-1.5">
       <div class="min-w-0">
@@ -719,7 +719,7 @@ function bentoWideCard(p) {
   const d = postAuthorDisplay(p);
   const school = d.school || p.school;
   // 竖排卡片（对齐截图）：作者头像行 + 全宽横图 + 标题/正文 + 点赞/评论
-  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[10px]" onclick="openPostDetail('${p.id}')">
+  return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[6px]" onclick="openPostDetail('${p.id}')">
     <div class="flex items-center gap-3 mb-4">
       ${renderAuthorAvatars(p)}
       <div class="min-w-0 flex-1">
@@ -728,7 +728,7 @@ function bentoWideCard(p) {
       </div>
       ${school ? `<span class="school-badge shrink-0">${window.escapeHtml(school)}</span>` : ''}
     </div>
-    ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[10px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
+    ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[6px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
     <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
     ${pollBlock(p)}
@@ -1144,21 +1144,18 @@ function toggleNewPostPoll(checked) {
 }
 window.toggleNewPostPoll = toggleNewPostPoll;
 
-// New-post destination radio [发到推荐 | 发到校园墙] → S.newPostBoard.
+// 发帖去向：由打开发帖时所在的广场页面决定（不可切换）。
+// 保留函数名——投票开关等内部调用仍会强制指定去向。
 function selectNewPostBoard(board) {
   S.newPostBoard = board === 'campus_wall' ? 'campus_wall' : 'recommend';
   syncNewPostBoardUI();
 }
 window.selectNewPostBoard = selectNewPostBoard;
 
-// Paint the active segment (neon-on-black) vs inactive for the board radio.
+// 只读提示：显示本次发帖的去向（Recommend / Campus Wall）
 function syncNewPostBoardUI() {
-  document.querySelectorAll('#newpost-board .newpost-board-seg').forEach(btn => {
-    const active = btn.dataset.board === S.newPostBoard;
-    btn.classList.toggle('bg-neon', active);
-    btn.classList.toggle('text-black', active);
-    btn.classList.toggle('text-on-surface-variant', !active);
-  });
+  const label = document.getElementById('newpost-board-label');
+  if (label) label.textContent = S.newPostBoard === 'campus_wall' ? 'Campus Wall' : 'Recommend';
 }
 
 // Anonymous toggle → S.newPostAnonymous (post shows as 「匿名同学」, school kept).

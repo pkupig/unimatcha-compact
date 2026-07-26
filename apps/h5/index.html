@@ -658,7 +658,7 @@
     </div>
 
   </header>
-  <main class="pt-16 pb-24 px-1.5 max-w-2xl mx-auto">
+  <main class="pt-[50px] pb-24 px-1.5 max-w-2xl mx-auto">
     <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
     <div id="square-pager" class="overflow-hidden">
       <div id="square-track" class="flex w-full" style="gap:12px">
@@ -878,10 +878,10 @@
   </header>
   <main class="flex-1 overflow-y-auto px-6 py-8">
     <div class="space-y-8">
-      <!-- 发帖去向单选 [发到推荐 | 发到校园墙]（§6.11 行2132）：默认 recommend → S.newPostBoard -->
-      <div id="newpost-board" class="flex gap-1 border border-outline-variant p-1 rounded-[10px]">
-        <button type="button" class="newpost-board-seg flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] bg-neon text-black" data-board="recommend" onclick="selectNewPostBoard('recommend')">To Recommend</button>
-        <button type="button" class="newpost-board-seg flex-1 py-2.5 rounded-[10px] font-headline text-xs font-bold tracking-wider transition-all duration-200 active:scale-[0.98] text-on-surface-variant" data-board="campus_wall" onclick="selectNewPostBoard('campus_wall')">To Campus Wall</button>
+      <!-- 发帖去向由进入时所在页面决定（用户反馈：不再切换），此处仅只读提示 -->
+      <div id="newpost-board-note" class="flex items-center gap-2 text-[11px] text-outline">
+        <span class="material-symbols-outlined" style="font-size:15px">place_item</span>
+        <span>Posting to <b id="newpost-board-label" class="text-on-surface">Recommend</b></span>
       </div>
       <!-- 匿名开关（§6.11 行2132 / 规则 7）：匿名仍标注学校 -->
       <label class="flex items-center justify-between gap-4 py-1 cursor-pointer select-none">

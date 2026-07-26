@@ -587,7 +587,7 @@
        此前 id 选择器把 row-gap 覆盖成 1.5rem，导致上下间距远大于左右；改回 0.375rem。
        瀑布流（本轮反馈5）：2px auto-row + JS 按卡片高度设 row-span（square.js layoutSquareMasonry，
        R=2/G=6 与此处数值绑定）。 */
-    .square-feed-grid { row-gap: 0.375rem; grid-auto-rows: 2px; align-content: start; }
+    .square-feed-grid { row-gap: 0.375rem; grid-auto-rows: 2px; align-content: start; padding-top: 6px; }
     /* 推荐流图片卡：高度随图片原始比例（h-auto），过长图收敛到 300px 内、过扁图保底 110px */
     .rec-img {
       display: block;
