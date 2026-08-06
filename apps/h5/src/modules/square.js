@@ -1323,11 +1323,13 @@ function formatPostTime(iso) {
   const d = new Date(iso),
     now = new Date(),
     diff = now - d;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'M Ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'H Ago';
-  if (diff < 604800000) return Math.floor(diff / 86400000) + 'D Ago';
-  return d.toLocaleDateString();
+  // 相对时间含数字，全局词典逐句匹配不了，这里直接按语言出文案
+  const zh = (window.getLang?.() || 'en') === 'zh';
+  if (diff < 60000) return zh ? '刚刚' : 'Just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + (zh ? ' 分钟前' : 'M Ago');
+  if (diff < 86400000) return Math.floor(diff / 3600000) + (zh ? ' 小时前' : 'H Ago');
+  if (diff < 604800000) return Math.floor(diff / 86400000) + (zh ? ' 天前' : 'D Ago');
+  return d.toLocaleDateString(zh ? 'zh-CN' : undefined);
 }
 
 // ========================================

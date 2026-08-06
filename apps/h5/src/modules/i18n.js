@@ -90,6 +90,7 @@ const ZH = {
   'Profile Setup': '完善资料', 'Basic Info': '基本信息', Nickname: '昵称', 'Real name': '真实姓名',
   'University / School': '学校', City: '城市', Major: '专业', Nationality: '国籍',
   Gender: '性别', 'Looking For': '想认识', Birthday: '生日', 'Academic Year': '学业阶段',
+  'Non-binary': '非二元', 'Select Gender': '选择性别',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
   // ── 中文态补漏（本轮反馈）──
   'Enter your academic credentials': '输入你的账号信息',
@@ -118,6 +119,9 @@ const ZH = {
   'Questions, feedback or partnership inquiries:': '咨询、反馈或合作请联系：',
   'Send Email': '发送邮件',
   Today: '今天', Yesterday: '昨天', Earlier: '更早', 'Load More': '加载更多',
+  // ── 通知面板 ──
+  Notifications: '通知', Notification: '通知详情', 'No notifications': '暂无通知',
+  "You're all caught up": '都看完啦', 'Failed to load': '加载失败', 'Loading...': '加载中…',
   'Scan to connect instantly.': '扫一扫，立即互加。',
   'Point at your friend\'s QR — or enter their code:': '对准好友的二维码，或输入 TA 的编号：',
   'YOUR CODE': '你的编号', 'TICKET CODE': '票码',

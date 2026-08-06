@@ -604,6 +604,30 @@ async function openEditProfile() {
     sigEl.dataset.countBound = '1';
     sigEl.addEventListener('input', () => { sigCountEl.textContent = sigEl.value.length; });
   }
+  // 性别 + 生日（此前编辑页缺失，只有注册能填）：生日限 16–40 岁，改动时联动年龄提示
+  const genderEl = document.getElementById('edit-gender');
+  if (genderEl) genderEl.value = p.gender || '';
+  const bdayEl = document.getElementById('edit-birthday');
+  const ageHintEl = document.getElementById('edit-age-hint');
+  const syncAgeHint = () => {
+    if (!ageHintEl) return;
+    const a = ageFromBirthday(bdayEl?.value);
+    const zh = (window.getLang?.() || 'en') === 'zh';
+    ageHintEl.textContent = a != null ? (zh ? `${a} 岁` : `Age ${a}`) : '';
+  };
+  if (bdayEl) {
+    const now = new Date();
+    const iso = (d) => d.toISOString().slice(0, 10);
+    bdayEl.min = iso(new Date(now.getFullYear() - 40, now.getMonth(), now.getDate()));
+    bdayEl.max = iso(new Date(now.getFullYear() - 16, now.getMonth(), now.getDate()));
+    bdayEl.value = p.birthday ? String(p.birthday).slice(0, 10) : '';
+    if (!bdayEl.dataset.hintBound) {
+      bdayEl.dataset.hintBound = '1';
+      bdayEl.addEventListener('change', syncAgeHint);
+      bdayEl.addEventListener('input', syncAgeHint);
+    }
+  }
+  syncAgeHint();
   S.editTags = [...(p.interests || [])];
   window.renderEditTags();
   const avatarEl = document.getElementById('edit-avatar');
@@ -643,13 +667,20 @@ function closeEditProfile() {
 window.closeEditProfile = closeEditProfile;
 
 async function saveEditProfile() {
-  window.btnBusy('edit-save-btn', true);
   const nickname = document.getElementById('edit-nickname')?.value?.trim();
   const bio = document.getElementById('edit-bio')?.value?.trim();
+  // 校验先行（此前 btnBusy(true) 在早退前执行，昵称为空时保存键会永久卡在禁用态）
   if (!nickname) {
     window.toast('Nickname required');
     return;
   }
+  const birthday = document.getElementById('edit-birthday')?.value || '';
+  const age = birthday ? ageFromBirthday(birthday) : null;
+  if (birthday && (age == null || age < 16 || age > 40)) {
+    window.toast('Unimatcha is for students aged 16–40');
+    return;
+  }
+  window.btnBusy('edit-save-btn', true);
   try {
     const payload = {
       nickname,
@@ -683,6 +714,13 @@ async function saveEditProfile() {
       payload.givenName = givenName;
       payload.familyName = familyName;
       payload.realName = [givenName, familyName].filter(Boolean).join(' ');
+    }
+    // 性别/生日：留空则不下发（gender 是后端枚举，空串会被拒；生日留空不清除已存值）
+    const gender = document.getElementById('edit-gender')?.value || '';
+    if (gender) payload.gender = gender;
+    if (birthday && age != null) {
+      payload.birthday = birthday;
+      payload.age = age;
     }
     // 礼物罐子（本轮反馈2-5）：收集 5 个输入，非空入数组
     const wishGifts = [];

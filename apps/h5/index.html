@@ -1052,7 +1052,7 @@
       <h1 class="font-headline font-extrabold tracking-tight text-lg">Edit Profile</h1>
       <button id="edit-save-btn" class="bg-neon text-black rounded-full px-5 py-2 font-headline text-xs font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50" onclick="saveEditProfile()">Save</button>
     </header>
-    <div class="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-12">
+    <div class="flex-1 overflow-y-auto px-6 pt-6 pb-32 space-y-9">
       <!-- 头像 + 封面：同行居中对齐，仅图形无描述文字 -->
       <section>
         <div class="flex items-center gap-4">
@@ -1070,7 +1070,7 @@
           </div>
         </div>
       </section>
-      <section class="space-y-10">
+      <section class="space-y-7">
         <div class="space-y-2">
           <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Nickname</label>
           <input id="edit-nickname" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-medium text-base" type="text" value=""/>
@@ -1096,11 +1096,32 @@
           </div>
           <textarea id="edit-signature" maxlength="100" placeholder="A short line about you" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-body text-sm leading-relaxed resize-none" rows="2"></textarea>
         </div>
-        <div class="grid grid-cols-2 gap-8">
+        <!-- 性别 + 生日（此前编辑页缺失，仅注册可填）：生日限 16–40 岁，年龄按生日推算随保存提交 -->
+        <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Gender</label>
+            <div class="relative cursor-pointer group">
+              <select id="edit-gender" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="non_binary">Non-binary</option>
+                <option value="other">Other</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between items-baseline">
+              <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Birthday</label>
+              <span id="edit-age-hint" class="text-[10px] font-medium text-outline" data-no-i18n></span>
+            </div>
+            <input id="edit-birthday" type="date" class="w-full text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 focus:ring-1 focus:ring-neon focus:outline-none"/>
+          </div>
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">School</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-school" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-school" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select School</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1109,7 +1130,7 @@
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Grade</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-grade" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-grade" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select Grade</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1118,7 +1139,7 @@
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">City</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-city" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-city" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select City</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1127,7 +1148,7 @@
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Major</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-major" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-major" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select Major</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1136,7 +1157,7 @@
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">MBTI</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-mbti" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-mbti" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select MBTI</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1145,7 +1166,7 @@
           <div class="space-y-2">
             <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Nationality</label>
             <div class="relative cursor-pointer group">
-              <select id="edit-nationality" class="w-full appearance-none text-sm font-medium bg-surface-container-low border border-outline-variant rounded-[10px] py-2.5 px-3 pr-8 focus:ring-0 cursor-pointer truncate">
+              <select id="edit-nationality" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
                 <option>Select Nationality</option>
               </select>
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
@@ -1281,17 +1302,18 @@
 <div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)closeNotifications()">
   <div class="slide-right relative z-50 h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
       <div class="flex justify-between items-center px-6 h-16 w-full">
+        <div></div>
         <div class="flex items-center gap-6">
+          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
           <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
             <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
           </button>
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
         </div>
-        <div></div>
       </div>
     </header>
-    <main id="notifications-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
+    <main id="notifications-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-6 pb-16">
     </main>
   </div>
 </div>
@@ -1300,14 +1322,15 @@
 <div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
   <div class="slide-right relative z-[60] h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
       <div class="flex justify-between items-center px-6 h-16 w-full">
+        <div></div>
         <div class="flex items-center gap-6">
+          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
           <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
             <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
           </button>
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
         </div>
-        <div></div>
       </div>
     </header>
     <main id="notif-detail-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
