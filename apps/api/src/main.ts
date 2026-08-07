@@ -16,6 +16,11 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
+  // Caddy 反代终止 TLS 后以 http 转发进来：信任第一跳代理，让 req.protocol
+  // 读 X-Forwarded-Proto（否则上传接口拼出的图片 URL 是 http://，
+  // https 页面加载时被浏览器按混合内容拦截）
+  app.set('trust proxy', 1);
+
   // Ensure uploads directory exists and serve it as static files
   const uploadsDir = join(process.cwd(), 'uploads');
   if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
