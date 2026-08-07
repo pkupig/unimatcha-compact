@@ -44,7 +44,9 @@ function fillMetaSelect(id, items, current, placeholder) {
   const list = [...items];
   // Keep the stored value selectable even if it's not in the list
   if (current && !list.includes(current)) list.unshift(current);
-  sel.innerHTML = `<option value="">${placeholder}</option>` + list.map(v => `<option value="${window.escapeHtml(v)}"${v === current ? ' selected' : ''}>${window.escapeHtml(v)}</option>`).join('');
+  // 值存英文原文不变，显示文案走 metaLabel（中文态映射学校/城市/专业/国籍/年级）
+  const label = (v) => window.metaLabel ? window.metaLabel(v) : v;
+  sel.innerHTML = `<option value="">${placeholder}</option>` + list.map(v => `<option value="${window.escapeHtml(v)}"${v === current ? ' selected' : ''}>${window.escapeHtml(label(v))}</option>`).join('');
 }
 window.fillMetaSelect = fillMetaSelect;
 
@@ -411,7 +413,7 @@ async function loadProfileTab() {
   const nameEl = document.getElementById('profile-name');
   if (nameEl) nameEl.textContent = (profile.nickname || 'Your Name');
   const metaEl = document.getElementById('profile-meta');
-  if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">${window.escapeHtml(profile.school || 'University')}</span>`;
+  if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
   // 学生认证按钮（右上角）状态
   window.renderVerifyButton();
   // （匹配状态条已按用户要求从 profile 移除，随之取消两路 /matching/status 查询）
@@ -563,10 +565,25 @@ window.submitVerification = submitVerification;
 
 // profile 下拉刷新：与 match/square 完全同一组件同一手感（用户要求一致、不做自定义幅度控制）。
 // 内容（头像+功能区）整体跟手，背景 hero 层固定；松手过阈值刷新资料。
+// 背景模糊随下拉消散（用户反馈）：拉距 0→140px 内 blur-mask 透明度 1→0，
+// 跟手期间关掉过渡逐帧写值，松手/复位还原空值走 CSS 0.45s 弹回。
+const BLUR_REVEAL_DIST = 140;
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
-  window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner');
+  window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner', {
+    onPull: (dist) => {
+      const m = document.querySelector('#tab-profile .profile-blur-mask');
+      if (!m) return;
+      if (dist > 0) {
+        m.style.transition = 'none';
+        m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
+      } else {
+        m.style.transition = '';
+        m.style.opacity = '';
+      }
+    }
+  });
 }
 window.setupBgPullReveal = setupBgPullReveal;
 
@@ -960,7 +977,7 @@ window.renderPreviewPage = renderPreviewPage;
 function renderPublicProfileCard(p, opts = {}) {
   const esc = window.escapeHtml;
   const avatar = opts.avatar || p.avatar;
-  const meta = [p.school, p.grade].filter(Boolean).map(esc).join(' · ');
+  const meta = [p.school, p.grade].filter(Boolean).map(v => esc(window.metaLabel(v))).join(' · ');
   return `<div class="flex flex-col items-center text-center px-6 py-10">
     <div class="w-24 h-24 rounded-full p-[3px] bg-primary mb-4">
       <div class="w-full h-full rounded-full overflow-hidden bg-surface-container-high ring-2 ring-white flex items-center justify-center">

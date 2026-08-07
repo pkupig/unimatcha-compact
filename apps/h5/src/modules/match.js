@@ -336,7 +336,7 @@ function renderRomanticMatchTab(container, data) {
                 ${avatar ? `<img src="${window.safeUrl(avatar)}" class="w-full h-full object-cover rounded-full">` : `<div class="w-full h-full rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-outline">person</span></div>`}
               </div>
               <h3 class="text-2xl font-headline font-bold tracking-tight text-on-surface flex items-center gap-2 justify-center">${window.escapeHtml(p.nickname || 'Match')}${verified ? `<span class="material-symbols-outlined text-base text-primary" title="Campus verified">verified</span>` : ''}</h3>
-              <p class="font-body text-sm text-outline">${window.escapeHtml(p.school || 'University')}${p.academic_year ? ' · ' + window.escapeHtml(p.academic_year) : ''}</p>
+              <p class="font-body text-sm text-outline" data-no-i18n>${window.escapeHtml(window.metaLabel(p.school || 'University'))}${p.academic_year ? ' · ' + window.escapeHtml(window.metaLabel(p.academic_year)) : ''}</p>
             </div>
             ${interests.length ? `<div class="mb-5"><p class="text-[10px] tracking-[0.2em] text-outline mb-2">Shared Interests</p><div class="flex flex-wrap gap-2">${interests.slice(0, 6).map(t => `<span class="bg-primary text-on-primary px-3 py-1 rounded-[10px] text-[10px] font-bold tracking-widest">${window.escapeHtml(t)}</span>`).join('')}</div></div>` : ''}
             ${renderRemainingBlock(m.remainingMs, 'Open the chat and both confirm within this time')}
@@ -441,7 +441,7 @@ function renderFriendCandidateCard(c) {
       </div>
       <div class="min-w-0 flex-1">
         <h3 class="font-headline font-bold text-sm tracking-tight text-on-surface truncate">${window.escapeHtml(p.nickname || 'Friend')}</h3>
-        <p class="font-body text-xs text-outline truncate">${window.escapeHtml(p.school || 'University')}</p>
+        <p class="font-body text-xs text-outline truncate" data-no-i18n>${window.escapeHtml(window.metaLabel(p.school || 'University'))}</p>
       </div>
     </div>
     ${p.bio ? `<p class="font-body text-[11px] text-on-surface-variant mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${window.escapeHtml(p.bio)}</p>` : ''}
@@ -885,7 +885,7 @@ function renderPartnerProfile(p) {
   // 基础信息行：年级·年龄·城市（空字段自动省略）
   const infoLine = [p.grade, p.age, p.city]
     .filter((v) => v !== null && v !== undefined && v !== '')
-    .map((v) => esc(String(v)))
+    .map((v) => esc(window.metaLabel(String(v))))
     .join('&nbsp;&nbsp;·&nbsp;&nbsp;');
   // 档案网格：专业 / MBTI / 星座 / 国籍（有几项显示几项）
   const facts = [
@@ -952,7 +952,7 @@ function renderPartnerProfile(p) {
           </button>
         </div>
         ${p.realName ? `<p class="text-xs text-on-surface-variant mt-0.5">${esc(p.realName)}</p>` : ''}
-        ${p.school ? `<p class="text-sm font-medium text-on-surface-variant mt-1.5 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:16px;">school</span>${esc(p.school)}</p>` : ''}
+        ${p.school ? `<p class="text-sm font-medium text-on-surface-variant mt-1.5 flex items-center gap-1" data-no-i18n><span class="material-symbols-outlined" style="font-size:16px;">school</span>${esc(window.metaLabel(p.school))}</p>` : ''}
         ${infoLine ? `<p class="text-xs text-outline tracking-wider mt-1.5">${infoLine}</p>` : ''}
         ${p.daysKnown != null ? `<p class="text-xs text-outline tracking-wider mt-1.5 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:14px;">calendar_month</span>Known for ${p.daysKnown} day${p.daysKnown === 1 ? '' : 's'}</p>` : ''}
       </div>

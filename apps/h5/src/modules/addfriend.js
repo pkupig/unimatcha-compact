@@ -274,7 +274,7 @@ function renderChatSearchResults(sessions) {
   return sessions.map((s) => {
     const p = s.partner || {};
     const name = p.note || p.nickname || p.name || 'Partner';
-    const sub = window.lastMsgText(s.lastMessage) || (p.school || '');
+    const sub = window.lastMsgText(s.lastMessage) || window.metaLabel(p.school || '');
     const av = p.avatarUrl || p.avatar || '';
     return `<button onclick="openChatFromSearch('${esc(String(s.matchId))}')" class="w-full flex items-center gap-3 py-2 text-left active:opacity-70">
       <div class="w-9 h-9 rounded-full overflow-hidden bg-surface-container shrink-0 flex items-center justify-center">${av ? `<img src="${window.safeUrl(av)}" class="w-full h-full object-cover">` : '<span class="material-symbols-outlined text-outline" style="font-size:18px">person</span>'}</div>

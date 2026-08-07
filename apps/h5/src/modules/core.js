@@ -215,6 +215,8 @@ function showPage(id) {
 window.showPage = showPage;
 
 function switchTab(tab) {
+  // 重按当前导航（目前仅广场用）：回顶 + 只刷当前信息流
+  const reTap = S.activeTab === tab;
   window.stopMatchPolling();
   window.stopChatPolling();
   window.stopNotifPolling();
@@ -237,7 +239,18 @@ function switchTab(tab) {
   // 进入主页（match tab）：走主页顶部三切换（默认 S.homeView，A 规则 §6.2）。
   // Chat 视图列出全部对话；恋人/朋友视图各自匹配界面。不再直接 loadMatchTab。
   if (tab === 'match') window.switchHomeView(S.homeView || 'chat');
-  else if (tab === 'square') window.loadSquareTab();
+  else if (tab === 'square') {
+    if (reTap) {
+      // 重按广场导航 = 刷新（用户反馈）：回到顶部，只刷当前信息流——
+      // 推荐/校园墙各刷各的，另一页内容与位置不动
+      const sc = document.scrollingElement || document.documentElement;
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { sc.scrollTop = 0; }
+      if (S.squareScrollPos) S.squareScrollPos[S.squareTab] = 0;
+      window.loadSquareTab2?.(S.squareTab);
+    } else {
+      window.loadSquareTab();
+    }
+  }
   else if (tab === 'profile') window.loadProfileTab();
 }
 window.switchTab = switchTab;
@@ -395,9 +408,12 @@ window.bindNavAutoHide = bindNavAutoHide;
 // container 为滚动容器（#tab-match / #tab-square 这类 overflow-y:auto 的固定层）。
 // 顶部下拉时圆形指示器跟手下降并随进度旋转，过阈值松手 → 图标转圈 + 执行
 // onRefresh()（返回 Promise），完成后收回。指示器动画最少展示 600ms 避免闪跳。
-function attachPullToRefresh(container, onRefresh, contentSelector) {
+function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
   if (!container || container.dataset.ptrBound) return;
   container.dataset.ptrBound = '1';
+  // 可选下拉进度回调（profile 用它做背景模糊随拉距消散）：跟手期间每帧传当前
+  // 下拉距离 px，复位/回弹时传 0，刷新持住阈值位时传 THRESH。
+  const onPull = opts && typeof opts.onPull === 'function' ? opts.onPull : null;
   const ind = document.createElement('div');
   ind.className = 'ptr-indicator';
   ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
@@ -420,6 +436,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     ind.style.opacity = '0';
     setPos(0, true);
     setContent(0, true);
+    if (onPull) onPull(0);
   };
   container.addEventListener('touchstart', (e) => {
     if (refreshing) return;
@@ -440,6 +457,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     // 跟手下降 + 随进度旋转一圈
     setPos(dist, false);
     setContent(dist, false);
+    if (onPull) onPull(dist);
     if (iconEl) iconEl.style.transform = `rotate(${(dist / THRESH) * 360}deg)`;
     ind.classList.toggle('ptr-ready', dist >= THRESH);
   }, { passive: true });
@@ -452,6 +470,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector) {
     // 内容与指示器一起停在阈值位，刷新完成后 reset() 同步回弹
     setPos(THRESH, true);
     setContent(THRESH, true);
+    if (onPull) onPull(THRESH);
     const started = Date.now();
     try { await Promise.resolve(onRefresh()); } catch (e) { /* 刷新失败由各自 loader 兜底提示 */ }
     // 动画最少停留 600ms，让用户看得到刷新发生了

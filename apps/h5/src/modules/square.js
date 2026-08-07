@@ -40,6 +40,8 @@ async function loadSquareTab() {
   requestAnimationFrame(positionSquareInk);
   setTimeout(positionSquareInk, 300);
   setTrack(trackOffset(S.squareTab), false);
+  // 每次进入广场是全新会话：两页各自的滚动位置记忆清零（隐藏期间 window 滚动已复位）
+  S.squareScrollPos = { recommend: 0, campus_wall: 0 };
   // 双页都加载：滑动时另一页已是真实内容
   window.loadSquareTab2('recommend');
   window.loadSquareTab2('campus_wall');
@@ -63,6 +65,13 @@ if (!window.__squareInkResizeBound) {
 // Switch the square header between [推荐 | 校园墙] (tab ∈ recommend|campus_wall).
 function switchSquareTab(el, tab) {
   if (tab !== 'recommend' && tab !== 'campus_wall') return;
+  const prev = S.squareTab;
+  // 两页滚动位置独立（用户反馈）：竖向滚动在 window 上，切换前记下离开页的位置
+  const scroller = document.scrollingElement || document.documentElement;
+  if (prev !== tab) {
+    S.squareScrollPos = S.squareScrollPos || {};
+    S.squareScrollPos[prev] = scroller.scrollTop;
+  }
   S.squareTab = tab;
   // The search box (#square-search) is shared by both tabs. Clear the query and
   // the input when switching so the new tab opens unfiltered instead of being
@@ -81,7 +90,17 @@ function switchSquareTab(el, tab) {
   }
   positionSquareInk(); // 下划线滑到新选中项
   setTrack(trackOffset(tab), true); // 轨道滑到目标页
-  window.loadSquareTab2(tab);
+  // 点赞/详情同步的缓存指针跟着当前页走（loadSquareTab2 维护 by-tab 存储）
+  S.squarePosts = (S.squarePostsByTab && S.squarePostsByTab[tab]) || [];
+  // 切换不再无条件重拉（保住独立位置与浏览进度）：仅目标页为空
+  // 或上次渲染是搜索结果（切页语义 = 清搜索）时才刷新
+  const targetEl = feedEl(tab);
+  const hasContent = !!targetEl?.querySelector('[data-post-id],[data-ad-id]');
+  if (!hasContent || (S.squareRenderedSearch && S.squareRenderedSearch[tab])) {
+    window.loadSquareTab2(tab);
+  }
+  // 恢复目标页自己的位置（进入页即时恢复，视觉焦点跟随新页）
+  if (prev !== tab) scroller.scrollTop = (S.squareScrollPos && S.squareScrollPos[tab]) || 0;
 }
 window.switchSquareTab = switchSquareTab;
 
@@ -309,13 +328,19 @@ async function loadSquareTab2(tabArg) {
     ]);
     if (seq !== S.squareReqSeqs[tab]) return; // superseded by a newer load
     const env = unwrap(data);
+    // 记录本次渲染是否为搜索结果（切页时据此决定是否重拉为未过滤流）
+    S.squareRenderedSearch = S.squareRenderedSearch || {};
+    S.squareRenderedSearch[tab] = !!search;
+    S.squarePostsByTab = S.squarePostsByTab || {};
     // Campus wall asks the user to complete their school first.
     if (tab === 'campus_wall' && env.needProfileSchool) {
+      S.squarePostsByTab[tab] = [];
       if (tab === S.squareTab) S.squarePosts = [];
       renderSquareNeedSchool(tab);
       return;
     }
     const posts = Array.isArray(env) ? env : (env.items || env.posts || []);
+    S.squarePostsByTab[tab] = posts; // 两页各自缓存（切页时指针跟随）
     if (tab === S.squareTab) S.squarePosts = posts; // 缓存当前页数据（点赞/详情同步用）
     renderSquareFeed(posts, ads, tab);
   } catch (e) {
@@ -405,6 +430,8 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 瀑布流布局（本轮反馈5）：卡片高度不再统一，用 grid row-span 按实际高度砌墙；
   // 图片加载完成后重排（图片卡高度随图而变）。
   layoutSquareMasonry();
+  // 后发尺寸变化（容器宽度迟定/图片/翻译/字体）自动重排——间距 bug 根修
+  observeMasonryItems();
   container.querySelectorAll('img').forEach(im => {
     // 竞态防护：图片可能在上面 layout 之后、挂监听之前就完成加载——
     // complete 时也补一次重排，而不是直接跳过。
@@ -420,23 +447,67 @@ function renderSquareFeed(posts, ads = [], tab) {
 // 每张卡按自身内容高度 + 6px 间距换算 grid-row span（n = ⌈h⌉+SP），
 // 卡片垂直间距恒为 6px（旧 2px 行 + 6px 行距方案取整后会浮动到 6–13px）。
 let masonryRaf = null;
+let masonryRafFallback = null;
 function scheduleMasonry() {
   if (masonryRaf) return;
   masonryRaf = requestAnimationFrame(() => {
     masonryRaf = null;
+    if (masonryRafFallback) { clearTimeout(masonryRafFallback); masonryRafFallback = null; }
     layoutSquareMasonry();
   });
+  // rAF 在页面不可见/渲染暂停时不触发，重排会被无限搁置（后台加载完的图片
+  // 回到前台前 span 一直是错的）→ 超时兜底保证最终一定重排一次。
+  if (!masonryRafFallback) {
+    masonryRafFallback = setTimeout(() => {
+      masonryRafFallback = null;
+      if (masonryRaf) { cancelAnimationFrame(masonryRaf); masonryRaf = null; }
+      layoutSquareMasonry();
+    }, 250);
+  }
 }
 function layoutSquareMasonry() {
-  const R = 1, SP = 6; // auto-row 高（row-gap 为 0）/ 卡片垂直间距（与 main.css .square-feed-grid 保持一致）
+  const SP = 6; // 卡片垂直间距（1px auto-row / row-gap 0，与 main.css .square-feed-grid 绑定）
   ['recommend', 'campus_wall'].forEach((t) => {
     const c = feedEl(t);
     if (!c) return;
     const items = Array.from(c.children);
+    if (!items.length) return;
     items.forEach(it => { it.style.gridRowEnd = 'auto'; });
     const heights = items.map(it => it.getBoundingClientRect().height);
+    // 显式列/行定位（真瀑布流，行距 bug 根修）：此前靠 grid dense 自动回填，
+    // 它按「最早可用行」而非「最短列」选位——两列高度不平衡时，后面的跨栏卡
+    // （校园墙卡/官方卡/广告）会把长列旁的空洞整段封死，表现为帖子间大段留白。
+    // 改为 JS 自排：单列卡进较短列；跨栏卡压在两列最大行之后，它抬高短列时产生
+    // 的洞记入 holes，后续放得下的单列卡优先回填（视觉顺序微调，换来无大段留白）。
+    let col1 = 1, col2 = 1; // 两列各自的下一空行（1-based grid row）
+    const holes = []; // { col: 1|2, start, size }（单位 = 1px grid row）
+    const place = (it, col, row, n) => {
+      it.style.gridColumn = col === 0 ? '1 / -1' : String(col);
+      it.style.gridRowStart = String(row);
+      it.style.gridRowEnd = `span ${n}`;
+    };
     items.forEach((it, i) => {
-      it.style.gridRowEnd = `span ${Math.max(1, Math.ceil(heights[i]) + SP)}`;
+      const n = Math.max(1, Math.ceil(heights[i]) + SP);
+      if (it.classList.contains('col-span-2')) {
+        const row = Math.max(col1, col2);
+        if (row - col1 > 0) holes.push({ col: 1, start: col1, size: row - col1 });
+        if (row - col2 > 0) holes.push({ col: 2, start: col2, size: row - col2 });
+        place(it, 0, row, n);
+        col1 = col2 = row + n;
+      } else {
+        const hi = holes.findIndex(h => h.size >= n);
+        if (hi >= 0) {
+          const h = holes[hi];
+          place(it, h.col, h.start, n);
+          h.start += n; h.size -= n;
+          if (h.size < 30) holes.splice(hi, 1); // 剩口塞不下最矮卡，不再尝试
+        } else {
+          const useFirst = col1 <= col2;
+          const row = useFirst ? col1 : col2;
+          place(it, useFirst ? 1 : 2, row, n);
+          if (useFirst) col1 = row + n; else col2 = row + n;
+        }
+      }
     });
   });
 }
@@ -444,6 +515,25 @@ window.layoutSquareMasonry = layoutSquareMasonry;
 if (!window.__masonryResizeBound) {
   window.__masonryResizeBound = true;
   window.addEventListener('resize', scheduleMasonry);
+  // 字体晚到会改文字卡高度，span 过期 → 字体就绪后补一次重排
+  if (document.fonts?.ready) document.fonts.ready.then(() => scheduleMasonry());
+}
+
+// ── 卡片尺寸观察（间距 bug 根修）：span 只在 layout 一瞬按当时高度算，此后任何
+// 尺寸变化（容器宽度迟定、图片加载、翻译换行、字体替换、隐藏→显示）都会让 span
+// 过期 → 行距忽大忽小。ResizeObserver 盯每张卡，尺寸一变就重排。
+// 注意：不 observe 容器本身（写 span 会改容器高，观察容器会无限循环）；
+// 卡片自身高度与 span 无关（items-start），写 span 不触发回调，不会循环。
+let masonryRO = null;
+function observeMasonryItems() {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (!masonryRO) masonryRO = new ResizeObserver(() => scheduleMasonry());
+  // 每次渲染整体重挂：旧卡已被 innerHTML 替换（RO 对失联节点持强引用，先断开防泄漏）
+  masonryRO.disconnect();
+  ['recommend', 'campus_wall'].forEach((t) => {
+    const c = feedEl(t);
+    if (c) Array.from(c.children).forEach((el) => masonryRO.observe(el));
+  });
 }
 
 // Anonymous-aware author identity (§6.11 规则7). Anonymous posts render as
@@ -476,7 +566,7 @@ function postAuthorName(p) {
 function schoolBadge(p) {
   const school = p?.anonymous ? p?.school : (p?.school || p?.authorUser?.profile?.school);
   if (!school) return '';
-  return `<span class="school-badge">${window.escapeHtml(school)}</span>`;
+  return `<span class="school-badge" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>`;
 }
 
 // Official / sponsored badge for official posts (authorType ≠ USER).
@@ -621,7 +711,7 @@ function eventDetailBlock(p) {
   return `<div class="mt-6 rounded-[14px] border border-outline-variant/30 bg-surface-container-lowest p-5">
     <div class="flex items-center gap-2 mb-3" data-no-i18n>
       <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">EVENT</span>
-      ${ev.school ? `<span class="text-[10px] text-outline tracking-widest">${window.escapeHtml(ev.school)}</span>` : ''}
+      ${ev.school ? `<span class="text-[10px] text-outline tracking-widest">${window.escapeHtml(window.metaLabel(ev.school))}</span>` : ''}
     </div>
     <div class="space-y-1.5 text-sm" data-no-i18n>
       <p class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-outline">schedule</span>${eventTimeShort(ev.startAt)}${ev.endAt ? ' – ' + eventTimeShort(ev.endAt) : ''}</p>
@@ -750,14 +840,14 @@ function bentoWideCard(p) {
         <p class="font-headline text-base font-bold truncate">${window.escapeHtml(d.name)}</p>
         <p class="text-[10px] text-neutral-400 font-medium tracking-widest">${window.formatPostTime(p.createdAt)}</p>
       </div>
-      ${school ? `<span class="school-badge shrink-0">${window.escapeHtml(school)}</span>` : ''}
+      ${school ? `<span class="school-badge shrink-0" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
     </div>
     ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[6px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
     <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
     ${pollBlock(p)}
     <div class="flex items-center justify-between">
-      <span class="flex items-center gap-1 text-neutral-400"><span class="material-symbols-outlined text-sm">chat_bubble</span><span class="text-xs font-bold" data-comment-count>${p.commentCount || 0}</span></span>
+      <button class="flex items-center gap-1 text-neutral-400 active:scale-95 transition-transform" onclick="event.stopPropagation();openPostDetail('${p.id}', true)"><span class="material-symbols-outlined text-sm">chat_bubble</span><span class="text-xs font-bold" data-comment-count>${p.commentCount || 0}</span></button>
       ${postLikeButton(p)}
     </div>
   </article>`;
@@ -838,12 +928,23 @@ window.likePost = likePost;
 // ========================================
 // POST DETAIL & COMMENTS
 // ========================================
-async function openPostDetail(postId) {
+async function openPostDetail(postId, focusComposer = false) {
   S.currentPostId = postId;
   window.openOverlay('post-detail-overlay');
-  window.loadPostDetail(postId);
+  await window.loadPostDetail(postId);
+  // 从卡片评论数点进来：内容渲染完后直接跳到评论输入条
+  if (focusComposer && S.currentPostId === postId) focusPdComposer();
 }
 window.openPostDetail = openPostDetail;
+
+// 评论数点击 → 滚动到底部评论输入条并聚焦
+function focusPdComposer() {
+  const input = document.getElementById('comment-input');
+  if (!input) return;
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  input.focus({ preventScroll: true });
+}
+window.focusPdComposer = focusPdComposer;
 
 function closePostDetail() {
   window.closeOverlay('post-detail-overlay');
@@ -980,7 +1081,7 @@ function renderPostDetail(post) {
   const liked = !!post.myLiked;
   c.innerHTML = `
     ${renderPdImages(images)}
-    <article class="px-6 py-10 bg-surface-container-lowest border-b border-outline-variant/10">
+    <article class="px-6 pt-8 pb-4 bg-surface-container-lowest">
       <div class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-3 min-w-0">
           ${renderAuthorAvatars(post)}
@@ -990,7 +1091,7 @@ function renderPostDetail(post) {
           </div>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
-          ${school ? `<span class="school-badge">${window.escapeHtml(school)}</span>` : ''}
+          ${school ? `<span class="school-badge" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
           <p class="text-[10px] text-on-surface-variant font-label tracking-widest">${window.formatPostTime(post.createdAt)}</p>
         </div>
       </div>
@@ -1002,18 +1103,19 @@ function renderPostDetail(post) {
           ${eventDetailBlock(post)}
         </div>
       </div>
-      <div class="flex items-center gap-8 py-5 border-y border-outline-variant/20 mt-8">
+      <!-- 去掉行下横线、留白收紧；评论数可点击 → 跳到评论输入条 -->
+      <div class="flex items-center gap-8 py-3 border-t border-outline-variant/20 mt-6">
         <button id="pd-like-btn" class="flex items-center gap-2 group transition-all active:scale-90" onclick="likePdPost()">
           <span data-like-icon class="material-symbols-outlined text-xl ${liked ? 'text-neon-pink' : ''}" style="font-variation-settings:'FILL' ${liked ? 1 : 0};">favorite</span>
           <span data-like-count class="text-xs font-bold font-label tracking-tighter">${post.likeCount || 0}</span>
         </button>
-        <span class="flex items-center gap-2">
+        <button class="flex items-center gap-2 active:scale-90 transition-all" onclick="focusPdComposer()">
           <span class="material-symbols-outlined text-xl">chat_bubble</span>
           <span class="text-xs font-bold font-label tracking-tighter">${commentTotal}</span>
-        </span>
+        </button>
       </div>
     </article>
-    <div class="px-6 pt-8 bg-surface">
+    <div class="px-6 pt-5 bg-surface">
       <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span></h3>
       <div class="space-y-7">
         ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')

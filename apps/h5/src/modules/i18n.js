@@ -91,6 +91,9 @@ const ZH = {
   'University / School': '学校', City: '城市', Major: '专业', Nationality: '国籍',
   Gender: '性别', 'Looking For': '想认识', Birthday: '生日', 'Academic Year': '学业阶段',
   'Non-binary': '非二元', 'Select Gender': '选择性别',
+  'Select School': '选择学校', 'Select Institution': '选择学校', 'Select Grade': '选择年级',
+  'Select City': '选择城市', 'Select Major': '选择专业', 'Select MBTI': '选择 MBTI',
+  'Select Nationality': '选择国籍',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
   // ── 中文态补漏（本轮反馈）──
   'Enter your academic credentials': '输入你的账号信息',
@@ -172,6 +175,111 @@ const ZH_PLACEHOLDER = {
   'A short line about you': '一句话介绍自己',
   'Enter your current password': '输入当前密码', 'At least 8 characters': '至少 8 位',
 };
+
+// ── 资料元数据中文显示映射（学校/城市/专业/国籍/年级）──
+// 值一律存英文原文（后端/库不变），仅显示层翻译；不进全局词典，
+// 避免 London 之类短词把用户帖子/简介里的同名文本误翻。
+const META_ZH = {
+  // 大学（与 api metadata seed uk_universities.json 对齐）
+  'University of Oxford': '牛津大学', 'University of Cambridge': '剑桥大学',
+  'Imperial College London': '帝国理工学院', 'University College London': '伦敦大学学院',
+  'London School of Economics': '伦敦政治经济学院', 'University of Edinburgh': '爱丁堡大学',
+  "King's College London": '伦敦国王学院', 'University of Manchester': '曼彻斯特大学',
+  'University of Bristol': '布里斯托大学', 'University of Warwick': '华威大学',
+  'University of Glasgow': '格拉斯哥大学', 'Durham University': '杜伦大学',
+  'University of Leeds': '利兹大学', 'University of Nottingham': '诺丁汉大学',
+  'University of Birmingham': '伯明翰大学', 'University of Southampton': '南安普顿大学',
+  'University of York': '约克大学', 'University of Leicester': '莱斯特大学',
+  'Newcastle University': '纽卡斯尔大学', 'University of Sheffield': '谢菲尔德大学',
+  'Cardiff University': '卡迪夫大学', 'University of Liverpool': '利物浦大学',
+  'University of Exeter': '埃克塞特大学', "Queen's University Belfast": '贝尔法斯特女王大学',
+  'University of Bath': '巴斯大学', 'Loughborough University': '拉夫堡大学',
+  'Lancaster University': '兰卡斯特大学', 'University of Surrey': '萨里大学',
+  'University of Reading': '雷丁大学', 'Brunel University London': '伦敦布鲁内尔大学',
+  'City, University of London': '伦敦城市大学', 'Royal Holloway, University of London': '伦敦大学皇家霍洛威学院',
+  'University of East Anglia': '东英吉利大学', 'University of Kent': '肯特大学',
+  'University of Essex': '埃塞克斯大学', 'University of Sussex': '萨塞克斯大学',
+  'Swansea University': '斯旺西大学', 'University of Aberdeen': '阿伯丁大学',
+  'Heriot-Watt University': '赫瑞瓦特大学', 'University of Stirling': '斯特灵大学',
+  'University of Strathclyde': '思克莱德大学', 'Queen Mary University of London': '伦敦玛丽女王大学',
+  'SOAS University of London': '伦敦大学亚非学院', 'University of Westminster': '威斯敏斯特大学',
+  'Goldsmiths, University of London': '伦敦大学金史密斯学院', 'Birkbeck, University of London': '伦敦大学伯贝克学院',
+  'Middlesex University': '密德萨斯大学', 'University of Hertfordshire': '赫特福德郡大学',
+  'University of Greenwich': '格林威治大学', 'Kingston University': '金斯顿大学',
+  'Oxford Brookes University': '牛津布鲁克斯大学', 'University of Lincoln': '林肯大学',
+  'University of Hull': '赫尔大学', 'Keele University': '基尔大学',
+  'Aston University': '阿斯顿大学', 'Bangor University': '班戈大学',
+  'University of Ulster': '阿尔斯特大学', 'University of the West of England': '西英格兰大学',
+  'Northumbria University': '诺森比亚大学', 'Coventry University': '考文垂大学',
+  'De Montfort University': '德蒙福特大学', 'University of Derby': '德比大学',
+  'University of Central Lancashire': '中央兰开夏大学', 'Manchester Metropolitan University': '曼彻斯特城市大学',
+  'Sheffield Hallam University': '谢菲尔德哈勒姆大学', 'Leeds Beckett University': '利兹贝克特大学',
+  'Birmingham City University': '伯明翰城市大学', 'Nottingham Trent University': '诺丁汉特伦特大学',
+  'Edinburgh Napier University': '爱丁堡龙比亚大学', 'Glasgow Caledonian University': '格拉斯哥卡利多尼亚大学',
+  'Robert Gordon University': '罗伯特戈登大学', 'University of Portsmouth': '朴茨茅斯大学',
+  'University of Brighton': '布莱顿大学', 'Anglia Ruskin University': '安格利亚鲁斯金大学',
+  'University of Bedfordshire': '贝德福德郡大学', 'University of the Arts London': '伦敦艺术大学',
+  'Liverpool John Moores University': '利物浦约翰摩尔斯大学', 'London Metropolitan University': '伦敦都会大学',
+  // 城市（uk_cities.json）
+  London: '伦敦', Manchester: '曼彻斯特', Birmingham: '伯明翰', Leeds: '利兹',
+  Glasgow: '格拉斯哥', Liverpool: '利物浦', Bristol: '布里斯托', Sheffield: '谢菲尔德',
+  Edinburgh: '爱丁堡', Cardiff: '卡迪夫', 'Newcastle upon Tyne': '纽卡斯尔',
+  Nottingham: '诺丁汉', Leicester: '莱斯特', Southampton: '南安普顿', Oxford: '牛津',
+  Cambridge: '剑桥', Brighton: '布莱顿', Bath: '巴斯', York: '约克', Durham: '杜伦',
+  Coventry: '考文垂', Exeter: '埃克塞特', Reading: '雷丁', Plymouth: '普利茅斯',
+  Aberdeen: '阿伯丁', Swansea: '斯旺西', Belfast: '贝尔法斯特', Derby: '德比',
+  Wolverhampton: '伍尔弗汉普顿', Norwich: '诺里奇', 'Milton Keynes': '米尔顿凯恩斯',
+  Luton: '卢顿', Huddersfield: '哈德斯菲尔德', Bradford: '布拉德福德', Preston: '普雷斯顿',
+  Portsmouth: '朴茨茅斯', Blackpool: '布莱克浦', Middlesbrough: '米德尔斯伯勒',
+  Sunderland: '桑德兰', 'Stoke-on-Trent': '特伦特河畔斯托克', Peterborough: '彼得伯勒',
+  Bournemouth: '伯恩茅斯', Colchester: '科尔切斯特', 'Southend-on-Sea': '滨海绍森德',
+  Ipswich: '伊普斯维奇', Northampton: '北安普顿', Warrington: '沃灵顿',
+  Gloucester: '格洛斯特', Worcester: '伍斯特', Salisbury: '索尔兹伯里',
+  // 专业（uk_majors.json）
+  'Computer Science': '计算机科学', 'Software Engineering': '软件工程', 'Data Science': '数据科学',
+  'Artificial Intelligence': '人工智能', Cybersecurity: '网络安全', 'Information Technology': '信息技术',
+  Mathematics: '数学', Statistics: '统计学', Physics: '物理学', Chemistry: '化学',
+  Biology: '生物学', Biochemistry: '生物化学', Neuroscience: '神经科学',
+  'Environmental Science': '环境科学', 'Medicine (MBBS)': '医学 (MBBS)', Dentistry: '牙医学',
+  Pharmacy: '药学', Nursing: '护理学', Psychology: '心理学', 'Law (LLB)': '法学 (LLB)',
+  'Business Administration': '工商管理', Economics: '经济学', Finance: '金融学',
+  Accounting: '会计学', Marketing: '市场营销', Management: '管理学',
+  'Human Resource Management': '人力资源管理', 'International Business': '国际商务',
+  'Civil Engineering': '土木工程', 'Mechanical Engineering': '机械工程',
+  'Electrical and Electronic Engineering': '电子电气工程', 'Chemical Engineering': '化学工程',
+  'Aerospace Engineering': '航空航天工程', Architecture: '建筑学', 'Urban Planning': '城市规划',
+  History: '历史学', 'English Literature': '英语文学', Linguistics: '语言学', Philosophy: '哲学',
+  Sociology: '社会学', 'Political Science': '政治学', 'International Relations': '国际关系',
+  Anthropology: '人类学', Geography: '地理学', 'Art and Design': '艺术与设计',
+  'Graphic Design': '平面设计', 'Fashion Design': '服装设计', 'Film and Television Studies': '影视研究',
+  Music: '音乐', 'Drama and Theatre': '戏剧', Education: '教育学', 'Social Work': '社会工作',
+  Journalism: '新闻学', 'Media Studies': '传媒研究', 'Sport Science': '运动科学',
+  Nutrition: '营养学', 'Public Health': '公共卫生', 'Biomedical Science': '生物医学',
+  Genetics: '遗传学', 'Marine Biology': '海洋生物学', Ecology: '生态学',
+  Astrophysics: '天体物理学', 'Materials Science': '材料科学', Robotics: '机器人学',
+  'Game Design': '游戏设计', 'Digital Marketing': '数字营销', 'Supply Chain Management': '供应链管理',
+  // 国籍（metadata.service getCommonNationalities）
+  British: '英国', Chinese: '中国', Indian: '印度', American: '美国', Canadian: '加拿大',
+  Australian: '澳大利亚', German: '德国', French: '法国', Italian: '意大利', Spanish: '西班牙',
+  Portuguese: '葡萄牙', Polish: '波兰', Romanian: '罗马尼亚', Ukrainian: '乌克兰', Turkish: '土耳其',
+  Nigerian: '尼日利亚', Ghanaian: '加纳', Pakistani: '巴基斯坦', Bangladeshi: '孟加拉国',
+  'Sri Lankan': '斯里兰卡', Nepalese: '尼泊尔', Malaysian: '马来西亚', Singaporean: '新加坡',
+  'Hong Kongese': '中国香港', Taiwanese: '中国台湾', Japanese: '日本', Korean: '韩国',
+  Vietnamese: '越南', Thai: '泰国', Indonesian: '印度尼西亚', Brazilian: '巴西',
+  Mexican: '墨西哥', Colombian: '哥伦比亚', Argentinian: '阿根廷', Egyptian: '埃及',
+  'Saudi Arabian': '沙特阿拉伯', Iranian: '伊朗', Iraqi: '伊拉克', Israeli: '以色列',
+  // 年级（H5 GRADE_OPTIONS，英文为库内规范值）
+  Freshman: '大一新生', Postgraduate: '硕士', Doctorate: '博士',
+  // Undergraduate/Other/Nationality 的 zh 显示与全局词典一致，这里不重复
+};
+// 元数据显示翻译：中文态查映射，命不中或英文态原样返回。值不变，仅显示层。
+function metaLabel(v) {
+  if (!v) return v;
+  if (getLang() !== 'zh') return v;
+  return META_ZH[v] || ZH[v] || v;
+}
+window.metaLabel = metaLabel;
+
 let observer = null;
 function getLang() {
   try { return localStorage.getItem(LANG_KEY) || 'en'; } catch (e) { return 'en'; }
