@@ -63,7 +63,8 @@ export const MATCH_STATE = defineEnum({
   matched: ['已匹配', 'neon'],
   confirming: ['确认中', 'outline'],
   relationship: ['关系中', 'ink'],
-  unmatched: ['未匹配', 'neutral'],
+  // 空轮标记按后端实际写入值命名（users 域核对：schema 用 no_match）
+  no_match: ['未匹配', 'neutral'],
 });
 
 // ── 广告 ─────────────────────────────────────────────────

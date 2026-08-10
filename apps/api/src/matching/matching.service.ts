@@ -1411,7 +1411,8 @@ export class MatchingService {
       this.prisma.matchJob.count(),
     ]);
 
-    return { jobs, total, page, limit };
+    // 分页列表统一 { items }（管理端契约）
+    return { items: jobs, total, page, limit };
   }
 
   async getJobResult(jobId: string) {
@@ -1467,6 +1468,7 @@ export class MatchingService {
       this.prisma.match.count(),
     ]);
 
-    return { matches, total, page, limit };
+    // 分页列表统一 { items }（管理端契约）
+    return { items: matches, total, page, limit };
   }
 }

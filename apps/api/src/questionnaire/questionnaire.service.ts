@@ -60,11 +60,14 @@ export class QuestionnaireService {
   // ─── Admin CRUD ───────────────────────────────────────────
   // type 透传：传入则只列该 type，不传列全部。
   async listVersions(type?: QuestionnaireType) {
-    return this.prisma.questionnaireVersion.findMany({
-      where: type ? { type } : {},
-      orderBy: { version: 'desc' },
-      include: { _count: { select: { questions: true, answers: true } } },
-    });
+    // 非分页列表统一 { items }（管理端契约，见 common/utils/pagination.ts）
+    return {
+      items: await this.prisma.questionnaireVersion.findMany({
+        where: type ? { type } : {},
+        orderBy: { version: 'desc' },
+        include: { _count: { select: { questions: true, answers: true } } },
+      }),
+    };
   }
 
   async getVersion(id: string) {
