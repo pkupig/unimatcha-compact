@@ -58,9 +58,16 @@ export class AdsAdminController {
 
   @Post('campaigns/:id/submit')
   @Roles(AdminRole.SPONSOR)
-  @ApiOperation({ summary: '提交审核（计价快照+算价；自拉→学生会审，直签→平台审）' })
+  @ApiOperation({ summary: '提交审核（计价快照+算价+能量预扣；自拉→学生会审，直签→平台审）' })
   submitCampaign(@CurrentAdmin() admin: AdminActor, @Param('id') id: string) {
     return this.adsService.submitCampaign(admin, id);
+  }
+
+  @Post('campaigns/:id/withdraw-submission')
+  @Roles(AdminRole.SPONSOR)
+  @ApiOperation({ summary: '撤回审核（own）：审核中 → DRAFT，退回提交预扣' })
+  withdrawSubmission(@CurrentAdmin() admin: AdminActor, @Param('id') id: string) {
+    return this.adsService.withdrawSubmission(admin, id);
   }
 
   // ─── 总览 / 列表 / 详情 / 日数据（四角色，按 scope） ──────────
@@ -99,7 +106,7 @@ export class AdsAdminController {
   // ─── 审核 / 收款 / 状态流转 ──────────────────────────────────
   @Post('campaigns/:id/review')
   @Roles(AdminRole.STUDENT_UNION, AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '审核（学生会审本校自拉单；团队审平台直签单）：通过→待付款，驳回→REJECTED' })
+  @ApiOperation({ summary: '审核（学生会审本校自拉单；团队审平台直签单）：通过→SCHEDULED/ACTIVE（预扣即付），驳回→REJECTED（退回预扣）' })
   reviewCampaign(
     @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,

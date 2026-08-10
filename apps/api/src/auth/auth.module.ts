@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { AdminCoreModule } from '../admin-core/admin-core.module';
+import { SponsorInviteModule } from '../sponsor-invite/sponsor-invite.module';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { AdminCoreModule } from '../admin-core/admin-core.module';
     }),
     UsersModule,
     AdminCoreModule,
+    // B5 商家自注册：AdminAuthController 挂两个公开端点（invite-info / register-sponsor）
+    SponsorInviteModule,
   ],
   controllers: [AuthController, AdminAuthController],
   providers: [AuthService, AdminAuthService, JwtStrategy, AdminJwtStrategy],

@@ -26,6 +26,15 @@ export class AdminAuthService {
 
     if (!admin.isActive) throw new UnauthorizedException('该账号已被停用');
 
+    return this.issueFor(admin);
+  }
+
+  /**
+   * 为给定管理员行签发 token + 塑形返回。
+   * login 与邀请码自注册「注册即登录」（B5，POST /admin/auth/register-sponsor）共用；
+   * 不做任何凭据/状态校验——调用方须自行保证该行有登录资格。
+   */
+  async issueFor(admin: AdminUser) {
     const token = this.jwtService.sign(
       { sub: admin.id, email: admin.email, role: 'admin' },
       {

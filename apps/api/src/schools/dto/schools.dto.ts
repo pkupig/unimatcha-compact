@@ -147,6 +147,31 @@ export class UpdateSchoolBankDto {
 }
 
 /**
+ * 学生会自设本校单价（PUT /admin/schools/:id/ad-pricing，能量经济 B4）。
+ * 三字段均可选：不传 = 不动；显式传 null = 清除覆盖，回落全局默认
+ * （@IsOptional 对 null/undefined 均跳过校验，与 UpdateSchoolDto 计价三字段一致）。
+ */
+export class UpdateSchoolAdPricingDto {
+  @ApiPropertyOptional({ description: '包断日单价覆盖（分/天/校）；传 null 清除覆盖', nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: '单价须为正整数（分）' })
+  buyoutDailyPriceCents?: number | null;
+
+  @ApiPropertyOptional({ description: 'CPM 单价覆盖（分/千次曝光）；传 null 清除覆盖', nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: '单价须为正整数（分）' })
+  cpmPriceCents?: number | null;
+
+  @ApiPropertyOptional({ description: 'CPC 单价覆盖（分/次点击）；传 null 清除覆盖', nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: '单价须为正整数（分）' })
+  cpcPriceCents?: number | null;
+}
+
+/**
  * 全局计价默认值（SystemConfig key: ad_pricing_defaults）。
  */
 export class UpdateAdPricingDefaultsDto {
@@ -164,6 +189,24 @@ export class UpdateAdPricingDefaultsDto {
   @IsInt()
   @Min(1, { message: '单价须为正整数（分）' })
   cpcPriceCents: number;
+}
+
+/**
+ * 全局分成默认值（SystemConfig key: ad_share_defaults，能量经济 B4）。
+ * School.platformShareBps / selfSourcedShareBps 为 null 时继承此处；两字段必填。
+ */
+export class UpdateAdShareDefaultsDto {
+  @ApiProperty({ description: '平台直签广告分成默认值（bps，0–10000）', example: 1000 })
+  @IsInt()
+  @Min(0, { message: '分成比例须在 0–10000 基点之间' })
+  @Max(10000, { message: '分成比例须在 0–10000 基点之间' })
+  platformShareBps: number;
+
+  @ApiProperty({ description: '学生会自拉赞助分成默认值（bps，0–10000）', example: 3000 })
+  @IsInt()
+  @Min(0, { message: '分成比例须在 0–10000 基点之间' })
+  @Max(10000, { message: '分成比例须在 0–10000 基点之间' })
+  selfSourcedShareBps: number;
 }
 
 // 学校列表查询（GET /admin/schools）

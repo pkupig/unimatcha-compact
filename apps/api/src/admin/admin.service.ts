@@ -16,7 +16,7 @@ import { AdminActor } from '../admin-core/admin-actor';
 import { FinanceService } from '../finance/finance.service';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
-import { AD_PRICING_DEFAULTS_KEY, CONFIG_KEY_ALLOWLIST } from './dto/system-config.dto';
+import { CONFIG_KEY_ALLOWLIST, REDIRECTED_CONFIG_KEYS } from './dto/system-config.dto';
 
 @Injectable()
 export class AdminService {
@@ -644,8 +644,9 @@ export class AdminService {
 
   // ─── System Config ─────────────────────────────────────────
   async updateSystemConfig(key: string, value: unknown) {
-    if (key === AD_PRICING_DEFAULTS_KEY) {
-      throw new BadRequestException('广告计价请使用 /admin/ad-pricing/defaults 接口修改');
+    // 有专用写入口的配置键给出定向提示（计价 defaults / 分成 share-defaults）
+    if (REDIRECTED_CONFIG_KEYS.includes(key)) {
+      throw new BadRequestException('该配置有专用管理接口（广告计价/分成默认值），请在系统设置对应表单修改');
     }
     if (!CONFIG_KEY_ALLOWLIST.includes(key)) {
       throw new BadRequestException('不支持的配置项');

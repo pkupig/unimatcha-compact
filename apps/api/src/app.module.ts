@@ -25,6 +25,9 @@ import { SchoolsModule } from './schools/schools.module';
 import { AdsModule } from './ads/ads.module';
 import { FinanceModule } from './finance/finance.module';
 import { PublicModule } from './public/public.module';
+import { SponsorWalletModule } from './sponsor-wallet/sponsor-wallet.module';
+import { SponsorInviteModule } from './sponsor-invite/sponsor-invite.module';
+import { PartnersModule } from './partners/partners.module';
 
 @Module({
   imports: [
@@ -67,6 +70,11 @@ import { PublicModule } from './public/public.module';
     AdsModule,
     FinanceModule,
     PublicModule,
+    // 能量经济 + 邀请注册 + 跨校合作（2026-08；wallet/invite 亦经 Ads/Auth 模块间接引入，
+    // 此处显式注册以保证独立可达）
+    SponsorWalletModule,
+    SponsorInviteModule,
+    PartnersModule,
   ],
 })
 export class AppModule {}

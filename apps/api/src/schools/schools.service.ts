@@ -4,12 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AdCampaignStatus, AdminRole, Prisma, WithdrawalStatus } from '@prisma/client';
+import { AdCampaignStatus, AdminRole, ConversionStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateSchoolDto,
   UpdateAdPricingDefaultsDto,
+  UpdateAdShareDefaultsDto,
+  UpdateSchoolAdPricingDto,
   UpdateSchoolBankDto,
   UpdateSchoolDto,
 } from './dto/schools.dto';
@@ -28,6 +30,14 @@ export const AD_PRICING_SEED_DEFAULTS = {
   buyoutDailyPriceCents: 20000,
   cpmPriceCents: 5000,
   cpcPriceCents: 200,
+};
+
+// SystemConfig 全局分成默认值 key + seed 缺省（能量经济 B4）
+// School.platformShareBps / selfSourcedShareBps 为 null 时继承此处
+export const AD_SHARE_DEFAULTS_KEY = 'ad_share_defaults';
+export const AD_SHARE_SEED_DEFAULTS = {
+  platformShareBps: 1000,
+  selfSourcedShareBps: 3000,
 };
 
 @Injectable()
@@ -79,12 +89,13 @@ export class SchoolsService {
           where: { schoolId: { in: ids } },
           _sum: { amountCents: true },
         }),
-        // 在途冻结：PENDING/APPROVED 提现
-        this.prisma.withdrawalRequest.groupBy({
+        // 在途冻结：PENDING 兑换申请（能量经济后提现改冻现金侧，
+        // 能量余额口径与 FinanceService.computeBalance 保持一致）
+        this.prisma.schoolConversionRequest.groupBy({
           by: ['schoolId'],
           where: {
             schoolId: { in: ids },
-            status: { in: [WithdrawalStatus.PENDING, WithdrawalStatus.APPROVED] },
+            status: ConversionStatus.PENDING,
           },
           _sum: { amountCents: true },
         }),
@@ -237,6 +248,23 @@ export class SchoolsService {
     });
   }
 
+  // ─── 学生会自设本校单价（UNION 仅本校 / SUPER/TEAM 任意）───────
+  // 只写计价覆盖三字段：undefined = 不动；null = 清除覆盖，回落全局默认
+  // （语义与 update 的计价处理一致；分成 bps / 基本信息不经此入口）
+  async updateAdPricing(admin: AdminActor, id: string, dto: UpdateSchoolAdPricingDto) {
+    this.assertUnionScope(admin, id);
+
+    const school = await this.prisma.school.findUnique({ where: { id } });
+    if (!school) throw new NotFoundException('学校不存在');
+
+    const data: Prisma.SchoolUpdateInput = {};
+    if (dto.buyoutDailyPriceCents !== undefined) data.buyoutDailyPriceCents = dto.buyoutDailyPriceCents;
+    if (dto.cpmPriceCents !== undefined) data.cpmPriceCents = dto.cpmPriceCents;
+    if (dto.cpcPriceCents !== undefined) data.cpcPriceCents = dto.cpcPriceCents;
+
+    return this.prisma.school.update({ where: { id }, data });
+  }
+
   // ─── 全局计价默认值（SystemConfig: ad_pricing_defaults）────────
   async getAdPricingDefaults() {
     const config = await this.prisma.systemConfig.findUnique({
@@ -261,6 +289,32 @@ export class SchoolsService {
       where: { key: AD_PRICING_DEFAULTS_KEY },
       update: { value },
       create: { key: AD_PRICING_DEFAULTS_KEY, value },
+    });
+    return value;
+  }
+
+  // ─── 全局分成默认值（SystemConfig: ad_share_defaults）──────────
+  async getAdShareDefaults(): Promise<{ platformShareBps: number; selfSourcedShareBps: number }> {
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key: AD_SHARE_DEFAULTS_KEY },
+    });
+    // 配置行缺失时返回 seed 默认值（平台直签 1000 bps / 学生会自拉 3000 bps）
+    const value = (config?.value as Record<string, number> | null) ?? {};
+    return {
+      platformShareBps: value.platformShareBps ?? AD_SHARE_SEED_DEFAULTS.platformShareBps,
+      selfSourcedShareBps: value.selfSourcedShareBps ?? AD_SHARE_SEED_DEFAULTS.selfSourcedShareBps,
+    };
+  }
+
+  async updateAdShareDefaults(dto: UpdateAdShareDefaultsDto) {
+    const value = {
+      platformShareBps: dto.platformShareBps,
+      selfSourcedShareBps: dto.selfSourcedShareBps,
+    };
+    await this.prisma.systemConfig.upsert({
+      where: { key: AD_SHARE_DEFAULTS_KEY },
+      update: { value },
+      create: { key: AD_SHARE_DEFAULTS_KEY, value },
     });
     return value;
   }

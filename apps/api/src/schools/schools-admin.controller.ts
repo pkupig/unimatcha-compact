@@ -10,6 +10,7 @@ import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateSchoolDto,
   ListSchoolsQueryDto,
+  UpdateSchoolAdPricingDto,
   UpdateSchoolBankDto,
   UpdateSchoolDto,
 } from './dto/schools.dto';
@@ -58,6 +59,17 @@ export class SchoolsAdminController {
     @Body() dto: UpdateSchoolBankDto,
   ) {
     return this.schoolsService.updateBank(admin, id, dto);
+  }
+
+  @Put(':id/ad-pricing')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '自设本校广告单价（学生会仅本校 / 团队任意；null 清除覆盖回落全局默认）' })
+  updateAdPricing(
+    @CurrentAdmin() admin: AdminActor,
+    @Param('id') id: string,
+    @Body() dto: UpdateSchoolAdPricingDto,
+  ) {
+    return this.schoolsService.updateAdPricing(admin, id, dto);
   }
 }
 

@@ -9,9 +9,12 @@ import { CurrentAdmin } from '../admin-core/current-admin.decorator';
 import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateAdjustmentDto,
+  CreateConversionDto,
   CreateGrantDto,
   CreateWithdrawalDto,
+  ListConversionsQueryDto,
   ListWithdrawalsQueryDto,
+  ReviewConversionDto,
   ReviewWithdrawalDto,
 } from './dto/finance.dto';
 import { ListQueryDto } from '../common/dto/list-query.dto';
@@ -80,9 +83,45 @@ export class FinanceAdminController {
     return this.financeService.markWithdrawalPaid(admin, id);
   }
 
+  @Get('schools/:id/cash-summary')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '学校赞助费概要（现金余额/在途提现冻结/累计兑换 + 分页现金明细；学生会仅本校）' })
+  getSchoolCashSummary(
+    @CurrentAdmin() admin: AdminActor,
+    @Param('id') id: string,
+    @Query() q: ListQueryDto,
+  ) {
+    return this.financeService.getSchoolCashSummary(admin, id, q);
+  }
+
+  @Post('conversions')
+  @Roles(AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '学生会发起能量兑换赞助费（金额 ≤ 可用能量余额；PENDING 冻结）' })
+  createConversion(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateConversionDto) {
+    return this.financeService.createConversion(admin, dto);
+  }
+
+  @Get('conversions')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '兑换申请列表（学生会仅本校；status/schoolId 过滤）' })
+  listConversions(@CurrentAdmin() admin: AdminActor, @Query() q: ListConversionsQueryDto) {
+    return this.financeService.listConversions(admin, q);
+  }
+
+  @Post('conversions/:id/review')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM)
+  @ApiOperation({ summary: '审批兑换（PENDING → APPROVED / REJECTED；通过时双账本原子对冲）' })
+  reviewConversion(
+    @CurrentAdmin() admin: AdminActor,
+    @Param('id') id: string,
+    @Body() dto: ReviewConversionDto,
+  ) {
+    return this.financeService.reviewConversion(admin, id, dto);
+  }
+
   @Get('revenue-report')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '分校收入报表（广告消耗/学校分成/平台留存/赞助/已提现，可选 from/to）' })
+  @ApiOperation({ summary: '分校收入报表（广告消耗/学校分成/平台留存/赞助/已提现/兑换出账，可选 from/to）' })
   @ApiQuery({ name: 'from', required: false, description: 'YYYY-MM-DD（含）' })
   @ApiQuery({ name: 'to', required: false, description: 'YYYY-MM-DD（含）' })
   getRevenueReport(@Query('from') from?: string, @Query('to') to?: string) {

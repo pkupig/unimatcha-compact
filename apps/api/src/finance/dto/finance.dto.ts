@@ -87,3 +87,39 @@ export class ListWithdrawalsQueryDto extends ListQueryDto {
   @IsString()
   schoolId?: string;
 }
+
+// ─── 能量经济（2026-08）：能量 → 赞助费兑换 ───────────────────────
+
+// 学生会发起兑换（学校取自当前账号绑定的 schoolId；1 能量 = 1 分）
+export class CreateConversionDto {
+  @ApiProperty({ description: '兑换能量数（= 入账赞助费分数，正整数，≤ 可用能量余额）', example: 50000 })
+  @IsInt()
+  @Min(1, { message: '兑换金额须为正整数（分）' })
+  amountCents: number;
+}
+
+// 平台审批兑换（PENDING → APPROVED / REJECTED）
+export class ReviewConversionDto {
+  @ApiProperty({ description: 'true=通过 / false=驳回' })
+  @IsBoolean()
+  approve: boolean;
+
+  @ApiPropertyOptional({ description: '审批备注' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
+}
+
+// 兑换列表查询（GET /admin/finance/conversions）
+export class ListConversionsQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ description: 'PENDING / APPROVED / REJECTED' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: '按学校过滤（School.id，仅平台侧生效）' })
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
+}

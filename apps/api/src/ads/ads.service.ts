@@ -11,8 +11,10 @@ import {
   AdPricingModel,
   LedgerEntryType,
   Prisma,
+  SponsorLedgerType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SponsorWalletService } from '../sponsor-wallet/sponsor-wallet.service';
 import { AdminActor } from '../admin-core/admin-actor';
 import {
   ConfirmPaymentDto,
@@ -37,8 +39,10 @@ const FALLBACK_PRICING = {
 
 /**
  * 广告体系服务（docs/ADMIN-REDESIGN.md §3 计费与分成 / §4 ads 路由表）。
- * - 生命周期：DRAFT → 提交（计价快照）→ 分级审核 → PENDING_PAYMENT → SCHEDULED/ACTIVE
- *   → PAUSED/SUSPENDED → COMPLETED（到期或预算耗尽，触发分成结算）
+ * - 生命周期（能量经济 2026-08）：DRAFT → 提交（计价快照 + 能量预扣）→ 分级审核 →
+ *   通过即 SCHEDULED/ACTIVE（预扣即付，不再进 PENDING_PAYMENT）
+ *   → PAUSED/SUSPENDED → COMPLETED（到期或预算耗尽，触发分成结算 + CPM/CPC 结余退回）
+ *   驳回/撤回按在途净额退回预扣；旧 PENDING_PAYMENT 仅兼容保留
  * - 范围校验在服务层：SPONSOR 仅自己的 campaign；STUDENT_UNION 仅本校相关；SUPER/TEAM 全量
  * - 金额一律以分（cents, Int）存储与计算
  */
@@ -46,7 +50,10 @@ const FALLBACK_PRICING = {
 export class AdsService {
   private readonly logger = new Logger(AdsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sponsorWallet: SponsorWalletService,
+  ) {}
 
   // ─── 通用工具 ────────────────────────────────────────────────
 
@@ -258,7 +265,7 @@ export class AdsService {
     return this.shapeCampaign(updated);
   }
 
-  // 提交审核：锁定计价快照 + 算价；自拉 → 本校学生会审，直签 → 平台审（§3/§4）
+  // 提交审核：锁定计价快照 + 算价 + 能量预扣（B2）；自拉 → 本校学生会审，直签 → 平台审（§3/§4）
   async submitCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({
       where: { id },
@@ -313,9 +320,10 @@ export class AdsService {
     const days = this.inclusiveDays(campaign.startDate, campaign.endDate);
 
     // 按校快照单价（School 覆盖 → 全局默认），BUYOUT 同时锁定各校包断价
+    // （锁价 update 改在下方事务内执行——预建 PrismaPromise 会绑定在非事务连接上，这里只收集数据）
     const priceSnapshot: Record<string, PriceSnapshotEntry> = {};
     let totalPriceCents = 0;
-    const placementUpdates: Prisma.PrismaPromise<any>[] = [];
+    const placementUpdates: { placementId: string; buyoutPriceCents: number }[] = [];
     for (const p of campaign.placements) {
       const entry: PriceSnapshotEntry = {
         buyoutDaily: p.school.buyoutDailyPriceCents ?? defaults.buyoutDailyPriceCents,
@@ -326,9 +334,7 @@ export class AdsService {
       if (campaign.pricingModel === AdPricingModel.BUYOUT) {
         const buyoutPriceCents = days * entry.buyoutDaily;
         totalPriceCents += buyoutPriceCents;
-        placementUpdates.push(
-          this.prisma.adPlacement.update({ where: { id: p.id }, data: { buyoutPriceCents } }),
-        );
+        placementUpdates.push({ placementId: p.id, buyoutPriceCents });
       }
     }
     if (campaign.pricingModel !== AdPricingModel.BUYOUT) {
@@ -339,21 +345,101 @@ export class AdsService {
       ? AdCampaignStatus.PENDING_UNION_REVIEW
       : AdCampaignStatus.PENDING_PLATFORM_REVIEW;
 
-    const results = await this.prisma.$transaction([
-      ...placementUpdates,
-      this.prisma.adCampaign.update({
-        where: { id },
-        data: {
-          status: nextStatus,
-          priceSnapshot: priceSnapshot as unknown as Prisma.InputJsonValue,
-          totalPriceCents,
-          sourcedBySchoolId,
-          rejectedReason: null, // 重新提交清除上次驳回原因
+    // 落库走交互式 Serializable 事务（同 finance createWithdrawal 惯例）：
+    // 状态 claim → 余额校验 → 能量预扣 → 锁价 → 回读；并发双提交在 Serializable 下
+    // 必有一方回滚，余额不会被双花，预扣不会重复入账
+    const submitted = await this.prisma.$transaction(
+      async (tx) => {
+        // ① 条件更新原子 claim 状态（事务外的状态检查只是快速失败，这里才是并发防线）
+        const claimed = await tx.adCampaign.updateMany({
+          where: { id, status: { in: [AdCampaignStatus.DRAFT, AdCampaignStatus.REJECTED] } },
+          data: {
+            status: nextStatus,
+            priceSnapshot: priceSnapshot as unknown as Prisma.InputJsonValue,
+            totalPriceCents,
+            sourcedBySchoolId,
+            rejectedReason: null, // 重新提交清除上次驳回原因
+          },
+        });
+        if (claimed.count === 0) {
+          throw new BadRequestException('仅草稿或被驳回的广告可提交审核');
+        }
+
+        // ② 余额校验：BUYOUT 锁全款（totalPrice），CPM/CPC 锁预算
+        const balance = await this.sponsorWallet.computeBalance(tx, admin.id);
+        const lockAmount =
+          campaign.pricingModel === AdPricingModel.BUYOUT
+            ? totalPriceCents
+            : (campaign.budgetCents ?? 0);
+        if (balance < lockAmount) {
+          // 抛错整个事务回滚，状态不流转
+          throw new BadRequestException('能量不足，请先充值');
+        }
+
+        // ③ 提交预扣（负项入账；驳回/撤回/结算结余按 refType='campaign' 净额退回）
+        await tx.sponsorEnergyLedger.create({
+          data: {
+            adminId: admin.id,
+            type: SponsorLedgerType.CAMPAIGN_LOCK,
+            amountCents: -lockAmount,
+            refType: 'campaign',
+            refId: id,
+            note: `提交预扣：${campaign.title}`,
+          },
+        });
+
+        // ④ BUYOUT 各校包断价锁定
+        for (const u of placementUpdates) {
+          await tx.adPlacement.update({
+            where: { id: u.placementId },
+            data: { buyoutPriceCents: u.buyoutPriceCents },
+          });
+        }
+
+        // ⑤ 事务内回读完整行返回
+        return tx.adCampaign.findUnique({ where: { id }, include: this.campaignInclude() });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+    return this.shapeCampaign(submitted);
+  }
+
+  // 撤回审核（能量经济 B2）：SPONSOR 本人，审核中 → DRAFT，按在途净额退回提交预扣
+  async withdrawSubmission(admin: AdminActor, id: string) {
+    const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
+    if (!campaign) throw new NotFoundException('广告不存在');
+    if (campaign.advertiserId !== admin.id) throw new ForbiddenException('仅可操作自己的广告');
+
+    const withdrawn = await this.prisma.$transaction(async (tx) => {
+      // 条件更新原子 claim：并发撤回/审核只有一方成功，败者 count=0 直接 400
+      const claimed = await tx.adCampaign.updateMany({
+        where: {
+          id,
+          status: {
+            in: [AdCampaignStatus.PENDING_UNION_REVIEW, AdCampaignStatus.PENDING_PLATFORM_REVIEW],
+          },
         },
-        include: this.campaignInclude(),
-      }),
-    ]);
-    return this.shapeCampaign(results[results.length - 1]);
+        data: { status: AdCampaignStatus.DRAFT },
+      });
+      if (claimed.count === 0) throw new BadRequestException('仅审核中的广告可撤回');
+
+      // 按在途净额退回（锁后为正、退完为 0，净额天然幂等）
+      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id);
+      if (locked > 0) {
+        await tx.sponsorEnergyLedger.create({
+          data: {
+            adminId: campaign.advertiserId,
+            type: SponsorLedgerType.REFUND,
+            amountCents: locked,
+            refType: 'campaign',
+            refId: id,
+            note: `撤回退回：${campaign.title}`,
+          },
+        });
+      }
+      return tx.adCampaign.findUnique({ where: { id }, include: this.campaignInclude() });
+    });
+    return this.shapeCampaign(withdrawn);
   }
 
   // ─── 列表 / 详情 / 日数据 ────────────────────────────────────
@@ -491,6 +577,7 @@ export class AdsService {
   // ─── 审核 / 收款 / 状态流转 ──────────────────────────────────
 
   // 分级审核：学生会审本校自拉单（PENDING_UNION_REVIEW），团队审平台直签单（PENDING_PLATFORM_REVIEW）
+  // 能量经济（B2）：通过不再进 PENDING_PAYMENT——预扣即付，直接 SCHEDULED/ACTIVE；驳回退回预扣
   async reviewCampaign(admin: AdminActor, id: string, dto: ReviewCampaignDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
@@ -512,20 +599,63 @@ export class AdsService {
       reviewerField = 'platformReviewedByAdminId';
     }
 
-    const updated = await this.prisma.adCampaign.update({
-      where: { id },
-      data: {
-        status: dto.approve ? AdCampaignStatus.PENDING_PAYMENT : AdCampaignStatus.REJECTED,
-        reviewNote: dto.note ?? null,
-        rejectedReason: dto.approve ? null : (dto.note ?? null),
-        [reviewerField]: admin.id,
-      },
-      include: this.campaignInclude(),
+    if (dto.approve) {
+      // 通过：预扣即付——paidAt 立即写入（settleCampaign / accrueBuyoutSpend 以 paidAt 为结算前置），
+      // 按 startDate 直接排期或激活；BUYOUT 包断价即全部消耗（平移原 confirmPayment 语义）
+      const now = new Date();
+      const nextStatus =
+        campaign.startDate <= now ? AdCampaignStatus.ACTIVE : AdCampaignStatus.SCHEDULED;
+      const updated = await this.prisma.adCampaign.update({
+        where: { id },
+        data: {
+          status: nextStatus,
+          paidAt: now,
+          reviewNote: dto.note ?? null,
+          rejectedReason: null,
+          [reviewerField]: admin.id,
+          ...(campaign.pricingModel === AdPricingModel.BUYOUT
+            ? { spendCents: campaign.totalPriceCents ?? 0 }
+            : {}),
+        },
+        include: this.campaignInclude(),
+      });
+      return this.shapeCampaign(updated);
+    }
+
+    // 驳回：事务内 claim 状态 + 按在途净额退回预扣（净额天然幂等，并发/重复驳回不双退）
+    const rejected = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.adCampaign.updateMany({
+        // campaign.status 即守卫段确认过的当前预期审核态
+        where: { id, status: campaign.status },
+        data: {
+          status: AdCampaignStatus.REJECTED,
+          reviewNote: dto.note ?? null,
+          rejectedReason: dto.note ?? null,
+          [reviewerField]: admin.id,
+        },
+      });
+      if (claimed.count === 0) throw new BadRequestException('当前状态不可审核');
+
+      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id);
+      if (locked > 0) {
+        await tx.sponsorEnergyLedger.create({
+          data: {
+            adminId: campaign.advertiserId,
+            type: SponsorLedgerType.REFUND,
+            amountCents: locked,
+            refType: 'campaign',
+            refId: id,
+            note: `驳回退回：${campaign.title}`,
+          },
+        });
+      }
+      return tx.adCampaign.findUnique({ where: { id }, include: this.campaignInclude() });
     });
-    return this.shapeCampaign(updated);
+    return this.shapeCampaign(rejected);
   }
 
   // 确认收款（线下对公转账，MVP 无支付网关）：→ SCHEDULED / ACTIVE；BUYOUT 激活即 spend=totalPrice
+  // @deprecated 旧 PENDING_PAYMENT 流程兼容，能量经济后新单不再进入该状态
   async confirmPayment(admin: AdminActor, id: string, dto: ConfirmPaymentDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
@@ -991,10 +1121,14 @@ export class AdsService {
       // 结算基数按实收预算封顶：事件路径可能瞬时超投（并发批次在 COMPLETED 落库前入账），
       // 分成只能基于商家实际支付的金额，多校时按比例折算（向下取整，尾差归平台）。
       let clampScale = 1;
+      let rawTotal = 0; // CPM/CPC 各校消耗合计（提出到 if 外，供下方结余退款块复用）
       if (campaign.pricingModel !== AdPricingModel.BUYOUT && campaign.budgetCents != null) {
-        const rawTotal = [...spendBySchool.values()].reduce((a, b) => a + b, 0);
+        rawTotal = [...spendBySchool.values()].reduce((a, b) => a + b, 0);
         if (rawTotal > campaign.budgetCents) clampScale = campaign.budgetCents / rawTotal;
       }
+
+      // 分成比例默认值：SystemConfig ad_share_defaults → seed 兜底（School override 在循环内）
+      const shareDefaults = await this.getShareDefaults(tx);
 
       for (const p of campaign.placements) {
         const amount =
@@ -1002,12 +1136,11 @@ export class AdsService {
             ? (p.buyoutPriceCents ?? 0)
             : Math.floor((spendBySchool.get(p.schoolId) ?? 0) * clampScale);
         // 自拉单用 selfSourcedShareBps，平台直签用 platformShareBps（§3）
-        // bps 已改 nullable（null=继承全局）；Phase A 先以 seed 默认兜底，
-        // Phase B2 换成 school override → SystemConfig(ad_share_defaults) → seed 三级解析
+        // 三级解析（B2）：school override → SystemConfig(ad_share_defaults) → seed 默认兜底
         const shareBps =
           campaign.sourcedBySchoolId === p.schoolId
-            ? (p.school.selfSourcedShareBps ?? 3000)
-            : (p.school.platformShareBps ?? 1000);
+            ? (p.school.selfSourcedShareBps ?? shareDefaults.selfSourcedShareBps)
+            : (p.school.platformShareBps ?? shareDefaults.platformShareBps);
         const shareCents = Math.floor((amount * shareBps) / 10000);
         if (shareCents > 0) {
           await tx.schoolLedgerEntry.create({
@@ -1022,7 +1155,44 @@ export class AdsService {
           });
         }
       }
+
+      // CPM/CPC 结余退款（能量经济 B2）：预算 − 实际消耗（按预算封顶）> 0 时退回商家钱包。
+      // 幂等与 settledAt 共用锚点——上方 claim 败者整段不执行，不会重复退。
+      if (campaign.pricingModel !== AdPricingModel.BUYOUT && campaign.budgetCents != null) {
+        const charged = Math.min(rawTotal, campaign.budgetCents);
+        const leftover = campaign.budgetCents - charged;
+        if (leftover > 0) {
+          await tx.sponsorEnergyLedger.create({
+            data: {
+              adminId: campaign.advertiserId,
+              type: SponsorLedgerType.REFUND,
+              amountCents: leftover,
+              refType: 'campaign',
+              refId: campaignId,
+              note: '结算结余退回（预算−实际消耗）',
+            },
+          });
+        }
+      }
     });
+  }
+
+  // 分成比例默认值（B2 三级解析的中间层）：SystemConfig ad_share_defaults 逐字段解析，
+  // 缺失/非法回退 seed 默认（platform 10% / selfSourced 30%）；School override 在调用处
+  private async getShareDefaults(
+    tx: Prisma.TransactionClient,
+  ): Promise<{ platformShareBps: number; selfSourcedShareBps: number }> {
+    const config = await tx.systemConfig.findUnique({ where: { key: 'ad_share_defaults' } });
+    const value = (config?.value as Record<string, any> | null) ?? {};
+    // 照 getPricingDefaults 的防御式解析；分成比例允许合法取 0（不分成），故下限为 >= 0
+    const pick = (raw: any, fallback: number): number => {
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+    };
+    return {
+      platformShareBps: pick(value.platformShareBps, 1000),
+      selfSourcedShareBps: pick(value.selfSourcedShareBps, 3000),
+    };
   }
 
   // ─── BUYOUT 按天摊销（报表口径，§3） ──────────────────────────

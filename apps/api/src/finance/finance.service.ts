@@ -4,12 +4,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AdminRole, LedgerEntryType, Prisma, WithdrawalStatus } from '@prisma/client';
+import {
+  AdminRole,
+  ConversionStatus,
+  LedgerEntryType,
+  Prisma,
+  SchoolCashLedgerType,
+  WithdrawalStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateAdjustmentDto,
+  CreateConversionDto,
   CreateGrantDto,
   CreateWithdrawalDto,
+  ReviewConversionDto,
   ReviewWithdrawalDto,
 } from './dto/finance.dto';
 import { AdminActor } from '../admin-core/admin-actor';
@@ -26,14 +35,39 @@ export class FinanceService {
     }
   }
 
-  // ─── 余额计算（§2）────────────────────────────────────────────
-  // balance = Σ ledger.amountCents − Σ(PENDING/APPROVED 提现金额)（冻结在途）
-  // 传入 tx 时在事务内读取（提现下单需 fresh read 防双花）。
-  // public：全后端余额的唯一规范实现（AdminService 仪表盘复用；SchoolsService
+  // ─── 能量余额计算（§2）────────────────────────────────────────
+  // balance = Σ ledger.amountCents − Σ(PENDING 兑换申请金额)（冻结在途兑换）
+  // 提现改扣现金账本后能量侧不再为提现冻结；APPROVED 兑换已即时落
+  // CONVERSION_OUT 负项，无需重复冻结。
+  // 传入 tx 时在事务内读取（兑换下单需 fresh read 防双花）。
+  // public：全后端能量余额的唯一规范实现（AdminService 仪表盘复用；SchoolsService
   // 的批量 groupBy 版是其等价批量形态）
   async computeBalance(tx: Prisma.TransactionClient, schoolId: string) {
     const [ledgerAgg, frozenAgg] = await Promise.all([
       tx.schoolLedgerEntry.aggregate({
+        where: { schoolId },
+        _sum: { amountCents: true },
+      }),
+      tx.schoolConversionRequest.aggregate({
+        where: {
+          schoolId,
+          status: ConversionStatus.PENDING,
+        },
+        _sum: { amountCents: true },
+      }),
+    ]);
+    const ledgerTotalCents = ledgerAgg._sum.amountCents ?? 0;
+    const frozenCents = frozenAgg._sum.amountCents ?? 0;
+    return { balance: ledgerTotalCents - frozenCents, frozenCents };
+  }
+
+  // ─── 赞助费（现金）余额计算 ───────────────────────────────────
+  // balance = Σ cashLedger.amountCents − Σ(PENDING/APPROVED 提现金额)（冻结在途提现）
+  // 提现冻结从能量侧平移到现金侧；结构与 computeBalance 同构。
+  // public：现金余额的唯一规范实现（与 computeBalance 并列的第二规范实现）
+  async computeCashBalance(tx: Prisma.TransactionClient, schoolId: string) {
+    const [ledgerAgg, frozenAgg] = await Promise.all([
+      tx.schoolCashLedgerEntry.aggregate({
         where: { schoolId },
         _sum: { amountCents: true },
       }),
@@ -149,8 +183,8 @@ export class FinanceService {
           throw new BadRequestException('请先绑定银行账户');
         }
 
-        const { balance } = await this.computeBalance(tx, schoolId);
-        if (dto.amountCents > balance) throw new BadRequestException('余额不足');
+        const { balance } = await this.computeCashBalance(tx, schoolId);
+        if (dto.amountCents > balance) throw new BadRequestException('赞助费余额不足');
 
         return tx.withdrawalRequest.create({
           data: {
@@ -235,7 +269,7 @@ export class FinanceService {
     });
   }
 
-  // ─── 标记已打款（SUPER/TEAM：APPROVED → PAID + 负数 ledger）─────
+  // ─── 标记已打款（SUPER/TEAM：APPROVED → PAID + 负数现金 ledger）─
   // 状态流转与负数 WITHDRAWAL 入账放同一事务；updateMany 状态条件保证
   // 并发重复点击只会入账一次（败者命中 0 行抛错回滚）
   async markWithdrawalPaid(admin: AdminActor, id: string) {
@@ -252,11 +286,11 @@ export class FinanceService {
       });
       if (result.count === 0) throw new BadRequestException('仅审核通过状态的提现申请可标记打款');
 
-      // 打款即出账：负数 WITHDRAWAL ledger（释放冻结、扣减余额）
-      await tx.schoolLedgerEntry.create({
+      // 打款即出账：现金账本负数 WITHDRAWAL（释放冻结、扣减赞助费余额）
+      await tx.schoolCashLedgerEntry.create({
         data: {
           schoolId: request.schoolId,
-          type: LedgerEntryType.WITHDRAWAL,
+          type: SchoolCashLedgerType.WITHDRAWAL,
           amountCents: -request.amountCents,
           refType: 'withdrawal',
           refId: request.id,
@@ -272,9 +306,176 @@ export class FinanceService {
     });
   }
 
+  // ─── 学生会发起兑换（能量 → 赞助费，PENDING 冻结等额能量）───────
+  // fresh 能量余额读取 + 创建置于同一 Serializable 事务：并发两笔兑换在
+  // Read Committed 下可能都读到冻结前余额而双双通过（双花），
+  // Serializable 下冲突事务被数据库回滚，保证能量不会被超兑。
+  async createConversion(admin: AdminActor, dto: CreateConversionDto) {
+    const schoolId = admin.schoolId;
+    if (!schoolId) throw new ForbiddenException('学生会账号未绑定学校');
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const { balance } = await this.computeBalance(tx, schoolId);
+        if (dto.amountCents > balance) throw new BadRequestException('能量余额不足');
+
+        return tx.schoolConversionRequest.create({
+          data: {
+            schoolId,
+            amountCents: dto.amountCents,
+            status: ConversionStatus.PENDING,
+            requestedByAdminId: admin.id,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  // ─── 兑换列表（学生会仅本校；团队可按 status/schoolId 过滤）─────
+  async listConversions(
+    admin: AdminActor,
+    params: { status?: string; schoolId?: string; page?: number; limit?: number },
+  ) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.SchoolConversionRequestWhereInput = {};
+    if (params.status) {
+      if (!Object.values(ConversionStatus).includes(params.status as ConversionStatus)) {
+        throw new BadRequestException('无效的兑换状态');
+      }
+      where.status = params.status as ConversionStatus;
+    }
+    if (params.schoolId) where.schoolId = params.schoolId;
+
+    // 学生会：强制只看本校
+    if (admin.role === AdminRole.STUDENT_UNION) {
+      if (!admin.schoolId) throw new ForbiddenException('学生会账号未绑定学校');
+      where.schoolId = admin.schoolId;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.schoolConversionRequest.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { school: { select: { id: true, name: true } } },
+      }),
+      this.prisma.schoolConversionRequest.count({ where }),
+    ]);
+
+    return { items, total, page, limit };
+  }
+
+  // ─── 审批兑换（SUPER/TEAM：PENDING → APPROVED / REJECTED）───────
+  // 通过时双账本原子对冲：能量账本 CONVERSION_OUT 负项 + 现金账本
+  // CONVERSION_IN 正项与状态流转放同一事务；updateMany 状态条件保证
+  // 并发重复审批只入账一次（败者命中 0 行抛错回滚）。
+  // 通过时能量余额天然充足：PENDING 冻结与本次负项等额对冲，无需再验余额。
+  async reviewConversion(admin: AdminActor, id: string, dto: ReviewConversionDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.schoolConversionRequest.findUnique({ where: { id } });
+      if (!request) throw new NotFoundException('兑换申请不存在');
+      if (request.status !== ConversionStatus.PENDING) {
+        throw new BadRequestException('仅待审批的兑换申请可审批');
+      }
+
+      const result = await tx.schoolConversionRequest.updateMany({
+        where: { id, status: ConversionStatus.PENDING },
+        data: {
+          status: dto.approve ? ConversionStatus.APPROVED : ConversionStatus.REJECTED,
+          reviewedAt: new Date(),
+          reviewedByAdminId: admin.id,
+          reviewNote: dto.note ?? null,
+        },
+      });
+      if (result.count === 0) throw new BadRequestException('仅待审批的兑换申请可审批');
+
+      if (dto.approve) {
+        // 能量账本出账（−）
+        await tx.schoolLedgerEntry.create({
+          data: {
+            schoolId: request.schoolId,
+            type: LedgerEntryType.CONVERSION_OUT,
+            amountCents: -request.amountCents,
+            refType: 'conversion',
+            refId: request.id,
+            note: '能量兑换赞助费',
+            createdByAdminId: admin.id,
+          },
+        });
+        // 现金账本入账（+）
+        await tx.schoolCashLedgerEntry.create({
+          data: {
+            schoolId: request.schoolId,
+            type: SchoolCashLedgerType.CONVERSION_IN,
+            amountCents: request.amountCents,
+            refType: 'conversion',
+            refId: request.id,
+            note: '能量兑换入账',
+            createdByAdminId: admin.id,
+          },
+        });
+      }
+
+      return tx.schoolConversionRequest.findUnique({
+        where: { id },
+        include: { school: { select: { id: true, name: true } } },
+      });
+    });
+  }
+
+  // ─── 学校赞助费（现金）概要：现金余额 / 冻结 / 累计兑换 / 分页明细 ─
+  async getSchoolCashSummary(
+    admin: AdminActor,
+    schoolId: string,
+    params: { page?: number; limit?: number },
+  ) {
+    this.assertUnionScope(admin, schoolId);
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true, name: true },
+    });
+    if (!school) throw new NotFoundException('学校不存在');
+
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [{ balance, frozenCents }, convertedAgg, entries, total] = await Promise.all([
+      this.computeCashBalance(this.prisma, schoolId),
+      // 累计兑换入账 = Σ CONVERSION_IN
+      this.prisma.schoolCashLedgerEntry.aggregate({
+        where: { schoolId, type: SchoolCashLedgerType.CONVERSION_IN },
+        _sum: { amountCents: true },
+      }),
+      this.prisma.schoolCashLedgerEntry.findMany({
+        where: { schoolId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.schoolCashLedgerEntry.count({ where: { schoolId } }),
+    ]);
+
+    return {
+      schoolId: school.id,
+      schoolName: school.name,
+      cashBalanceCents: balance,
+      frozenCents, // 在途提现（PENDING/APPROVED）
+      totalConvertedCents: convertedAgg._sum.amountCents ?? 0,
+      ledger: { items: entries, total, page, limit },
+    };
+  }
+
   // ─── 分校收入报表（SUPER/TEAM，可选 from/to 日期范围）───────────
   // 每校：广告总消耗（AdDailyStat.spendCents）、学校分成（AD_SHARE ledger）、
-  // 平台留存 = 消耗 − 分成、赞助发放（SPONSOR_GRANT）、已打款提现（WITHDRAWAL 绝对值）
+  // 平台留存 = 消耗 − 分成、赞助发放（SPONSOR_GRANT）、
+  // 已打款提现（现金账本 WITHDRAWAL 绝对值）、能量兑换出账（CONVERSION_OUT 绝对值）
   async getRevenueReport(params: { from?: string; to?: string }) {
     const fromDate = params.from ? new Date(params.from) : undefined;
     const toDate = params.to ? new Date(params.to) : undefined;
@@ -301,42 +502,52 @@ export class FinanceService {
 
     const ledgerRange = createdAtRange ? { createdAt: createdAtRange } : {};
 
-    const [schools, spendGroups, shareGroups, grantGroups, withdrawalGroups] = await Promise.all([
-      this.prisma.school.findMany({
-        orderBy: { createdAt: 'asc' },
-        select: { id: true, name: true },
-      }),
-      // 广告总消耗（gross）：按校汇总日统计
-      this.prisma.adDailyStat.groupBy({
-        by: ['schoolId'],
-        where: dateRange ? { date: dateRange } : {},
-        _sum: { spendCents: true },
-      }),
-      // 学校分成
-      this.prisma.schoolLedgerEntry.groupBy({
-        by: ['schoolId'],
-        where: { type: LedgerEntryType.AD_SHARE, ...ledgerRange },
-        _sum: { amountCents: true },
-      }),
-      // 赞助发放
-      this.prisma.schoolLedgerEntry.groupBy({
-        by: ['schoolId'],
-        where: { type: LedgerEntryType.SPONSOR_GRANT, ...ledgerRange },
-        _sum: { amountCents: true },
-      }),
-      // 已打款提现（ledger 为负数，报表取绝对值）
-      this.prisma.schoolLedgerEntry.groupBy({
-        by: ['schoolId'],
-        where: { type: LedgerEntryType.WITHDRAWAL, ...ledgerRange },
-        _sum: { amountCents: true },
-      }),
-    ]);
+    const [schools, spendGroups, shareGroups, grantGroups, withdrawalGroups, conversionGroups] =
+      await Promise.all([
+        this.prisma.school.findMany({
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, name: true },
+        }),
+        // 广告总消耗（gross）：按校汇总日统计
+        this.prisma.adDailyStat.groupBy({
+          by: ['schoolId'],
+          where: dateRange ? { date: dateRange } : {},
+          _sum: { spendCents: true },
+        }),
+        // 学校分成
+        this.prisma.schoolLedgerEntry.groupBy({
+          by: ['schoolId'],
+          where: { type: LedgerEntryType.AD_SHARE, ...ledgerRange },
+          _sum: { amountCents: true },
+        }),
+        // 赞助发放
+        this.prisma.schoolLedgerEntry.groupBy({
+          by: ['schoolId'],
+          where: { type: LedgerEntryType.SPONSOR_GRANT, ...ledgerRange },
+          _sum: { amountCents: true },
+        }),
+        // 已打款提现（现金账本，为负数，报表取绝对值）
+        this.prisma.schoolCashLedgerEntry.groupBy({
+          by: ['schoolId'],
+          where: { type: SchoolCashLedgerType.WITHDRAWAL, ...ledgerRange },
+          _sum: { amountCents: true },
+        }),
+        // 能量兑换出账（能量账本 CONVERSION_OUT，为负数，报表取绝对值）
+        this.prisma.schoolLedgerEntry.groupBy({
+          by: ['schoolId'],
+          where: { type: LedgerEntryType.CONVERSION_OUT, ...ledgerRange },
+          _sum: { amountCents: true },
+        }),
+      ]);
 
     const spendBySchool = new Map(spendGroups.map((g) => [g.schoolId, g._sum.spendCents ?? 0]));
     const shareBySchool = new Map(shareGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]));
     const grantBySchool = new Map(grantGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]));
     const withdrawalBySchool = new Map(
       withdrawalGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]),
+    );
+    const conversionBySchool = new Map(
+      conversionGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]),
     );
 
     const items = schools.map((s) => {
@@ -350,6 +561,7 @@ export class FinanceService {
         platformKeepCents: grossAdSpendCents - schoolShareCents,
         grantCents: grantBySchool.get(s.id) ?? 0,
         withdrawalPaidCents: Math.abs(withdrawalBySchool.get(s.id) ?? 0),
+        conversionOutCents: Math.abs(conversionBySchool.get(s.id) ?? 0),
       };
     });
 
@@ -361,6 +573,7 @@ export class FinanceService {
         platformKeepCents: acc.platformKeepCents + r.platformKeepCents,
         grantCents: acc.grantCents + r.grantCents,
         withdrawalPaidCents: acc.withdrawalPaidCents + r.withdrawalPaidCents,
+        conversionOutCents: acc.conversionOutCents + r.conversionOutCents,
       }),
       {
         grossAdSpendCents: 0,
@@ -368,6 +581,7 @@ export class FinanceService {
         platformKeepCents: 0,
         grantCents: 0,
         withdrawalPaidCents: 0,
+        conversionOutCents: 0,
       },
     );
 
