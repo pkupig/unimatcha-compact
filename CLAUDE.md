@@ -12,7 +12,7 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 - `apps/ios` — iOS 端
 - `matching-ml` — 匹配模型服务（Python/FastAPI，规则+微调 LLM 混合，见 [matching-ml/README.md](matching-ml/README.md)）
 
-项目待办总表见 [BACKLOG.md](BACKLOG.md)，匹配调度方案见 [SCHEDULING.md](SCHEDULING.md)。详细架构、API 文档、快速开始见 [README.md](README.md)。
+项目待办总表见 [BACKLOG.md](BACKLOG.md)，**产品功能盘点主档**见 [docs/PRODUCT-CHECKLIST.md](docs/PRODUCT-CHECKLIST.md)（产品视角，勾选/增删直接改该文件；技术视角底稿见 [docs/PROJECT-CHECKLIST.md](docs/PROJECT-CHECKLIST.md)），匹配调度方案见 [SCHEDULING.md](SCHEDULING.md)。详细架构、API 文档、快速开始见 [README.md](README.md)。
 
 仓库说明：GitHub 远程 `unipia`（https://github.com/pkupig/unipia）是**唯一**项目仓库，推送用 `git push unipia main`；旧远程 `origin`（campus-love）已弃用，不再同步。源码一律以 `apps/` 为准（unipia 原有的根目录 api/h5/admin-web 部署快照已于 2026-07-13 移除）。
 
@@ -37,6 +37,10 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 ---
 
 ## 每日日志
+
+### 2026-08-10
+- 完成（项目内容总清单）：新建 [docs/PROJECT-CHECKLIST.md](docs/PROJECT-CHECKLIST.md)——8 个并行代理全仓实扫生成的全项目功能盘点+待办主档：7 大模块 367 条 + 查漏 4 条，按 ✅已完成/🟡mock·留桩/🚧进行中/⬜待办/❓待确认 分状态并附代码路径依据（后端 API 52 条 81%、H5 75 条 93%、管理后台 49 条 88%、官网 47 条 94%、iOS+旧版 web 46 条 61%、matching-ml 40 条 83%、文档运维 58 条 50%）；查漏出 4 项边角（全仓无 CI、packages/shared 与 api metadata seed 双源数据漂移风险、排行榜后端 @deprecated 仍挂载、素材散件去留）；文末汇总跨模块待办 15 条。维护约定：markdown 为唯一主档（用户定的，不用 Excel/仪表盘），勾选/增删直接改文件。
+- 完成（产品功能清单定稿）：格式经用户多轮收敛（Excel→可视化仪表盘→带状态产品清单→纯列表→详细版），定稿为 [docs/PRODUCT-CHECKLIST.md](docs/PRODUCT-CHECKLIST.md)（1038 行）：**按 App(H5)/官网/管理后台 三端逐页面纯列表**——无勾选框、无 emoji、无技术词，方便手动增删编辑；细到具体数字规则（8 个并行代理从代码逐项核实：能量套餐 30 格 30 元/60 格 58 元/100 格 88 元、偏好年龄滑杆 18–30、拍一拍后缀 40 字、验证码 6 位有效 10 分钟、发帖标题 100/正文 2000 字、照片墙 6 张、兴趣上限 8 个、下拉刷新阈值 70px 等）；admin 每页标注角色可见范围。PROJECT-CHECKLIST.md 为技术底稿（含代码路径与完成状态）互链保留，CLAUDE.md 简介链接同步。按用户指示已提交并合并到 main。
 
 ### 2026-08-07
 - 完成（广场演示数据 + 上传 URL 混合内容修复，已上线 f31d173）：①用用户账号（dingmohan2004@gmail.com，凭据仅经环境变量、未落盘）经生产 API 播种广场数据：本地零依赖生成 5 张异比例渐变 PNG（480×680/640×400/520×520/460×760/640×430）上传，发 10 帖——推荐 7（文字/图片混排喂瀑布流）+ 校园墙 3（失物招领带图/匿名表白/组队）。②过程中发现真 bug：Caddy 终止 TLS 后 Express 未设 trust proxy，/uploads/image 拼出 http:// URL，https 页面加载被按混合内容拦截（Safari 直接不显示）——main.ts 加 app.set('trust proxy',1)；生产库存量 http URL 批量改写 https（square_posts.images 9 行——其中 4 行是此前真实用户内容已中招，profiles 头像/封面/照片墙各 1 行）；重建 api。验证：新上传返回 https、双流 10 个图片 URL 全 https、抽样 HEAD 200、推荐流 12 帖/校园墙 5 帖。
