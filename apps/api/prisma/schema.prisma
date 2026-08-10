@@ -131,6 +131,9 @@ model AdminUser {
   contactName       String?
   contactPhone      String?
 
+  // 经邀请码自注册的商家：所用码 id（纯 string 无 FK，同 convertedAdminId 惯例）
+  invitedByCodeId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -140,10 +143,14 @@ model AdminUser {
   school          School? @relation("SchoolUnionAdmins", fields: [schoolId], references: [id])
   sourcedBySchool School? @relation("SponsorSource", fields: [sourcedBySchoolId], references: [id])
 
-  campaigns AdCampaign[] @relation("CampaignAdvertiser")
+  campaigns             AdCampaign[]          @relation("CampaignAdvertiser")
+  sponsorLedger         SponsorEnergyLedger[] @relation("SponsorEnergyLedger")
+  sponsorContactThreads ContactThread[]       @relation("SponsorContactThreads")
+  sentContactMessages   ContactMessage[]      @relation("SentContactMessages")
 
   @@index([role, schoolId])
   @@index([sourcedBySchoolId])
+  @@index([invitedByCodeId])
   @@map("admin_users")
 }
 
@@ -887,8 +894,39 @@ enum AdCampaignStatus {
 enum LedgerEntryType {
   AD_SHARE // 广告分成入账（+）
   SPONSOR_GRANT // 平台发放赞助额度（+）
+  WITHDRAWAL // 提现打款（−）※能量经济后新提现改写现金账本，此值仅历史行保留
+  ADJUSTMENT // 手工调整（±）
+  CONVERSION_OUT // 能量兑换赞助费扣减（−，能量经济 2026-08）
+}
+
+// ─── 能量经济（2026-08）：1 元 = 100 分 = 100 能量，数值同构 ───
+
+// 商家能量钱包流水类型
+enum SponsorLedgerType {
+  TOPUP // 充值到账（+，MVP mock 即时）
+  CAMPAIGN_LOCK // 提交审核预扣（−，全额）
+  REFUND // 驳回/撤回退回、结算结余退回（+）
+  ADJUSTMENT // 平台手工调整（±，SUSPENDED 退款等人工通道）
+}
+
+// 学校赞助费（现金）账本类型
+enum SchoolCashLedgerType {
+  CONVERSION_IN // 能量兑换入账（+）
   WITHDRAWAL // 提现打款（−）
   ADJUSTMENT // 手工调整（±）
+}
+
+// 能量→赞助费兑换申请状态
+enum ConversionStatus {
+  PENDING // 学生会已申请，待平台审批（冻结等额能量）
+  APPROVED // 已通过（能量扣减 + 现金入账，终态）
+  REJECTED // 已驳回（释放冻结，终态）
+}
+
+// 合作消息线程的参与侧
+enum ContactThreadSide {
+  SPONSOR
+  UNION
 }
 
 enum WithdrawalStatus {
@@ -904,9 +942,10 @@ model School {
   city     String?
   isActive Boolean @default(true)
 
-  // 分成配置（基点 bps，0–10000）
-  platformShareBps    Int @default(1000) // 平台直签广告分成
-  selfSourcedShareBps Int @default(3000) // 学生会自拉赞助分成（更高）
+  // 分成配置（基点 bps，0–10000）：null = 继承全局 SystemConfig(ad_share_defaults)
+  // ——与下方计价覆盖三字段同构的「school override → 全局配置 → seed 默认」三级解析
+  platformShareBps    Int? // 平台直签广告分成（学校得的份额）
+  selfSourcedShareBps Int? // 学生会自拉赞助分成（更高，鼓励拉新）
 
   // 计价覆盖（null = 用 SystemConfig ad_pricing_defaults 全局默认）
   buyoutDailyPriceCents Int? // 包断：每天每校
@@ -921,11 +960,15 @@ model School {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  unionAdmins     AdminUser[]         @relation("SchoolUnionAdmins")
-  sourcedSponsors AdminUser[]         @relation("SponsorSource")
+  unionAdmins     AdminUser[]               @relation("SchoolUnionAdmins")
+  sourcedSponsors AdminUser[]               @relation("SponsorSource")
   placements      AdPlacement[]
   ledger          SchoolLedgerEntry[]
   withdrawals     WithdrawalRequest[]
+  cashLedger      SchoolCashLedgerEntry[]   @relation("SchoolCashLedger")
+  conversions     SchoolConversionRequest[] @relation("SchoolConversions")
+  inviteCodes     SponsorInviteCode[]       @relation("SchoolInviteCodes")
+  contactThreads  ContactThread[]           @relation("SchoolContactThreads")
 
   @@map("schools")
 }
@@ -1047,6 +1090,136 @@ model WithdrawalRequest {
   @@index([schoolId, createdAt])
   @@index([status])
   @@map("withdrawal_requests")
+}
+
+// ─────────────────────────────────────────────
+// 能量经济（2026-08）：商家钱包 / 学校现金账本 / 兑换申请
+// 1 元 = 100 分 = 100 能量（数值同构，*Cents 字段承载能量数）
+// ─────────────────────────────────────────────
+
+// 商家能量钱包账本（只增不改；余额 = Σ amountCents，与 SchoolLedgerEntry 同构无余额行）
+model SponsorEnergyLedger {
+  id      String            @id @default(cuid())
+  adminId String // 商家 AdminUser.id
+  admin   AdminUser         @relation("SponsorEnergyLedger", fields: [adminId], references: [id])
+  type    SponsorLedgerType
+
+  amountCents Int // 有符号；能量数值 ≡ 分
+  refType     String? // 'campaign' | 'topup' | 'adjustment'
+  refId       String? // campaignId / 充值幂等键
+  note        String?
+
+  createdByAdminId String? // ADJUSTMENT 操作人留痕
+  createdAt        DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([refId]) // 按 campaign 汇总在途锁定 / 幂等退款查询
+  @@map("sponsor_energy_ledger")
+}
+
+// 学校赞助费（现金）账本：能量兑换入账后的人民币分账本，提现从此扣
+model SchoolCashLedgerEntry {
+  id       String               @id @default(cuid())
+  schoolId String
+  school   School               @relation("SchoolCashLedger", fields: [schoolId], references: [id])
+  type     SchoolCashLedgerType
+
+  amountCents Int // 有符号，人民币分
+  refType     String? // 'conversion' | 'withdrawal'
+  refId       String?
+  note        String?
+
+  createdByAdminId String?
+  createdAt        DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@map("school_cash_ledger_entries")
+}
+
+// 能量→赞助费兑换申请（两段式第一段；结构镜像 WithdrawalRequest）
+// PENDING 状态冻结等额能量（计入 computeBalance 冻结项）
+model SchoolConversionRequest {
+  id       String           @id @default(cuid())
+  schoolId String
+  school   School           @relation("SchoolConversions", fields: [schoolId], references: [id])
+  status   ConversionStatus @default(PENDING)
+
+  amountCents Int // 兑换能量数（= 入账赞助费分数，1:1）
+
+  requestedByAdminId String
+  reviewedByAdminId  String?
+  reviewNote         String?
+
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@index([schoolId, createdAt])
+  @@index([status])
+  @@map("school_conversion_requests")
+}
+
+// ─────────────────────────────────────────────
+// 学生会邀请码（商家自注册）+ 跨校合作消息（2026-08）
+// ─────────────────────────────────────────────
+
+// 学生会邀请码：商家经 /register?code= 自注册，sourcedBySchoolId 恒为邀请学校
+model SponsorInviteCode {
+  id               String    @id @default(cuid())
+  code             String    @unique // INV-XXXXXXXXXXXX，randomBytes 生成防猜
+  schoolId         String
+  school           School    @relation("SchoolInviteCodes", fields: [schoolId], references: [id])
+  createdByAdminId String // 生成者（学生会管理员）；无 FK，展示时二查拼装
+  note             String? // 备注/用途标签（如「五一集市招商」）
+  isActive         Boolean   @default(true) // 停用开关（可重新启用）
+  usedCount        Int       @default(0) // 成功注册数（事务内等值乐观锁自增，防超发）
+  maxUses          Int? // null=不限次
+  expiresAt        DateTime? // null=永久有效
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([schoolId, createdAt])
+  @@map("sponsor_invite_codes")
+}
+
+// 合作消息线程：商家 × 学校（学生会侧以校为主体，本校任一管理员可读可回）
+// 未读防 N+1：双侧冗余计数（发消息事务内 increment 对侧；读消息置零本侧）
+// 注意：学生会侧计数按校共享——任一本校管理员打开即视为本校已读
+model ContactThread {
+  id             String            @id @default(cuid())
+  sponsorAdminId String
+  sponsorAdmin   AdminUser         @relation("SponsorContactThreads", fields: [sponsorAdminId], references: [id])
+  schoolId       String
+  school         School            @relation("SchoolContactThreads", fields: [schoolId], references: [id])
+  subject        String // 洽谈主题
+  createdBySide  ContactThreadSide
+  lastMessageAt  DateTime          @default(now()) // 列表排序键
+
+  sponsorUnreadCount Int @default(0)
+  schoolUnreadCount  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ContactMessage[]
+
+  @@unique([sponsorAdminId, schoolId]) // 同一 sponsor×school 唯一线程，二次发起并入
+  @@index([schoolId, lastMessageAt])
+  @@index([sponsorAdminId, lastMessageAt])
+  @@map("contact_threads")
+}
+
+model ContactMessage {
+  id            String            @id @default(cuid())
+  threadId      String
+  thread        ContactThread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderAdminId String
+  senderAdmin   AdminUser         @relation("SentContactMessages", fields: [senderAdminId], references: [id])
+  senderSide    ContactThreadSide // 冗余侧别：渲染气泡与未读逻辑零解析
+  content       String            @db.Text
+  createdAt     DateTime          @default(now())
+
+  @@index([threadId, createdAt])
+  @@map("contact_messages")
 }
 
 // ─────────────────────────────────────────────

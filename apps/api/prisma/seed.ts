@@ -186,6 +186,26 @@ async function main() {
       value: { buyoutDailyPriceCents: 20000, cpmPriceCents: 5000, cpcPriceCents: 200 },
     },
   });
+
+  // 抽成比例全局默认值（能量经济 2026-08）：School.bps 为 null 时采用
+  await prisma.systemConfig.upsert({
+    where: { key: 'ad_share_defaults' },
+    update: {},
+    create: {
+      key: 'ad_share_defaults',
+      value: { platformShareBps: 1000, selfSourcedShareBps: 3000 },
+    },
+  });
+
+  // bps 语义迁移回填（幂等）：等于旧 seed 默认值的行改为 null=继承全局。
+  // 恰好被显式配成 10%/30% 的学校仅丢「显式配置」痕迹，结算数值不变。
+  const bpsBackfill = await Promise.all([
+    prisma.school.updateMany({ where: { platformShareBps: 1000 }, data: { platformShareBps: null } }),
+    prisma.school.updateMany({ where: { selfSourcedShareBps: 3000 }, data: { selfSourcedShareBps: null } }),
+  ]);
+  if (bpsBackfill[0].count || bpsBackfill[1].count) {
+    console.log(`✅ School share bps → null (inherit global): platform=${bpsBackfill[0].count}, selfSourced=${bpsBackfill[1].count}`);
+  }
   console.log('✅ System configs created');
 
   // ─── AdminUser.schoolId 迁移（ADMIN-REDESIGN §2）─────────────

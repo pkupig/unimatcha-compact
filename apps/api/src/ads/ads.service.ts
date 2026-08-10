@@ -1002,10 +1002,12 @@ export class AdsService {
             ? (p.buyoutPriceCents ?? 0)
             : Math.floor((spendBySchool.get(p.schoolId) ?? 0) * clampScale);
         // 自拉单用 selfSourcedShareBps，平台直签用 platformShareBps（§3）
+        // bps 已改 nullable（null=继承全局）；Phase A 先以 seed 默认兜底，
+        // Phase B2 换成 school override → SystemConfig(ad_share_defaults) → seed 三级解析
         const shareBps =
           campaign.sourcedBySchoolId === p.schoolId
-            ? p.school.selfSourcedShareBps
-            : p.school.platformShareBps;
+            ? (p.school.selfSourcedShareBps ?? 3000)
+            : (p.school.platformShareBps ?? 1000);
         const shareCents = Math.floor((amount * shareBps) / 10000);
         if (shareCents > 0) {
           await tx.schoolLedgerEntry.create({

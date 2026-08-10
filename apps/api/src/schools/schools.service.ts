@@ -175,8 +175,9 @@ export class SchoolsService {
         name: dto.name,
         city: dto.city ?? null,
         isActive: dto.isActive ?? true,
-        platformShareBps: dto.platformShareBps ?? 1000,
-        selfSourcedShareBps: dto.selfSourcedShareBps ?? 3000,
+        // null = 继承全局 ad_share_defaults（能量经济起不再落死默认值）
+        platformShareBps: dto.platformShareBps ?? null,
+        selfSourcedShareBps: dto.selfSourcedShareBps ?? null,
         buyoutDailyPriceCents: dto.buyoutDailyPriceCents ?? null,
         cpmPriceCents: dto.cpmPriceCents ?? null,
         cpcPriceCents: dto.cpcPriceCents ?? null,
