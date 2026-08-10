@@ -13,8 +13,6 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
-import { SquareService } from '../square/square.service';
-import { CreateOfficialPostDto } from '../square/dto/square.dto';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 import { AD_PRICING_DEFAULTS_KEY, CONFIG_KEY_ALLOWLIST } from './dto/system-config.dto';
@@ -32,7 +30,6 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-    private squareService: SquareService,
   ) {}
 
   // ─── 角色/范围工具（ADMIN-REDESIGN §1）──────────────────────
@@ -552,54 +549,6 @@ export class AdminService {
       select: this.adminSelect,
     });
     return updated;
-  }
-
-  // 发帖权限范围（§8.1.3）：委托 SquareService（其内联读 AdminUser）
-  async getAdminScope(adminId: string) {
-    return this.squareService.getAdminScope(adminId);
-  }
-
-  // ─── 官方发帖 / 后管下架（§8.1.3，委托 SquareService 按 scope 校验 school） ─────
-  async createOfficialPost(adminId: string, dto: CreateOfficialPostDto) {
-    return this.squareService.createOfficialPost(adminId, dto);
-  }
-
-  async adminDeletePost(adminId: string, postId: string, reason?: string) {
-    return this.squareService.adminDeletePost(adminId, postId, reason);
-  }
-
-  // ─── 广场管理与举报处理（ADMIN-REDESIGN §5.5）─────────────────
-  // 帖子列表：学生会强制本校；reported=true 过滤被举报帖（含举报自动隐藏）
-  async listSquarePosts(
-    actor: CurrentAdmin,
-    params: {
-      board?: string;
-      school?: string;
-      status?: string;
-      reported?: string;
-      search?: string;
-      page?: number;
-      limit?: number;
-    },
-  ) {
-    return this.squareService.adminListPosts(actor, params);
-  }
-
-  async adminRestorePost(adminId: string, postId: string) {
-    return this.squareService.adminRestorePost(adminId, postId);
-  }
-
-  // 投票帖审核（scope 逻辑在 SquareService，按 adminId 解析角色/学校）
-  async listPolls(adminId: string, opts: { status?: string; page?: number; limit?: number }) {
-    return this.squareService.listPendingPolls(adminId, opts);
-  }
-
-  async reviewPoll(adminId: string, postId: string, dto: { action: 'approve' | 'reject'; note?: string }) {
-    return this.squareService.reviewPoll(adminId, postId, dto.action, dto.note);
-  }
-
-  async adminDismissReports(adminId: string, postId: string) {
-    return this.squareService.adminDismissReports(adminId, postId);
   }
 
   // ─── 用户反馈举报队列（Report 表，SUPER/TEAM，§5.5）───────────

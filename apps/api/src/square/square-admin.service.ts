@@ -1,0 +1,395 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { Prisma, SquareBoard, SquareAuthorType, AdminRole } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { SquareService } from './square.service';
+import { AdminScopeService } from '../admin-core/admin-scope.service';
+import { AdminActor } from '../admin-core/admin-actor';
+import { paginated, skipTake } from '../common/utils/pagination';
+import {
+  CreateOfficialPostDto,
+  ListPollsQueryDto,
+  ListSquarePostsQueryDto,
+  ReviewPollDto,
+} from './dto/square-admin.dto';
+
+/**
+ * 广场后管（ADMIN-REDESIGN §5.5，Step5 自 SquareService 拆出）：
+ * 帖子管理 / 举报队列 / 投票审核 / 官方发帖。
+ * 身份与范围统一走 AdminScopeService；查询与状态机逻辑自原实现逐字搬移。
+ */
+@Injectable()
+export class SquareAdminService {
+  constructor(
+    private prisma: PrismaService,
+    private squareService: SquareService,
+    private adminScope: AdminScopeService,
+  ) {}
+
+  // ─── 投票帖审核（学生会本校 / 团队全量，ADMIN-REDESIGN §4）─────
+  async listPolls(actor: AdminActor, q: ListPollsQueryDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const status = q.status ?? 'pending';
+    const where: Prisma.SquarePostWhereInput = {
+      postType: 'poll',
+      reviewStatus: status,
+    };
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      where.school = this.adminScope.requireUnionSchool(actor).name;
+    }
+    const [posts, total, unionSchools] = await Promise.all([
+      this.prisma.squarePost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        ...skipTake(q),
+        include: this.squareService.postInclude(),
+      }),
+      this.prisma.squarePost.count({ where }),
+      // 有学生会入驻的学校名单：团队视图标记「该校有学生会（默认由其审核）」
+      this.prisma.school.findMany({
+        where: { unionAdmins: { some: { role: AdminRole.STUDENT_UNION, isActive: true } } },
+        select: { name: true },
+      }),
+    ]);
+    const unionSet = new Set(unionSchools.map((s) => s.name));
+    const items = posts.map((p) => {
+      const out: any = {
+        ...p,
+        metadata: undefined,
+        hasUnionReviewer: !!p.school && unionSet.has(p.school),
+      };
+      // 匿名投票帖对审核员同样脱敏：审核不需要作者身份，且学生会审核员
+      // 是本校账号，下发 authorUser 等于把匿名发起人直接暴露给同校学生
+      if (p.anonymous) {
+        out.authorUser = null;
+        delete out.authorUserId;
+      }
+      return out;
+    });
+    return paginated(items, total, q);
+  }
+
+  async reviewPoll(actor: AdminActor, postId: string, dto: ReviewPollDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, postType: true, school: true, reviewStatus: true, authorUserId: true, title: true, content: true },
+    });
+    if (!post || post.postType !== 'poll') throw new NotFoundException('投票帖不存在');
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      this.adminScope.assertSchoolNameInScope(actor, post.school);
+    }
+    if (post.reviewStatus !== 'pending') {
+      throw new BadRequestException('该投票已审核过');
+    }
+    const approved = dto.action === 'approve';
+    const note = dto.note;
+    const updated = await this.prisma.squarePost.update({
+      where: { id: postId },
+      data: {
+        reviewStatus: approved ? 'approved' : 'rejected',
+        reviewedByAdminId: actor.id,
+        reviewedAt: new Date(),
+        reviewNote: note || null,
+      },
+    });
+    // 通知作者审核结果（失败不影响审核落库）；通知文案为用户侧内容，保持英文原文
+    if (post.authorUserId) {
+      const label = post.title || post.content.slice(0, 30);
+      await this.prisma.notification
+        .create({
+          data: {
+            userId: post.authorUserId,
+            type: 'system',
+            title: approved ? 'Poll approved' : 'Poll rejected',
+            body: approved
+              ? `Your poll "${label}" is now live on the campus wall.`
+              : `Your poll "${label}" was not approved.${note ? ` Reason: ${note}` : ''}`,
+            metadata: { postId },
+          },
+        })
+        .catch(() => undefined);
+    }
+    return { id: updated.id, reviewStatus: updated.reviewStatus };
+  }
+
+  // ─── 官方发帖（§8.1.3 / §8.1.5）──────────────────────────────
+  async createOfficialPost(actor: AdminActor, dto: CreateOfficialPostDto) {
+    if (!this.adminScope.canPublishOfficial(actor)) {
+      throw new ForbiddenException('当前角色无权发布官方帖');
+    }
+
+    // authorType 由 role 推导（role 一定是官方三角色之一，因为 canPublishOfficial）
+    const authorType = actor.role as unknown as SquareAuthorType;
+
+    let school: string | null = dto.school ?? null;
+    let isSponsored = dto.isSponsored ?? false;
+
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      // 学生会只能发本校：school 必填且须为本校名
+      // （admin.schoolId 现为 School.id，post.school 存学校名 → 用解析出的名字比对，ADMIN-REDESIGN §4）
+      if (!school) {
+        throw new BadRequestException('学生会发帖必须指定学校');
+      }
+      this.adminScope.assertSchoolNameInScope(actor, school);
+    } else if (actor.role === AdminRole.SPONSOR) {
+      // 赞助商强制 Sponsored 标识；school 可空（跨校）
+      isSponsored = true;
+    }
+    // TEAM：school 可空（跨校），无额外约束
+
+    const board = dto.board ? this.squareService.toBoard(dto.board) : SquareBoard.RECOMMEND;
+
+    const post = await this.prisma.squarePost.create({
+      data: {
+        board,
+        authorType,
+        adminId: actor.id,
+        school,
+        title: dto.title || null,
+        content: dto.content,
+        images: dto.images || [],
+        isSponsored,
+      },
+      include: this.squareService.postInclude(),
+    });
+
+    return this.squareService.shapePost(post, undefined);
+  }
+
+  // ─── 后管帖子列表（ADMIN-REDESIGN §5.5）───────────────────────
+  // GET /admin/square/posts?board&school&status&reported&search&page&limit
+  // 学生会强制 school=本校名；reported=true 走 $queryRaw（jsonb_array_length 过滤，避免跨页 post-filter）
+  async adminListPosts(actor: AdminActor, params: ListSquarePostsQueryDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+
+    const { page, limit } = params;
+
+    // board：RECOMMEND | CAMPUS_WALL（容忍小写）
+    let board: SquareBoard | undefined;
+    if (params.board) {
+      const b = String(params.board).toUpperCase();
+      if (b !== SquareBoard.RECOMMEND && b !== SquareBoard.CAMPUS_WALL) {
+        throw new BadRequestException('board 参数无效（RECOMMEND / CAMPUS_WALL）');
+      }
+      board = b as SquareBoard;
+    }
+
+    // status：all（默认）/ visible / hidden
+    const status = params.status || 'all';
+    if (!['all', 'visible', 'hidden'].includes(status)) {
+      throw new BadRequestException('status 参数无效（all / visible / hidden）');
+    }
+
+    // 学校过滤：学生会强制本校 School.name；TEAM/SUPER 可按名筛选
+    let school: string | undefined;
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      school = this.adminScope.requireUnionSchool(actor).name;
+    } else if (params.school) {
+      school = params.school;
+    }
+
+    const search = params.search?.trim() || undefined;
+    const reported = params.reported === 'true';
+
+    if (reported) {
+      return this.adminListReportedPosts({ board, school, status, search, page, limit });
+    }
+
+    const where: Prisma.SquarePostWhereInput = {};
+    if (board) where.board = board;
+    if (school) where.school = school;
+    if (status === 'visible') where.isHidden = false;
+    if (status === 'hidden') where.isHidden = true;
+    if (search) {
+      where.OR = [
+        { content: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [posts, total] = await Promise.all([
+      this.prisma.squarePost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: this.squareService.postInclude(),
+      }),
+      this.prisma.squarePost.count({ where }),
+    ]);
+
+    return {
+      items: posts.map((p) => this.shapeAdminPost(p)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  // reported=true 分支：metadata.reports 非空 OR deletedBy='reporter:auto'。
+  // Prisma 对 JSON 数组长度无法直接过滤 → 用 $queryRaw 在 SQL 层分页取 id + 总数，
+  // 再 findMany 取完整关联并按原顺序回填（禁止跨页 post-filter，ADMIN-REDESIGN §5.5）
+  private async adminListReportedPosts(args: {
+    board?: SquareBoard;
+    school?: string;
+    status: string;
+    search?: string;
+    page: number;
+    limit: number;
+  }) {
+    const { board, school, status, search, page, limit } = args;
+
+    const conds: Prisma.Sql[] = [
+      Prisma.sql`("deletedBy" = 'reporter:auto' OR (jsonb_typeof(metadata -> 'reports') = 'array' AND jsonb_array_length(metadata -> 'reports') > 0))`,
+    ];
+    if (board) conds.push(Prisma.sql`board::text = ${board}`);
+    if (school) conds.push(Prisma.sql`school = ${school}`);
+    if (status === 'visible') conds.push(Prisma.sql`"isHidden" = false`);
+    if (status === 'hidden') conds.push(Prisma.sql`"isHidden" = true`);
+    if (search) {
+      const like = `%${search}%`;
+      conds.push(Prisma.sql`(content ILIKE ${like} OR title ILIKE ${like})`);
+    }
+    const whereSql = Prisma.join(conds, ' AND ');
+
+    const [rows, countRows] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ id: string }>>(
+        Prisma.sql`SELECT id FROM square_posts WHERE ${whereSql} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`,
+      ),
+      this.prisma.$queryRaw<Array<{ count: number }>>(
+        Prisma.sql`SELECT COUNT(*)::int AS count FROM square_posts WHERE ${whereSql}`,
+      ),
+    ]);
+    const total = countRows[0]?.count ?? 0;
+    const ids = rows.map((r) => r.id);
+
+    const posts = ids.length
+      ? await this.prisma.squarePost.findMany({
+          where: { id: { in: ids } },
+          include: this.squareService.postInclude(),
+        })
+      : [];
+    const byId = new Map(posts.map((p) => [p.id, p]));
+    const items = ids
+      .map((id) => byId.get(id))
+      .filter((p): p is NonNullable<typeof p> => !!p)
+      .map((p) => this.shapeAdminPost(p));
+
+    return { items, total, page, limit };
+  }
+
+  // 后管列表项整形（§5.5）：全量内容（前端自行截断）+ 举报计数 + 作者展示名。
+  // 匿名帖对管理员仍显示真实昵称（anonymous 标记随行，前端据此加"匿名"徽章）
+  private shapeAdminPost(post: any) {
+    const meta = (post.metadata as Record<string, any> | null) ?? {};
+    const reportCount = Array.isArray(meta.reports) ? meta.reports.length : 0;
+    const author =
+      post.authorType === SquareAuthorType.USER
+        ? { nickname: post.authorUser?.profile?.nickname ?? null }
+        : { name: post.admin?.name ?? null };
+    return {
+      id: post.id,
+      board: post.board,
+      authorType: post.authorType,
+      school: post.school,
+      title: post.title,
+      content: post.content,
+      images: post.images,
+      likeCount: post.likeCount,
+      commentCount: post.commentCount,
+      anonymous: post.anonymous,
+      isSponsored: post.isSponsored,
+      isHidden: post.isHidden,
+      deletedBy: post.deletedBy,
+      deleteReason: post.deleteReason,
+      deletedAt: post.deletedAt,
+      createdAt: post.createdAt,
+      reportCount,
+      author,
+    };
+  }
+
+  // ─── 后管下架（§8.1.5 / §5.5）：学生会仅可下架本校帖 ──────────
+  async adminDeletePost(actor: AdminActor, postId: string, reason?: string) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, school: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    this.adminScope.assertSchoolNameInScope(actor, post.school);
+
+    await this.prisma.squarePost.update({
+      where: { id: postId },
+      data: {
+        isHidden: true,
+        deletedBy: actor.id,
+        deletedAt: new Date(),
+        deleteReason: reason || 'Removed by admin',
+      },
+    });
+    return { hidden: true, message: '已下架' };
+  }
+
+  // ─── 后管恢复展示（ADMIN-REDESIGN §5.5）───────────────────────
+  // POST /admin/square/posts/:id/restore：isHidden=false，清 deletedBy/deletedAt/deleteReason
+  async adminRestorePost(actor: AdminActor, postId: string) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, school: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    this.adminScope.assertSchoolNameInScope(actor, post.school);
+
+    await this.prisma.squarePost.update({
+      where: { id: postId },
+      data: {
+        isHidden: false,
+        deletedBy: null,
+        deletedAt: null,
+        deleteReason: null,
+      },
+    });
+    return { restored: true, message: '已恢复展示' };
+  }
+
+  // ─── 后管清除举报（ADMIN-REDESIGN §5.5）───────────────────────
+  // POST /admin/square/posts/:id/dismiss-reports：清空 metadata.reports（保留其余键）；
+  // 若为举报自动隐藏（deletedBy='reporter:auto'）则同一 update 里恢复展示
+  async adminDismissReports(actor: AdminActor, postId: string) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, school: true, metadata: true, deletedBy: true, isHidden: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    this.adminScope.assertSchoolNameInScope(actor, post.school);
+
+    const meta = { ...(((post.metadata as Record<string, any> | null) ?? {})) };
+    delete meta.reports;
+
+    const wasAutoHidden = post.deletedBy === 'reporter:auto';
+    const data: Prisma.SquarePostUpdateInput = {
+      metadata: meta as Prisma.InputJsonValue,
+    };
+    if (wasAutoHidden) {
+      data.isHidden = false;
+      data.deletedBy = null;
+      data.deletedAt = null;
+      data.deleteReason = null;
+    }
+
+    await this.prisma.squarePost.update({ where: { id: postId }, data });
+    return {
+      dismissed: true,
+      restored: wasAutoHidden,
+      message: wasAutoHidden ? '举报已清除，帖子已恢复展示' : '举报已清除',
+    };
+  }
+}

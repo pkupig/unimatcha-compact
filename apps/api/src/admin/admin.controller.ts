@@ -22,7 +22,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 import { UpdateSystemConfigDto } from './dto/system-config.dto';
-import { CreateOfficialPostDto, ReviewPollDto } from '../square/dto/square.dto';
 
 // 当前登录后管（来自 admin-jwt 策略写入的 req.user）
 type CurrentAdmin = {
@@ -42,14 +41,6 @@ class UpdateVerificationDto {
   @ApiProperty({ enum: ['unverified', 'pending', 'verified', 'rejected'] })
   @IsIn(['unverified', 'pending', 'verified', 'rejected'])
   status: 'unverified' | 'pending' | 'verified' | 'rejected';
-}
-
-class DeletePostDto {
-  @ApiPropertyOptional({ description: '下架理由（可选）' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  reason?: string;
 }
 
 class UpdateReportStatusDto {
@@ -172,98 +163,6 @@ export class AdminController {
   @ApiOperation({ summary: '禁用后管账号（仅 SUPER；软删除 isActive=false）' })
   deleteAdminUser(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
     return this.adminService.deleteAdminUser(admin, id);
-  }
-
-  // ─── Square 官方发帖 / 广场管理（§8.1.3 + ADMIN-REDESIGN §5.5）──
-  // SUPER 不直接发帖（与服务层 canPublishOfficial 口径一致，403 提前到守卫）
-  @Post('square/posts')
-  @Roles(AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
-  @ApiOperation({ summary: '官方发帖（按 role/scope 校验 school）' })
-  createOfficialPost(@CurrentUser('id') adminId: string, @Body() dto: CreateOfficialPostDto) {
-    return this.adminService.createOfficialPost(adminId, dto);
-  }
-
-  @Get('square/posts')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '广场帖子管理列表（学生会强制本校；reported=true 过滤被举报帖）' })
-  @ApiQuery({ name: 'board', required: false, description: 'RECOMMEND / CAMPUS_WALL' })
-  @ApiQuery({ name: 'school', required: false, description: '学校名（仅 SUPER/TEAM 有效）' })
-  @ApiQuery({ name: 'status', required: false, description: 'all（默认）/ visible / hidden' })
-  @ApiQuery({ name: 'reported', required: false, description: 'true → 仅被举报帖（含自动隐藏）' })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  listSquarePosts(
-    @CurrentUser() admin: CurrentAdmin,
-    @Query('board') board?: string,
-    @Query('school') school?: string,
-    @Query('status') status?: string,
-    @Query('reported') reported?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.adminService.listSquarePosts(admin, {
-      board,
-      school,
-      status,
-      reported,
-      search,
-      page,
-      limit,
-    });
-  }
-
-  @Delete('square/posts/:id')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '后管下架广场帖（学生会仅本校）' })
-  deleteSquarePost(
-    @CurrentUser('id') adminId: string,
-    @Param('id') id: string,
-    @Body() dto: DeletePostDto,
-  ) {
-    return this.adminService.adminDeletePost(adminId, id, dto?.reason);
-  }
-
-  @Post('square/posts/:id/restore')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '恢复展示（清 deletedBy/deletedAt/deleteReason；学生会仅本校）' })
-  restoreSquarePost(@CurrentUser('id') adminId: string, @Param('id') id: string) {
-    return this.adminService.adminRestorePost(adminId, id);
-  }
-
-  @Post('square/posts/:id/dismiss-reports')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '清除举报（若为举报自动隐藏则同时恢复展示；学生会仅本校）' })
-  dismissSquarePostReports(@CurrentUser('id') adminId: string, @Param('id') id: string) {
-    return this.adminService.adminDismissReports(adminId, id);
-  }
-
-  // ─── 校园墙投票审核（学生会本校 / 团队全量）──────────────────
-  @Get('square/polls')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '投票帖审核列表（默认 pending；学生会仅本校，团队视图带 hasUnionReviewer 标记）' })
-  @ApiQuery({ name: 'status', required: false, description: 'pending（默认）/ approved / rejected' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  listPolls(
-    @CurrentUser('id') adminId: string,
-    @Query('status') status?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.adminService.listPolls(adminId, { status, page, limit });
-  }
-
-  @Post('square/polls/:id/review')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '审核投票帖（approve/reject；学生会仅本校；结果通知作者）' })
-  reviewPoll(
-    @CurrentUser('id') adminId: string,
-    @Param('id') id: string,
-    @Body() dto: ReviewPollDto,
-  ) {
-    return this.adminService.reviewPoll(adminId, id, dto);
   }
 
   // ─── 用户反馈举报队列（Report 表，SUPER/TEAM，§5.5）────────────

@@ -73,19 +73,6 @@ export class VotePollDto {
   optionIndex: number;
 }
 
-// 后管审核投票帖（POST /admin/square/polls/:id/review）
-export class ReviewPollDto {
-  @ApiProperty({ enum: ['approve', 'reject'] })
-  @IsEnum(['approve', 'reject'])
-  action: 'approve' | 'reject';
-
-  @ApiPropertyOptional({ description: '审核备注（驳回时展示给作者）' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  note?: string;
-}
-
 // 评论（POST /square/v2/posts/:id/comments）—楼中楼，复用 SquarePostComment
 export class CreateCommentDto {
   @ApiProperty({ example: '好可爱～' })
@@ -113,44 +100,4 @@ export class ReportPostDto {
   reason?: string;
 }
 
-// 后管发官方帖（由 admin 模块调用 createOfficialPost）
-export class CreateOfficialPostDto {
-  @ApiPropertyOptional({ enum: ['recommend', 'campus_wall'], example: 'recommend' })
-  @IsOptional()
-  @IsEnum(['recommend', 'campus_wall'])
-  board?: 'recommend' | 'campus_wall';
-
-  @ApiProperty({
-    enum: ['STUDENT_UNION', 'TEAM', 'SPONSOR'],
-    description: '官方帖作者类型；通常由后管 role 推导，可不传',
-  })
-  @IsOptional()
-  @IsEnum(['STUDENT_UNION', 'TEAM', 'SPONSOR'])
-  authorType?: 'STUDENT_UNION' | 'TEAM' | 'SPONSOR';
-
-  @ApiPropertyOptional({ description: '学校标注；STUDENT_UNION 必填且须为本校，TEAM/SPONSOR 可空（跨校）' })
-  @IsOptional()
-  @IsString()
-  school?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  title?: string;
-
-  @ApiProperty()
-  @IsString()
-  @MaxLength(2000)
-  content: string;
-
-  @ApiPropertyOptional({ type: [String] })
-  @IsOptional()
-  @IsArray()
-  images?: string[];
-
-  @ApiPropertyOptional({ description: 'SPONSOR 帖强制 true；其它角色可选' })
-  @IsOptional()
-  @IsBoolean()
-  isSponsored?: boolean;
-}
+// 后管发官方帖 DTO 已迁至 dto/square-admin.dto.ts（Step5）
