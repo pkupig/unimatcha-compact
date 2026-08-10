@@ -31,18 +31,6 @@ type CurrentAdmin = {
   schoolId?: string | null;
 };
 
-class UpdateStatusDto {
-  @ApiProperty({ enum: ['ACTIVE', 'BANNED'] })
-  @IsEnum(['ACTIVE', 'BANNED'])
-  status: 'ACTIVE' | 'BANNED';
-}
-
-class UpdateVerificationDto {
-  @ApiProperty({ enum: ['unverified', 'pending', 'verified', 'rejected'] })
-  @IsIn(['unverified', 'pending', 'verified', 'rejected'])
-  status: 'unverified' | 'pending' | 'verified' | 'rejected';
-}
-
 class UpdateReportStatusDto {
   @ApiProperty({ enum: ['open', 'resolved'], description: 'open → resolved（幂等）' })
   @IsIn(['open', 'resolved'], { message: 'status 参数无效（open / resolved）' })
@@ -61,60 +49,6 @@ export class AdminController {
   @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/商家）' })
   getDashboard(@CurrentUser() admin: CurrentAdmin) {
     return this.adminService.getDashboardStats(admin);
-  }
-
-  // ─── App Users（SPONSOR 一律 403；学生会自动 scope 本校，ADMIN-REDESIGN §4）──
-  @Get('users')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '用户列表（学生会仅本校 profile.school == School.name）' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  listUsers(
-    @CurrentUser() admin: CurrentAdmin,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('search') search?: string,
-    @Query('status') status?: string,
-  ) {
-    return this.adminService.listUsers(admin, { page, limit, search, status });
-  }
-
-  @Get('users/:id')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '用户详情（含答题记录；学生会仅本校）' })
-  getUserDetail(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
-    return this.adminService.getUserDetail(admin, id);
-  }
-
-  @Patch('users/:id/status')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '封禁/解封用户（学生会仅本校）' })
-  updateStatus(
-    @CurrentUser() admin: CurrentAdmin,
-    @Param('id') id: string,
-    @Body() dto: UpdateStatusDto,
-  ) {
-    return this.adminService.updateUserStatus(admin, id, dto.status);
-  }
-
-  @Patch('users/:id/reset-mode')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '重置用户匹配模式（临时对话→过期，已确认关系→解除，状态机回 idle；学生会仅本校）' })
-  resetMode(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
-    return this.adminService.resetUserMode(admin, id);
-  }
-
-  @Patch('users/:id/verification')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '更新用户学生认证状态（unverified/pending/verified/rejected；学生会仅本校）' })
-  updateVerification(
-    @CurrentUser() admin: CurrentAdmin,
-    @Param('id') id: string,
-    @Body() dto: UpdateVerificationDto,
-  ) {
-    return this.adminService.updateUserVerification(admin, id, dto.status);
   }
 
   // ─── Admin Users（后管账号管理，§8.1.3 + ADMIN-REDESIGN §4） ─────

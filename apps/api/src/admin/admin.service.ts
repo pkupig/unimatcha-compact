@@ -12,7 +12,6 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 import { AD_PRICING_DEFAULTS_KEY, CONFIG_KEY_ALLOWLIST } from './dto/system-config.dto';
@@ -27,10 +26,7 @@ type CurrentAdmin = {
 
 @Injectable()
 export class AdminService {
-  constructor(
-    private prisma: PrismaService,
-    private usersService: UsersService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   // ─── 角色/范围工具（ADMIN-REDESIGN §1）──────────────────────
   // role 为权威；isSuperAdmin 仅向下兼容旧账号
@@ -65,24 +61,6 @@ export class AdminService {
       }),
     ]);
     return (ledger._sum.amountCents ?? 0) - (frozen._sum.amountCents ?? 0);
-  }
-
-  // 用户管理 scope 校验（ADMIN-REDESIGN §4）：
-  // SPONSOR 一律 403；学生会仅可操作本校用户（profile.school == School.name）
-  private async assertUserScope(actor: CurrentAdmin, userId: string) {
-    const role = this.effectiveRole(actor);
-    if (role === AdminRole.SPONSOR) {
-      throw new ForbiddenException('商家账号无权访问用户管理');
-    }
-    if (role !== AdminRole.STUDENT_UNION) return;
-    const school = await this.resolveUnionSchool(actor);
-    const profile = await this.prisma.profile.findUnique({
-      where: { userId },
-      select: { school: true },
-    });
-    if (!profile || profile.school !== school.name) {
-      throw new ForbiddenException('学生会只能操作本校用户');
-    }
   }
 
   // ─── 仪表盘（角色化 payload，ADMIN-REDESIGN §4）──────────────
@@ -183,79 +161,6 @@ export class AdminService {
       pendingPlatformReview,
       pendingSubmissions,
     };
-  }
-
-  async listUsers(
-    actor: CurrentAdmin,
-    params: { page?: number; limit?: number; search?: string; status?: string },
-  ) {
-    const role = this.effectiveRole(actor);
-    if (role === AdminRole.SPONSOR) {
-      throw new ForbiddenException('商家账号无权访问用户管理');
-    }
-    // 学生会：强制过滤 profile.school == 本校 School.name（ADMIN-REDESIGN §4）
-    if (role === AdminRole.STUDENT_UNION) {
-      const school = await this.resolveUnionSchool(actor);
-      return this.usersService.findAll({ ...params, school: school.name });
-    }
-    return this.usersService.findAll(params);
-  }
-
-  async getUserDetail(actor: CurrentAdmin, userId: string) {
-    await this.assertUserScope(actor, userId);
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        profile: true,
-        // 双模式：每模式状态迁入 UserModeState
-        modeStates: {
-          select: { mode: true, matchState: true, matchSearchingSince: true, weeklyMatchNote: true },
-        },
-        answers: {
-          include: {
-            question: { select: { title: true, type: true } },
-            questionnaireVersion: { select: { version: true, title: true } },
-          },
-          orderBy: { submittedAt: 'desc' },
-          take: 50,
-        },
-        matchesAsUserA: {
-          include: {
-            userB: { select: { email: true, profile: { select: { nickname: true } } } },
-          },
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        },
-        matchesAsUserB: {
-          include: {
-            userA: { select: { email: true, profile: { select: { nickname: true } } } },
-          },
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-    if (!user) throw new NotFoundException('User not found');
-    return user;
-  }
-
-  async updateUserStatus(actor: CurrentAdmin, userId: string, status: 'ACTIVE' | 'BANNED') {
-    await this.assertUserScope(actor, userId);
-    return this.usersService.updateStatus(userId, status);
-  }
-
-  async resetUserMode(actor: CurrentAdmin, userId: string) {
-    await this.assertUserScope(actor, userId);
-    return this.usersService.resetUserMode(userId);
-  }
-
-  async updateUserVerification(
-    actor: CurrentAdmin,
-    userId: string,
-    status: 'unverified' | 'pending' | 'verified' | 'rejected',
-  ) {
-    await this.assertUserScope(actor, userId);
-    return this.usersService.updateVerificationStatus(userId, status);
   }
 
   // ─── 后管账号管理（§8.1.3 + ADMIN-REDESIGN §4 分级权限）──────────────
