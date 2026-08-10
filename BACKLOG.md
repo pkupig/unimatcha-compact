@@ -54,6 +54,7 @@
 | P1-5 | **调度 B 方案**：`MatchRound` 两阶段（周五开池 / 周日计算 / 周日公布分离） | A 方案是"算=公布同刻"；B 才有"开始 vs 公布"的仪式感 | 见 `SCHEDULING.md` §方案B |
 | P1-6 | **前端反馈收集 UI**：合适/不合适/原因、聊后反馈、解除原因 | 这些是训练标签的来源，但展示要克制 | 依赖 P0-2 |
 | P1-7 | **探索流量（反马太效应）**：后端把 `waitingRounds`/`exposureCount` 填进候选，给长等待用户加权 | 防止受欢迎的人越推越多、普通用户没曝光 | 字段已在 schema 预留 |
+| P1-8 | **门票加入 Apple Wallet**：签发 `.pkpass` | 用户要求；前端入口与下载逻辑已就绪（`addTicketToWallet`），仅缺签发 | **阻塞在证书**：需 ①Apple Developer Program（$99/年）②Pass Type ID 证书(.p12) ③WWDR 中间证书。到位后：实现 `GET /events/tickets/:id/pkpass`（证书走 env，未配置返回 501），并把 `profile.js` 的 `ENABLE_APPLE_WALLET` 改 true |
 
 ---
 

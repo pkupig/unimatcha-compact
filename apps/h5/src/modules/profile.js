@@ -1394,6 +1394,13 @@ async function loadMyTickets() {
 }
 window.loadMyTickets = loadMyTickets;
 
+// Apple Wallet 入口开关。签发 .pkpass 必须用 Apple Developer 的 Pass Type ID
+// 证书签名，否则 iPhone 直接拒装——证书到位前隐藏入口，不留点了只报错的死按钮。
+// 启用步骤：①申请 Apple Developer + Pass Type ID 证书（.p12）与 WWDR 中间证书；
+// ②实现后端 GET /events/tickets/:id/pkpass（证书走 env，未配置返回 501）；
+// ③把此常量改为 true。前端 addTicketToWallet 已就绪，无需改动。
+const ENABLE_APPLE_WALLET = false;
+
 // ── 票券详情（点票根打开）：大二维码 + 完整信息 + 加入卡包 ──
 function openTicketDetail(i) {
   const t = (S.myTickets || [])[i];
@@ -1433,13 +1440,13 @@ function openTicketDetail(i) {
         <p class="text-[11px] text-outline mt-1">${used ? (zh ? '此票已使用' : 'This ticket has been used') : (zh ? '入场时出示此二维码' : 'Show this QR at the entrance')}</p>
       </div>
     </div>
-    <div class="w-full max-w-sm mx-auto mt-5">
+    ${ENABLE_APPLE_WALLET ? `<div class="w-full max-w-sm mx-auto mt-5">
       <button id="add-to-wallet-btn" onclick="addTicketToWallet('${window.escapeHtml(t.id || t.code)}')"
         class="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] bg-black text-white active:scale-[0.98] transition-transform">
         <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
         <span class="font-headline text-sm font-bold tracking-wide">${zh ? '添加到 Apple Wallet' : 'Add to Apple Wallet'}</span>
       </button>
-    </div>`;
+    </div>` : ''}`;
   window.openOverlay('ticket-detail-overlay');
   const box = document.getElementById('ticket-detail-qr');
   if (box && window.QRCode) {
