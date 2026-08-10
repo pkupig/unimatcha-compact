@@ -263,11 +263,10 @@
       transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: height;
     }
-    /* 头像区半速视差：白色内容区不透明，会盖住背景底部，所以「可见背景」是
-       0→白色区顶，其中心只下移 dist/2，而内容整体下移 dist。给头像区反向补偿
-       -dist/2 让它净下移 dist/2，与可见背景中心同速——头像因此在下拉全程稳定
-       停在背景正中（相对可见中心恒定 -5px，与静止时一致）。 */
-    #profile-menu-inner > section {
+    /* 背景图在容器变高之外再叠一层放大（用户反馈：只靠容器长高放大感不明显）。
+       容器 overflow-hidden 会裁掉溢出部分，视觉上就是背景被推近。
+       跟手期间 JS 关过渡逐帧写 transform，松手清空走这里的过渡弹回。 */
+    #profile-bg {
       transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }
