@@ -748,7 +748,9 @@
 <div id="tab-profile" class="tab-content" style="display: none;">
   <button id="verify-btn" type="button" class="absolute top-6 right-6 z-30"></button>
   <!-- 固定背景层（滚动/下拉都不动） -->
-  <div id="profile-hero" class="absolute top-0 left-0 w-full z-0 overflow-hidden pointer-events-none" style="height:340px">
+  <!-- 高度移到 main.css（#profile-hero）：下拉时 JS 写 inline height 跟手延展，
+       松手清空 inline 值即可回落到基准高度并走 CSS 过渡 -->
+  <div id="profile-hero" class="absolute top-0 left-0 w-full z-0 overflow-hidden pointer-events-none">
     <img id="profile-bg" alt="Campus Background" class="absolute inset-0 w-full h-full object-cover object-[center_30%]" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23e5e5e5'/%3E%3C/svg%3E"/>
     <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(249,249,249,0) 40%, rgba(249,249,249,0.5) 72%, #f9f9f9 98%)"></div>
     <div class="profile-blur-mask"></div>

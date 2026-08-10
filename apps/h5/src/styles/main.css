@@ -251,13 +251,23 @@
     }
 
     /* Profile background blur progression: top clear -> bottom blurred (blur degree transition, not a color gradient) */
-    /* 背景图随下拉延展（小红书式，用户反馈）：transform-origin 锚在顶部中央，
-       缩放只让图片「向下长」，顶边不动——视觉上就是图片填满下拉腾出的空间。
-       跟手期间 JS 关掉过渡逐帧写 transform，松手清空 inline 值走这里的过渡
-       平滑弹回，与 .profile-blur-mask 同一套路。容器 #profile-hero 是
-       overflow-hidden，溢出部分被裁掉。 */
-    #profile-bg {
-      transform-origin: center top;
+    /* 背景随下拉延展（小红书式，用户反馈）：长的是 hero 容器高度，不是图片
+       transform——图片 object-cover 自动填充新高度，而 inset-0 的白色渐变层与
+       模糊层会跟着一起变高，白色过渡始终贴在背景底边，不会与下移的内容区错位
+       （早先只缩放图片时渐变留在原处，正是「过渡白色很怪异」的成因）。
+       高度增量 = 下拉距离（1:1），使背景底边与同样下移 dist 的白色内容区保持
+       原有的 6px 衔接关系，渐变过渡始终自然。
+       跟手期间 JS 关掉过渡逐帧写 height，松手清空 inline 值走这里的过渡弹回。 */
+    #profile-hero {
+      height: 340px;
+      transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: height;
+    }
+    /* 头像区半速视差：白色内容区不透明，会盖住背景底部，所以「可见背景」是
+       0→白色区顶，其中心只下移 dist/2，而内容整体下移 dist。给头像区反向补偿
+       -dist/2 让它净下移 dist/2，与可见背景中心同速——头像因此在下拉全程稳定
+       停在背景正中（相对可见中心恒定 -5px，与静止时一致）。 */
+    #profile-menu-inner > section {
       transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }

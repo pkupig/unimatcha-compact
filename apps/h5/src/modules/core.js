@@ -426,7 +426,8 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
     el.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1)' : 'none';
     el.style.transform = y ? 'translateY(' + y + 'px)' : '';
   });
-  const THRESH = 70; // 触发刷新的下拉距离（下拉距离不设上限，阻尼跟手）
+  const THRESH = 70;    // 触发刷新的下拉距离
+  const PULL_MAX = 180; // 橡皮筋上限：拉再多也不超过这个位移
   let startY = 0, pulling = false, dist = 0, refreshing = false;
   const setPos = (y, animate) => {
     ind.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s' : 'none';
@@ -453,7 +454,10 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
     if (container.dataset.horizLock === '1') { dist = 0; ind.classList.remove('ptr-ready'); ind.style.opacity = '0'; return; } // 只藏指示器，内容 transform 归横滑手势管
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
-    dist = dy * 0.5; // 阻尼，不设上限（用户反馈：拉多少都行）
+    // 橡皮筋阻尼（用户反馈：下拉太多不好看）：越拉越沉，渐进逼近 PULL_MAX 而
+    // 永不超过——手感接近 iOS，也避免 profile 背景被拉伸过头。
+    // dy=90→70(刚够触发)、dy=200→122、dy=400→160、dy→∞ 收敛到 180。
+    dist = PULL_MAX * (1 - Math.exp(-dy / PULL_MAX));
     ind.style.opacity = String(Math.min(1, dist / 40));
     // 跟手下降 + 随进度旋转一圈
     setPos(dist, false);

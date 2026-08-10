@@ -568,34 +568,39 @@ window.submitVerification = submitVerification;
 // 背景模糊随下拉消散（用户反馈）：拉距 0→140px 内 blur-mask 透明度 1→0，
 // 跟手期间关掉过渡逐帧写值，松手/复位还原空值走 CSS 0.45s 弹回。
 const BLUR_REVEAL_DIST = 140;
-// 小红书式跟手延展：图片高度 = hero 高 + 下拉距离（scale 由 transform-origin:top
-// 换算），所以图片底边正好跟着手指走。HERO_H 与 index.html 的 #profile-hero
-// 内联高度绑定；上限 2× 防极端拉伸。
+// 小红书式跟手延展：长 hero 容器高度（图片 object-cover 自动填充，渐变/模糊层
+// inset-0 一起跟随）。高度 1:1 跟手保持与白色内容区的衔接；头像居中另由半速
+// 视差实现（见 onPull）。HERO_H 与 main.css 的 #profile-hero 基准高度绑定。
 const HERO_H = 340;
-const BG_MAX_SCALE = 2;
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
   window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner', {
     onPull: (dist) => {
       const m = document.querySelector('#tab-profile .profile-blur-mask');
-      const bg = document.getElementById('profile-bg');
+      const hero = document.getElementById('profile-hero');
+      const avatarSec = document.querySelector('#profile-menu-inner > section');
       if (dist > 0) {
         // 模糊随拉距消散
         if (m) {
           m.style.transition = 'none';
           m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
         }
-        // 背景图跟手向下延展（顶边不动，底边跟手指走）
-        if (bg) {
-          bg.style.transition = 'none';
-          const scale = Math.min(BG_MAX_SCALE, (HERO_H + dist) / HERO_H);
-          bg.style.transform = `scale(${scale.toFixed(4)})`;
+        // 背景区跟手向下延展（顶边不动、底边随手指，与白色区保持原衔接）
+        if (hero) {
+          hero.style.transition = 'none';
+          hero.style.height = (HERO_H + dist) + 'px';
+        }
+        // 头像区半速视差：净下移 dist/2，与「可见背景」中心同速 → 恒在正中
+        if (avatarSec) {
+          avatarSec.style.transition = 'none';
+          avatarSec.style.transform = `translateY(${-dist / 2}px)`;
         }
       } else {
         // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回
         if (m) { m.style.transition = ''; m.style.opacity = ''; }
-        if (bg) { bg.style.transition = ''; bg.style.transform = ''; }
+        if (hero) { hero.style.transition = ''; hero.style.height = ''; }
+        if (avatarSec) { avatarSec.style.transition = ''; avatarSec.style.transform = ''; }
       }
     }
   });
