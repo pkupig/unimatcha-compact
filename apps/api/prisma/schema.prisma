@@ -93,6 +93,7 @@ model User {
   squarePosts    SquarePost[]        @relation("SquarePostAuthor")
   squareComments SquarePostComment[] @relation("SquarePostCommentAuthor")
   squareLikes    SquarePostLike[]    @relation("SquarePostLikes")
+  squareCommentLikes SquareCommentLike[] @relation("SquareCommentLikes")
 
   // 匹配偏好（每模式一条）
   matchPreferences UserMatchPreferences[]
@@ -713,12 +714,28 @@ model SquarePostComment {
   parentCommentId String?
   parent          SquarePostComment?  @relation("SquareCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         SquarePostComment[] @relation("SquareCommentReplies")
+  likes           SquareCommentLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([postId, createdAt])
   @@map("square_post_comments")
+}
+
+// 评论点赞：每人每条评论一次（唯一约束保证幂等）。
+// 计数不落字段、按需 _count 聚合——评论量小，且避免 likeCount 漂移。
+model SquareCommentLike {
+  id        String            @id @default(cuid())
+  commentId String
+  comment   SquarePostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation("SquareCommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@map("square_comment_likes")
 }
 
 model SquarePostLike {

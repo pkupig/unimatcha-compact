@@ -116,6 +116,15 @@ export class SquareController {
     return this.squareService.createComment(userId, postId, dto);
   }
 
+  @Post('comments/:id/like')
+  @ApiOperation({ summary: '评论点赞（切换）' })
+  async likeComment(
+    @CurrentUser('id') userId: string,
+    @Param('id') commentId: string,
+  ) {
+    return this.squareService.likeComment(commentId, userId);
+  }
+
   @Post('posts/:id/report')
   @ApiOperation({ summary: '举报（累计 ≥3 自动隐藏）' })
   async reportPost(

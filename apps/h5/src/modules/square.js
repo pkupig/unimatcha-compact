@@ -976,6 +976,51 @@ function reportDoneToast(err) {
   else window.toast(zh ? '举报已提交，我们会尽快处理' : 'Report submitted — thanks for flagging');
 }
 
+// 帖子操作卡（页眉「更多」弹出）：分享 / 举报，与评论长按卡同一形式
+function openPdPostMenu(ev) {
+  document.querySelectorAll('.pd-cm-menu').forEach((e) => e.remove());
+  const zh = (window.getLang?.() === 'zh');
+  const row = (icon, label, attr) =>
+    `<button ${attr} class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 active:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-outline" style="font-size:18px">${icon}</span>
+      <span class="text-sm text-on-surface" data-no-i18n>${label}</span>
+    </button>`;
+  const menu = document.createElement('div');
+  menu.className = 'pd-cm-menu fixed z-[130] min-w-[148px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
+  menu.innerHTML =
+    row('ios_share', zh ? '分享' : 'Share', 'data-share') +
+    row('flag', zh ? '举报帖子' : 'Report post', 'data-report');
+  const btn = document.getElementById('pd-report-btn');
+  const r = btn ? btn.getBoundingClientRect() : { left: (ev?.clientX || 0), bottom: (ev?.clientY || 0) };
+  menu.style.left = Math.max(8, Math.min(r.left - 100, window.innerWidth - 164)) + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
+  document.body.appendChild(menu);
+  const close = () => menu.remove();
+  menu.querySelector('[data-share]').onclick = () => { close(); sharePdPost(); };
+  menu.querySelector('[data-report]').onclick = () => { close(); reportPdPost(); };
+  setTimeout(() => document.addEventListener('click', function once() {
+    close(); document.removeEventListener('click', once);
+  }), 10);
+}
+window.openPdPostMenu = openPdPostMenu;
+
+async function sharePdPost() {
+  const zh = (window.getLang?.() === 'zh');
+  const p = S.pdPostData || {};
+  const title = p.title || 'Unimatcha';
+  const text = p.content ? String(p.content).slice(0, 140) : title;
+  const url = location.origin || 'https://app.unimatcha.ai';
+  try {
+    if (navigator.share) { await navigator.share({ title, text, url }); return; }
+    await navigator.clipboard.writeText(`${title}\n${text}\n${url}`);
+    window.toast(zh ? '已复制到剪贴板' : 'Copied to clipboard');
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
+    window.toast(zh ? '分享失败' : 'Share failed');
+  }
+}
+window.sharePdPost = sharePdPost;
+
 async function reportPdPost() {
   const postId = S.currentPostId;
   if (!postId) return;
@@ -1017,7 +1062,104 @@ async function reportPdComment(commentId) {
 }
 window.reportPdComment = reportPdComment;
 
-// 评论长按 600ms 举报：事件委托绑在 #pd-content 上（只绑一次，渲染重置不受影响）。
+// ── 评论点赞 ──
+// 在 S.pdPostData 的楼层树里就地更新点赞态（父楼 + 回复都覆盖）
+function applyPdCommentLike(commentId, liked, likeCount) {
+  const walk = (c) => {
+    if (!c) return false;
+    if (c.id === commentId) { c.myLiked = liked; c.likeCount = likeCount; return true; }
+    return (c.replies || []).some(walk);
+  };
+  (S.pdPostData?.comments || []).some(walk);
+}
+
+function findPdComment(commentId) {
+  for (const cm of (S.pdPostData?.comments || [])) {
+    if (cm.id === commentId) return cm;
+    const r = (cm.replies || []).find(x => x.id === commentId);
+    if (r) return r;
+  }
+  return null;
+}
+
+async function likePdComment(commentId, btn) {
+  if (!commentId) return;
+  try {
+    const data = await window.api(`/square/v2/comments/${commentId}/like`, 'POST');
+    const res = unwrap(data);
+    const liked = !!res.liked;
+    const count = res.likeCount != null ? res.likeCount : 0;
+    applyPdCommentLike(commentId, liked, count);
+    // 就地刷新按钮（不整页重渲染，保住滚动位置）
+    const row = document.querySelector(`[data-comment-id="${commentId}"]`);
+    const icon = (btn || row)?.querySelector?.('[data-cm-like-icon]') || row?.querySelector('[data-cm-like-icon]');
+    const cnt = (btn || row)?.querySelector?.('[data-cm-like-count]') || row?.querySelector('[data-cm-like-count]');
+    if (icon) {
+      icon.style.fontVariationSettings = `'FILL' ${liked ? 1 : 0}`;
+      icon.classList.toggle('text-neon-pink', liked);
+    }
+    if (cnt) cnt.textContent = String(count);
+  } catch (e) {
+    window.toast(e?.message || 'Failed to like');
+  }
+}
+window.likePdComment = likePdComment;
+
+// ── 评论分享 ──
+// 优先系统分享面板（移动端），不支持则复制到剪贴板。
+async function sharePdComment(commentId) {
+  const zh = (window.getLang?.() === 'zh');
+  const text = pdCommentText(commentId);
+  const title = S.pdPostData?.title || 'Unimatcha';
+  const url = location.origin || 'https://app.unimatcha.ai';
+  const payload = `${text}\n— ${title} · Unimatcha\n${url}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
+    }
+    await navigator.clipboard.writeText(payload);
+    window.toast(zh ? '已复制到剪贴板' : 'Copied to clipboard');
+  } catch (e) {
+    if (e?.name === 'AbortError') return; // 用户在系统面板里取消
+    window.toast(zh ? '分享失败' : 'Share failed');
+  }
+}
+window.sharePdComment = sharePdComment;
+
+// ── 评论操作卡（长按弹出）：分享 / 点赞 / 举报 ──
+function openPdCommentMenu(commentId, x, y) {
+  document.querySelectorAll('.pd-cm-menu').forEach((e) => e.remove());
+  const zh = (window.getLang?.() === 'zh');
+  const cm = findPdComment(commentId);
+  const liked = !!cm?.myLiked;
+  const row = (icon, label, attr) =>
+    `<button ${attr} class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 active:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-outline" style="font-size:18px">${icon}</span>
+      <span class="text-sm text-on-surface" data-no-i18n>${label}</span>
+    </button>`;
+  const menu = document.createElement('div');
+  menu.className = 'pd-cm-menu fixed z-[130] min-w-[148px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
+  menu.innerHTML =
+    row('ios_share', zh ? '分享' : 'Share', 'data-share') +
+    row(liked ? 'heart_minus' : 'favorite', liked ? (zh ? '取消点赞' : 'Unlike') : (zh ? '点赞' : 'Like'), 'data-like') +
+    row('flag', zh ? '举报' : 'Report', 'data-report');
+  // 贴着长按点弹出，右/下边界内收避免溢出屏幕
+  menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 164)) + 'px';
+  menu.style.top = Math.max(8, Math.min(y + 8, window.innerHeight - 150)) + 'px';
+  document.body.appendChild(menu);
+  const close = () => menu.remove();
+  menu.querySelector('[data-share]').onclick = () => { close(); sharePdComment(commentId); };
+  menu.querySelector('[data-like]').onclick = () => { close(); likePdComment(commentId); };
+  menu.querySelector('[data-report]').onclick = () => { close(); reportPdComment(commentId); };
+  // 下一帧再挂全局关闭，避免本次 touchend/click 立刻把菜单关掉
+  setTimeout(() => document.addEventListener('click', function once() {
+    close(); document.removeEventListener('click', once);
+  }), 10);
+}
+window.openPdCommentMenu = openPdCommentMenu;
+
+// 评论长按 600ms 弹操作卡：事件委托绑在 #pd-content 上（只绑一次，渲染重置不受影响）。
 // 手指移动 >10px 视为滚动，取消长按；桌面右键同样触发。
 function bindPdCommentLongPress() {
   const root = document.getElementById('pd-content');
@@ -1028,14 +1170,15 @@ function bindPdCommentLongPress() {
   root.addEventListener('touchstart', (e) => {
     cancel();
     const el = e.target.closest?.('[data-comment-id]');
-    if (!el) return;
+    // 点赞/回复按钮上不触发长按（避免与直接点击冲突）
+    if (!el || e.target.closest?.('button')) return;
     const t = e.touches[0];
     sx = t.clientX; sy = t.clientY;
     const id = el.dataset.commentId;
     timer = setTimeout(() => {
       timer = null;
       try { navigator.vibrate?.(15); } catch (err) { /* 不支持震动：忽略 */ }
-      reportPdComment(id);
+      openPdCommentMenu(id, sx, sy);
     }, 600);
   }, { passive: true });
   root.addEventListener('touchmove', (e) => {
@@ -1049,7 +1192,7 @@ function bindPdCommentLongPress() {
     const el = e.target.closest?.('[data-comment-id]');
     if (!el) return;
     e.preventDefault();
-    reportPdComment(el.dataset.commentId);
+    openPdCommentMenu(el.dataset.commentId, e.clientX, e.clientY);
   });
 }
 window.bindPdCommentLongPress = bindPdCommentLongPress;
@@ -1152,18 +1295,30 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
     : (!!authorKey?.value && cm.userId === authorKey.value);
   // 楼层收紧：回复行头像缩小并缩进到父楼内容起点（32px 头像 + 12px 间距）
   const avSize = isReply ? 'w-7 h-7' : 'w-8 h-8';
-  // data-comment-id：长按举报的事件委托靠它定位楼层（bindPdCommentLongPress）
+  const liked = !!cm.myLiked;
+  const likeCount = cm.likeCount || 0;
+  // 楼主标记改为名字后的小圆点 + 「作者」轻字（原黑底徽标过重）
+  const authorTag = isAuthor
+    ? `<span class="shrink-0 inline-flex items-center gap-1 text-[10px] text-primary/70 font-medium" data-no-i18n><span class="w-1 h-1 rounded-full bg-primary/60"></span><span>${(window.getLang?.() === 'zh') ? '作者' : 'Author'}</span></span>`
+    : '';
+  // data-comment-id：长按弹操作卡的事件委托靠它定位楼层（bindPdCommentLongPress）
   return `<div class="pd-comment flex gap-3${isReply ? ' pl-11' : ''}" data-comment-id="${cm.id}">
     ${avatar
       ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
       : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between gap-2">
-        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
+        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${authorTag}</span>
         <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(cm.createdAt)}</span>
       </div>
       <p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content || '')}</p>
-      <button class="mt-1.5 text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
+      <div class="flex items-center gap-4 mt-1.5">
+        <button class="text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
+        <button class="flex items-center gap-1 text-outline active:scale-90 transition-transform" onclick="event.stopPropagation();likePdComment('${cm.id}', this)" aria-label="Like">
+          <span data-cm-like-icon class="material-symbols-outlined text-[15px] ${liked ? 'text-neon-pink' : ''}" style="font-variation-settings:'FILL' ${liked ? 1 : 0};">favorite</span>
+          <span data-cm-like-count class="text-[10px] font-bold" data-no-i18n>${likeCount}</span>
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -1190,7 +1345,7 @@ function renderPostDetail(post) {
   const liked = !!post.myLiked;
   c.innerHTML = `
     <!-- 作者行提到图片上方（用户反馈）：头像 + 名字/学校 在左，时间在右 -->
-    <div class="flex items-center justify-between gap-3 px-6 pt-5 pb-4 bg-surface-container-lowest">
+    <div class="flex items-center justify-between gap-3 px-4 pt-5 pb-4 bg-surface-container-lowest">
       <div class="flex items-center gap-3 min-w-0">
         ${renderAuthorAvatars(post)}
         <div class="min-w-0" data-no-i18n>
@@ -1202,7 +1357,7 @@ function renderPostDetail(post) {
       <p class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</p>
     </div>
     ${renderPdImages(images)}
-    <article class="px-6 pt-5 pb-4 bg-surface-container-lowest">
+    <article class="px-4 pt-5 pb-4 bg-surface-container-lowest">
       <div class="grid grid-cols-12 gap-6 items-start">
         <div class="col-span-12 min-w-0">
           ${post.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${window.escapeHtml(post.title)}</h2>` : ''}
@@ -1223,7 +1378,7 @@ function renderPostDetail(post) {
         </button>
       </div>
     </article>
-    <div class="px-6 pt-5 pb-6 bg-surface" data-pd-comments>
+    <div class="px-4 pt-5 pb-6 bg-surface" data-pd-comments>
       <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span> <span class="font-normal tracking-normal text-outline normal-case" data-pd-lp-hint data-no-i18n></span></h3>
       <div class="space-y-7">
         ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')
@@ -1236,7 +1391,7 @@ function renderPostDetail(post) {
   // 长按举报提示（有评论时才提示）+ 事件委托绑定（只绑一次）
   const hint = c.querySelector('[data-pd-lp-hint]');
   if (hint && comments.length) {
-    hint.textContent = (window.getLang?.() === 'zh') ? '· 长按可举报' : '· long-press to report';
+    hint.textContent = (window.getLang?.() === 'zh') ? '· 长按更多操作' : '· long-press for options';
   }
   bindPdCommentLongPress();
 }

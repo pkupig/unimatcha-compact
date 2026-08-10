@@ -519,6 +519,10 @@ export class SquareService {
                 profile: { select: { nickname: true, avatarUrl: true } },
               },
             },
+            // 评论点赞：_count 出总数；likes 只取当前用户自己的行判定 myLiked
+            // （未登录时 userId 为空串，匹配不到任何行）
+            _count: { select: { likes: true } },
+            likes: { where: { userId: userId ?? '' }, select: { id: true } },
             replies: {
               orderBy: { createdAt: 'asc' },
               include: {
@@ -528,6 +532,8 @@ export class SquareService {
                     profile: { select: { nickname: true, avatarUrl: true } },
                   },
                 },
+                _count: { select: { likes: true } },
+                likes: { where: { userId: userId ?? '' }, select: { id: true } },
               },
             },
           },
@@ -557,9 +563,26 @@ export class SquareService {
     if (post.anonymous && post.authorType === SquareAuthorType.USER && Array.isArray(post.comments) && post.comments.length) {
       await this.anonymizeComments(post);
     }
-    const shaped = { ...this.shapePost(post, userId), comments: post.comments, myLiked };
+    const shaped = { ...this.shapePost(post, userId), comments: this.shapeComments(post.comments), myLiked };
     if (userId) await this.annotateMyVotes([shaped], userId);
     return shaped;
+  }
+
+  // 评论出参整形：把 _count.likes 折成 likeCount、当前用户的 likes 行折成
+  // myLiked，并剥掉原始 likes 数组（否则会把点赞者 id 泄露给所有人）。
+  private shapeComments(comments: any[]): any[] {
+    if (!Array.isArray(comments)) return [];
+    const one = (c: any) => {
+      if (!c) return c;
+      const { _count, likes, ...rest } = c;
+      return {
+        ...rest,
+        likeCount: _count?.likes ?? 0,
+        myLiked: Array.isArray(likes) && likes.length > 0,
+        replies: Array.isArray(rest.replies) ? rest.replies.map(one) : [],
+      };
+    };
+    return comments.map(one);
   }
 
   // ─── 评论（楼中楼，§8.1.5）──────────────────────────────────
@@ -650,6 +673,34 @@ export class SquareService {
   }
 
   // ─── 点赞（切换）────────────────────────────────────────────
+  // 评论点赞（切换）。计数不落字段，改后按 _count 聚合返回最新值；
+  // 唯一约束 (commentId,userId) 保证并发重复点赞不会重复入行。
+  async likeComment(commentId: string, userId: string) {
+    const comment = await this.prisma.squarePostComment.findUnique({
+      where: { id: commentId },
+      select: { id: true, post: { select: { isHidden: true, authorUserId: true } } },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.post?.isHidden && comment.post.authorUserId !== userId) {
+      throw new NotFoundException('Comment not found');
+    }
+    const liked = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.squareCommentLike.findUnique({
+        where: { commentId_userId: { commentId, userId } },
+      });
+      if (existing) {
+        await tx.squareCommentLike.delete({
+          where: { commentId_userId: { commentId, userId } },
+        });
+        return false;
+      }
+      await tx.squareCommentLike.create({ data: { commentId, userId } });
+      return true;
+    });
+    const likeCount = await this.prisma.squareCommentLike.count({ where: { commentId } });
+    return { liked, likeCount };
+  }
+
   async likePost(postId: string, userId: string) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
