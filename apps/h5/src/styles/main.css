@@ -263,13 +263,8 @@
       transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: height;
     }
-    /* 背景图在容器变高之外再叠一层放大（用户反馈：只靠容器长高放大感不明显）。
-       容器 overflow-hidden 会裁掉溢出部分，视觉上就是背景被推近。
-       跟手期间 JS 关过渡逐帧写 transform，松手清空走这里的过渡弹回。 */
-    #profile-bg {
-      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: transform;
-    }
+    /* 背景图不做额外 scale：放大完全由 hero 容器变高 + object-cover 填充产生，
+       与手指严格同步（叠 scale 会让图片内容跑得比手指快，产生「差距感」）。 */
     .profile-blur-mask {
       position: absolute;
       inset: 0;

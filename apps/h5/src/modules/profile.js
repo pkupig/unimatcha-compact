@@ -570,10 +570,8 @@ window.submitVerification = submitVerification;
 const BLUR_REVEAL_DIST = 140;
 // 小红书式跟手延展：hero 容器高度 1:1 跟手（图片 object-cover 自动填充、模糊层
 // inset-0 跟随），头像与下方功能区一起 1:1 下移、保持一致。
-// HERO_H 与 main.css 的 #profile-hero 基准高度绑定；BG_ZOOM_DIV 越小放大越猛
-// （拉到橡皮筋上限 180px 时约 1.36×）。
+// HERO_H 与 main.css 的 #profile-hero 基准高度绑定。
 const HERO_H = 340;
-const BG_ZOOM_DIV = 500;
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
@@ -581,28 +579,24 @@ function setupBgPullReveal() {
     onPull: (dist) => {
       const m = document.querySelector('#tab-profile .profile-blur-mask');
       const hero = document.getElementById('profile-hero');
-      const bg = document.getElementById('profile-bg');
       if (dist > 0) {
         // 模糊随拉距消散
         if (m) {
           m.style.transition = 'none';
           m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
         }
-        // 背景区跟手向下延展（顶边不动、底边随手指，与白色内容区一起下移）
+        // 背景区高度 1:1 跟手 —— 底边与下方功能区锁死（始终差 6px），
+        // 图片由 object-cover 填充新高度，放大速度因此与手指严格同步。
+        // 刻意不叠额外 scale：那会让图片内容的移动快于手指，正是「放大与
+        // 下拉有差距」的来源（用户反馈）。
         if (hero) {
           hero.style.transition = 'none';
           hero.style.height = (HERO_H + dist) + 'px';
-        }
-        // 再叠一层图片放大，让「推近」的观感明显（容器已 overflow-hidden）
-        if (bg) {
-          bg.style.transition = 'none';
-          bg.style.transform = `scale(${(1 + dist / BG_ZOOM_DIV).toFixed(4)})`;
         }
       } else {
         // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回
         if (m) { m.style.transition = ''; m.style.opacity = ''; }
         if (hero) { hero.style.transition = ''; hero.style.height = ''; }
-        if (bg) { bg.style.transition = ''; bg.style.transform = ''; }
       }
     }
   });
