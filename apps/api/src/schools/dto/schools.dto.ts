@@ -9,6 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /**
  * 学校管理 DTO（docs/ADMIN-REDESIGN.md §4 schools）。
@@ -163,4 +164,17 @@ export class UpdateAdPricingDefaultsDto {
   @IsInt()
   @Min(1, { message: '单价须为正整数（分）' })
   cpcPriceCents: number;
+}
+
+// 学校列表查询（GET /admin/schools）
+export class ListSchoolsQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ description: '模糊匹配 name / city' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ description: "'true' / 'false'" })
+  @IsOptional()
+  @IsString()
+  isActive?: string;
 }

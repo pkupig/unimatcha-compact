@@ -12,21 +12,14 @@ import {
   CreateWithdrawalDto,
   ReviewWithdrawalDto,
 } from './dto/finance.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  schoolId: string | null;
-  isSuperAdmin: boolean;
-};
+import { AdminActor } from '../admin-core/admin-actor';
 
 @Injectable()
 export class FinanceService {
   constructor(private prisma: PrismaService) {}
 
   // ─── 学生会范围校验：只能操作本校 ───────────────────────────
-  private assertUnionScope(admin: CurrentAdmin, schoolId: string) {
+  private assertUnionScope(admin: AdminActor, schoolId: string) {
     if (admin.role === AdminRole.STUDENT_UNION) {
       if (!admin.schoolId) throw new ForbiddenException('学生会账号未绑定学校');
       if (admin.schoolId !== schoolId) throw new ForbiddenException('学生会只能访问本校财务数据');
@@ -35,8 +28,10 @@ export class FinanceService {
 
   // ─── 余额计算（§2）────────────────────────────────────────────
   // balance = Σ ledger.amountCents − Σ(PENDING/APPROVED 提现金额)（冻结在途）
-  // 传入 tx 时在事务内读取（提现下单需 fresh read 防双花）
-  private async computeBalance(tx: Prisma.TransactionClient, schoolId: string) {
+  // 传入 tx 时在事务内读取（提现下单需 fresh read 防双花）。
+  // public：全后端余额的唯一规范实现（AdminService 仪表盘复用；SchoolsService
+  // 的批量 groupBy 版是其等价批量形态）
+  async computeBalance(tx: Prisma.TransactionClient, schoolId: string) {
     const [ledgerAgg, frozenAgg] = await Promise.all([
       tx.schoolLedgerEntry.aggregate({
         where: { schoolId },
@@ -57,7 +52,7 @@ export class FinanceService {
 
   // ─── 学校财务概要：余额 / 累计收入 / 冻结 / 分页明细 ───────────
   async getSchoolSummary(
-    admin: CurrentAdmin,
+    admin: AdminActor,
     schoolId: string,
     params: { page?: number; limit?: number },
   ) {
@@ -92,7 +87,7 @@ export class FinanceService {
     return {
       schoolId: school.id,
       schoolName: school.name,
-      balance,
+      balanceCents: balance,
       totalIncomeCents: incomeAgg._sum.amountCents ?? 0,
       frozenCents,
       ledger: { items: entries, total, page, limit },
@@ -100,7 +95,7 @@ export class FinanceService {
   }
 
   // ─── 发放赞助额度（SPONSOR_GRANT 正数入账，SUPER/TEAM）─────────
-  async createGrant(admin: CurrentAdmin, dto: CreateGrantDto) {
+  async createGrant(admin: AdminActor, dto: CreateGrantDto) {
     const school = await this.prisma.school.findUnique({ where: { id: dto.schoolId } });
     if (!school) throw new NotFoundException('学校不存在');
 
@@ -117,7 +112,7 @@ export class FinanceService {
   }
 
   // ─── 手工调整（ADJUSTMENT 有符号，SUPER/TEAM，备注必填）────────
-  async createAdjustment(admin: CurrentAdmin, dto: CreateAdjustmentDto) {
+  async createAdjustment(admin: AdminActor, dto: CreateAdjustmentDto) {
     // DTO 已校验非 0，此处兜底
     if (dto.amountCents === 0) throw new BadRequestException('调整金额不能为 0');
 
@@ -139,7 +134,7 @@ export class FinanceService {
   // 银行卡校验 + fresh 余额读取 + 创建置于同一 Serializable 事务：
   // 并发两笔提现在 Read Committed 下可能都读到扣减前余额而双双通过（双花），
   // Serializable 下冲突事务被数据库回滚，保证余额不会被超提。
-  async createWithdrawal(admin: CurrentAdmin, dto: CreateWithdrawalDto) {
+  async createWithdrawal(admin: AdminActor, dto: CreateWithdrawalDto) {
     const schoolId = admin.schoolId;
     if (!schoolId) throw new ForbiddenException('学生会账号未绑定学校');
 
@@ -178,7 +173,7 @@ export class FinanceService {
 
   // ─── 提现列表（学生会仅本校；团队可按 status/schoolId 过滤）─────
   async listWithdrawals(
-    admin: CurrentAdmin,
+    admin: AdminActor,
     params: { status?: string; schoolId?: string; page?: number; limit?: number },
   ) {
     const page = Math.max(1, Number(params.page) || 1);
@@ -215,7 +210,7 @@ export class FinanceService {
   }
 
   // ─── 审核提现（SUPER/TEAM：PENDING → APPROVED / REJECTED）──────
-  async reviewWithdrawal(admin: CurrentAdmin, id: string, dto: ReviewWithdrawalDto) {
+  async reviewWithdrawal(admin: AdminActor, id: string, dto: ReviewWithdrawalDto) {
     const request = await this.prisma.withdrawalRequest.findUnique({ where: { id } });
     if (!request) throw new NotFoundException('提现申请不存在');
     if (request.status !== WithdrawalStatus.PENDING) {
@@ -243,7 +238,7 @@ export class FinanceService {
   // ─── 标记已打款（SUPER/TEAM：APPROVED → PAID + 负数 ledger）─────
   // 状态流转与负数 WITHDRAWAL 入账放同一事务；updateMany 状态条件保证
   // 并发重复点击只会入账一次（败者命中 0 行抛错回滚）
-  async markWithdrawalPaid(admin: CurrentAdmin, id: string) {
+  async markWithdrawalPaid(admin: AdminActor, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const request = await tx.withdrawalRequest.findUnique({ where: { id } });
       if (!request) throw new NotFoundException('提现申请不存在');

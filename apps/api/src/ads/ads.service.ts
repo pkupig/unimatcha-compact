@@ -13,6 +13,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminActor } from '../admin-core/admin-actor';
 import {
   ConfirmPaymentDto,
   CreateCampaignDto,
@@ -21,14 +22,6 @@ import {
   SuspendCampaignDto,
   UpdateCampaignDto,
 } from './dto/ads.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  schoolId: string | null;
-  isSuperAdmin: boolean;
-};
 
 // 单价快照结构（提交时锁定，{schoolId: {buyoutDaily, cpm, cpc}}，与设计文档 §2 一致）
 type PriceSnapshotEntry = { buyoutDaily: number; cpm: number; cpc: number };
@@ -57,12 +50,12 @@ export class AdsService {
 
   // ─── 通用工具 ────────────────────────────────────────────────
 
-  private isTeam(admin: CurrentAdmin): boolean {
+  private isTeam(admin: AdminActor): boolean {
     return admin.role === AdminRole.SUPER || admin.role === AdminRole.TEAM || admin.isSuperAdmin;
   }
 
   // 学生会必须绑定学校（School.id），未绑定视为配置错误直接拒绝
-  private requireUnionSchool(admin: CurrentAdmin): string {
+  private requireUnionSchool(admin: AdminActor): string {
     if (!admin.schoolId) throw new ForbiddenException('学生会账号未绑定学校');
     return admin.schoolId;
   }
@@ -142,7 +135,7 @@ export class AdsService {
 
   // 详情/统计可见范围：SPONSOR=own；UNION=来源本校或投放含本校；SUPER/TEAM=全部
   private assertCanView(
-    admin: CurrentAdmin,
+    admin: AdminActor,
     campaign: { advertiserId: string; sourcedBySchoolId: string | null; placements: { schoolId: string }[] },
   ) {
     if (this.isTeam(admin)) return;
@@ -206,7 +199,7 @@ export class AdsService {
   // ─── 广告生命周期（SPONSOR 侧） ──────────────────────────────
 
   // 创建草稿（status=DRAFT，placements 一并建立）
-  async createCampaign(admin: CurrentAdmin, dto: CreateCampaignDto) {
+  async createCampaign(admin: AdminActor, dto: CreateCampaignDto) {
     const { startDate, endDate, schoolIds } = await this.validateCampaignPayload(admin.id, dto);
 
     const campaign = await this.prisma.adCampaign.create({
@@ -229,7 +222,7 @@ export class AdsService {
   }
 
   // 编辑（仅 DRAFT/REJECTED，own；整体替换 placements；状态保持，重新提交才流转）
-  async updateCampaign(admin: CurrentAdmin, id: string, dto: UpdateCampaignDto) {
+  async updateCampaign(admin: AdminActor, id: string, dto: UpdateCampaignDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     if (campaign.advertiserId !== admin.id) throw new ForbiddenException('仅可编辑自己的广告');
@@ -266,7 +259,7 @@ export class AdsService {
   }
 
   // 提交审核：锁定计价快照 + 算价；自拉 → 本校学生会审，直签 → 平台审（§3/§4）
-  async submitCampaign(admin: CurrentAdmin, id: string) {
+  async submitCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({
       where: { id },
       include: {
@@ -366,7 +359,7 @@ export class AdsService {
   // ─── 列表 / 详情 / 日数据 ────────────────────────────────────
 
   async listCampaigns(
-    admin: CurrentAdmin,
+    admin: AdminActor,
     params: { status?: string; schoolId?: string; page?: number; limit?: number },
   ) {
     const page = Math.max(1, Number(params.page) || 1);
@@ -419,7 +412,7 @@ export class AdsService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async getCampaign(admin: CurrentAdmin, id: string) {
+  async getCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({
       where: { id },
       include: this.campaignInclude(),
@@ -456,7 +449,7 @@ export class AdsService {
   }
 
   // 日数据序列（scope 同详情）：AdDailyStat 按日期升序 + 分校汇总
-  async getCampaignStats(admin: CurrentAdmin, id: string, from?: string, to?: string) {
+  async getCampaignStats(admin: AdminActor, id: string, from?: string, to?: string) {
     const campaign = await this.prisma.adCampaign.findUnique({
       where: { id },
       include: { placements: { include: { school: { select: { id: true, name: true } } } } },
@@ -498,7 +491,7 @@ export class AdsService {
   // ─── 审核 / 收款 / 状态流转 ──────────────────────────────────
 
   // 分级审核：学生会审本校自拉单（PENDING_UNION_REVIEW），团队审平台直签单（PENDING_PLATFORM_REVIEW）
-  async reviewCampaign(admin: CurrentAdmin, id: string, dto: ReviewCampaignDto) {
+  async reviewCampaign(admin: AdminActor, id: string, dto: ReviewCampaignDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
 
@@ -533,7 +526,7 @@ export class AdsService {
   }
 
   // 确认收款（线下对公转账，MVP 无支付网关）：→ SCHEDULED / ACTIVE；BUYOUT 激活即 spend=totalPrice
-  async confirmPayment(admin: CurrentAdmin, id: string, dto: ConfirmPaymentDto) {
+  async confirmPayment(admin: AdminActor, id: string, dto: ConfirmPaymentDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     if (campaign.status !== AdCampaignStatus.PENDING_PAYMENT) {
@@ -562,7 +555,7 @@ export class AdsService {
   }
 
   // 商家自暂停：ACTIVE → PAUSED（own 或团队代操作）
-  async pauseCampaign(admin: CurrentAdmin, id: string) {
+  async pauseCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     if (admin.role === AdminRole.SPONSOR && campaign.advertiserId !== admin.id) {
@@ -580,7 +573,7 @@ export class AdsService {
   }
 
   // 恢复：PAUSED → ACTIVE（日期内）/ SCHEDULED（未到 startDate）；已过投放期不可恢复
-  async resumeCampaign(admin: CurrentAdmin, id: string) {
+  async resumeCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     if (admin.role === AdminRole.SPONSOR && campaign.advertiserId !== admin.id) {
@@ -604,7 +597,7 @@ export class AdsService {
   }
 
   // 平台强制下架：SCHEDULED/ACTIVE/PAUSED → SUSPENDED（团队最终下架权，§0.2）
-  async suspendCampaign(admin: CurrentAdmin, id: string, dto: SuspendCampaignDto) {
+  async suspendCampaign(admin: AdminActor, id: string, dto: SuspendCampaignDto) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     const suspendable: AdCampaignStatus[] = [
@@ -628,7 +621,7 @@ export class AdsService {
   }
 
   // 解除下架：SUSPENDED → ACTIVE / SCHEDULED（未到 startDate）/ COMPLETED（已过期，触发结算）
-  async unsuspendCampaign(admin: CurrentAdmin, id: string) {
+  async unsuspendCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
     if (campaign.status !== AdCampaignStatus.SUSPENDED) {
@@ -663,7 +656,7 @@ export class AdsService {
 
   // ─── 角色化总览（dashboard 用） ──────────────────────────────
 
-  async getOverview(admin: CurrentAdmin) {
+  async getOverview(admin: AdminActor) {
     if (admin.role === AdminRole.SPONSOR) return this.sponsorOverview(admin);
     if (admin.role === AdminRole.STUDENT_UNION) return this.unionOverview(admin);
     return this.teamOverview(admin);
@@ -694,7 +687,7 @@ export class AdsService {
     return series;
   }
 
-  private async sponsorOverview(admin: CurrentAdmin) {
+  private async sponsorOverview(admin: AdminActor) {
     const since7 = this.sinceUtc(7);
     const [activeCampaigns, spendAgg, statRows] = await Promise.all([
       this.prisma.adCampaign.count({
@@ -721,7 +714,7 @@ export class AdsService {
     };
   }
 
-  private async unionOverview(admin: CurrentAdmin) {
+  private async unionOverview(admin: AdminActor) {
     const schoolId = this.requireUnionSchool(admin);
     const since30 = this.sinceUtc(30);
     const [pendingReviewCount, activeInSchool, spendAgg] = await Promise.all([
@@ -739,12 +732,13 @@ export class AdsService {
     return {
       role: AdminRole.STUDENT_UNION,
       pendingReviewCount,
-      activeInSchool,
+      // 字段名与 dashboard 归一（原 activeInSchool）
+      activeCampaignsInSchool: activeInSchool,
       schoolSpend30dCents: spendAgg._sum.spendCents ?? 0,
     };
   }
 
-  private async teamOverview(admin: CurrentAdmin) {
+  private async teamOverview(admin: AdminActor) {
     const since30 = this.sinceUtc(30);
     const [pendingPlatformReview, activeCampaigns, statRows] = await Promise.all([
       this.prisma.adCampaign.count({
@@ -762,7 +756,8 @@ export class AdsService {
       role: admin.role ?? AdminRole.TEAM,
       pendingPlatformReview,
       activeCampaigns,
-      gross30dCents: dailySeries30d.reduce((a, s) => a + s.spendCents, 0),
+      // 字段名与 dashboard 归一（原 gross30dCents）
+      adSpend30dCents: dailySeries30d.reduce((a, s) => a + s.spendCents, 0),
       dailySeries30d,
     };
   }

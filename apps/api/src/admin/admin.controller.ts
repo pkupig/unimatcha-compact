@@ -10,32 +10,26 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AdminRole } from '@prisma/client';
 import { AdminService } from './admin.service';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
-import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
+import { CurrentAdmin } from '../admin-core/current-admin.decorator';
+import { AdminActor } from '../admin-core/admin-actor';
+import {
+  CreateAdminUserDto,
+  ListAdminUsersQueryDto,
+  UpdateAdminUserDto,
+} from './dto/admin-user.dto';
+import {
+  ConvertSubmissionDto,
+  ListSubmissionsQueryDto,
+  UpdateSubmissionDto,
+} from './dto/submission.dto';
+import { ListReportsQueryDto, UpdateReportStatusDto } from './dto/report.dto';
 import { UpdateSystemConfigDto } from './dto/system-config.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  isSuperAdmin: boolean;
-  schoolId?: string | null;
-};
-
-class UpdateReportStatusDto {
-  @ApiProperty({ enum: ['open', 'resolved'], description: 'open → resolved（幂等）' })
-  @IsIn(['open', 'resolved'], { message: 'status 参数无效（open / resolved）' })
-  status: 'open' | 'resolved';
-}
 
 @ApiTags('管理后台')
 @ApiBearerAuth()
@@ -47,7 +41,7 @@ export class AdminController {
   @Get('dashboard')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/商家）' })
-  getDashboard(@CurrentUser() admin: CurrentAdmin) {
+  getDashboard(@CurrentAdmin() admin: AdminActor) {
     return this.adminService.getDashboardStats(admin);
   }
 
@@ -56,27 +50,15 @@ export class AdminController {
   @Post('admin-users')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '创建后管账号（SUPER 全部 / TEAM 商家+学生会 / 学生会仅本校自拉商家）' })
-  createAdminUser(@CurrentUser() admin: CurrentAdmin, @Body() dto: CreateAdminUserDto) {
+  createAdminUser(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateAdminUserDto) {
     return this.adminService.createAdminUser(admin, dto);
   }
 
   @Get('admin-users')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '后管账号列表（分页；学生会仅见本校来源商家，TEAM 见商家+学生会）' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'role', required: false })
-  @ApiQuery({ name: 'schoolId', required: false })
-  @ApiQuery({ name: 'isActive', required: false })
-  listAdminUsers(
-    @CurrentUser() admin: CurrentAdmin,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('role') role?: string,
-    @Query('schoolId') schoolId?: string,
-    @Query('isActive') isActive?: string,
-  ) {
-    return this.adminService.listAdminUsers(admin, { page, limit, role, schoolId, isActive });
+  listAdminUsers(@CurrentAdmin() admin: AdminActor, @Query() q: ListAdminUsersQueryDto) {
+    return this.adminService.listAdminUsers(admin, q);
   }
 
   // 四角色全开（本人改 name/密码/联系方式，商家账户页自助维护）；
@@ -85,7 +67,7 @@ export class AdminController {
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '更新后管账号（SUPER 改权限字段；本人改 name/密码/联系方式；学生会可停启本校来源商家）' })
   updateAdminUser(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
     @Body() dto: UpdateAdminUserDto,
   ) {
@@ -95,7 +77,7 @@ export class AdminController {
   @Delete('admin-users/:id')
   @Roles(AdminRole.SUPER)
   @ApiOperation({ summary: '禁用后管账号（仅 SUPER；软删除 isActive=false）' })
-  deleteAdminUser(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
+  deleteAdminUser(@CurrentAdmin() admin: AdminActor, @Param('id') id: string) {
     return this.adminService.deleteAdminUser(admin, id);
   }
 
@@ -103,15 +85,8 @@ export class AdminController {
   @Get('reports')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '用户反馈举报列表（含提交用户 email/昵称，最新在前）' })
-  @ApiQuery({ name: 'status', required: false, description: 'open / resolved' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  listReports(
-    @Query('status') status?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.adminService.listReports({ status, page, limit });
+  listReports(@Query() q: ListReportsQueryDto) {
+    return this.adminService.listReports(q);
   }
 
   @Patch('reports/:id')
@@ -125,26 +100,15 @@ export class AdminController {
   @Get('submissions')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '官网提交列表（候补名单/赞助申请，newest first，含 convertedAdmin）' })
-  @ApiQuery({ name: 'type', required: false, description: 'WAITLIST / SPONSOR' })
-  @ApiQuery({ name: 'status', required: false, description: 'PENDING / CONTACTED / APPROVED / REJECTED' })
-  @ApiQuery({ name: 'search', required: false, description: '模糊匹配 email / organization' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  listSubmissions(
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.adminService.listSubmissions({ type, status, search, page, limit });
+  listSubmissions(@Query() q: ListSubmissionsQueryDto) {
+    return this.adminService.listSubmissions(q);
   }
 
   @Patch('submissions/:id')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '官网提交状态流转（CONTACTED/REJECTED/回 PENDING；APPROVED 只能经开通操作）' })
   updateSubmission(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
     @Body() dto: UpdateSubmissionDto,
   ) {
@@ -155,7 +119,7 @@ export class AdminController {
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '一键开通后台账号（学生会/商家；事务内可新建学校；密码一次性回显）' })
   convertSubmission(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
     @Body() dto: ConvertSubmissionDto,
   ) {

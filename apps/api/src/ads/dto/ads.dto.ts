@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 import { AdPricingModel } from '@prisma/client';
 
 /**
@@ -128,4 +129,30 @@ export class ReportAdEventsDto {
   @ValidateNested({ each: true })
   @Type(() => AdEventDto)
   events: AdEventDto[];
+}
+
+// 广告列表查询（GET /admin/ads/campaigns）
+export class ListCampaignsQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ description: 'AdCampaignStatus 之一' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: '按投放学校过滤（School.id）' })
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
+}
+
+// 广告日数据查询（GET /admin/ads/campaigns/:id/stats）
+export class CampaignStatsQueryDto {
+  @ApiPropertyOptional({ description: '起始日期（含），ISO' })
+  @IsOptional()
+  @IsString()
+  from?: string;
+
+  @ApiPropertyOptional({ description: '截止日期（含），ISO' })
+  @IsOptional()
+  @IsString()
+  to?: string;
 }

@@ -5,21 +5,16 @@ import { FinanceService } from './finance.service';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentAdmin } from '../admin-core/current-admin.decorator';
+import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateAdjustmentDto,
   CreateGrantDto,
   CreateWithdrawalDto,
+  ListWithdrawalsQueryDto,
   ReviewWithdrawalDto,
 } from './dto/finance.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  schoolId: string | null;
-  isSuperAdmin: boolean;
-};
+import { ListQueryDto } from '../common/dto/list-query.dto';
 
 @ApiTags('财务管理')
 @ApiBearerAuth()
@@ -31,60 +26,47 @@ export class FinanceAdminController {
   @Get('schools/:id/summary')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '学校财务概要（余额/累计收入/冻结 + 分页 ledger 明细；学生会仅本校）' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
   getSchoolSummary(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query() q: ListQueryDto,
   ) {
-    return this.financeService.getSchoolSummary(admin, id, { page, limit });
+    return this.financeService.getSchoolSummary(admin, id, q);
   }
 
   @Post('grants')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '发放赞助额度（SPONSOR_GRANT 正数入账）' })
-  createGrant(@CurrentUser() admin: CurrentAdmin, @Body() dto: CreateGrantDto) {
+  createGrant(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateGrantDto) {
     return this.financeService.createGrant(admin, dto);
   }
 
   @Post('adjustments')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '手工调整（ADJUSTMENT 有符号，备注必填）' })
-  createAdjustment(@CurrentUser() admin: CurrentAdmin, @Body() dto: CreateAdjustmentDto) {
+  createAdjustment(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateAdjustmentDto) {
     return this.financeService.createAdjustment(admin, dto);
   }
 
   @Post('withdrawals')
   @Roles(AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '学生会发起提现（需已绑卡且金额 ≤ 可用余额；快照银行卡）' })
-  createWithdrawal(@CurrentUser() admin: CurrentAdmin, @Body() dto: CreateWithdrawalDto) {
+  createWithdrawal(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateWithdrawalDto) {
     return this.financeService.createWithdrawal(admin, dto);
   }
 
   @Get('withdrawals')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '提现申请列表（学生会仅本校；status/schoolId 过滤）' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'schoolId', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  listWithdrawals(
-    @CurrentUser() admin: CurrentAdmin,
-    @Query('status') status?: string,
-    @Query('schoolId') schoolId?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.financeService.listWithdrawals(admin, { status, schoolId, page, limit });
+  listWithdrawals(@CurrentAdmin() admin: AdminActor, @Query() q: ListWithdrawalsQueryDto) {
+    return this.financeService.listWithdrawals(admin, q);
   }
 
   @Post('withdrawals/:id/review')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '审核提现（PENDING → APPROVED / REJECTED）' })
   reviewWithdrawal(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
     @Body() dto: ReviewWithdrawalDto,
   ) {
@@ -94,7 +76,7 @@ export class FinanceAdminController {
   @Post('withdrawals/:id/mark-paid')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
   @ApiOperation({ summary: '标记已打款（APPROVED → PAID + 负数 WITHDRAWAL ledger）' })
-  markWithdrawalPaid(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
+  markWithdrawalPaid(@CurrentAdmin() admin: AdminActor, @Param('id') id: string) {
     return this.financeService.markWithdrawalPaid(admin, id);
   }
 

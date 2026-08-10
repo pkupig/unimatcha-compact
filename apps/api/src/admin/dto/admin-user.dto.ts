@@ -9,6 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /**
  * 后管账号管理 DTO（§8.1.3）。
@@ -121,4 +122,22 @@ export class UpdateAdminUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+// 后管账号列表查询（GET /admin/admin-users）
+export class ListAdminUsersQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ description: 'SUPER / TEAM / STUDENT_UNION / SPONSOR' })
+  @IsOptional()
+  @IsString()
+  role?: string;
+
+  @ApiPropertyOptional({ description: '按绑定学校过滤（School.id）' })
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
+
+  @ApiPropertyOptional({ description: "'true' / 'false'" })
+  @IsOptional()
+  @IsString()
+  isActive?: string;
 }

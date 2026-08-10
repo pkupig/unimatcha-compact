@@ -1,24 +1,18 @@
 import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminRole } from '@prisma/client';
 import { SchoolsService } from './schools.service';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentAdmin } from '../admin-core/current-admin.decorator';
+import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateSchoolDto,
+  ListSchoolsQueryDto,
   UpdateSchoolBankDto,
   UpdateSchoolDto,
 } from './dto/schools.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  schoolId: string | null;
-  isSuperAdmin: boolean;
-};
 
 @ApiTags('学校管理')
 @ApiBearerAuth()
@@ -30,18 +24,8 @@ export class SchoolsAdminController {
   @Get()
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '学校列表（学生会仅见本校；商家仅返回瘦身字段 + 生效单价，供投放选择）' })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'isActive', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  list(
-    @CurrentUser() admin: CurrentAdmin,
-    @Query('search') search?: string,
-    @Query('isActive') isActive?: string,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.schoolsService.list(admin, { search, isActive, page, limit });
+  list(@CurrentAdmin() admin: AdminActor, @Query() q: ListSchoolsQueryDto) {
+    return this.schoolsService.list(admin, q);
   }
 
   @Post()
@@ -54,7 +38,7 @@ export class SchoolsAdminController {
   @Get(':id')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '学校详情 + 统计（学生会仅本校）' })
-  detail(@CurrentUser() admin: CurrentAdmin, @Param('id') id: string) {
+  detail(@CurrentAdmin() admin: AdminActor, @Param('id') id: string) {
     return this.schoolsService.detail(admin, id);
   }
 
@@ -69,7 +53,7 @@ export class SchoolsAdminController {
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
   @ApiOperation({ summary: '绑定提现银行账户（学生会仅本校 / 团队任意）' })
   updateBank(
-    @CurrentUser() admin: CurrentAdmin,
+    @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
     @Body() dto: UpdateSchoolBankDto,
   ) {

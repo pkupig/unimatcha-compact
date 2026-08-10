@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 /**
@@ -84,4 +85,22 @@ export class ConvertSubmissionDto {
   @IsString()
   @MaxLength(32)
   contactPhone?: string;
+}
+
+// 官网提交列表查询（GET /admin/submissions）
+export class ListSubmissionsQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ enum: ['WAITLIST', 'SPONSOR'] })
+  @IsOptional()
+  @IsIn(['WAITLIST', 'SPONSOR'])
+  type?: 'WAITLIST' | 'SPONSOR';
+
+  @ApiPropertyOptional({ enum: ['PENDING', 'CONTACTED', 'APPROVED', 'REJECTED'] })
+  @IsOptional()
+  @IsIn(['PENDING', 'CONTACTED', 'APPROVED', 'REJECTED'])
+  status?: string;
+
+  @ApiPropertyOptional({ description: '模糊匹配 email / organization' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

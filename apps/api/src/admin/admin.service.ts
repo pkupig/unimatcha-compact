@@ -12,72 +12,44 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminActor } from '../admin-core/admin-actor';
+import { FinanceService } from '../finance/finance.service';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
 import { AD_PRICING_DEFAULTS_KEY, CONFIG_KEY_ALLOWLIST } from './dto/system-config.dto';
 
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  isSuperAdmin: boolean;
-  schoolId?: string | null;
-};
-
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private financeService: FinanceService,
+  ) {}
 
   // ─── 角色/范围工具（ADMIN-REDESIGN §1）──────────────────────
-  // role 为权威；isSuperAdmin 仅向下兼容旧账号
-  private effectiveRole(admin: CurrentAdmin): AdminRole | null {
-    return admin.role ?? (admin.isSuperAdmin ? AdminRole.SUPER : null);
-  }
-
-  // 学生会 scope：解析本校 School（admin.schoolId 现为 School.id）
-  private async resolveUnionSchool(actor: CurrentAdmin): Promise<{ id: string; name: string }> {
-    if (!actor.schoolId) {
+  // 学生会 scope：actor.schoolId/schoolName 已由 AdminScopeService 在鉴权层解析，零查询
+  private resolveUnionSchool(actor: AdminActor): { id: string; name: string } {
+    if (!actor.schoolId || !actor.schoolName) {
       throw new BadRequestException('学生会账号未绑定学校');
     }
-    const school = await this.prisma.school.findUnique({
-      where: { id: actor.schoolId },
-      select: { id: true, name: true },
-    });
-    if (!school) throw new NotFoundException('学生会绑定的学校不存在');
-    return school;
-  }
-
-  // 学校余额（ADMIN-REDESIGN §2）：
-  // balance = Σ ledger.amountCents − Σ (PENDING/APPROVED 提现金额，冻结在途)
-  private async getSchoolBalanceCents(schoolId: string): Promise<number> {
-    const [ledger, frozen] = await Promise.all([
-      this.prisma.schoolLedgerEntry.aggregate({
-        where: { schoolId },
-        _sum: { amountCents: true },
-      }),
-      this.prisma.withdrawalRequest.aggregate({
-        where: { schoolId, status: { in: ['PENDING', 'APPROVED'] } },
-        _sum: { amountCents: true },
-      }),
-    ]);
-    return (ledger._sum.amountCents ?? 0) - (frozen._sum.amountCents ?? 0);
+    return { id: actor.schoolId, name: actor.schoolName };
   }
 
   // ─── 仪表盘（角色化 payload，ADMIN-REDESIGN §4）──────────────
-  async getDashboardStats(actor: CurrentAdmin) {
-    const role = this.effectiveRole(actor);
+  async getDashboardStats(actor: AdminActor) {
+    const role = actor.role;
 
     // 学生会：本校用户 / 余额 / 待审广告
     if (role === AdminRole.STUDENT_UNION) {
-      const school = await this.resolveUnionSchool(actor);
+      const school = this.resolveUnionSchool(actor);
       const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000);
-      const [total, newThisWeek, balanceCents, pendingUnionReview, activeCampaignsInSchool] =
+      const [total, newThisWeek, balanceInfo, pendingReviewCount, activeCampaignsInSchool] =
         await Promise.all([
           this.prisma.user.count({ where: { profile: { school: school.name } } }),
           this.prisma.user.count({
             where: { createdAt: { gte: weekAgo }, profile: { school: school.name } },
           }),
-          this.getSchoolBalanceCents(school.id),
+          // 余额规范实现（FinanceService.computeBalance，§1.4 单源）
+          this.financeService.computeBalance(this.prisma, school.id),
           this.prisma.adCampaign.count({
             where: { status: 'PENDING_UNION_REVIEW', sourcedBySchoolId: school.id },
           }),
@@ -88,8 +60,9 @@ export class AdminService {
       return {
         school: { id: school.id, name: school.name },
         users: { total, newThisWeek },
-        balanceCents,
-        pendingUnionReview,
+        balanceCents: balanceInfo.balance,
+        // 字段名与 ads/overview 归一（原 pendingUnionReview）
+        pendingReviewCount,
         activeCampaignsInSchool,
       };
     }
@@ -156,7 +129,8 @@ export class AdminService {
       users: { total: totalUsers, active: activeUsers, banned: bannedUsers, inMatchMode, inRelationship },
       matching: { totalMatches, pendingJobs },
       schools: totalSchools,
-      adRevenue30dCents: adRevenueAgg._sum.spendCents ?? 0,
+      // 字段名与 ads/overview 归一（原 adRevenue30dCents / gross30dCents）
+      adSpend30dCents: adRevenueAgg._sum.spendCents ?? 0,
       pendingWithdrawals,
       pendingPlatformReview,
       pendingSubmissions,
@@ -165,7 +139,7 @@ export class AdminService {
 
   // ─── 后管账号管理（§8.1.3 + ADMIN-REDESIGN §4 分级权限）──────────────
   // SUPER：全量；TEAM：创建/查看商家+学生会；学生会：创建/停启本校自拉商家
-  private isSuper(admin: CurrentAdmin): boolean {
+  private isSuper(admin: AdminActor): boolean {
     return admin.role === AdminRole.SUPER || admin.isSuperAdmin;
   }
 
@@ -208,8 +182,8 @@ export class AdminService {
     if (!school) throw new BadRequestException(`${label}不存在，请先在学校管理中创建`);
   }
 
-  async createAdminUser(actor: CurrentAdmin, dto: CreateAdminUserDto) {
-    const actorRole = this.effectiveRole(actor);
+  async createAdminUser(actor: AdminActor, dto: CreateAdminUserDto) {
+    const actorRole = actor.role;
 
     // 分级创建权限（ADMIN-REDESIGN §1/§4）：
     //   SUPER：任意角色；TEAM：SPONSOR/STUDENT_UNION；学生会：仅本校自拉 SPONSOR
@@ -230,7 +204,7 @@ export class AdminService {
       sourcedBySchoolId = role === AdminRole.SPONSOR ? (dto.sourcedBySchoolId ?? null) : null;
     } else if (actorRole === AdminRole.STUDENT_UNION) {
       // 学生会：强制 role=SPONSOR、来源锁定本校（忽略 dto.role / dto.sourcedBySchoolId）
-      const school = await this.resolveUnionSchool(actor);
+      const school = this.resolveUnionSchool(actor);
       role = AdminRole.SPONSOR;
       sourcedBySchoolId = school.id;
     } else {
@@ -277,7 +251,7 @@ export class AdminService {
   }
 
   async listAdminUsers(
-    actor: CurrentAdmin,
+    actor: AdminActor,
     params: { page?: number; limit?: number; role?: string; schoolId?: string; isActive?: string },
   ) {
     const { page = 1, limit = 20, role, schoolId, isActive } = params;
@@ -290,7 +264,7 @@ export class AdminService {
     if (typeof isActive === 'string') where.isActive = isActive === 'true';
 
     // 角色化可见范围（ADMIN-REDESIGN §4）
-    const actorRole = this.effectiveRole(actor);
+    const actorRole = actor.role;
     if (this.isSuper(actor)) {
       // SUPER：全量
     } else if (actorRole === AdminRole.TEAM) {
@@ -302,7 +276,7 @@ export class AdminService {
       where.role = requested ?? { in: [AdminRole.SPONSOR, AdminRole.STUDENT_UNION] };
     } else if (actorRole === AdminRole.STUDENT_UNION) {
       // 学生会：只见自己来源的 SPONSOR 账号
-      const school = await this.resolveUnionSchool(actor);
+      const school = this.resolveUnionSchool(actor);
       where.role = AdminRole.SPONSOR;
       where.sourcedBySchoolId = school.id;
       delete where.schoolId;
@@ -321,20 +295,21 @@ export class AdminService {
       this.prisma.adminUser.count({ where }),
     ]);
 
-    return { admins, total, page: Number(page) || 1, limit: take, totalPages: Math.ceil(total / take) };
+    // 统一列表形状（原 {admins,...,totalPages}）
+    return { items: admins, total, page: Number(page) || 1, limit: take };
   }
 
-  async updateAdminUser(actor: CurrentAdmin, targetId: string, dto: UpdateAdminUserDto) {
+  async updateAdminUser(actor: AdminActor, targetId: string, dto: UpdateAdminUserDto) {
     const target = await this.prisma.adminUser.findUnique({ where: { id: targetId } });
     if (!target) throw new NotFoundException('Admin account not found');
 
     const isSuper = this.isSuper(actor);
-    const actorRole = this.effectiveRole(actor);
+    const actorRole = actor.role;
     const isSelf = actor.id === targetId;
 
     // 学生会：仅可启用/停用本校来源的 SPONSOR 账号（其余字段一律不可改，ADMIN-REDESIGN §4）
     if (!isSuper && actorRole === AdminRole.STUDENT_UNION && !isSelf) {
-      const school = await this.resolveUnionSchool(actor);
+      const school = this.resolveUnionSchool(actor);
       const isOwnSponsor =
         target.role === AdminRole.SPONSOR && target.sourcedBySchoolId === school.id;
       const onlyTogglesActive =
@@ -428,7 +403,7 @@ export class AdminService {
     return updated;
   }
 
-  async deleteAdminUser(actor: CurrentAdmin, targetId: string) {
+  async deleteAdminUser(actor: AdminActor, targetId: string) {
     if (!this.isSuper(actor)) {
       throw new ForbiddenException('Only super admins can disable admin accounts');
     }
@@ -555,7 +530,7 @@ export class AdminService {
 
   // 状态流转（CONTACTED / REJECTED / 回 PENDING）：记处理人与时间；
   // note 缺省 → 保留原备注，传值 → 覆盖。APPROVED 已被 DTO 层拒绝（只能经 convert）。
-  async updateSubmission(actor: CurrentAdmin, id: string, dto: UpdateSubmissionDto) {
+  async updateSubmission(actor: AdminActor, id: string, dto: UpdateSubmissionDto) {
     const submission = await this.prisma.publicSubmission.findUnique({ where: { id } });
     if (!submission) throw new NotFoundException('提交记录不存在');
 
@@ -572,7 +547,7 @@ export class AdminService {
 
   // 一键开通后台账号：事务内（可选建校 →）建 AdminUser → 提交记录置 APPROVED。
   // 校验规则与 createAdminUser 同源（School.id 必须存在 / 学校名唯一 / bcrypt 12）。
-  async convertSubmission(actor: CurrentAdmin, id: string, dto: ConvertSubmissionDto) {
+  async convertSubmission(actor: AdminActor, id: string, dto: ConvertSubmissionDto) {
     const submission = await this.prisma.publicSubmission.findUnique({ where: { id } });
     if (!submission) throw new NotFoundException('提交记录不存在');
     if (submission.status === PublicSubmissionStatus.APPROVED) {

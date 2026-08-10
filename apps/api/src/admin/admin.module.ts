@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { FinanceModule } from '../finance/finance.module';
+
 @Module({
-  imports: [],
+  imports: [FinanceModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

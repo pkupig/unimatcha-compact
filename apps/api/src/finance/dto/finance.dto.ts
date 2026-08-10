@@ -9,6 +9,7 @@ import {
   NotEquals,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /**
  * 财务 DTO（docs/ADMIN-REDESIGN.md §4 finance）。
@@ -72,4 +73,17 @@ export class ReviewWithdrawalDto {
   @IsString()
   @MaxLength(200)
   note?: string;
+}
+
+// 提现列表查询（GET /admin/finance/withdrawals）
+export class ListWithdrawalsQueryDto extends ListQueryDto {
+  @ApiPropertyOptional({ description: 'PENDING / APPROVED / REJECTED / PAID' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ description: '按学校过滤（School.id，仅平台侧生效）' })
+  @IsOptional()
+  @IsString()
+  schoolId?: string;
 }

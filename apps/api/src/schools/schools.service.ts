@@ -6,20 +6,13 @@ import {
 } from '@nestjs/common';
 import { AdCampaignStatus, AdminRole, Prisma, WithdrawalStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminActor } from '../admin-core/admin-actor';
 import {
   CreateSchoolDto,
   UpdateAdPricingDefaultsDto,
   UpdateSchoolBankDto,
   UpdateSchoolDto,
 } from './dto/schools.dto';
-
-// 当前登录后管（来自 admin-jwt 策略写入的 req.user）
-type CurrentAdmin = {
-  id: string;
-  role: AdminRole | null;
-  schoolId: string | null;
-  isSuperAdmin: boolean;
-};
 
 // 每校统计（用户数 / 进行中广告数 / 累计收入 / 可用余额，金额单位：分）
 type SchoolStats = {
@@ -42,7 +35,7 @@ export class SchoolsService {
   constructor(private prisma: PrismaService) {}
 
   // ─── 学生会范围校验：只能访问本校 ───────────────────────────
-  private assertUnionScope(admin: CurrentAdmin, schoolId: string) {
+  private assertUnionScope(admin: AdminActor, schoolId: string) {
     if (admin.role === AdminRole.STUDENT_UNION) {
       if (!admin.schoolId) throw new ForbiddenException('学生会账号未绑定学校');
       if (admin.schoolId !== schoolId) throw new ForbiddenException('学生会只能访问本校数据');
@@ -116,7 +109,7 @@ export class SchoolsService {
 
   // ─── 列表（学生会仅见本校；含统计）───────────────────────────
   async list(
-    admin: CurrentAdmin,
+    admin: AdminActor,
     params: { search?: string; isActive?: string; page?: number; limit?: number },
   ) {
     const page = Math.max(1, Number(params.page) || 1);
@@ -192,7 +185,7 @@ export class SchoolsService {
   }
 
   // ─── 详情 + 统计（学生会仅本校）──────────────────────────────
-  async detail(admin: CurrentAdmin, id: string) {
+  async detail(admin: AdminActor, id: string) {
     this.assertUnionScope(admin, id);
 
     const school = await this.prisma.school.findUnique({ where: { id } });
@@ -227,7 +220,7 @@ export class SchoolsService {
   }
 
   // ─── 绑定银行账户（UNION 本校 / SUPER/TEAM）───────────────────
-  async updateBank(admin: CurrentAdmin, id: string, dto: UpdateSchoolBankDto) {
+  async updateBank(admin: AdminActor, id: string, dto: UpdateSchoolBankDto) {
     this.assertUnionScope(admin, id);
 
     const school = await this.prisma.school.findUnique({ where: { id } });
