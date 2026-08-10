@@ -586,11 +586,13 @@
       pointer-events: none;
     }
 
-    /* ---- §6.11 广场间距：上下恒为 6px，与左右 gap-1.5 一致 ----
+    /* ---- §6.11 广场间距：上下恒为 6px，左右 6px ----
        瀑布流用 1px auto-row + row-gap:0，卡片间 6px 由 JS 精确算进 row-span
        （square.js layoutSquareMasonry，R=1/SP=6 与此处数值绑定）。
-       此前 2px 行 + 6px 行距的组合经向上取整后实际间距在 6–13px 间浮动。 */
-    .square-feed-grid { row-gap: 0; grid-auto-rows: 1px; align-content: start; padding-top: 6px; }
+       列距也在这里声明——绝不在 DOM 挂 gap-* 工具类：构建后 Tailwind 工具类
+       排在本规则之后，row-gap 会被覆盖回 6px，1px 行网格随 span 放大数百倍
+       （8/10 生产事故根因：dev 与 build 的 CSS 规则顺序相反）。 */
+    .square-feed-grid { row-gap: 0; column-gap: 0.375rem; grid-auto-rows: 1px; align-content: start; padding-top: 6px; }
     /* 推荐流图片卡：高度随图片原始比例（h-auto），过长图收敛到 300px 内、过扁图保底 110px */
     .rec-img {
       display: block;

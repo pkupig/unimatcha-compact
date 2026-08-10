@@ -242,9 +242,10 @@ function switchTab(tab) {
   else if (tab === 'square') {
     if (reTap) {
       // 重按广场导航 = 刷新（用户反馈）：回到顶部，只刷当前信息流——
-      // 推荐/校园墙各刷各的，另一页内容与位置不动
-      const sc = document.scrollingElement || document.documentElement;
-      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { sc.scrollTop = 0; }
+      // 推荐/校园墙各刷各的，另一页内容与位置不动。
+      // 滚动容器是 #tab-square 本身（body overflow-hidden，window 不滚）
+      const sc = document.getElementById('tab-square');
+      if (sc) { try { sc.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { sc.scrollTop = 0; } }
       if (S.squareScrollPos) S.squareScrollPos[S.squareTab] = 0;
       window.loadSquareTab2?.(S.squareTab);
     } else {

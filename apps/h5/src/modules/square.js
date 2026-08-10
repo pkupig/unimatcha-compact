@@ -66,8 +66,9 @@ if (!window.__squareInkResizeBound) {
 function switchSquareTab(el, tab) {
   if (tab !== 'recommend' && tab !== 'campus_wall') return;
   const prev = S.squareTab;
-  // 两页滚动位置独立（用户反馈）：竖向滚动在 window 上，切换前记下离开页的位置
-  const scroller = document.scrollingElement || document.documentElement;
+  // 两页滚动位置独立（用户反馈）：真正的滚动容器是 #tab-square 本身
+  // （body overflow-hidden，window 不滚——8/10 生产实测），切换前记下离开页的位置
+  const scroller = document.getElementById('tab-square') || document.scrollingElement || document.documentElement;
   if (prev !== tab) {
     S.squareScrollPos = S.squareScrollPos || {};
     S.squareScrollPos[prev] = scroller.scrollTop;

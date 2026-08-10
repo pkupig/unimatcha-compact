@@ -730,8 +730,11 @@
     <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
     <div id="square-pager" class="overflow-hidden">
       <div id="square-track" class="flex w-full" style="gap:12px">
-        <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
-        <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
+        <!-- 间距全部由 .square-feed-grid 自定义规则声明（不挂 gap-1.5：构建后
+             Tailwind 工具类排在自定义规则之后，会把 row-gap:0 覆盖回 6px，
+             1px 行网格的 span 间距被放大数百倍——8/10 生产实测根因） -->
+        <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
+        <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
       </div>
     </div>
   </main>
