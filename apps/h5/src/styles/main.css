@@ -391,19 +391,22 @@
     .notif-item:not(.unread) { opacity: 0.6; }
 
     /* Chat Bubble（简洁版）：无头像无边框，对方浅灰/我方荧光绿，小尾角。
-       .chat-row[data-id] 与 .chat-time 为已读回执逻辑依赖，勿改名。 */
-    .chat-row { display: flex; margin-bottom: 10px; }
+       .chat-row[data-id] 与 .chat-read 为已读回执逻辑依赖，勿改名。
+       微信式（用户反馈）：头像贴每条气泡旁，时间不再挂每条消息下，
+       改为间隔 ≥10min 插入居中 .chat-time-sep 时间条。 */
+    .chat-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
     .chat-row.mine { justify-content: flex-end; }
-    .chat-avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+    .chat-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+    .chat-avatar--lg { width: 48px; height: 48px; }
     .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-weight: 700; font-size: 14px; text-transform: uppercase; }
-    .chat-col { max-width: 78%; display: flex; flex-direction: column; align-items: flex-start; }
+    .chat-col { max-width: 72%; display: flex; flex-direction: column; align-items: flex-start; }
     .chat-row.mine .chat-col { align-items: flex-end; }
-    .chat-bubble { padding: 11px 15px; font-size: 15px; line-height: 1.45; background: #f1f1f1; color: #1b1b1b; border: none; border-radius: 18px 18px 18px 6px; word-break: break-word; }
+    .chat-bubble { padding: 10px 14px; font-size: 15px; line-height: 1.45; background: #f1f1f1; color: #1b1b1b; border: none; border-radius: 18px 18px 18px 6px; word-break: break-word; }
     .chat-bubble.mine { background: #CCFF00; color: #000; border: none; border-radius: 18px 18px 6px 18px; box-shadow: none; }
     .chat-image { max-width: 100%; max-height: 16rem; object-fit: cover; cursor: pointer; border: none; border-radius: 14px; display: block; }
     .chat-image + .chat-bubble { margin-top: 6px; }
-    .chat-time { font-size: 9px; color: #b6b6b6; margin-top: 4px; letter-spacing: 0; display: block; }
-    .chat-time.mine { text-align: right; }
+    .chat-read { font-size: 9px; color: #b6b6b6; margin-top: 3px; text-align: right; }
+    .chat-time-sep { width: 100%; text-align: center; font-size: 10px; color: #b6b6b6; margin: 14px 0 10px; letter-spacing: 0.04em; }
 
     @keyframes slideDown {
       from {

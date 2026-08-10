@@ -261,7 +261,9 @@ function runFriendSearch(q) {
   const term = (q || '').trim().toLowerCase();
   const sessions = (S.sessions || []).filter((s) => {
     const p = s.partner || {};
-    const hay = [p.nickname, p.name, p.note, p.school, s.lastMessage].filter(Boolean).join(' ').toLowerCase();
+    // lastMessage 是后端 Message 对象——直接拼会变成 "[object Object]"（按消息内容
+    // 搜索失效、搜 "object" 反而全命中），必须经 lastMsgText 提取文本
+    const hay = [p.nickname, p.name, p.note, p.school, window.lastMsgText(s.lastMessage)].filter(Boolean).join(' ').toLowerCase();
     return hay.includes(term);
   });
   box.innerHTML = renderChatSearchResults(sessions);

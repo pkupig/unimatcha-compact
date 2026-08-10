@@ -676,14 +676,15 @@
     <!-- 退款 / 系统通知条挂载点（§6.6 J 规则 energy_refunded） -->
     <div id="chat-banner" class="hidden mb-4"></div>
     <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
-    <section id="chat-sessions-temp-section" class="mb-8">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">TEMPORARY</h2>
-      <div id="chat-sessions-temp" class="space-y-3"></div>
+    <!-- 微信式列表（用户反馈）：行不作卡片，行间细线分隔 -->
+    <section id="chat-sessions-temp-section" class="mb-6">
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">TEMPORARY</h2>
+      <div id="chat-sessions-temp" class="divide-y divide-outline-variant/15"></div>
     </section>
     <!-- 永久对话组（sessionType==='confirmed'） -->
     <section id="chat-sessions-confirmed-section">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">CONNECTIONS</h2>
-      <div id="chat-sessions-confirmed" class="space-y-3"></div>
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">CONNECTIONS</h2>
+      <div id="chat-sessions-confirmed" class="divide-y divide-outline-variant/15"></div>
     </section>
     <!-- 空状态挂载点 -->
     <div id="chat-sessions-empty" class="hidden"></div>
@@ -1028,10 +1029,10 @@
       <div class="flex items-center">
         <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity" onclick="closeChat()">arrow_back</span>
         <div class="flex items-center gap-3">
-          <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-8 h-8 rounded-full object-cover cursor-pointer" src=""/>
+          <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-9 h-9 rounded-full object-cover cursor-pointer" src=""/>
           <div>
-            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white">Chat Partner</h1>
-            <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400">Location</p>
+            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white" data-no-i18n>Chat Partner</h1>
+            <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400" data-no-i18n>Location</p>
           </div>
         </div>
       </div>
@@ -1039,26 +1040,25 @@
       <div id="chat-header-actions" class="flex items-center gap-2"></div>
     </div>
   </header>
-  <main id="chat-messages" class="relative z-10 pt-24 pb-36 px-5 max-w-2xl mx-auto flex-1 overflow-y-auto">
+  <main id="chat-messages" class="relative z-10 pt-20 pb-28 px-4 max-w-2xl mx-auto flex-1 overflow-y-auto">
   </main>
-  <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-6 px-6 pb-safe z-50">
-    <p id="chat-dissolved-notice" class="hidden max-w-2xl mx-auto mb-3 text-center text-[10px] tracking-widest text-neutral-400 font-headline">This connection has ended. You can no longer send messages.</p>
+  <!-- 输入条收紧（用户反馈：整体留白大）：py-6→py-3、发送键改圆形箭头 -->
+  <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-3 px-4 pb-safe z-50">
+    <p id="chat-dissolved-notice" class="hidden max-w-2xl mx-auto mb-2 text-center text-[10px] tracking-widest text-neutral-400 font-headline">This connection has ended. You can no longer send messages.</p>
     <div id="chat-pending-image" class="hidden max-w-2xl mx-auto mb-2 flex justify-start">
       <div class="relative w-20 h-20">
         <img id="chat-pending-thumb" alt="" class="w-full h-full object-cover rounded-[10px] border border-outline-variant/40" src=""/>
         <button type="button" onclick="clearChatPendingImage()" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neon-pink text-white flex items-center justify-center active:scale-90"><span class="material-symbols-outlined" style="font-size:14px">close</span></button>
       </div>
     </div>
-    <div class="max-w-2xl mx-auto flex items-end gap-4">
-      <div class="flex-grow flex items-center">
-        <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
-        <button class="mr-2 p-1 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">
-          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">add</span>
-        </button>
-        <textarea id="chat-input" class="w-full text-sm placeholder:text-neutral-400 resize-none overflow-hidden font-body focus:outline-none focus: focus: bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Type your response..." rows="1"></textarea>
-      </div>
-      <button class="bg-neon text-black px-8 py-3 rounded-[10px] font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform" onclick="sendChatMessage()">
-        Send
+    <div class="max-w-2xl mx-auto flex items-end gap-2">
+      <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
+      <button class="shrink-0 w-10 h-10 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">add</span>
+      </button>
+      <textarea id="chat-input" class="flex-1 min-w-0 text-sm placeholder:text-neutral-400 resize-none overflow-hidden font-body bg-surface-container-lowest rounded-[18px] border-0 px-4 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Type your response..." rows="1"></textarea>
+      <button class="shrink-0 w-10 h-10 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform" onclick="sendChatMessage()" aria-label="Send">
+        <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
       </button>
     </div>
   </div>

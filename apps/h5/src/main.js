@@ -40,7 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatInput = document.getElementById('chat-input');
   if (chatInput) {
     chatInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') window.sendChatMessage();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        // textarea 的回车默认插入换行：不阻止的话空输入按回车会积累不可见
+        // 换行（占位符消失、trim 后永远发不出去），发送中/失败时正文后也挂着换行
+        e.preventDefault();
+        window.sendChatMessage();
+      }
     });
   }
   const pdInput = document.getElementById('comment-input');
