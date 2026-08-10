@@ -139,6 +139,38 @@
           if (window.__appBooted) { done = true; try { sessionStorage.removeItem(KEY); } catch (e) {} }
         }, 1500);
       });
+
+      // ── 版本漂移自愈 ──
+      // 盲区：旧 index.html + 一年期强缓存里的旧 JS——资源命中缓存不会 404，
+      // 上面的看门狗不触发，手机会永远跑旧代码（Safari/PWA 对 no-cache 的
+      // index.html 也可能长期不回源）。主动比对服务器最新 index.html 引用的
+      // 资源哈希，不一致则带参重载一次（查询串穿透文档缓存）。
+      var VKEY = "cl_ver_retry";
+      var lastVerCheck = 0;
+      function checkVersionDrift() {
+        lastVerCheck = Date.now();
+        var s = document.querySelector('script[src*="/assets/index-"]');
+        var mine = s ? (s.getAttribute("src").match(/index-[^.]+\.js/) || [null])[0] : null;
+        if (!mine || !window.fetch) return; // dev 构建前或异常环境：跳过
+        fetch(location.pathname + "?vchk=" + Date.now(), { cache: "no-store" })
+          .then(function (r) { return r.ok ? r.text() : ""; })
+          .then(function (html) {
+            var m = html.match(/assets\/(index-[^."']+\.js)/);
+            if (!m) return;
+            if (m[1] === mine) { try { sessionStorage.removeItem(VKEY); } catch (e) {} return; }
+            try {
+              if (sessionStorage.getItem(VKEY) === "1") return; // 一会话只试一次，防循环
+              sessionStorage.setItem(VKEY, "1");
+            } catch (e) { return; }
+            location.replace(location.pathname + "?r=" + Date.now());
+          })
+          .catch(function () {});
+      }
+      // 启动后闲时检查（不抢首屏带宽）；长驻标签页回前台且距上次检查 >30min 时复查
+      setTimeout(checkVersionDrift, 2500);
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && Date.now() - lastVerCheck > 1800000) checkVersionDrift();
+      });
     })();
   </script>
 </head>
