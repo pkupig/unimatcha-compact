@@ -301,7 +301,7 @@ export class AdminService {
 
   async updateAdminUser(actor: AdminActor, targetId: string, dto: UpdateAdminUserDto) {
     const target = await this.prisma.adminUser.findUnique({ where: { id: targetId } });
-    if (!target) throw new NotFoundException('Admin account not found');
+    if (!target) throw new NotFoundException('后管账号不存在');
 
     const isSuper = this.isSuper(actor);
     const actorRole = actor.role;
@@ -335,7 +335,7 @@ export class AdminService {
     // 已禁用账号：非 SUPER 不可改自己的 name/password（防被禁用后自助改密复活）。
     // SUPER 仍可改（用于重新启用 / 重置等管理操作）。
     if (!isSuper && !target.isActive) {
-      throw new ForbiddenException('This account has been disabled and cannot be modified');
+      throw new ForbiddenException('该账号已被停用，无法修改');
     }
 
     // 权限字段（role/schoolId/sourcedBySchoolId/organizationName/isActive）仅 SUPER 可改，防提权
@@ -346,11 +346,11 @@ export class AdminService {
       dto.organizationName !== undefined ||
       dto.isActive !== undefined;
     if (touchesPrivileged && !isSuper) {
-      throw new ForbiddenException('Only super admins can modify role/school/active status');
+      throw new ForbiddenException('仅超级管理员可修改角色/学校/启用状态');
     }
     // 非 SUPER 只能改自己的 name/password/联系方式
     if (!isSuper && !isSelf) {
-      throw new ForbiddenException('Not authorized to modify other accounts');
+      throw new ForbiddenException('无权修改其他账号');
     }
 
     // schoolId 现为 School.id 关系标量 → 用 Unchecked 输入直接写外键
@@ -369,14 +369,14 @@ export class AdminService {
       if (targetIsSuper && target.isActive && (demoting || disabling)) {
         const others = await this.countOtherActiveSuperAdmins(targetId);
         if (others === 0) {
-          throw new BadRequestException('Cannot disable/demote the last super admin');
+          throw new BadRequestException('不能停用/降权最后一个超级管理员');
         }
       }
       if (dto.role !== undefined) {
         // 改为学生会时必须有 schoolId（取新值或目标已有值）
         const nextSchoolId = dto.schoolId !== undefined ? dto.schoolId : target.schoolId;
         if (dto.role === AdminRole.STUDENT_UNION && !nextSchoolId) {
-          throw new BadRequestException('Student union accounts must be bound to a schoolId');
+          throw new BadRequestException('学生会账号必须绑定学校');
         }
         data.role = dto.role;
         // 同步 isSuperAdmin 兼容字段
@@ -405,20 +405,20 @@ export class AdminService {
 
   async deleteAdminUser(actor: AdminActor, targetId: string) {
     if (!this.isSuper(actor)) {
-      throw new ForbiddenException('Only super admins can disable admin accounts');
+      throw new ForbiddenException('仅超级管理员可停用后管账号');
     }
     if (actor.id === targetId) {
-      throw new BadRequestException('Cannot disable your own account');
+      throw new BadRequestException('不能停用自己的账号');
     }
     const target = await this.prisma.adminUser.findUnique({ where: { id: targetId } });
-    if (!target) throw new NotFoundException('Admin account not found');
+    if (!target) throw new NotFoundException('后管账号不存在');
 
     // 不允许禁用最后一个超级管理员
     const targetIsSuper = target.role === AdminRole.SUPER || target.isSuperAdmin;
     if (targetIsSuper && target.isActive) {
       const others = await this.countOtherActiveSuperAdmins(targetId);
       if (others === 0) {
-        throw new BadRequestException('Cannot disable/demote the last super admin');
+        throw new BadRequestException('不能停用/降权最后一个超级管理员');
       }
     }
 

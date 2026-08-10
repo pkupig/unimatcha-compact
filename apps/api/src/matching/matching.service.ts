@@ -93,7 +93,7 @@ export class MatchingService {
       // 触发一次 nextDate 解析，进一步确认表达式可被求值
       job.nextDate();
     } catch (e: any) {
-      throw new BadRequestException(`Invalid cron expression or timezone: ${e?.message ?? e}`);
+      throw new BadRequestException(`无效的 cron 表达式或时区：${e?.message ?? e}`);
     }
   }
 
@@ -400,7 +400,7 @@ export class MatchingService {
       where: { status: { in: ['PENDING', 'RUNNING'] }, triggeredBy: { endsWith: `:${mode}` } },
     });
     if (running) {
-      throw new BadRequestException(`A ${mode === 'friend' ? 'friend' : 'partner'} matching task is already running, please wait for it to complete`);
+      throw new BadRequestException(`${mode === 'friend' ? '朋友' : '恋人'}模式已有匹配任务在运行，请等待完成`);
     }
 
     const job = await this.prisma.matchJob.create({
@@ -1426,14 +1426,14 @@ export class MatchingService {
         },
       },
     });
-    if (!job) throw new NotFoundException('Matching task not found');
+    if (!job) throw new NotFoundException('匹配任务不存在');
     return job;
   }
 
   async retryFailedJob(jobId: string) {
     const job = await this.prisma.matchJob.findUnique({ where: { id: jobId } });
-    if (!job) throw new NotFoundException('Task not found');
-    if (job.status !== 'FAILED') throw new BadRequestException('Only failed tasks can be retried');
+    if (!job) throw new NotFoundException('匹配任务不存在');
+    if (job.status !== 'FAILED') throw new BadRequestException('仅失败任务可重试');
 
     await this.prisma.matchJob.update({
       where: { id: jobId },

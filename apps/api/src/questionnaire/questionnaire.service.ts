@@ -77,7 +77,7 @@ export class QuestionnaireService {
         },
       },
     });
-    if (!version) throw new NotFoundException('Questionnaire version not found');
+    if (!version) throw new NotFoundException('问卷版本不存在');
     return version;
   }
 
@@ -122,7 +122,7 @@ export class QuestionnaireService {
     // 同一事务内原子执行，避免并发发布两个版本时同时存在多个 active。
     return this.prisma.$transaction(async (tx) => {
       const version = await tx.questionnaireVersion.findUnique({ where: { id } });
-      if (!version) throw new NotFoundException('Questionnaire version not found');
+      if (!version) throw new NotFoundException('问卷版本不存在');
 
       // type-scoped 下线：把同 type 的其它 active 置 false（排除本版本）
       await tx.questionnaireVersion.updateMany({
@@ -139,11 +139,11 @@ export class QuestionnaireService {
 
   async addQuestion(versionId: string, dto: CreateQuestionDto) {
     const version = await this.prisma.questionnaireVersion.findUnique({ where: { id: versionId } });
-    if (!version) throw new NotFoundException('Questionnaire version not found');
+    if (!version) throw new NotFoundException('问卷版本不存在');
     // 已发布（active）版本的题目不可原地增删改：用户答案锚定该版本，改题会让历史答案与题面错位。
     // 须新建版本再修改（§5.1）。
     if (version.isActive) {
-      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+      throw new BadRequestException('已发布版本的题目不可修改，请新建版本');
     }
 
     const maxOrder = await this.prisma.question.aggregate({
@@ -172,10 +172,10 @@ export class QuestionnaireService {
       where: { id: questionId },
       include: { questionnaire: { select: { isActive: true } } },
     });
-    if (!existing) throw new NotFoundException('Question not found');
+    if (!existing) throw new NotFoundException('题目不存在');
     // 已发布（active）版本的题目不可原地修改（§5.1）
     if (existing.questionnaire?.isActive) {
-      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+      throw new BadRequestException('已发布版本的题目不可修改，请新建版本');
     }
 
     // Delete old options and recreate
@@ -204,10 +204,10 @@ export class QuestionnaireService {
       where: { id: questionId },
       include: { questionnaire: { select: { isActive: true } } },
     });
-    if (!existing) throw new NotFoundException('Question not found');
+    if (!existing) throw new NotFoundException('题目不存在');
     // 已发布（active）版本的题目不可删除（§5.1）
     if (existing.questionnaire?.isActive) {
-      throw new BadRequestException('Cannot modify questions of a published version; create a new version');
+      throw new BadRequestException('已发布版本的题目不可修改，请新建版本');
     }
     return this.prisma.question.delete({ where: { id: questionId } });
   }
