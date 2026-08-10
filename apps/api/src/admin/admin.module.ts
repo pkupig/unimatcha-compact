@@ -3,10 +3,9 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { UsersModule } from '../users/users.module';
 import { SquareModule } from '../square/square.module';
-import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [UsersModule, SquareModule, EventsModule],
+  imports: [UsersModule, SquareModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

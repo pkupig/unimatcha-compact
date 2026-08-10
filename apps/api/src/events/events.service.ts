@@ -7,7 +7,9 @@ import {
 import { AdminRole, SquareAuthorType, SquareBoard } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { SquareService } from '../square/square.service';
+import { AdminScopeService } from '../admin-core/admin-scope.service';
+import { AdminActor } from '../admin-core/admin-actor';
+import { PageQuery, paginated, skipTake } from '../common/utils/pagination';
 import { CreateEventDto } from './dto/events.dto';
 
 /**
@@ -18,44 +20,44 @@ import { CreateEventDto } from './dto/events.dto';
 export class EventsService {
   constructor(
     private prisma: PrismaService,
-    private squareService: SquareService,
+    private adminScope: AdminScopeService,
   ) {}
 
   // ─── 后管：创建活动（事务内同时生成广场活动帖）────────────────
-  async createEvent(adminId: string, dto: CreateEventDto) {
-    const scope = await this.squareService.getAdminScope(adminId);
-    const role = scope.role;
-    if (role !== AdminRole.SUPER && role !== AdminRole.TEAM && role !== AdminRole.STUDENT_UNION) {
-      throw new ForbiddenException('Not authorized to publish events');
-    }
+  async createEvent(actor: AdminActor, dto: CreateEventDto) {
+    // @Roles 已拦一道，此处为纵深防御
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const role = actor.role;
 
     let school: string | null = dto.school ?? null;
     if (role === AdminRole.STUDENT_UNION) {
       // 学生会活动强制本校（school 未传时自动填本校）
-      school = school || scope.schoolNames[0] || null;
-      if (!school || !scope.schoolNames.includes(school)) {
-        throw new ForbiddenException('Student union can only publish events for its own school');
+      const own = this.adminScope.requireUnionSchool(actor);
+      school = school || own.name;
+      if (school !== own.name) {
+        throw new ForbiddenException('学生会只能发布本校活动');
       }
     } else if (school) {
       // 团队指定学校：必须是已录入的 School 名（拼错会导致校园墙/学生会 scope 全部匹配不上且无报错）
       const exists = await this.prisma.school.findUnique({ where: { name: school }, select: { id: true } });
-      if (!exists) throw new BadRequestException(`School "${school}" not found — use a registered school name`);
+      if (!exists) throw new BadRequestException(`学校「${school}」不存在——请使用已录入的学校名`);
     }
 
     const startAt = new Date(dto.startAt);
     const endAt = dto.endAt ? new Date(dto.endAt) : null;
     if (endAt && endAt <= startAt) {
-      throw new BadRequestException('endAt must be after startAt');
+      throw new BadRequestException('结束时间必须晚于开始时间');
     }
 
     // 活动帖板块：校园墙帖必须带学校
     const board = dto.board === 'campus_wall' ? SquareBoard.CAMPUS_WALL : SquareBoard.RECOMMEND;
     if (board === SquareBoard.CAMPUS_WALL && !school) {
-      throw new BadRequestException('Campus-wall event posts must specify the school');
+      throw new BadRequestException('校园墙活动帖必须指定学校');
     }
     // SUPER 无对应 SquareAuthorType，按 TEAM 官方帖发布
     const authorType =
       role === AdminRole.STUDENT_UNION ? SquareAuthorType.STUDENT_UNION : SquareAuthorType.TEAM;
+    const adminId = actor.id;
 
     const { event, post } = await this.prisma.$transaction(async (tx) => {
       const ev = await tx.event.create({
@@ -91,22 +93,17 @@ export class EventsService {
   }
 
   // ─── 后管：活动列表（学生会仅本校；团队/SUPER 全量）───────────
-  async listEvents(adminId: string, opts: { page?: number; limit?: number } = {}) {
-    const scope = await this.squareService.getAdminScope(adminId);
-    const role = scope.role;
-    if (role !== AdminRole.SUPER && role !== AdminRole.TEAM && role !== AdminRole.STUDENT_UNION) {
-      throw new ForbiddenException('Not authorized');
-    }
-    const page = opts.page && opts.page > 0 ? Number(opts.page) : 1;
-    const limit = opts.limit && opts.limit > 0 ? Math.min(Number(opts.limit), 50) : 20;
+  async listEvents(actor: AdminActor, q: PageQuery) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
     const where =
-      role === AdminRole.STUDENT_UNION ? { school: { in: scope.schoolNames } } : {};
+      actor.role === AdminRole.STUDENT_UNION
+        ? { school: this.adminScope.requireUnionSchool(actor).name }
+        : {};
     const [items, total] = await Promise.all([
       this.prisma.event.findMany({
         where,
         orderBy: { startAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        ...skipTake(q),
         include: {
           createdByAdmin: { select: { name: true, role: true, organizationName: true } },
           post: { select: { id: true, board: true } },
@@ -114,27 +111,14 @@ export class EventsService {
       }),
       this.prisma.event.count({ where }),
     ]);
-    return { items, page, limit, total, hasMore: page * limit < total };
-  }
-
-  // 学生会 scope 守卫：只能操作本校活动
-  private assertEventScope(
-    scope: { role: AdminRole | null; schoolNames: string[] },
-    event: { school: string | null },
-  ) {
-    if (scope.role === AdminRole.STUDENT_UNION) {
-      if (!event.school || !scope.schoolNames.includes(event.school)) {
-        throw new ForbiddenException('Student union can only manage events of its own school');
-      }
-    }
+    return paginated(items, total, q);
   }
 
   // ─── 后管：状态流转（closed 停售 / cancelled 取消）────────────
-  async updateEventStatus(adminId: string, eventId: string, status: string) {
-    const scope = await this.squareService.getAdminScope(adminId);
+  async updateEventStatus(actor: AdminActor, eventId: string, status: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event) throw new NotFoundException('Event not found');
-    this.assertEventScope(scope, event);
+    if (!event) throw new NotFoundException('活动不存在');
+    this.adminScope.assertSchoolNameInScope(actor, event.school);
     const updated = await this.prisma.event.update({
       where: { id: eventId },
       data: { status },
@@ -149,25 +133,30 @@ export class EventsService {
     return { id: updated.id, status: updated.status };
   }
 
-  // ─── 后管：购票名单 ──────────────────────────────────────────
-  async listEventTickets(adminId: string, eventId: string) {
-    const scope = await this.squareService.getAdminScope(adminId);
+  // ─── 后管：购票名单（分页）───────────────────────────────────
+  async listEventTickets(actor: AdminActor, eventId: string, q: PageQuery) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event) throw new NotFoundException('Event not found');
-    this.assertEventScope(scope, event);
-    const tickets = await this.prisma.eventTicket.findMany({
-      where: { eventId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { email: true, profile: { select: { nickname: true, school: true } } } },
-      },
-    });
-    return { event: { id: event.id, title: event.title, ticketsSold: event.ticketsSold, capacity: event.capacity }, tickets };
+    if (!event) throw new NotFoundException('活动不存在');
+    this.adminScope.assertSchoolNameInScope(actor, event.school);
+    const [tickets, total] = await Promise.all([
+      this.prisma.eventTicket.findMany({
+        where: { eventId },
+        orderBy: { createdAt: 'desc' },
+        ...skipTake(q),
+        include: {
+          user: { select: { email: true, profile: { select: { nickname: true, school: true } } } },
+        },
+      }),
+      this.prisma.eventTicket.count({ where: { eventId } }),
+    ]);
+    return {
+      event: { id: event.id, title: event.title, ticketsSold: event.ticketsSold, capacity: event.capacity },
+      ...paginated(tickets, total, q),
+    };
   }
 
   // ─── 后管：入场核销（扫票码 → valid 置 used）──────────────────
-  async checkinTicket(adminId: string, code: string) {
-    const scope = await this.squareService.getAdminScope(adminId);
+  async checkinTicket(actor: AdminActor, code: string) {
     const ticket = await this.prisma.eventTicket.findUnique({
       where: { code: (code || '').trim() },
       include: {
@@ -175,16 +164,16 @@ export class EventsService {
         user: { select: { profile: { select: { nickname: true } } } },
       },
     });
-    if (!ticket) throw new NotFoundException('Ticket not found');
-    this.assertEventScope(scope, ticket.event);
+    if (!ticket) throw new NotFoundException('票码不存在');
+    this.adminScope.assertSchoolNameInScope(actor, ticket.event.school);
     if (ticket.event.status === 'cancelled') {
-      throw new BadRequestException('This event has been cancelled');
+      throw new BadRequestException('该活动已取消');
     }
     if (ticket.status === 'used') {
-      throw new BadRequestException(`Ticket already used at ${ticket.usedAt?.toISOString()}`);
+      throw new BadRequestException(`该票已于 ${ticket.usedAt?.toISOString()} 核销`);
     }
     if (ticket.status !== 'valid') {
-      throw new BadRequestException('Ticket is not valid');
+      throw new BadRequestException('该票已失效');
     }
     await this.prisma.eventTicket.update({
       where: { id: ticket.id },
@@ -193,7 +182,7 @@ export class EventsService {
     return {
       ok: true,
       event: ticket.event.title,
-      holder: ticket.user?.profile?.nickname || 'Unknown',
+      holder: ticket.user?.profile?.nickname || '未知用户',
     };
   }
 
