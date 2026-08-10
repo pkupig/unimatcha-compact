@@ -756,7 +756,11 @@
     <div class="profile-blur-mask"></div>
   </div>
   <!-- 滚动内容：头像 + 功能列表（一体滚动；头像在功能区上方，永不被盖住） -->
-  <main id="profile-scroll" class="absolute inset-0 overflow-y-auto z-10" style="overscroll-behavior-y: contain;">
+  <!-- overscroll-behavior-y 必须是 none 而非 contain：contain 只挡住滚动链
+       传播，仍保留容器自身的原生橡皮筋——手机上下拉时原生弹性会把内容再额外
+       下移一份，而背景只长 JS 计算的那一份，背景因此永远「跟不上」内容
+       （桌面 Chrome 无触摸橡皮筋，所以只在真机上暴露）。none 让 JS 独占下拉。 -->
+  <main id="profile-scroll" class="absolute inset-0 overflow-y-auto z-10" style="overscroll-behavior-y: none;">
     <div id="profile-menu-inner">
       <div style="height:120px"></div>
       <section class="flex flex-col items-center px-6 mb-16">
@@ -769,7 +773,9 @@
         </div>
         <div id="profile-photos-strip" class="hidden"></div>
       </section>
-      <div class="bg-background px-6 pt-4 pb-32 max-w-lg mx-auto">
+      <!-- 圆角衔接（用户反馈：背景与功能区衔接太僵硬）：上移 24px 盖住背景底边，
+           顶部两角切圆——圆角缺口处透出背景图，形成卡片式柔和过渡 -->
+      <div class="bg-background rounded-t-[24px] -mt-6 px-6 pt-7 pb-32 max-w-lg mx-auto relative">
         <section class="space-y-2">
           <div class="flex flex-col">
             <button id="profile-energy-section" onclick="openEnergyModal()" class="w-full flex items-center justify-between py-4 border-b border-outline-variant/20 gap-3 group text-left">
