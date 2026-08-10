@@ -9,6 +9,7 @@ import { AdminAuthService } from './admin-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { AdminCoreModule } from '../admin-core/admin-core.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    AdminCoreModule,
   ],
   controllers: [AuthController, AdminAuthController],
   providers: [AuthService, AdminAuthService, JwtStrategy, AdminJwtStrategy],

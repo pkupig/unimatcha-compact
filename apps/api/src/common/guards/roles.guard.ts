@@ -22,7 +22,10 @@ export class RolesGuard implements CanActivate {
     if (!required || required.length === 0) return true;
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user?.role || !required.includes(user.role)) {
+    // 归一化旧超管（role 空但 isSuperAdmin=true）——与服务层口径一致；
+    // admin-jwt 策略已做过归一化，此处为防御性兜底
+    const role = user?.role ?? (user?.isSuperAdmin ? AdminRole.SUPER : null);
+    if (!role || !required.includes(role)) {
       throw new ForbiddenException('当前角色无权访问该功能');
     }
     return true;
