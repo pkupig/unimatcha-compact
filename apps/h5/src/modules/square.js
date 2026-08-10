@@ -1345,7 +1345,7 @@ function renderPostDetail(post) {
   const liked = !!post.myLiked;
   c.innerHTML = `
     <!-- 作者行提到图片上方（用户反馈）：头像 + 名字/学校 在左，时间在右 -->
-    <div class="flex items-center justify-between gap-3 px-4 pt-5 pb-4 bg-surface-container-lowest">
+    <div class="flex items-center justify-between gap-3 px-3 pt-5 pb-4 bg-surface-container-lowest">
       <div class="flex items-center gap-3 min-w-0">
         ${renderAuthorAvatars(post)}
         <div class="min-w-0" data-no-i18n>
@@ -1357,7 +1357,7 @@ function renderPostDetail(post) {
       <p class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</p>
     </div>
     ${renderPdImages(images)}
-    <article class="px-4 pt-5 pb-4 bg-surface-container-lowest">
+    <article class="px-3 pt-5 pb-4 bg-surface-container-lowest">
       <div class="grid grid-cols-12 gap-6 items-start">
         <div class="col-span-12 min-w-0">
           ${post.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${window.escapeHtml(post.title)}</h2>` : ''}
@@ -1378,7 +1378,7 @@ function renderPostDetail(post) {
         </button>
       </div>
     </article>
-    <div class="px-4 pt-5 pb-6 bg-surface" data-pd-comments>
+    <div class="px-3 pt-5 pb-6 bg-surface" data-pd-comments>
       <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span> <span class="font-normal tracking-normal text-outline normal-case" data-pd-lp-hint data-no-i18n></span></h3>
       <div class="space-y-7">
         ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')
