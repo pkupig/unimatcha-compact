@@ -1,34 +1,34 @@
 import type { Metadata } from 'next';
-import './globals.css';
 import { Toaster } from 'react-hot-toast';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Unimatcha Admin',
-  description: 'Admin console for the campus long-term relationship matching platform',
+  title: 'UniMatcha Admin',
+  description: 'UniMatcha 管理后台',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Be+Vietnam+Pro:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         {children}
         <Toaster
-          position="top-right"
+          position="top-center"
           toastOptions={{
             style: {
-              borderRadius: '10px',
-              background: '#1b1b1b',
+              background: '#1b1b1b', /* token: ink（Toaster 无法用 Tailwind 类） */
               color: '#fff',
-              fontFamily: '"Be Vietnam Pro", sans-serif',
-              fontSize: '14px',
+              borderRadius: '10px',
+              fontSize: '13px',
             },
           }}
         />

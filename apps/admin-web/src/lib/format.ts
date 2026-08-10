@@ -16,6 +16,22 @@ export function fenToYuan(cents?: number | null): string {
   );
 }
 
+/**
+ * 元 → 分（全站唯一实现）：'12.34' → 1234，四舍五入到分；
+ * 空串/非数字/负数 → null（调用方据此拦截或视为未填）
+ */
+export function yuanToCents(input: string | number): number | null {
+  const n = typeof input === 'number' ? input : parseFloat(String(input).trim());
+  if (!isFinite(n) || n < 0) return null;
+  return Math.round(n * 100);
+}
+
+/** 分 → 元输入串（表单回填，无 ¥ 无千分位）：1234 → '12.34'；null/undefined → '' */
+export function centsToYuanInput(cents?: number | null): string {
+  if (cents === null || cents === undefined) return '';
+  return (cents / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+}
+
 /** 千分位整数：formatNumber(1234567) === '1,234,567' */
 export function formatNumber(n?: number | null): string {
   return (n ?? 0).toLocaleString('zh-CN');
@@ -24,7 +40,6 @@ export function formatNumber(n?: number | null): string {
 /** 基点 → 百分比：bpsToPercent(3000) === '30%'，bpsToPercent(1250) === '12.5%' */
 export function bpsToPercent(bps?: number | null): string {
   const pct = (bps ?? 0) / 100;
-  // 去掉多余小数位（3000 → '30' 而非 '30.00'）
   return `${Number(pct.toFixed(2))}%`;
 }
 
@@ -54,4 +69,10 @@ export function formatShortDate(input?: string | number | Date | null): string {
   const d = new Date(input);
   if (isNaN(d.getTime())) return String(input).slice(5, 10);
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 日期 → date input 值：'2026-07-03'（同 formatDate，语义别名供表单用） */
+export function toDateInput(input?: string | number | Date | null): string {
+  const s = formatDate(input);
+  return s === '-' ? '' : s;
 }
