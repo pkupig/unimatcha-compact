@@ -48,9 +48,10 @@ export class EventsService {
       throw new BadRequestException('endAt must be after startAt');
     }
 
-    // 活动帖板块：校园墙帖必须带学校
-    const board = dto.board === 'campus_wall' ? SquareBoard.CAMPUS_WALL : SquareBoard.RECOMMEND;
-    if (board === SquareBoard.CAMPUS_WALL && !school) {
+    // 活动帖一律发校园墙（产品规则：活动是学生会面向本校的，不进推荐流）。
+    // dto.board 已废弃、不再读取；校园墙帖必须带学校。
+    const board = SquareBoard.CAMPUS_WALL;
+    if (!school) {
       throw new BadRequestException('Campus-wall event posts must specify the school');
     }
     // SUPER 无对应 SquareAuthorType，按 TEAM 官方帖发布

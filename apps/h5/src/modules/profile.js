@@ -1356,23 +1356,31 @@ async function loadMyTickets() {
     if (t.status === 'cancelled') return '<span class="px-2 py-0.5 rounded-[8px] bg-surface-container-high text-on-surface-variant text-[9px] font-bold tracking-widest">CANCELLED</span>';
     return '<span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">VALID</span>';
   };
+  // 票根样式：上半联（活动信息）+ 骑缝虚线 + 撕票口 + 下半联（票码/二维码缩略）。
+  // 整张可点开全屏票券（大二维码，便于核销时出示）。
+  S.myTickets = tickets;
   c.innerHTML = tickets.map((t, i) => `
-    <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 overflow-hidden ${t.status !== 'valid' ? 'opacity-60' : ''}">
+    <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 cursor-pointer active:scale-[0.99] transition-transform ${t.status !== 'valid' ? 'opacity-60' : ''}"
+      onclick="openTicketDetail(${i})">
       <div class="p-5 pb-4">
         <div class="flex items-start justify-between gap-3 mb-1.5">
           <h3 class="font-headline font-extrabold text-base tracking-tight" data-no-i18n>${window.escapeHtml(t.event?.title || 'Event')}</h3>
           ${statusBadge(t)}
         </div>
         <p class="text-xs text-on-surface-variant" data-no-i18n>${fmtTime(t.event?.startAt)}${t.event?.venue ? ' · ' + window.escapeHtml(t.event.venue) : ''}</p>
-        ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(t.event.school)}</p>` : ''}
+        ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(window.metaLabel(t.event.school))}</p>` : ''}
       </div>
-      <div class="ticket-divider"></div>
+      <div class="relative">
+        <span class="ticket-notch ticket-notch--l"></span>
+        <span class="ticket-notch ticket-notch--r"></span>
+        <div class="ticket-divider"></div>
+      </div>
       <div class="p-5 pt-4 flex items-center gap-5">
-        <div id="ticket-qr-${i}" class="w-[104px] h-[104px] bg-white p-1.5 rounded-[10px] border border-outline-variant/30 shrink-0"></div>
-        <div class="min-w-0">
+        <div id="ticket-qr-${i}" class="w-[86px] h-[86px] bg-white p-1.5 rounded-[10px] border border-outline-variant/30 shrink-0"></div>
+        <div class="min-w-0 flex-1">
           <p class="text-[10px] tracking-[0.2em] text-outline mb-1">TICKET CODE</p>
-          <p class="font-mono text-sm font-bold tracking-wider select-all" data-no-i18n>${window.escapeHtml(t.code)}</p>
-          <p class="text-[10px] text-outline mt-2 leading-relaxed">Show this QR at the entrance</p>
+          <p class="font-mono text-sm font-bold tracking-wider" data-no-i18n>${window.escapeHtml(t.code)}</p>
+          <p class="text-[10px] text-outline mt-2 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:13px">touch_app</span><span>Tap to open</span></p>
         </div>
       </div>
     </article>`).join('');
@@ -1380,11 +1388,104 @@ async function loadMyTickets() {
   tickets.forEach((t, i) => {
     const box = document.getElementById(`ticket-qr-${i}`);
     if (box && window.QRCode) {
-      new window.QRCode(box, { text: t.code, width: 92, height: 92, correctLevel: window.QRCode.CorrectLevel.M });
+      new window.QRCode(box, { text: t.code, width: 74, height: 74, correctLevel: window.QRCode.CorrectLevel.M });
     }
   });
 }
 window.loadMyTickets = loadMyTickets;
+
+// ── 票券详情（点票根打开）：大二维码 + 完整信息 + 加入卡包 ──
+function openTicketDetail(i) {
+  const t = (S.myTickets || [])[i];
+  if (!t) return;
+  const zh = (window.getLang?.() === 'zh');
+  const c = document.getElementById('ticket-detail-content');
+  if (!c) return;
+  const ev = t.event || {};
+  const d = new Date(ev.startAt);
+  const dateStr = isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const timeStr = isNaN(d) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const used = t.status !== 'valid';
+  const row = (label, value) => value
+    ? `<div class="flex-1 min-w-0"><p class="text-[9px] tracking-[0.2em] text-outline mb-1">${label}</p>
+       <p class="text-sm font-bold truncate" data-no-i18n>${window.escapeHtml(value)}</p></div>`
+    : '';
+  c.innerHTML = `
+    <div class="pass-card w-full max-w-sm mx-auto rounded-[20px] bg-surface-container-lowest overflow-hidden ${used ? 'opacity-70' : ''}">
+      <div class="bg-neon text-black px-6 pt-6 pb-5">
+        <p class="text-[10px] font-bold tracking-[0.25em] opacity-70">UNIMATCHA · TICKET</p>
+        <h2 class="font-headline font-extrabold text-xl tracking-tight mt-1.5 leading-snug" data-no-i18n>${window.escapeHtml(ev.title || 'Event')}</h2>
+        ${ev.school ? `<p class="text-[11px] mt-1 opacity-70" data-no-i18n>${window.escapeHtml(window.metaLabel(ev.school))}</p>` : ''}
+      </div>
+      <div class="relative">
+        <span class="ticket-notch ticket-notch--l"></span>
+        <span class="ticket-notch ticket-notch--r"></span>
+        <div class="ticket-divider"></div>
+      </div>
+      <div class="px-6 pt-5 pb-4 flex gap-4">
+        ${row(zh ? '日期' : 'DATE', dateStr)}
+        ${row(zh ? '时间' : 'TIME', timeStr)}
+      </div>
+      ${ev.venue ? `<div class="px-6 pb-4">${row(zh ? '地点' : 'VENUE', ev.venue)}</div>` : ''}
+      <div class="px-6 pb-6 flex flex-col items-center">
+        <div id="ticket-detail-qr" class="w-[200px] h-[200px] bg-white p-2.5 rounded-[14px] border border-outline-variant/30"></div>
+        <p class="font-mono text-base font-bold tracking-[0.15em] mt-4 select-all" data-no-i18n>${window.escapeHtml(t.code)}</p>
+        <p class="text-[11px] text-outline mt-1">${used ? (zh ? '此票已使用' : 'This ticket has been used') : (zh ? '入场时出示此二维码' : 'Show this QR at the entrance')}</p>
+      </div>
+    </div>
+    <div class="w-full max-w-sm mx-auto mt-5">
+      <button id="add-to-wallet-btn" onclick="addTicketToWallet('${window.escapeHtml(t.id || t.code)}')"
+        class="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] bg-black text-white active:scale-[0.98] transition-transform">
+        <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+        <span class="font-headline text-sm font-bold tracking-wide">${zh ? '添加到 Apple Wallet' : 'Add to Apple Wallet'}</span>
+      </button>
+    </div>`;
+  window.openOverlay('ticket-detail-overlay');
+  const box = document.getElementById('ticket-detail-qr');
+  if (box && window.QRCode) {
+    new window.QRCode(box, { text: t.code, width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M });
+  }
+}
+window.openTicketDetail = openTicketDetail;
+
+function closeTicketDetail() {
+  window.closeOverlay('ticket-detail-overlay');
+}
+window.closeTicketDetail = closeTicketDetail;
+
+// 加入 Apple Wallet：后端签发 .pkpass（需配置 Apple Pass 证书）。
+// 未配置时后端返回 501，这里给出可读提示而不是静默失败。
+async function addTicketToWallet(ticketId) {
+  const zh = (window.getLang?.() === 'zh');
+  const btn = document.getElementById('add-to-wallet-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const token = localStorage.getItem('cl_token');
+    const res = await fetch(`${S.API}/events/tickets/${encodeURIComponent(ticketId)}/pkpass`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 501) {
+      window.toast(zh ? 'Apple Wallet 尚未开通，请稍后再试' : 'Apple Wallet is not enabled yet');
+      return;
+    }
+    if (!res.ok) throw new Error(String(res.status));
+    // Safari 会把 application/vnd.apple.pkpass 直接交给 Wallet
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'unimatcha-ticket.pkpass';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    window.toast(zh ? '添加失败，请稍后再试' : 'Could not add to Wallet');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.addTicketToWallet = addTicketToWallet;
 
 // 对方资料渲染器由 match.js 统一负责（renderPartnerProfile 全屏版）；此处仅扩展 showPage。
 setTimeout(() => {

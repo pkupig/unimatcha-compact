@@ -73,6 +73,7 @@ const ZH = {
   // ── 投票 / 活动 / 票夹 ──
   'Create a poll': '发起投票', 'Goes live after review': '审核通过后展示',
   '+ Add option': '+ 添加选项', 'My Tickets': '我的票夹', 'No tickets yet': '还没有门票',
+  Ticket: '门票', 'Tap to open': '点击查看', 'Add to Apple Wallet': '添加到 Apple Wallet',
   'Tickets you get for campus events appear here.': '购买的校园活动门票会出现在这里。',
   'Show this QR at the entrance': '入场时出示此二维码',
   'Get Ticket': '购票', 'Sold out': '已售罄', 'Sales closed': '停止售票', 'Event ended': '活动已结束',

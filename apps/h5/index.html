@@ -1672,6 +1672,18 @@
   <main id="tickets-content" class="pt-24 pb-20 px-5 max-w-lg mx-auto w-full"></main>
 </div>
 
+<!-- Ticket Detail Overlay（点票根打开：大二维码票券 + 加入 Apple Wallet） -->
+<div id="ticket-detail-overlay" class="overlay fixed inset-0 z-[70] bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
+    <div class="flex items-center gap-4 px-6 h-16 w-full">
+      <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="closeTicketDetail()">arrow_back</span>
+      <h1 class="text-on-surface font-headline text-xl font-bold tracking-tight">Ticket</h1>
+    </div>
+    <div class="bg-outline-variant/20 h-[1px]"></div>
+  </header>
+  <main id="ticket-detail-content" class="pt-24 pb-20 px-5 w-full"></main>
+</div>
+
 <!-- Contact Us Overlay -->
 <div id="contact-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-center justify-center px-8">
   <div class="w-full max-w-sm bg-white shadow-2xl p-8 text-center rounded-[10px]">

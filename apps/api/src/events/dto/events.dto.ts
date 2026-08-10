@@ -60,7 +60,8 @@ export class CreateEventDto {
   @Min(1)
   capacity?: number;
 
-  @ApiPropertyOptional({ enum: ['recommend', 'campus_wall'], description: '活动帖发到哪个板块（默认 recommend）' })
+  /** @deprecated 活动帖一律发校园墙（产品规则），服务端不再读取此字段。保留仅为兼容旧调用方。 */
+  @ApiPropertyOptional({ deprecated: true, description: '已废弃：活动帖恒发校园墙' })
   @IsOptional()
   @IsEnum(['recommend', 'campus_wall'])
   board?: 'recommend' | 'campus_wall';

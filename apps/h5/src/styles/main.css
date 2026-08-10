@@ -861,13 +861,30 @@
     .dark .splash-bar { background: #34343c; }
 
     /* ---- 票夹（本轮反馈2）：票卡撕票线 ---- */
+    /* ---- 票券样式：撕票口 + 虚线骑缝 ----
+       .ticket-card 用两个绝对定位的圆形挖出左右撕票口（用页面底色填充，
+       故 overflow 不能裁掉它们）；.ticket-divider 是骑缝虚线。 */
     .ticket-divider {
       height: 0;
       border-top: 2px dashed rgba(0, 0, 0, 0.12);
       position: relative;
-      margin: 0 12px;
+      margin: 0 22px;
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
+    .ticket-card { position: relative; }
+    .ticket-card .ticket-notch {
+      position: absolute;
+      width: 22px; height: 22px;
+      border-radius: 9999px;
+      background: #f9f9f9;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .ticket-card .ticket-notch--l { left: -11px; }
+    .ticket-card .ticket-notch--r { right: -11px; }
+    .dark .ticket-card .ticket-notch { background: #17171c; }
+    /* 票券详情（全屏）：大二维码卡片 */
+    #ticket-detail-overlay .pass-card { box-shadow: 0 18px 48px rgba(0,0,0,0.18); }
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
     .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
     .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }

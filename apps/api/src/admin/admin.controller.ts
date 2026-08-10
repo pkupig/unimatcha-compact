@@ -268,8 +268,9 @@ export class AdminController {
 
   // ─── 活动与门票（学生会本校 / 团队全量）────────────────────────
   @Post('events')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '发布活动（同时生成广场活动帖；学生会强制本校）' })
+  // 产品规则：活动是学生会面向本校的功能，团队不参与发布；SUPER 作为超管保留兜底。
+  @Roles(AdminRole.SUPER, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '发布活动（学生会专属；强制本校 + 恒发校园墙）' })
   createEvent(@CurrentUser('id') adminId: string, @Body() dto: CreateEventDto) {
     return this.eventsService.createEvent(adminId, dto);
   }
