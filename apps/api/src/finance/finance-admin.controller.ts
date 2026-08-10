@@ -25,7 +25,7 @@ type CurrentAdmin = {
 @ApiBearerAuth()
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/finance')
-export class FinanceController {
+export class FinanceAdminController {
   constructor(private financeService: FinanceService) {}
 
   @Get('schools/:id/summary')

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AdPricingController, SchoolsController } from './schools.controller';
+import { SchoolsAdminController } from './schools-admin.controller';
+import { AdPricingAdminController } from './ad-pricing-admin.controller';
 import { SchoolsService } from './schools.service';
 
 @Module({
-  controllers: [SchoolsController, AdPricingController],
+  controllers: [SchoolsAdminController, AdPricingAdminController],
   providers: [SchoolsService],
   exports: [SchoolsService],
 })

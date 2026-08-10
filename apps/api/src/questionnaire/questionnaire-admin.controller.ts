@@ -7,6 +7,7 @@ import { QuestionnaireService } from './questionnaire.service';
 import { toQType, normalizeMode } from '../matching/mode.util';
 import {
   CreateQuestionnaireVersionDto, CreateQuestionDto, UpdateQuestionDto, ReorderQuestionsDto,
+  ToggleQuestionDto,
 } from './dto/questionnaire.dto';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -17,7 +18,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Roles('SUPER', 'TEAM')
 @Controller('admin/questionnaire')
-export class AdminQuestionnaireController {
+export class QuestionnaireAdminController {
   constructor(private questionnaireService: QuestionnaireService) {}
 
   @Get('versions')
@@ -67,7 +68,7 @@ export class AdminQuestionnaireController {
 
   @Patch('questions/:id/toggle')
   @ApiOperation({ summary: '启用/禁用题目' })
-  toggleQuestion(@Param('id') id: string, @Body('isEnabled') isEnabled: boolean) {
-    return this.questionnaireService.toggleQuestion(id, isEnabled);
+  toggleQuestion(@Param('id') id: string, @Body() dto: ToggleQuestionDto) {
+    return this.questionnaireService.toggleQuestion(id, dto.isEnabled);
   }
 }

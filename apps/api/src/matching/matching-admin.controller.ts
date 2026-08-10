@@ -4,11 +4,12 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { MatchingService } from './matching.service';
 import { MatchScheduler } from './match.scheduler';
-import { UpdateMatchConfigDto } from './dto/matching.dto';
+import { TriggerMatchJobDto, UpdateMatchConfigDto } from './dto/matching.dto';
 import { AdminJwtAuthGuard } from '../common/guards/admin-jwt.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentAdmin } from '../admin-core/current-admin.decorator';
+import { AdminActor } from '../admin-core/admin-actor';
 import { normalizeMode } from './mode.util';
 
 @ApiTags('匹配管理（管理员）')
@@ -16,7 +17,7 @@ import { normalizeMode } from './mode.util';
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Roles('SUPER', 'TEAM')
 @Controller('admin/matching')
-export class AdminMatchingController {
+export class MatchingAdminController {
   constructor(
     private matchingService: MatchingService,
     private matchScheduler: MatchScheduler,
@@ -37,9 +38,8 @@ export class AdminMatchingController {
 
   @Post('jobs/trigger')
   @ApiOperation({ summary: '手动触发匹配任务（按 mode）' })
-  @ApiQuery({ name: 'mode', required: false, enum: ['romantic', 'friend'] })
-  async triggerJob(@CurrentUser('id') adminId: string, @Query('mode') mode?: string) {
-    return this.matchingService.triggerMatchJob(`manual:${adminId}`, normalizeMode(mode));
+  async triggerJob(@CurrentAdmin() actor: AdminActor, @Query() q: TriggerMatchJobDto) {
+    return this.matchingService.triggerMatchJob(`manual:${actor.id}`, normalizeMode(q.mode));
   }
 
   @Get('jobs')

@@ -8,7 +8,6 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import {
   CreateSchoolDto,
-  UpdateAdPricingDefaultsDto,
   UpdateSchoolBankDto,
   UpdateSchoolDto,
 } from './dto/schools.dto';
@@ -25,7 +24,7 @@ type CurrentAdmin = {
 @ApiBearerAuth()
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/schools')
-export class SchoolsController {
+export class SchoolsAdminController {
   constructor(private schoolsService: SchoolsService) {}
 
   @Get()
@@ -78,28 +77,4 @@ export class SchoolsController {
   }
 }
 
-/**
- * 全局广告计价默认值（SystemConfig key: ad_pricing_defaults，§3）。
- * 学校未配置覆盖单价时回落到此默认值。
- */
-@ApiTags('广告计价')
-@ApiBearerAuth()
-@UseGuards(AdminJwtAuthGuard, RolesGuard)
-@Controller('admin/ad-pricing')
-export class AdPricingController {
-  constructor(private schoolsService: SchoolsService) {}
-
-  @Get('defaults')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '获取全局计价默认值（缺省 buyoutDaily=20000 / cpm=5000 / cpc=200）' })
-  getDefaults() {
-    return this.schoolsService.getAdPricingDefaults();
-  }
-
-  @Put('defaults')
-  @Roles(AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '更新全局计价默认值（正整数，单位：分）' })
-  updateDefaults(@Body() dto: UpdateAdPricingDefaultsDto) {
-    return this.schoolsService.updateAdPricingDefaults(dto);
-  }
-}
+// AdPricingAdminController 已拆至 ad-pricing-admin.controller.ts（Step7：一文件一控制器）

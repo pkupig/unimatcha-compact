@@ -27,11 +27,7 @@ export class UpdateMatchConfigDto {
 }
 
 export class TriggerMatchJobDto {
-  @ApiPropertyOptional({ description: '手动触发的管理员 ID（自动填入）' })
-  @IsOptional()
-  @IsString()
-  triggeredBy?: string;
-
+  // triggeredBy 字段已删除：服务端按当前管理员自动填入，不属于客户端输入
   @ApiPropertyOptional({ enum: ['romantic', 'friend'], example: 'romantic', description: '触发的模式（缺省 romantic）' })
   @IsOptional()
   @IsIn(['romantic', 'friend'])

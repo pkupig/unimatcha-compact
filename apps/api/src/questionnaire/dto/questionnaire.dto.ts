@@ -6,6 +6,13 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionType, QuestionnaireType } from '@prisma/client';
 
+// 启用/禁用题目（PATCH /admin/questionnaire/questions/:id/toggle；原裸 @Body('isEnabled')）
+export class ToggleQuestionDto {
+  @ApiProperty()
+  @IsBoolean()
+  isEnabled: boolean;
+}
+
 export class CreateOptionDto {
   @ApiProperty() @IsString() label: string;
   @ApiProperty() @IsString() value: string;

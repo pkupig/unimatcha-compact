@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { MatchingService, MATCH_QUEUE } from './matching.service';
 import { MatchingController } from './matching.controller';
-import { AdminMatchingController } from './admin-matching.controller';
+import { MatchingAdminController } from './matching-admin.controller';
 import { MatchProcessor } from './match.processor';
 import { MatchScheduler } from './match.scheduler';
 import { MATCH_MODEL_PROVIDER } from './providers/match-model.interface';
@@ -22,7 +22,7 @@ import { EnergyModule } from '../energy/energy.module';
     EnergyModule,
     MatchFeedbackModule,
   ],
-  controllers: [MatchingController, AdminMatchingController],
+  controllers: [MatchingController, MatchingAdminController],
   providers: [
     MatchingService,
     MatchProcessor,
