@@ -935,14 +935,124 @@ async function openPostDetail(postId, focusComposer = false) {
 }
 window.openPostDetail = openPostDetail;
 
-// 评论数点击 → 滚动到底部评论输入条并聚焦
+// 评论数点击 → 滚到评论区并聚焦输入框。
+// 输入条现在是固定页脚（恒可见），所以滚的是评论区标题而不是输入条本身。
 function focusPdComposer() {
-  const input = document.getElementById('comment-input');
-  if (!input) return;
-  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  input.focus({ preventScroll: true });
+  const head = document.querySelector('#pd-content [data-pd-comments]');
+  if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('comment-input')?.focus({ preventScroll: true });
 }
 window.focusPdComposer = focusPdComposer;
+
+// ── 举报（帖子 / 评论）──
+// 防误触：两步交互——先确认卡（说明后果），再填原因卡；任一步取消即中止。
+async function askReportReason(titleZh, titleEn) {
+  const zh = (window.getLang?.() === 'zh');
+  const ok = await window.confirmCard({
+    title: zh ? titleZh : titleEn,
+    body: zh
+      ? '举报会交由管理员人工审核。恶意或重复的虚假举报可能影响你的账号。'
+      : 'Reports are reviewed by our moderators. Repeated false reports may limit your account.',
+    confirmLabel: zh ? '继续举报' : 'Continue',
+    cancelLabel: zh ? '取消' : 'Cancel',
+    danger: true,
+  });
+  if (!ok) return null;
+  const reason = await window.promptCard({
+    title: zh ? '举报原因' : 'Report reason',
+    label: zh ? '垃圾广告 / 骚扰辱骂 / 不适内容 / 虚假信息' : 'Spam · Harassment · Explicit · False info',
+    placeholder: zh ? '简单说明原因（可留空）' : 'Briefly describe the issue (optional)',
+    confirmLabel: zh ? '提交举报' : 'Submit report',
+    cancelLabel: zh ? '取消' : 'Cancel',
+    multiline: true,
+  });
+  if (reason === null) return null; // 第二步取消
+  return (reason || '').trim() || (zh ? '未填写原因' : 'No reason given');
+}
+
+function reportDoneToast(err) {
+  const zh = (window.getLang?.() === 'zh');
+  if (err) window.toast(err?.message || (zh ? '举报失败，请重试' : 'Failed to report'));
+  else window.toast(zh ? '举报已提交，我们会尽快处理' : 'Report submitted — thanks for flagging');
+}
+
+async function reportPdPost() {
+  const postId = S.currentPostId;
+  if (!postId) return;
+  const reason = await askReportReason('举报这条帖子？', 'Report this post?');
+  if (reason === null) return;
+  try {
+    await window.api(`/square/v2/posts/${postId}/report`, 'POST', { reason });
+    reportDoneToast();
+  } catch (e) { reportDoneToast(e); }
+}
+window.reportPdPost = reportPdPost;
+
+// 取楼层正文（举报内容里带摘要，便于后台定位）
+function pdCommentText(commentId) {
+  for (const cm of (S.pdPostData?.comments || [])) {
+    if (cm.id === commentId) return cm.content || '';
+    const r = (cm.replies || []).find(x => x.id === commentId);
+    if (r) return r.content || '';
+  }
+  return '';
+}
+
+// 评论举报走通用 /reports（category=content）：后端没有评论专用举报接口，
+// 内容里带 commentId/postId + 正文摘要，管理后台「用户反馈」可直接定位。
+async function reportPdComment(commentId) {
+  if (!commentId) return;
+  // 入口快照：确认卡期间用户可能已关掉详情页（S.currentPostId/pdPostData 被清）
+  const postId = S.currentPostId || '';
+  const snippet = pdCommentText(commentId).slice(0, 300);
+  const reason = await askReportReason('举报这条评论？', 'Report this comment?');
+  if (reason === null) return;
+  try {
+    await window.api('/reports', 'POST', {
+      category: 'content',
+      content: `[comment] commentId=${commentId} postId=${postId}\nreason: ${reason}\ntext: ${snippet}`,
+    });
+    reportDoneToast();
+  } catch (e) { reportDoneToast(e); }
+}
+window.reportPdComment = reportPdComment;
+
+// 评论长按 600ms 举报：事件委托绑在 #pd-content 上（只绑一次，渲染重置不受影响）。
+// 手指移动 >10px 视为滚动，取消长按；桌面右键同样触发。
+function bindPdCommentLongPress() {
+  const root = document.getElementById('pd-content');
+  if (!root || root.dataset.lpBound) return;
+  root.dataset.lpBound = '1';
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  root.addEventListener('touchstart', (e) => {
+    cancel();
+    const el = e.target.closest?.('[data-comment-id]');
+    if (!el) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY;
+    const id = el.dataset.commentId;
+    timer = setTimeout(() => {
+      timer = null;
+      try { navigator.vibrate?.(15); } catch (err) { /* 不支持震动：忽略 */ }
+      reportPdComment(id);
+    }, 600);
+  }, { passive: true });
+  root.addEventListener('touchmove', (e) => {
+    if (!timer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel();
+  }, { passive: true });
+  root.addEventListener('touchend', cancel, { passive: true });
+  root.addEventListener('touchcancel', cancel, { passive: true });
+  root.addEventListener('contextmenu', (e) => {
+    const el = e.target.closest?.('[data-comment-id]');
+    if (!el) return;
+    e.preventDefault();
+    reportPdComment(el.dataset.commentId);
+  });
+}
+window.bindPdCommentLongPress = bindPdCommentLongPress;
 
 function closePostDetail() {
   window.closeOverlay('post-detail-overlay');
@@ -1042,16 +1152,17 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
     : (!!authorKey?.value && cm.userId === authorKey.value);
   // 楼层收紧：回复行头像缩小并缩进到父楼内容起点（32px 头像 + 12px 间距）
   const avSize = isReply ? 'w-7 h-7' : 'w-8 h-8';
-  return `<div class="flex gap-3${isReply ? ' pl-11' : ''}">
+  // data-comment-id：长按举报的事件委托靠它定位楼层（bindPdCommentLongPress）
+  return `<div class="pd-comment flex gap-3${isReply ? ' pl-11' : ''}" data-comment-id="${cm.id}">
     ${avatar
       ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
       : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between gap-2">
-        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
-        <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0">${window.formatPostTime(cm.createdAt)}</span>
+        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
+        <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(cm.createdAt)}</span>
       </div>
-      <p class="text-on-surface text-sm leading-relaxed mt-1">${window.escapeHtml(cm.content || '')}</p>
+      <p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content || '')}</p>
       <button class="mt-1.5 text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
     </div>
   </div>`;
@@ -1078,21 +1189,20 @@ function renderPostDetail(post) {
   const badge = officialBadge(post);
   const liked = !!post.myLiked;
   c.innerHTML = `
-    ${renderPdImages(images)}
-    <article class="px-6 pt-8 pb-4 bg-surface-container-lowest">
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-3 min-w-0">
-          ${renderAuthorAvatars(post)}
-          <div class="min-w-0">
-            <p class="font-headline font-bold text-base leading-none truncate">${window.escapeHtml(name)}</p>
-            ${badge ? `<div class="mt-1">${badge}</div>` : ''}
-          </div>
+    <!-- 作者行提到图片上方（用户反馈）：头像 + 名字/学校 在左，时间在右 -->
+    <div class="flex items-center justify-between gap-3 px-6 pt-5 pb-4 bg-surface-container-lowest">
+      <div class="flex items-center gap-3 min-w-0">
+        ${renderAuthorAvatars(post)}
+        <div class="min-w-0" data-no-i18n>
+          <p class="font-headline font-bold text-base leading-tight truncate">${window.escapeHtml(name)}</p>
+          ${school ? `<p class="text-[11px] text-on-surface-variant truncate mt-0.5">${window.escapeHtml(window.metaLabel(school))}</p>` : ''}
         </div>
-        <div class="flex flex-col items-end gap-1 shrink-0">
-          ${school ? `<span class="school-badge" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
-          <p class="text-[10px] text-on-surface-variant font-label tracking-widest">${window.formatPostTime(post.createdAt)}</p>
-        </div>
+        ${badge ? `<div class="shrink-0">${badge}</div>` : ''}
       </div>
+      <p class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</p>
+    </div>
+    ${renderPdImages(images)}
+    <article class="px-6 pt-5 pb-4 bg-surface-container-lowest">
       <div class="grid grid-cols-12 gap-6 items-start">
         <div class="col-span-12 min-w-0">
           ${post.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${window.escapeHtml(post.title)}</h2>` : ''}
@@ -1113,8 +1223,8 @@ function renderPostDetail(post) {
         </button>
       </div>
     </article>
-    <div class="px-6 pt-5 bg-surface">
-      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span></h3>
+    <div class="px-6 pt-5 pb-6 bg-surface" data-pd-comments>
+      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span> <span class="font-normal tracking-normal text-outline normal-case" data-pd-lp-hint data-no-i18n></span></h3>
       <div class="space-y-7">
         ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')
           || `<div class="py-10 text-center">
@@ -1123,6 +1233,12 @@ function renderPostDetail(post) {
               </div>`}
       </div>
     </div>`;
+  // 长按举报提示（有评论时才提示）+ 事件委托绑定（只绑一次）
+  const hint = c.querySelector('[data-pd-lp-hint]');
+  if (hint && comments.length) {
+    hint.textContent = (window.getLang?.() === 'zh') ? '· 长按可举报' : '· long-press to report';
+  }
+  bindPdCommentLongPress();
 }
 window.renderPostDetail = renderPostDetail;
 

@@ -4,6 +4,10 @@
     .page.active { display: flex; }
     .overlay { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 50; overflow-y: auto; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s ease, visibility 0.25s; }
     .overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+    /* 帖子详情为三段式（页眉/滚动区/页脚）：滚动交给内部 #pd-scroll，
+       overlay 自身不滚。用 id 选择器声明，不依赖工具类与自定义规则的先后顺序
+       （8/10 生产事故教训：构建后 Tailwind 工具类排在自定义规则之后）。 */
+    #post-detail-overlay { overflow: hidden; }
     /* Bottom-sheet overlays (filter-overlay etc.) slide up from bottom; full-screen overlays just fade */
     .overlay .bottom-sheet-transition { transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
     .overlay.active .bottom-sheet-transition { transform: translateY(0); }
