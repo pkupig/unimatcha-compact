@@ -54,12 +54,13 @@ export function QuestionFormModal({
       toastError(new Error(), '请填写题目内容');
       return;
     }
+    // 编辑态发空串以清空旧值（undefined 在 Prisma 是 no-op，清不掉）；新建态仍省略空字段
     const payload: QuestionPayload = {
       type,
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: question ? description.trim() : description.trim() || undefined,
       isRequired,
-      group: group.trim() || undefined,
+      group: question ? group.trim() : group.trim() || undefined,
     };
     if (isChoice) {
       const opts = options

@@ -78,6 +78,8 @@ export const NAV: NavEntry[] = [
 export const EXTRA_ROUTES: { prefix: string; roles: AdminRole[]; label: string; icon: LucideIcon }[] = [
   // 账号设置：全角色可达（修旧版 TEAM/SUPER 无入口改密码的缺陷）；由 Sidebar 底部固定渲染
   { prefix: '/account', roles: ALL_ROLES, label: '账号设置', icon: UserRound },
+  // 建单页仅商家（比 /ads 前缀更长故优先命中；后端 POST 也只放行 SPONSOR，这里防直链看到无用表单）
+  { prefix: '/ads/new', roles: ['SPONSOR'], label: '新建广告', icon: Megaphone },
   // 官方发帖页 URL 对团队/学生会保留（经广场管理页按钮进入，不占它们的侧栏）
   { prefix: '/square-post', roles: ['SUPER', 'TEAM', 'STUDENT_UNION', 'SPONSOR'], label: '官方发帖', icon: Send },
   // 学生会侧栏「赞助商」与团队「账号管理」共用 /accounts（上面 NAV 已分别声明）

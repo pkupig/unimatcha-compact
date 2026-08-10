@@ -32,6 +32,13 @@ export function UnionCampaignList() {
   });
   const tab = list.filters.tab;
 
+  // URL → tab 回同步（前进后退/深链切换时列表跟随 URL）
+  const urlTab: UnionTab = searchParams.get('tab') === 'school' ? 'school' : 'review';
+  useEffect(() => {
+    if (tab !== urlTab) list.setFilter('tab', urlTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTab]);
+
   // tab 角标实时计数（审核动作后列表 refresh，角标下次进页更新即可）
   useEffect(() => {
     getAdsOverview()

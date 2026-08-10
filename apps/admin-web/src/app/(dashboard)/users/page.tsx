@@ -1,7 +1,7 @@
 'use client';
 
 /** 用户管理列表（薄壳）：usePagedList 接线 + 组件拼装；列/弹窗在 components/users */
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -32,6 +32,13 @@ function UsersPageInner() {
     fetcher: (q) => listUsers(q),
     initialFilters: { status: parseStatus(searchParams.get('status')) },
   });
+
+  // URL → 筛选回同步（前进后退/侧栏重进时列表跟随 URL）
+  const urlStatus = parseStatus(searchParams.get('status'));
+  useEffect(() => {
+    if (list.filters.status !== urlStatus) list.setFilter('status', urlStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlStatus]);
 
   // 状态筛选写回 URL，支持 ?status= 深链直达
   const changeStatus = (v: UserStatusFilter) => {

@@ -62,6 +62,11 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
       toast.error('学生会发帖必须指定学校');
       return;
     }
+    // 校园墙按学校分流，无校帖会静默消失在所有校墙（与活动发布同口径预拦）
+    if (board === 'campus_wall' && !school.trim()) {
+      toast.error('校园墙帖必须指定学校');
+      return;
+    }
     setSubmitting(true);
     try {
       await createOfficialPost({

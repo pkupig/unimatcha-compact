@@ -2,7 +2,8 @@
 
 /**
  * 用户列表表格：列定义 + 行操作（详情 / 重置匹配 / 封禁解封）。
- * 重置按钮仅在任一模式处于已确认关系（relationship）时出现（USR-6）。
+ * 重置按钮在任一模式处于 matched/confirming/relationship 时出现
+ * （与后端 resetUserMode 能力对齐：临时对话同样可重置，USR-6 放宽）。
  */
 import { useMemo } from 'react';
 import Link from 'next/link';
@@ -100,7 +101,9 @@ export function UsersTable({
         key: 'actions',
         header: '操作',
         render: (u) => {
-          const hasRelationship = u.modeStates.some((m) => m.matchState === 'relationship');
+          const hasRelationship = u.modeStates.some((m) =>
+            ['matched', 'confirming', 'relationship'].includes(m.matchState),
+          );
           return (
             <div className="flex items-center gap-1">
               <Link href={`/users/${u.id}`} title="查看详情" className={clsx(ICON_BTN, 'hover:text-ink')}>

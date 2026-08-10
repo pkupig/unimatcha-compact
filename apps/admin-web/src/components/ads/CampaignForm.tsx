@@ -150,13 +150,19 @@ export function CampaignForm() {
     const payload = buildPayload();
     if (!payload) return;
     setSaving(submit ? 'submit' : 'draft');
+    let savedId: string | null = null;
     try {
       const saved = editId ? await updateCampaign(editId, payload) : await createCampaign(payload);
+      savedId = saved.id;
       if (submit) await submitCampaign(saved.id);
       toast.success(submit ? '已提交审核' : '草稿已保存');
       router.push(`/ads/${saved.id}`);
     } catch (e) {
       toastError(e);
+      // create 成功但 submit 失败：切入编辑模式复用已建草稿，重试不再重复建单
+      if (savedId && !editId) {
+        router.replace(`/ads/new?id=${savedId}`);
+      }
     } finally {
       setSaving(null);
     }

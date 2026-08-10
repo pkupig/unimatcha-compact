@@ -22,7 +22,10 @@ export function UserDetailHeader({
 }) {
   const banModal = useModal();
   const resetModal = useModal();
-  const hasRelationship = user.modeStates.some((m) => m.matchState === 'relationship');
+  // 与后端 resetUserMode 能力对齐：临时对话（matched/confirming）同样可重置（→过期）
+  const hasRelationship = user.modeStates.some((m) =>
+    ['matched', 'confirming', 'relationship'].includes(m.matchState),
+  );
   const banning = user.status === 'ACTIVE';
 
   return (

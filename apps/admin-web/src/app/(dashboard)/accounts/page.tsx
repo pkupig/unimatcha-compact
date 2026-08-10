@@ -4,7 +4,7 @@
  * 账号管理（/accounts）：SUPER=学生会/商家/管理员三 tab；TEAM=前两 tab；
  * 学生会=无 tab 的本校「赞助商」视图（旧 /sponsors 页并入，IA 决策见重写规范）。
  */
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -60,6 +60,13 @@ function AccountsInner() {
     initialFilters: { tab: parseTab(params.get('tab'), allowedTabs), isActive: '' },
   });
   const tab = list.filters.tab;
+
+  // URL → tab 回同步（前进后退/深链切换时列表跟随 URL）
+  const urlTab = parseTab(params.get('tab'), allowedTabs);
+  useEffect(() => {
+    if (tab !== urlTab) list.setFilter('tab', urlTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTab]);
 
   const createModal = useModal();
   const toggleModal = useModal<AdminAccount>();

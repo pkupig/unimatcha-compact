@@ -38,6 +38,13 @@ export function TeamCampaignList() {
   });
   const { status, schoolId } = list.filters;
 
+  // URL → 筛选回同步（侧栏点回无参 /ads、浏览器前进后退时列表跟随 URL，防状态脱钩）
+  const urlStatus = searchParams.get('status') ?? '';
+  useEffect(() => {
+    if (status !== urlStatus) list.setFilter('status', urlStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlStatus]);
+
   useEffect(() => {
     // 学校下拉 + 待审计数（后端 limit 封顶 100，学校超量时下拉只列前 100 所）
     listSchools({ page: 1, limit: 100 })
