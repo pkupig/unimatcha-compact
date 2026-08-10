@@ -568,7 +568,11 @@ window.submitVerification = submitVerification;
 // 背景模糊随下拉消散（用户反馈）：拉距 0→140px 内 blur-mask 透明度 1→0，
 // 跟手期间关掉过渡逐帧写值，松手/复位还原空值走 CSS 0.45s 弹回。
 const BLUR_REVEAL_DIST = 140;
-const BG_ZOOM_DIST = 160; // 拉到此距离时背景图放大到上限 1.3×
+// 小红书式跟手延展：图片高度 = hero 高 + 下拉距离（scale 由 transform-origin:top
+// 换算），所以图片底边正好跟着手指走。HERO_H 与 index.html 的 #profile-hero
+// 内联高度绑定；上限 2× 防极端拉伸。
+const HERO_H = 340;
+const BG_MAX_SCALE = 2;
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
@@ -582,11 +586,11 @@ function setupBgPullReveal() {
           m.style.transition = 'none';
           m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
         }
-        // 背景图跟手放大（拉满 BG_ZOOM_DIST 时到 1.3 倍，再拉不继续涨）
+        // 背景图跟手向下延展（顶边不动，底边跟手指走）
         if (bg) {
           bg.style.transition = 'none';
-          const k = Math.min(dist, BG_ZOOM_DIST) / BG_ZOOM_DIST;
-          bg.style.transform = `scale(${(1 + k * 0.3).toFixed(4)})`;
+          const scale = Math.min(BG_MAX_SCALE, (HERO_H + dist) / HERO_H);
+          bg.style.transform = `scale(${scale.toFixed(4)})`;
         }
       } else {
         // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回

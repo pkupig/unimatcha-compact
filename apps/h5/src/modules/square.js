@@ -755,7 +755,7 @@ function cardAuthorRow(p) {
   const d = postAuthorDisplay(p);
   return `<div class="flex items-center justify-between gap-2 mt-1.5">
     <div class="flex items-center gap-1.5 min-w-0" data-no-i18n>
-      ${avatarChip(d, d.name, 'w-5 h-5 shrink-0', 'text-[8px]', '')}
+      ${avatarChip(d, d.name, 'w-4 h-4 shrink-0', 'text-[7px]', '')}
       <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>
     </div>
     ${postLikeButton(p)}
