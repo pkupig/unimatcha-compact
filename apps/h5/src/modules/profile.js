@@ -568,19 +568,30 @@ window.submitVerification = submitVerification;
 // 背景模糊随下拉消散（用户反馈）：拉距 0→140px 内 blur-mask 透明度 1→0，
 // 跟手期间关掉过渡逐帧写值，松手/复位还原空值走 CSS 0.45s 弹回。
 const BLUR_REVEAL_DIST = 140;
+const BG_ZOOM_DIST = 160; // 拉到此距离时背景图放大到上限 1.3×
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
   window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner', {
     onPull: (dist) => {
       const m = document.querySelector('#tab-profile .profile-blur-mask');
-      if (!m) return;
+      const bg = document.getElementById('profile-bg');
       if (dist > 0) {
-        m.style.transition = 'none';
-        m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
+        // 模糊随拉距消散
+        if (m) {
+          m.style.transition = 'none';
+          m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
+        }
+        // 背景图跟手放大（拉满 BG_ZOOM_DIST 时到 1.3 倍，再拉不继续涨）
+        if (bg) {
+          bg.style.transition = 'none';
+          const k = Math.min(dist, BG_ZOOM_DIST) / BG_ZOOM_DIST;
+          bg.style.transform = `scale(${(1 + k * 0.3).toFixed(4)})`;
+        }
       } else {
-        m.style.transition = '';
-        m.style.opacity = '';
+        // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回
+        if (m) { m.style.transition = ''; m.style.opacity = ''; }
+        if (bg) { bg.style.transition = ''; bg.style.transform = ''; }
       }
     }
   });

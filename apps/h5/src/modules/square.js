@@ -816,10 +816,11 @@ function bentoSmallCard(p) {
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
     : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}"><p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
   // 底部只留 标题 + 头像/昵称 + 点赞（用户反馈：学校/时间去掉，信息太多）
+  // 标题放大到 13px 并允许两行，白色文字区留白加大（用户反馈）
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest rounded-[6px] overflow-hidden cursor-pointer" onclick="openPostDetail('${p.id}')">
     ${media}
-    <div class="px-2 pb-2 pt-1.5">
-      <p class="font-headline text-xs font-bold tracking-tighter truncate" data-no-i18n>${window.escapeHtml(p.title || (p.content || '').substring(0, 40))}</p>
+    <div class="px-2.5 pb-2.5 pt-2">
+      <p class="font-headline text-[13px] font-bold tracking-tight leading-snug" style="${clampStyle(2)}" data-no-i18n>${window.escapeHtml(p.title || (p.content || '').substring(0, 60))}</p>
       ${cardAuthorRow(p)}
     </div>
   </article>`;

@@ -251,6 +251,13 @@
     }
 
     /* Profile background blur progression: top clear -> bottom blurred (blur degree transition, not a color gradient) */
+    /* 背景图随下拉放大（用户反馈）：跟手期间 JS 关掉过渡逐帧写 transform，
+       松手清空 inline 值走这里的过渡平滑弹回——与 .profile-blur-mask 同一套路。
+       容器 #profile-hero 是 overflow-hidden，放大溢出会被裁掉。 */
+    #profile-bg {
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
     .profile-blur-mask {
       position: absolute;
       inset: 0;
