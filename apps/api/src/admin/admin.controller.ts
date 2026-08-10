@@ -21,6 +21,7 @@ import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
+import { UpdateSystemConfigDto } from './dto/system-config.dto';
 import { CreateOfficialPostDto, ReviewPollDto } from '../square/dto/square.dto';
 import { EventsService } from '../events/events.service';
 import { CreateEventDto, UpdateEventStatusDto, CheckinTicketDto } from '../events/dto/events.dto';
@@ -70,6 +71,7 @@ export class AdminController {
   ) {}
 
   @Get('dashboard')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/商家）' })
   getDashboard(@CurrentUser() admin: CurrentAdmin) {
     return this.adminService.getDashboardStats(admin);
@@ -157,9 +159,10 @@ export class AdminController {
     return this.adminService.listAdminUsers(admin, { page, limit, role, schoolId, isActive });
   }
 
-  // 不加 @Roles：任何已登录后管都可打此路由（本人改 name/密码/联系方式，
-  // 商家账户页自助维护）；越权字段由服务层拦截
+  // 四角色全开（本人改 name/密码/联系方式，商家账户页自助维护）；
+  // 越权字段仍由服务层拦截——@Roles 把 role=null 的旧只读账号挡在门外
   @Put('admin-users/:id')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '更新后管账号（SUPER 改权限字段；本人改 name/密码/联系方式；学生会可停启本校来源商家）' })
   updateAdminUser(
     @CurrentUser() admin: CurrentAdmin,
@@ -177,7 +180,9 @@ export class AdminController {
   }
 
   // ─── Square 官方发帖 / 广场管理（§8.1.3 + ADMIN-REDESIGN §5.5）──
+  // SUPER 不直接发帖（与服务层 canPublishOfficial 口径一致，403 提前到守卫）
   @Post('square/posts')
+  @Roles(AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
   @ApiOperation({ summary: '官方发帖（按 role/scope 校验 school）' })
   createOfficialPost(@CurrentUser('id') adminId: string, @Body() dto: CreateOfficialPostDto) {
     return this.adminService.createOfficialPost(adminId, dto);
@@ -383,8 +388,8 @@ export class AdminController {
 
   @Put('configs/:key')
   @Roles(AdminRole.SUPER)
-  @ApiOperation({ summary: '更新系统配置（仅 SUPER）' })
-  updateConfig(@Param('key') key: string, @Body('value') value: any) {
-    return this.adminService.updateSystemConfig(key, value);
+  @ApiOperation({ summary: '更新系统配置（仅 SUPER；键白名单，广告计价走专用接口）' })
+  updateConfig(@Param('key') key: string, @Body() dto: UpdateSystemConfigDto) {
+    return this.adminService.updateSystemConfig(key, dto.value);
   }
 }

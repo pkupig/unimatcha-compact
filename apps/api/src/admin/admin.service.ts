@@ -17,6 +17,7 @@ import { SquareService } from '../square/square.service';
 import { CreateOfficialPostDto } from '../square/dto/square.dto';
 import { CreateAdminUserDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 import { ConvertSubmissionDto, UpdateSubmissionDto } from './dto/submission.dto';
+import { AD_PRICING_DEFAULTS_KEY, CONFIG_KEY_ALLOWLIST } from './dto/system-config.dto';
 
 // 当前登录后管（来自 admin-jwt 策略写入的 req.user）
 type CurrentAdmin = {
@@ -813,19 +814,21 @@ export class AdminService {
   }
 
   // ─── System Config ─────────────────────────────────────────
-  async getSystemConfig(key: string) {
-    return this.prisma.systemConfig.findUnique({ where: { key } });
-  }
-
-  async updateSystemConfig(key: string, value: any) {
+  async updateSystemConfig(key: string, value: unknown) {
+    if (key === AD_PRICING_DEFAULTS_KEY) {
+      throw new BadRequestException('广告计价请使用 /admin/ad-pricing/defaults 接口修改');
+    }
+    if (!CONFIG_KEY_ALLOWLIST.includes(key)) {
+      throw new BadRequestException('不支持的配置项');
+    }
     return this.prisma.systemConfig.upsert({
       where: { key },
-      update: { value },
-      create: { key, value },
+      update: { value: value as Prisma.InputJsonValue },
+      create: { key, value: value as Prisma.InputJsonValue },
     });
   }
 
   async getAllConfigs() {
-    return this.prisma.systemConfig.findMany();
+    return { items: await this.prisma.systemConfig.findMany({ orderBy: { key: 'asc' } }) };
   }
 }
