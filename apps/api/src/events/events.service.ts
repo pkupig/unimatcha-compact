@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { AdminRole, SquareAuthorType, SquareBoard } from '@prisma/client';
@@ -9,18 +10,23 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminScopeService } from '../admin-core/admin-scope.service';
 import { AdminActor } from '../admin-core/admin-actor';
+import { EnergyService } from '../energy/energy.service';
 import { PageQuery, paginated, skipTake } from '../common/utils/pagination';
 import { CreateEventDto } from './dto/events.dto';
 
 /**
  * 活动 + 门票（学生会/团队发布活动 → 广场活动帖；用户购票 → 票夹二维码）。
- * 支付本期为 mock：购票即出票，pricePaidCents 记录票面价。
+ * 门票能量计费（能量经济 2026-08）：票价按 1 格 = 100 分向上取整折算能量格，
+ * 购票扣用户能量 → 学校能量账 +cells×100（守恒恒等式）；取消活动逐票退能量并冲回学校账。
  */
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
+
   constructor(
     private prisma: PrismaService,
     private adminScope: AdminScopeService,
+    private energy: EnergyService,
   ) {}
 
   // ─── 后管：创建活动（事务内同时生成广场活动帖）────────────────
@@ -114,22 +120,73 @@ export class EventsService {
     return paginated(items, total, q);
   }
 
-  // ─── 后管：状态流转（closed 停售 / cancelled 取消）────────────
+  // ─── 后管：状态流转（closed 停售 / cancelled 取消+退款）────────
   async updateEventStatus(actor: AdminActor, eventId: string, status: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
     if (!event) throw new NotFoundException('活动不存在');
     this.adminScope.assertSchoolNameInScope(actor, event.school);
-    const updated = await this.prisma.event.update({
-      where: { id: eventId },
-      data: { status },
-    });
-    // 取消活动：存量有效票一并作废（票夹显示 CANCELLED、核销双重拒绝）
-    if (status === 'cancelled') {
-      await this.prisma.eventTicket.updateMany({
-        where: { eventId, status: 'valid' },
-        data: { status: 'cancelled' },
+
+    if (status !== 'cancelled') {
+      const updated = await this.prisma.event.update({
+        where: { id: eventId },
+        data: { status },
       });
+      return { id: updated.id, status: updated.status };
     }
+
+    // 取消活动：状态翻转 + 作废存量有效票 + 逐票退能量 + 学校账负项冲回，单事务同生共死
+    // （票多时逐票退款耗时，timeout 放宽到 60s）
+    const updated = await this.prisma.$transaction(
+      async (tx) => {
+        const ev = await tx.event.update({ where: { id: eventId }, data: { status } });
+        // 行级 claim 即所有权：原子把 valid 翻成 cancelled 并 RETURNING 被翻转的行——
+        // 并发重复取消时后到者拿到空集，退款天然不重复；退款与翻转同事务同生共死。
+        // used 票不在 claim 范围（服务已交付，不退；纠纷走财务手工调整）。
+        const claimed = await tx.$queryRaw<
+          { id: string; userId: string; pricePaidCents: number }[]
+        >`
+          UPDATE "event_tickets" SET "status" = 'cancelled'
+          WHERE "eventId" = ${eventId} AND "status" = 'valid'
+          RETURNING "id", "userId", "pricePaidCents"`;
+        // 学校账目标（活动可能无学校/学校未录入 → 只退用户不冲学校账）
+        const school = event.school
+          ? await tx.school.findUnique({ where: { name: event.school }, select: { id: true } })
+          : null;
+        for (const t of claimed) {
+          // pricePaidCents 恒为购票进位快照 cells×100；floor 兜底历史非整百数据防碎格
+          const cells = Math.floor(t.pricePaidCents / 100);
+          if (cells <= 0) continue; // 免费票无退款
+          await this.energy.refundInTx(
+            tx,
+            t.userId,
+            null,
+            cells,
+            null,
+            `Event cancelled: ${event.title}`,
+            'event_cancelled',
+            `event-cancel:${t.id}`,
+            { eventId, ticketId: t.id },
+          );
+          // 学校账负项冲回。余额可为负：若收入已经兑换提走，此处冲回转负——
+          // 兑换侧有余额校验挡住再兑换，负额由平台财务手工调平。
+          if (school) {
+            await tx.schoolLedgerEntry.create({
+              data: {
+                schoolId: school.id,
+                type: 'EVENT_TICKET',
+                amountCents: -t.pricePaidCents,
+                refType: 'ticket',
+                refId: t.id,
+                note: `门票退款（活动取消）· ${event.title}`,
+                createdByAdminId: actor.id,
+              },
+            });
+          }
+        }
+        return ev;
+      },
+      { timeout: 60_000 },
+    );
     return { id: updated.id, status: updated.status };
   }
 
@@ -203,7 +260,7 @@ export class EventsService {
     return { ...event, remaining, myTickets };
   }
 
-  // ─── 用户：购票（mock 支付；容量守卫为条件自增，防超卖）────────
+  // ─── 用户：购票（能量支付；容量守卫为条件自增，防超卖）─────────
   async purchaseTicket(eventId: string, userId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
     if (!event) throw new NotFoundException('Event not found');
@@ -214,6 +271,8 @@ export class EventsService {
     if (salesEnd && salesEnd < new Date()) {
       throw new BadRequestException('This event has ended');
     }
+    // 门票能量计费：1 格 = 100 分，票价向上取整折算格数（如 150 分收 2 格）；免费票 0 格
+    const cells = event.priceCents > 0 ? Math.ceil(event.priceCents / 100) : 0;
     const ticket = await this.prisma.$transaction(async (tx) => {
       // 每人限购 2 张（mock 支付零成本，防单人抽干容量/无限刷票）
       const mine = await tx.eventTicket.count({
@@ -225,20 +284,60 @@ export class EventsService {
         UPDATE "events" SET "ticketsSold" = "ticketsSold" + 1, "updatedAt" = NOW()
         WHERE "id" = ${eventId} AND ("capacity" IS NULL OR "ticketsSold" < "capacity")`;
       if (!bumped) throw new BadRequestException('Sold out');
-      return tx.eventTicket.create({
+      // 扣用户能量（同事务：能量不足抛错 → 上面的 ticketsSold 自增一并回滚）；免费票零扣
+      if (cells > 0) {
+        await this.energy.consumeInTx(
+          tx,
+          userId,
+          cells,
+          null,
+          null,
+          `Event ticket: ${event.title}`,
+          { scene: 'event_ticket', eventId },
+        );
+      }
+      const t = await tx.eventTicket.create({
         data: {
           code: this.generateTicketCode(),
           eventId,
           userId,
-          pricePaidCents: event.priceCents,
+          // 进位快照：记「实收能量折算分值」cells×100（非票面 priceCents），
+          // 取消退款按此金额逐票退，保证扣/退恒等
+          pricePaidCents: cells * 100,
         },
       });
+      // 学校侧入账：用户扣 cells 格 ≡ 学校 +cells×100 能量（守恒恒等式）；免费票零落账
+      if (cells > 0 && event.school) {
+        const school = await tx.school.findUnique({
+          where: { name: event.school },
+          select: { id: true },
+        });
+        if (school) {
+          await tx.schoolLedgerEntry.create({
+            data: {
+              schoolId: school.id,
+              type: 'EVENT_TICKET',
+              amountCents: cells * 100,
+              refType: 'ticket',
+              refId: t.id,
+              note: `门票收入 · ${event.title}`,
+            },
+          });
+        } else {
+          // School 未录入（event.school 为自由文本）：收入归平台，不落学校账
+          this.logger.warn(
+            `门票收入未入学校账（School 缺失，归平台）：event=${eventId} school=${event.school} ticket=${t.id}`,
+          );
+        }
+      }
+      return t;
     });
     return {
       ticketId: ticket.id,
       code: ticket.code,
       event: { id: event.id, title: event.title, startAt: event.startAt, venue: event.venue },
       pricePaidCents: ticket.pricePaidCents,
+      cellsPaid: cells,
     };
   }
 

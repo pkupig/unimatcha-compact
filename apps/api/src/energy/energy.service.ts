@@ -86,14 +86,17 @@ export class EnergyService {
   /**
    * 预扣能量——在 startMatch 的同一事务内调用（§3.4），由 MatchingService 注入使用。
    * available < cost 抛 BadRequestException；usedEnergy += cost，写 CONSUME 流水。
+   * mode 可为 null（非匹配场景的消耗，如门票；DB 列本就可空）；
+   * metadata 可选（消费场景附加信息，如 { scene:'event_ticket', eventId }）。
    */
   async consumeInTx(
     tx: Prisma.TransactionClient,
     userId: string,
     cost: number,
-    mode: ModeStr,
+    mode: ModeStr | null,
     matchId: string | null,
     reason: string,
+    metadata?: Prisma.InputJsonValue,
   ): Promise<BalanceView> {
     const b = await this.getOrCreateBalance(userId, tx);
     // 原子守卫扣减：仅当「扣后 usedEnergy 不超过 totalEnergy」时才命中，杜绝并发双花 / 余额转负。
@@ -117,6 +120,7 @@ export class EnergyService {
         relatedMatchId: matchId,
         relatedMatchMode: mode,
         reason,
+        ...(metadata ? { metadata } : {}),
       },
     });
     return {
@@ -164,16 +168,19 @@ export class EnergyService {
    * 退还能量（事务内版本）——供 MatchingService.expireUnconfirmedMatches 在同一事务内
    * 与 EXPIRED + 双方通知原子执行（§10.3）。幂等去重依赖同 matchId + REFUND 流水。
    * 与 refund() 共享同一实现，避免逻辑分叉。
+   * mode 可为 null（非匹配场景退款，如活动取消）；refundReason 增 'event_cancelled'；
+   * extraMetadata 可选，合并进流水与通知 metadata（如 { eventId, ticketId }）。
    */
   async refundInTx(
     tx: Prisma.TransactionClient,
     userId: string,
-    mode: ModeStr,
+    mode: ModeStr | null,
     cost: number,
     matchId: string | null,
     reason: string,
-    refundReason: 'empty_pool' | 'unconfirmed_48h' = 'empty_pool',
+    refundReason: 'empty_pool' | 'unconfirmed_48h' | 'event_cancelled' = 'empty_pool',
     dedupeKey?: string,
+    extraMetadata?: Record<string, unknown>,
   ): Promise<void> {
     // 幂等去重：优先按 dedupeKey（调用方可锚定到轮次/尝试，跨轮复用同一 Match 行仍可分别退款）；
     // 无 dedupeKey 时回退按 matchId。注意顺序——过期退款同时传 matchId(审计) + 轮次 dedupeKey，
@@ -206,22 +213,33 @@ export class EnergyService {
         relatedMatchId: matchId,
         relatedMatchMode: mode,
         reason,
-        ...(dedupeKey ? { metadata: { dedupeKey } } : {}),
+        // dedupeKey path 查重仍走 metadata.dedupeKey，追加 extraMetadata 不影响查重
+        ...(dedupeKey
+          ? { metadata: { dedupeKey, ...extraMetadata } as Prisma.InputJsonValue }
+          : {}),
       },
     });
-    // 退款通知：metadata.refundReason 供前端渲染「空池」/「48h 未确认」文案（§6.6）
+    // 退款通知：metadata.refundReason 供前端渲染「空池」/「48h 未确认」/「活动取消」文案（§6.6）
     // 通知 body 用英文，按 refundReason 区分场景；reason 仍存入流水记录
     const refundBody =
       refundReason === 'unconfirmed_48h'
         ? `Your enhanced match wasn't confirmed within 48 hours, so ${dec} energy ${dec === 1 ? 'cell has' : 'cells have'} been refunded.`
-        : `No match was available this round, so ${dec} energy ${dec === 1 ? 'cell has' : 'cells have'} been refunded.`;
+        : refundReason === 'event_cancelled'
+          ? `The event was cancelled, so ${dec} energy ${dec === 1 ? 'cell has' : 'cells have'} been refunded.`
+          : `No match was available this round, so ${dec} energy ${dec === 1 ? 'cell has' : 'cells have'} been refunded.`;
     await tx.notification.create({
       data: {
         userId,
         type: 'energy_refunded',
         title: 'Energy refunded',
         body: refundBody,
-        metadata: { mode, energy: dec, refundReason, matchId },
+        metadata: {
+          mode,
+          energy: dec,
+          refundReason,
+          matchId,
+          ...extraMetadata,
+        } as Prisma.InputJsonValue,
       },
     });
   }

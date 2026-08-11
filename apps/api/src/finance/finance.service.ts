@@ -475,7 +475,8 @@ export class FinanceService {
   // ─── 分校收入报表（SUPER/TEAM，可选 from/to 日期范围）───────────
   // 每校：广告总消耗（AdDailyStat.spendCents）、学校分成（AD_SHARE ledger）、
   // 平台留存 = 消耗 − 分成、赞助发放（SPONSOR_GRANT）、
-  // 已打款提现（现金账本 WITHDRAWAL 绝对值）、能量兑换出账（CONVERSION_OUT 绝对值）
+  // 已打款提现（现金账本 WITHDRAWAL 绝对值）、能量兑换出账（CONVERSION_OUT 绝对值）、
+  // 门票净额（EVENT_TICKET 有符号求和：售出 + / 取消冲回 −）
   async getRevenueReport(params: { from?: string; to?: string }) {
     const fromDate = params.from ? new Date(params.from) : undefined;
     const toDate = params.to ? new Date(params.to) : undefined;
@@ -502,8 +503,15 @@ export class FinanceService {
 
     const ledgerRange = createdAtRange ? { createdAt: createdAtRange } : {};
 
-    const [schools, spendGroups, shareGroups, grantGroups, withdrawalGroups, conversionGroups] =
-      await Promise.all([
+    const [
+      schools,
+      spendGroups,
+      shareGroups,
+      grantGroups,
+      withdrawalGroups,
+      conversionGroups,
+      eventTicketGroups,
+    ] = await Promise.all([
         this.prisma.school.findMany({
           orderBy: { createdAt: 'asc' },
           select: { id: true, name: true },
@@ -538,6 +546,12 @@ export class FinanceService {
           where: { type: LedgerEntryType.CONVERSION_OUT, ...ledgerRange },
           _sum: { amountCents: true },
         }),
+        // 门票净额（EVENT_TICKET 有符号：售出 + / 取消冲回 −，求和即净额，不取绝对值）
+        this.prisma.schoolLedgerEntry.groupBy({
+          by: ['schoolId'],
+          where: { type: LedgerEntryType.EVENT_TICKET, ...ledgerRange },
+          _sum: { amountCents: true },
+        }),
       ]);
 
     const spendBySchool = new Map(spendGroups.map((g) => [g.schoolId, g._sum.spendCents ?? 0]));
@@ -548,6 +562,9 @@ export class FinanceService {
     );
     const conversionBySchool = new Map(
       conversionGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]),
+    );
+    const eventTicketBySchool = new Map(
+      eventTicketGroups.map((g) => [g.schoolId, g._sum.amountCents ?? 0]),
     );
 
     const items = schools.map((s) => {
@@ -562,6 +579,8 @@ export class FinanceService {
         grantCents: grantBySchool.get(s.id) ?? 0,
         withdrawalPaidCents: Math.abs(withdrawalBySchool.get(s.id) ?? 0),
         conversionOutCents: Math.abs(conversionBySchool.get(s.id) ?? 0),
+        // 有符号净额：窗口内售出 − 取消冲回（跨窗口取消可为负）
+        eventTicketCents: eventTicketBySchool.get(s.id) ?? 0,
       };
     });
 
@@ -574,6 +593,7 @@ export class FinanceService {
         grantCents: acc.grantCents + r.grantCents,
         withdrawalPaidCents: acc.withdrawalPaidCents + r.withdrawalPaidCents,
         conversionOutCents: acc.conversionOutCents + r.conversionOutCents,
+        eventTicketCents: acc.eventTicketCents + r.eventTicketCents,
       }),
       {
         grossAdSpendCents: 0,
@@ -582,6 +602,7 @@ export class FinanceService {
         grantCents: 0,
         withdrawalPaidCents: 0,
         conversionOutCents: 0,
+        eventTicketCents: 0,
       },
     );
 
