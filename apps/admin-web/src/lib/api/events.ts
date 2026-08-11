@@ -34,7 +34,7 @@ export function listEventTickets(
   return get<EventTicketsResult>(`/admin/events/${eventId}/tickets`, params);
 }
 
-/** 入场核销（按票码；已核销/已失效/活动已取消均为 ApiError） */
-export function checkinTicket(code: string): Promise<CheckinResult> {
-  return post<CheckinResult>('/admin/events/checkin', { code });
+/** 入场核销（按票码；传 eventId 时限定本场，非本场门票被拒；已核销/已失效/活动已取消均为 ApiError） */
+export function checkinTicket(code: string, eventId?: string): Promise<CheckinResult> {
+  return post<CheckinResult>('/admin/events/checkin', { code, ...(eventId ? { eventId } : {}) });
 }

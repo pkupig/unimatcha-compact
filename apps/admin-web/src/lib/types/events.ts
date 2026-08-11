@@ -109,4 +109,6 @@ export interface CheckinResult {
   event: string;
   /** 持票人昵称（后端缺省「未知用户」） */
   holder: string;
+  /** 票所属活动 id */
+  eventId?: string;
 }

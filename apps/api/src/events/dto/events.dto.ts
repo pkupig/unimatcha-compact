@@ -82,9 +82,16 @@ export class PurchaseTicketDto {
 }
 
 // 入场核销（POST /admin/events/checkin）
+// 校验消息中文化：扫码路径会把任意二维码内容（如超长海报 URL）送进来，默认英文消息会直达核销员界面
 export class CheckinTicketDto {
   @ApiProperty({ example: 'UMT-3F9A2K7Q' })
-  @IsString()
-  @MaxLength(40)
+  @IsString({ message: '票码格式不正确' })
+  @MaxLength(40, { message: '不是有效票码' })
   code: string;
+
+  @ApiPropertyOptional({ description: '限定活动：票不属于该活动时拒绝核销（防扫错场次）' })
+  @IsOptional()
+  @IsString({ message: '活动标识不正确' })
+  @MaxLength(64, { message: '活动标识不正确' })
+  eventId?: string;
 }

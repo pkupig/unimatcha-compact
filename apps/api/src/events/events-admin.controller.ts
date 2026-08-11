@@ -52,8 +52,8 @@ export class EventsAdminController {
   }
 
   @Post('checkin')
-  @ApiOperation({ summary: '入场核销（按票码；已核销/无效返回 400）' })
+  @ApiOperation({ summary: '入场核销（按票码，可限定活动；已核销/无效/场次不符返回 400）' })
   checkinTicket(@CurrentAdmin() actor: AdminActor, @Body() dto: CheckinTicketDto) {
-    return this.eventsService.checkinTicket(actor, dto.code);
+    return this.eventsService.checkinTicket(actor, dto.code, dto.eventId);
   }
 }

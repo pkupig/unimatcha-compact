@@ -212,8 +212,8 @@ export class EventsService {
     };
   }
 
-  // ─── 后管：入场核销（扫票码 → valid 置 used）──────────────────
-  async checkinTicket(actor: AdminActor, code: string) {
+  // ─── 后管：入场核销（扫票码 → valid 置 used；eventId 限定 + valid→used 条件 claim 防并发双核销）──
+  async checkinTicket(actor: AdminActor, code: string, eventId?: string) {
     const ticket = await this.prisma.eventTicket.findUnique({
       where: { code: (code || '').trim() },
       include: {
@@ -226,19 +226,33 @@ export class EventsService {
     if (ticket.event.status === 'cancelled') {
       throw new BadRequestException('该活动已取消');
     }
+    if (eventId && ticket.event.id !== eventId) {
+      throw new BadRequestException(`该票属于其他活动：《${ticket.event.title}》`);
+    }
     if (ticket.status === 'used') {
       throw new BadRequestException(`该票已于 ${ticket.usedAt?.toISOString()} 核销`);
     }
     if (ticket.status !== 'valid') {
       throw new BadRequestException('该票已失效');
     }
-    await this.prisma.eventTicket.update({
-      where: { id: ticket.id },
+    const claimed = await this.prisma.eventTicket.updateMany({
+      where: { id: ticket.id, status: 'valid' },
       data: { status: 'used', usedAt: new Date() },
     });
+    if (claimed.count === 0) {
+      // 预检到 claim 之间被并发改写：回读区分「另一核销员抢先」与「活动刚被取消（票已退款作废）」
+      const latest = await this.prisma.eventTicket.findUnique({
+        where: { id: ticket.id },
+        select: { status: true },
+      });
+      throw new BadRequestException(
+        latest?.status === 'cancelled' ? '该票已失效（活动取消已退款）' : '该票已核销',
+      );
+    }
     return {
       ok: true,
       event: ticket.event.title,
+      eventId: ticket.event.id,
       holder: ticket.user?.profile?.nickname || '未知用户',
     };
   }
