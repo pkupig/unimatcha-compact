@@ -1,5 +1,5 @@
 /**
- * wallet 域 API（商家能量钱包 /wallet）。
+ * wallet 域 API（广告商能量钱包 /wallet）。
  * 域内例外：同 earnings 先例，无独立 types stub 文件，契约类型在本文件顶部定义并导出。
  * 后端真源：sponsor-wallet.service getSummary / listLedger / topup（SPONSOR own）。
  * 能量经济：1 元 = 100 分 = 100 能量，数值同构——amountCents 即能量数，展示绝不 /100。

@@ -32,7 +32,7 @@ const colTitle: Column<Campaign> = {
 
 const colAdvertiser: Column<Campaign> = {
   key: 'advertiser',
-  header: '商家',
+  header: '广告商',
   render: (c) => (
     <span className="text-on-surface-variant">
       {c.advertiser.organizationName ?? c.advertiser.name}
@@ -107,7 +107,7 @@ const colDetail: Column<Campaign> = {
 export type CampaignView = 'sponsor' | 'unionReview' | 'unionSchool' | 'team';
 
 const VIEW_COLUMNS: Record<CampaignView, Column<Campaign>[]> = {
-  // 商家：我的广告
+  // 广告商：我的广告
   sponsor: [colTitle, colPricing, colSchools, colSchedule, colQuote, colSpend, colStatus, colDetail],
   // 学生会：待我审核队列
   unionReview: [colTitle, colAdvertiser, colPricing, colSchedule, colQuote, colStatus, colDetail],

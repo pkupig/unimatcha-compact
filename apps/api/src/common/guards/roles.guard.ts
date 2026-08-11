@@ -8,7 +8,7 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
  *   @UseGuards(AdminJwtAuthGuard, RolesGuard)
  *   @Roles('SUPER', 'TEAM')
  * 未标注 @Roles 的路由放行（仅要求已登录 admin）；
- * 范围校验（学生会仅本校、商家仅自身）在服务层做。
+ * 范围校验（学生会仅本校、广告商仅自身）在服务层做。
  */
 @Injectable()
 export class RolesGuard implements CanActivate {

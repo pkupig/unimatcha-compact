@@ -78,7 +78,7 @@ export function ConvertModal({
   const [busy, setBusy] = useState(false);
   const [creds, setCreds] = useState<Creds | null>(null);
 
-  // 学校下拉（绑定现有学校 / 商家来源学校共用；后端 limit 封顶 100）
+  // 学校下拉（绑定现有学校 / 广告商来源学校共用；后端 limit 封顶 100）
   useEffect(() => {
     listSchools({ limit: 100 })
       .then((res) => setSchools(res.items))
@@ -168,7 +168,7 @@ export function ConvertModal({
               {(
                 [
                   ['STUDENT_UNION', '学生会'],
-                  ['SPONSOR', '商家'],
+                  ['SPONSOR', '广告商'],
                 ] as const
               ).map(([value, label]) => (
                 <label key={value} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -223,7 +223,7 @@ export function ConvertModal({
                 <Input
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
-                  placeholder="商家 / 机构名称"
+                  placeholder="广告商 / 机构名称"
                 />
               </Field>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -234,7 +234,7 @@ export function ConvertModal({
                   <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="选填" />
                 </Field>
               </div>
-              <Field label="来源学校" hint="学生会自拉商家选来源学校；平台直签留空">
+              <Field label="来源学校" hint="学生会自拉广告商选来源学校；平台直签留空">
                 <Select value={sourceSchoolId} onChange={(e) => setSourceSchoolId(e.target.value)}>
                   <option value="">平台直签</option>
                   {schools.map((s) => (

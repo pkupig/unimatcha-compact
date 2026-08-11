@@ -1,6 +1,6 @@
 'use client';
 
-/** 商家视图（ADS-P1）：我的广告 + 新建广告 CTA + 空态 CTA */
+/** 广告商视图（ADS-P1）：我的广告 + 新建广告 CTA + 空态 CTA */
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';

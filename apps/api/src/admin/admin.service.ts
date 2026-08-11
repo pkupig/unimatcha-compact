@@ -67,7 +67,7 @@ export class AdminService {
       };
     }
 
-    // 商家：自己的投放汇总
+    // 广告商：自己的投放汇总
     if (role === AdminRole.SPONSOR) {
       const [activeCampaigns, spendAgg, statAgg] = await Promise.all([
         this.prisma.adCampaign.count({ where: { advertiserId: actor.id, status: 'ACTIVE' } }),
@@ -138,7 +138,7 @@ export class AdminService {
   }
 
   // ─── 后管账号管理（§8.1.3 + ADMIN-REDESIGN §4 分级权限）──────────────
-  // SUPER：全量；TEAM：创建/查看商家+学生会；学生会：创建/停启本校自拉商家
+  // SUPER：全量；TEAM：创建/查看广告商+学生会；学生会：创建/停启本校自拉广告商
   private isSuper(admin: AdminActor): boolean {
     return admin.role === AdminRole.SUPER || admin.isSuperAdmin;
   }
@@ -197,10 +197,10 @@ export class AdminService {
     } else if (actorRole === AdminRole.TEAM) {
       if (!dto.role) throw new BadRequestException('必须指定角色');
       if (dto.role !== AdminRole.SPONSOR && dto.role !== AdminRole.STUDENT_UNION) {
-        throw new ForbiddenException('团队成员只能创建商家/学生会账号');
+        throw new ForbiddenException('团队成员只能创建广告商/学生会账号');
       }
       role = dto.role;
-      // TEAM 可代学生会创建自拉商家（显式指定来源学校）
+      // TEAM 可代学生会创建自拉广告商（显式指定来源学校）
       sourcedBySchoolId = role === AdminRole.SPONSOR ? (dto.sourcedBySchoolId ?? null) : null;
     } else if (actorRole === AdminRole.STUDENT_UNION) {
       // 学生会：强制 role=SPONSOR、来源锁定本校（忽略 dto.role / dto.sourcedBySchoolId）
@@ -222,7 +222,7 @@ export class AdminService {
       schoolId = dto.schoolId;
     }
 
-    // 自拉商家的来源学校必须存在
+    // 自拉广告商的来源学校必须存在
     if (sourcedBySchoolId) {
       await this.assertSchoolExists(sourcedBySchoolId, '来源学校');
     }
@@ -268,10 +268,10 @@ export class AdminService {
     if (this.isSuper(actor)) {
       // SUPER：全量
     } else if (actorRole === AdminRole.TEAM) {
-      // 团队成员：只见商家/学生会账号（SUPER/TEAM 账号管理为 SUPER 专属）
+      // 团队成员：只见广告商/学生会账号（SUPER/TEAM 账号管理为 SUPER 专属）
       const requested = role as AdminRole | undefined;
       if (requested && requested !== AdminRole.SPONSOR && requested !== AdminRole.STUDENT_UNION) {
-        throw new ForbiddenException('团队成员只能查看商家/学生会账号');
+        throw new ForbiddenException('团队成员只能查看广告商/学生会账号');
       }
       where.role = requested ?? { in: [AdminRole.SPONSOR, AdminRole.STUDENT_UNION] };
     } else if (actorRole === AdminRole.STUDENT_UNION) {
@@ -323,7 +323,7 @@ export class AdminService {
         dto.contactPhone === undefined &&
         dto.sourcedBySchoolId === undefined;
       if (!isOwnSponsor || !onlyTogglesActive) {
-        throw new ForbiddenException('学生会只能启用/停用本校来源的商家账号');
+        throw new ForbiddenException('学生会只能启用/停用本校来源的广告商账号');
       }
       return this.prisma.adminUser.update({
         where: { id: targetId },
@@ -357,7 +357,7 @@ export class AdminService {
     const data: Prisma.AdminUserUncheckedUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.password) data.passwordHash = await bcrypt.hash(dto.password, 12);
-    // 联系方式：本人或 SUPER 可改（商家账户页自助维护）
+    // 联系方式：本人或 SUPER 可改（广告商账户页自助维护）
     if (dto.contactName !== undefined) data.contactName = dto.contactName;
     if (dto.contactPhone !== undefined) data.contactPhone = dto.contactPhone;
 
@@ -574,7 +574,7 @@ export class AdminService {
         if (dup) throw new BadRequestException('该学校名已存在');
       }
     } else {
-      if (!organizationName) throw new BadRequestException('商家账号必须填写组织名');
+      if (!organizationName) throw new BadRequestException('广告商账号必须填写组织名');
       if (schoolId) {
         await this.assertSchoolExists(schoolId, '来源学校');
         sourcedBySchoolId = schoolId;

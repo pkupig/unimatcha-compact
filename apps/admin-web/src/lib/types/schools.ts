@@ -13,7 +13,7 @@ export interface SchoolStats {
 
 /**
  * 学校完整行（TEAM/UNION 视角；GET /admin/schools 列表项与 GET /admin/schools/:id 详情同形）。
- * - 商家角色调用列表时后端只返回瘦身字段（id/name/city/isActive + effectivePrices），
+ * - 广告商角色调用列表时后端只返回瘦身字段（id/name/city/isActive + effectivePrices），
  *   该形状由 ads 域按需自行定义，不在此镜像。
  * - stats 仅列表/详情响应附带；create/update/bank 的响应为裸行无此字段。
  */

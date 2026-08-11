@@ -2,7 +2,7 @@
 
 /**
  * 三个 tab 的表格列定义（ACC-2 / ACC-3 / 管理员）。
- * 操作列可见性由调用方按角色决定：SUPER 全量；学生会可停启本校来源商家；TEAM 不显示。
+ * 操作列可见性由调用方按角色决定：SUPER 全量；学生会可停启本校来源广告商；TEAM 不显示。
  */
 import { Ban, CheckCircle } from 'lucide-react';
 import type { Column } from '@/components/ui/DataTable';
@@ -19,7 +19,7 @@ export interface AccountColumnOpts {
   onToggle: (row: AdminAccount) => void;
 }
 
-/** 展示名统一口径：商家优先组织名（停启确认弹窗文案同源） */
+/** 展示名统一口径：广告商优先组织名（停启确认弹窗文案同源） */
 export function accountDisplayName(a: AdminAccount): string {
   return a.organizationName || a.name;
 }
@@ -84,7 +84,7 @@ export function unionColumns(opts: AccountColumnOpts): Column<AdminAccount>[] {
   ];
 }
 
-/** ACC-3 商家列：组织名/来源/联系方式/Email/状态/创建时间 */
+/** ACC-3 广告商列：组织名/来源/联系方式/Email/状态/创建时间 */
 export function sponsorColumns(opts: AccountColumnOpts): Column<AdminAccount>[] {
   return [
     {

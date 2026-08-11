@@ -163,7 +163,7 @@ export class AdsService {
     throw new ForbiddenException('当前角色无权访问该功能');
   }
 
-  // 创建/编辑共用校验：日期、预算与计价模式匹配、学校存在且启用、自拉商家仅可投本校
+  // 创建/编辑共用校验：日期、预算与计价模式匹配、学校存在且启用、自拉广告商仅可投本校
   private async validateCampaignPayload(advertiserId: string, dto: CreateCampaignDto) {
     const startDate = this.parseDateOnly(dto.startDate, '开始日期格式不正确');
     const endDate = this.parseDateOnly(dto.endDate, '结束日期格式不正确');
@@ -190,14 +190,14 @@ export class AdsService {
       if (!school.isActive) throw new BadRequestException('投放学校未启用，无法投放');
     }
 
-    // req.user 不含 sourcedBySchoolId，重新查商家行判定来源（自拉商家仅可投本校）
+    // req.user 不含 sourcedBySchoolId，重新查广告商行判定来源（自拉广告商仅可投本校）
     const advertiser = await this.prisma.adminUser.findUnique({
       where: { id: advertiserId },
       select: { sourcedBySchoolId: true },
     });
     const sourcedBySchoolId = advertiser?.sourcedBySchoolId ?? null;
     if (sourcedBySchoolId && (schoolIds.length !== 1 || schoolIds[0] !== sourcedBySchoolId)) {
-      throw new ForbiddenException('自拉赞助商仅可投放本校');
+      throw new ForbiddenException('自拉广告商仅可投放本校');
     }
 
     return { startDate, endDate, schoolIds };
@@ -303,7 +303,7 @@ export class AdsService {
       throw new BadRequestException('CPM/CPC 模式必须设置预算');
     }
 
-    // req.user 不含 sourcedBySchoolId，重新查商家行（提交时冗余到 campaign，供分级审核与分成档位判定）
+    // req.user 不含 sourcedBySchoolId，重新查广告商行（提交时冗余到 campaign，供分级审核与分成档位判定）
     const advertiser = await this.prisma.adminUser.findUnique({
       where: { id: admin.id },
       select: { sourcedBySchoolId: true },
@@ -312,7 +312,7 @@ export class AdsService {
     if (sourcedBySchoolId) {
       const placedIds = campaign.placements.map((p) => p.schoolId);
       if (placedIds.length !== 1 || placedIds[0] !== sourcedBySchoolId) {
-        throw new ForbiddenException('自拉赞助商仅可投放本校');
+        throw new ForbiddenException('自拉广告商仅可投放本校');
       }
     }
 
@@ -586,7 +586,7 @@ export class AdsService {
     if (admin.role === AdminRole.STUDENT_UNION) {
       const schoolId = this.requireUnionSchool(admin);
       if (campaign.sourcedBySchoolId !== schoolId) {
-        throw new ForbiddenException('仅可审核本校自拉商家的广告');
+        throw new ForbiddenException('仅可审核本校自拉广告商的广告');
       }
       if (campaign.status !== AdCampaignStatus.PENDING_UNION_REVIEW) {
         throw new BadRequestException('当前状态不可审核');
@@ -602,7 +602,7 @@ export class AdsService {
     if (dto.approve) {
       // 通过：预扣即付——paidAt 立即写入（settleCampaign / accrueBuyoutSpend 以 paidAt 为结算前置），
       // 按 startDate 直接排期或激活；BUYOUT 包断价即全部消耗（平移原 confirmPayment 语义）。
-      // 对抗复查 ISSUE-1：与驳回/撤回对称的事务 claim——否则「审核员读到待审 → 商家并发撤回退款
+      // 对抗复查 ISSUE-1：与驳回/撤回对称的事务 claim——否则「审核员读到待审 → 广告商并发撤回退款
       // → 无条件 update 覆盖成 ACTIVE」会造成预扣已退、广告照跑、结算再退结余的双重资金漏洞
       const now = new Date();
       const nextStatus =
@@ -699,7 +699,7 @@ export class AdsService {
     return this.shapeCampaign(updated);
   }
 
-  // 商家自暂停：ACTIVE → PAUSED（own 或团队代操作）
+  // 广告商自暂停：ACTIVE → PAUSED（own 或团队代操作）
   async pauseCampaign(admin: AdminActor, id: string) {
     const campaign = await this.prisma.adCampaign.findUnique({ where: { id } });
     if (!campaign) throw new NotFoundException('广告不存在');
@@ -1134,7 +1134,7 @@ export class AdsService {
       const spendBySchool = new Map(sums.map((s) => [s.schoolId, s._sum.spendCents ?? 0]));
 
       // 结算基数按实收预算封顶：事件路径可能瞬时超投（并发批次在 COMPLETED 落库前入账），
-      // 分成只能基于商家实际支付的金额，多校时按比例折算（向下取整，尾差归平台）。
+      // 分成只能基于广告商实际支付的金额，多校时按比例折算（向下取整，尾差归平台）。
       let clampScale = 1;
       let rawTotal = 0; // CPM/CPC 各校消耗合计（提出到 if 外，供下方结余退款块复用）
       if (campaign.pricingModel !== AdPricingModel.BUYOUT && campaign.budgetCents != null) {
@@ -1171,7 +1171,7 @@ export class AdsService {
         }
       }
 
-      // CPM/CPC 结余退款（能量经济 B2）：预算 − 实际消耗（按预算封顶）> 0 时退回商家钱包。
+      // CPM/CPC 结余退款（能量经济 B2）：预算 − 实际消耗（按预算封顶）> 0 时退回广告商钱包。
       // 幂等与 settledAt 共用锚点——上方 claim 败者整段不执行，不会重复退。
       // 复查 ISSUE-2：结余额外按在途净额封顶——SUSPENDED 期人工已退（adjust 挂 campaignId）
       // 的部分不再重复退，恒不超过实际仍锁定的能量

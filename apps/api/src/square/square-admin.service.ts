@@ -137,7 +137,7 @@ export class SquareAdminService {
       }
       this.adminScope.assertSchoolNameInScope(actor, school);
     } else if (actor.role === AdminRole.SPONSOR) {
-      // 赞助商强制 Sponsored 标识；school 可空（跨校）
+      // 广告商强制 Sponsored 标识；school 可空（跨校）
       isSponsored = true;
     }
     // TEAM：school 可空（跨校），无额外约束

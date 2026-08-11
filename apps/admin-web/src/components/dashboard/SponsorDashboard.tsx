@@ -1,6 +1,6 @@
 'use client';
 
-/** 商家仪表盘：能量余额 + 4 投放统计卡 + 近 7 天曝光/点击趋势（页头「新建广告」CTA 由 page 渲染） */
+/** 广告商仪表盘：能量余额 + 4 投放统计卡 + 近 7 天曝光/点击趋势（页头「新建广告」CTA 由 page 渲染） */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, Eye, Megaphone, MousePointerClick, Wallet } from 'lucide-react';
@@ -41,7 +41,7 @@ export function SponsorDashboard({ data }: { data: SponsorDashboardData }) {
     let cancelled = false;
     getAdsOverview()
       .then((o) => {
-        // 按商家分支独有的 7 天日序列字段收窄联合
+        // 按广告商分支独有的 7 天日序列字段收窄联合
         if (!cancelled && 'dailySeries7d' in o) setOverview(o);
       })
       .catch((e) => {

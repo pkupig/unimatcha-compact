@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * 账号管理（/accounts）：SUPER=学生会/商家/管理员三 tab；TEAM=前两 tab；
- * 学生会=「赞助商/邀请码」双 tab（旧 /sponsors 并入 + B5 邀请码自注册）。
+ * 账号管理（/accounts）：SUPER=学生会/广告商/管理员三 tab；TEAM=前两 tab；
+ * 学生会=「广告商/邀请码」双 tab（旧 /sponsors 并入 + B5 邀请码自注册）。
  * tab 状态独立于账号列表筛选——邀请码 tab 的列表在 InvitesPanel 内自管。
  */
 import { Suspense, useEffect, useState } from 'react';
@@ -29,7 +29,7 @@ function AccountsInner() {
   const { admin } = useAdmin();
   const unionView = isUnion(admin?.role);
   const superView = admin?.role === 'SUPER';
-  // 操作列：SUPER 全量；学生会可停启本校来源商家（服务端有权限链）；TEAM 不显示
+  // 操作列：SUPER 全量；学生会可停启本校来源广告商（服务端有权限链）；TEAM 不显示
   const canOperate = superView || unionView;
 
   const router = useRouter();
@@ -111,12 +111,12 @@ function AccountsInner() {
           <AccountsTableCard
             list={list}
             columns={columns}
-            empty={unionView ? '暂无赞助商 · 为本校合作商家开通投放账号' : '暂无账号'}
+            empty={unionView ? '暂无广告商 · 为本校合作广告商开通投放账号' : '暂无账号'}
             emptyAction={
               unionView ? (
                 <Button variant="primary" size="sm" onClick={createModal.openEmpty}>
                   <Plus size={14} />
-                  新建赞助商账号
+                  新建广告商账号
                 </Button>
               ) : undefined
             }

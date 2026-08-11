@@ -20,7 +20,7 @@ import type { AccountsListTab, AdminRole, CreateAdminUserData, School } from '@/
 // kind 限账号三 tab（AccountsListTab）——邀请码 tab 走 CreateInviteModal，与本弹窗无关
 const TITLES: Record<AccountsListTab, string> = {
   union: '创建学生会账号',
-  sponsor: '创建商家账号',
+  sponsor: '创建广告商账号',
   admin: '创建管理员账号',
 };
 
@@ -37,7 +37,7 @@ export function CreateAccountModal({
   onDone,
 }: {
   kind: AccountsListTab;
-  /** 学生会视角创建本校自拉商家：来源由服务端强制为本校 */
+  /** 学生会视角创建本校自拉广告商：来源由服务端强制为本校 */
   unionScoped?: boolean;
   onClose: () => void;
   onDone: () => void;
@@ -55,7 +55,7 @@ export function CreateAccountModal({
   });
   const [saving, setSaving] = useState(false);
 
-  // 学校下拉仅两处需要：学生会绑定校 / 平台视角商家来源；按需拉取避免无谓请求
+  // 学校下拉仅两处需要：学生会绑定校 / 平台视角广告商来源；按需拉取避免无谓请求
   const needSchools = kind === 'union' || (kind === 'sponsor' && !unionScoped);
   const [schools, setSchools] = useState<School[]>([]);
   useEffect(() => {
@@ -116,7 +116,7 @@ export function CreateAccountModal({
 
   return (
     <Modal
-      title={unionScoped ? '新建赞助商账号' : TITLES[kind]}
+      title={unionScoped ? '新建广告商账号' : TITLES[kind]}
       caption="NEW ACCOUNT"
       onClose={onClose}
     >

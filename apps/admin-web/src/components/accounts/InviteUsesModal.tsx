@@ -2,7 +2,7 @@
 
 /**
  * 邀请码使用记录弹窗（GET /admin/sponsor-invites/:id/uses）：
- * 经该码自注册的商家账号分页小表。
+ * 经该码自注册的广告商账号分页小表。
  */
 import { Modal } from '@/components/ui/Modal';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -64,7 +64,7 @@ export function InviteUsesModal({
           rowKey={(u) => u.id}
           loading={list.loading}
           error={list.error}
-          empty="尚无商家经此码注册"
+          empty="尚无广告商经此码注册"
         />
         <Pager page={list.page} limit={list.limit} total={list.total} onPage={list.setPage} />
       </div>

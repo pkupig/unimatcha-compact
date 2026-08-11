@@ -41,7 +41,7 @@ function buildTimeline(c: Campaign): TimelineItem[] {
   if (c.completedAt) items.push({ key: 'completed', label: '投放完成', time: c.completedAt });
   if (c.settledAt) {
     items.push({ key: 'settled', label: '分成已入账', time: c.settledAt });
-    // CPM/CPC 结算时按「预算 − 实际消耗」退回商家钱包（后端 settleCampaign，与 settledAt 同锚点）
+    // CPM/CPC 结算时按「预算 − 实际消耗」退回广告商钱包（后端 settleCampaign，与 settledAt 同锚点）
     if (c.pricingModel !== 'BUYOUT') {
       items.push({
         key: 'leftover',

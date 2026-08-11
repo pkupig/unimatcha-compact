@@ -24,7 +24,7 @@ export class SchoolsAdminController {
 
   @Get()
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
-  @ApiOperation({ summary: '学校列表（学生会仅见本校；商家仅返回瘦身字段 + 生效单价，供投放选择）' })
+  @ApiOperation({ summary: '学校列表（学生会仅见本校；广告商仅返回瘦身字段 + 生效单价，供投放选择）' })
   list(@CurrentAdmin() admin: AdminActor, @Query() q: ListSchoolsQueryDto) {
     return this.schoolsService.list(admin, q);
   }

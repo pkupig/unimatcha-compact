@@ -57,7 +57,7 @@ export class AdminAuthService {
   /**
    * login 与 /me 共用的响应塑形。
    * schoolId 现为 School.id（ADMIN-REDESIGN §2）：解析学校名，学生会带 schoolName、
-   * 自拉商家带 sourcedBySchoolName，前端免二次查询。
+   * 自拉广告商带 sourcedBySchoolName，前端免二次查询。
    */
   private async shapeAdminMe(admin: AdminUser) {
     const schoolIds = [admin.schoolId, admin.sourcedBySchoolId].filter(
@@ -93,7 +93,7 @@ export class AdminAuthService {
 
   async validateAdmin(id: string) {
     // 选出 role/schoolId/sourcedBySchoolId 供 admin-jwt 策略解析 AdminActor 写入 req.user，
-    // 服务层据此做范围校验（学生会仅本校、商家仅自身，ADMIN-REDESIGN §1）
+    // 服务层据此做范围校验（学生会仅本校、广告商仅自身，ADMIN-REDESIGN §1）
     return this.prisma.adminUser.findUnique({
       where: { id },
       select: {

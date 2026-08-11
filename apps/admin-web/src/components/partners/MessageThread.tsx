@@ -55,7 +55,7 @@ export function MessageThread({ threadId }: { threadId: string }) {
   // 只取 refresh（稳定引用）：依赖整个 context 会因 count 变化误触发消息重拉
   const { refresh: refreshUnread } = usePartnersUnread();
 
-  // 本侧判定：商家视角 SPONSOR 为己方 / 学生会视角 UNION；平台无己方（全部左对齐、只读）
+  // 本侧判定：广告商视角 SPONSOR 为己方 / 学生会视角 UNION；平台无己方（全部左对齐、只读）
   const mySide: ThreadSide | null = isSponsor(admin?.role)
     ? 'SPONSOR'
     : isUnion(admin?.role)
@@ -181,7 +181,7 @@ export function MessageThread({ threadId }: { threadId: string }) {
           </div>
         ) : (
           <p className="text-xs text-on-surface-variant text-center">
-            平台只读监管 · 仅商家与学生会双方可发言
+            平台只读监管 · 仅广告商与学生会双方可发言
           </p>
         )}
       </div>

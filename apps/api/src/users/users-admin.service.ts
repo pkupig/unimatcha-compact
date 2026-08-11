@@ -21,7 +21,7 @@ export class UsersAdminService {
 
   private async assertUserScope(actor: AdminActor, userId: string) {
     if (actor.role === AdminRole.SPONSOR) {
-      throw new ForbiddenException('商家账号无权访问用户管理');
+      throw new ForbiddenException('广告商账号无权访问用户管理');
     }
     if (actor.role !== AdminRole.STUDENT_UNION) return;
     const school = this.adminScope.requireUnionSchool(actor);
@@ -36,7 +36,7 @@ export class UsersAdminService {
 
   async listUsers(actor: AdminActor, q: ListUsersQueryDto) {
     if (actor.role === AdminRole.SPONSOR) {
-      throw new ForbiddenException('商家账号无权访问用户管理');
+      throw new ForbiddenException('广告商账号无权访问用户管理');
     }
     // 学生会：强制过滤 profile.school == 本校 School.name（ADMIN-REDESIGN §4）
     const school =

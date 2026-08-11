@@ -40,7 +40,7 @@ export class AdsAdminController {
   // ─── SPONSOR：创建 / 编辑 / 提交 ─────────────────────────────
   @Post('campaigns')
   @Roles(AdminRole.SPONSOR)
-  @ApiOperation({ summary: '创建广告草稿（SPONSOR；自拉商家仅可投放本校）' })
+  @ApiOperation({ summary: '创建广告草稿（SPONSOR；自拉广告商仅可投放本校）' })
   createCampaign(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateCampaignDto) {
     return this.adsService.createCampaign(admin, dto);
   }

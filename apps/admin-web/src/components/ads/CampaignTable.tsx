@@ -2,7 +2,7 @@
 
 /**
  * 广告列表表格（ADS-0）：贴边卡 + DataTable + Pager，行点击进详情。
- * emptyAction 供商家空态放「新建广告」CTA（DataTable 的 empty 只收字符串）。
+ * emptyAction 供广告商空态放「新建广告」CTA（DataTable 的 empty 只收字符串）。
  */
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';

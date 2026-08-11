@@ -16,7 +16,7 @@ import { createInvite } from '@/lib/api/accounts';
 import type { SponsorInvite } from '@/lib/types';
 
 /**
- * 商家自注册链接拼装（与 /register 页的 ?code= 读取约定配对）。
+ * 广告商自注册链接拼装（与 /register 页的 ?code= 读取约定配对）。
  * 列表「复制链接」与创建成功页共用同一口径，放本文件避免 Panel↔Modal 循环依赖。
  */
 export function inviteRegisterLink(code: string): string {
@@ -68,7 +68,7 @@ export function CreateInviteModal({ onClose, onDone }: { onClose: () => void; on
       <Modal title="邀请码已生成" caption="INVITE READY" onClose={onClose}>
         <div className="space-y-4 pb-4">
           <p className="text-sm text-on-surface-variant">
-            把下方链接发给商家，对方打开即可自注册开通投放账号（恒绑定本校
+            把下方链接发给广告商，对方打开即可自注册开通投放账号（恒绑定本校
             「{created.school.name}」，按自拉档分成）。
           </p>
           <div className="space-y-3 rounded-lg bg-surface-low p-4">
@@ -112,7 +112,7 @@ export function CreateInviteModal({ onClose, onDone }: { onClose: () => void; on
             placeholder="选填"
           />
         </Field>
-        <Field label="限用次数" hint="留空=不限次；定向邀请单个商家可设 1">
+        <Field label="限用次数" hint="留空=不限次；定向邀请单个广告商可设 1">
           <Input
             type="number"
             min={1}
@@ -122,7 +122,7 @@ export function CreateInviteModal({ onClose, onDone }: { onClose: () => void; on
             placeholder="不限"
           />
         </Field>
-        <Field label="有效期（天）" hint="留空=永久有效；到期后商家无法再经此码注册">
+        <Field label="有效期（天）" hint="留空=永久有效；到期后广告商无法再经此码注册">
           <Input
             type="number"
             min={1}

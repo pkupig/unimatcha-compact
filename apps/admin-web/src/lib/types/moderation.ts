@@ -124,7 +124,7 @@ export interface DismissReportsResult {
 export interface CreateOfficialPostInput {
   /** 缺省 recommend（DTO 用小写枚举） */
   board?: 'recommend' | 'campus_wall';
-  /** 学生会必填且须为本校名；团队/商家可空（跨校） */
+  /** 学生会必填且须为本校名；团队/广告商可空（跨校） */
   school?: string;
   title?: string;
   content: string;

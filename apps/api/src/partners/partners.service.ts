@@ -34,8 +34,8 @@ const MESSAGE_SELECT = {
 } as const;
 
 /**
- * 跨校合作消息线程（B6）：商家 × 学校 的洽谈通道。
- * - 目录互见：商家看「有活跃学生会的学校」，学生会看「他校自拉商家」（绝不暴露联系方式）；
+ * 跨校合作消息线程（B6）：广告商 × 学校 的洽谈通道。
+ * - 目录互见：广告商看「有活跃学生会的学校」，学生会看「他校自拉广告商」（绝不暴露联系方式）；
  * - 线程唯一：@@unique(sponsorAdminId, schoolId)，二次发起并入既有线程而非 409；
  * - 未读防 N+1：双侧冗余计数——发消息事务内 increment 对侧，读消息置零本侧；
  * - 平台（SUPER/TEAM）全量只读监管：可看列表/详情/消息，不可发言、不动未读计数。
@@ -49,7 +49,7 @@ export class PartnersService {
 
   // ── 目录 ──────────────────────────────────────────
 
-  /** 商家侧学校目录：启用中 + 有活跃学生会入驻，附带与本商家的既有线程 id */
+  /** 广告商侧学校目录：启用中 + 有活跃学生会入驻，附带与本广告商的既有线程 id */
   async listSchools(actor: AdminActor, q: ListPartnerSchoolsQueryDto) {
     const where: any = {
       isActive: true,
@@ -67,7 +67,7 @@ export class PartnersService {
       this.prisma.school.count({ where }),
     ]);
 
-    // threadId 防 N+1：当页学校 id 一次查回本商家的既有线程，建 Map 回填
+    // threadId 防 N+1：当页学校 id 一次查回本广告商的既有线程，建 Map 回填
     const threadBySchool = new Map<string, string>();
     if (schools.length > 0) {
       const threads = await this.prisma.contactThread.findMany({
@@ -82,7 +82,7 @@ export class PartnersService {
         id: s.id,
         name: s.name,
         city: s.city,
-        // 本商家的来源校（自拉我的学生会所在校），前端可标「合作校」徽标
+        // 本广告商的来源校（自拉我的学生会所在校），前端可标「合作校」徽标
         isSourceSchool: s.id === actor.sourcedBySchoolId,
         threadId: threadBySchool.get(s.id) ?? null,
       })),
@@ -91,7 +91,7 @@ export class PartnersService {
     );
   }
 
-  /** 学生会侧商家目录：他校自拉的活跃商家（跨校合作对象），绝不返回 email/contactPhone */
+  /** 学生会侧广告商目录：他校自拉的活跃广告商（跨校合作对象），绝不返回 email/contactPhone */
   async listSponsors(actor: AdminActor, q: ListPartnerSponsorsQueryDto) {
     const school = this.adminScope.requireUnionSchool(actor);
 
@@ -153,9 +153,9 @@ export class PartnersService {
     let side: ContactThreadSide;
 
     if (actor.role === AdminRole.SPONSOR) {
-      // 商家发起：只允许 targetSchoolId
+      // 广告商发起：只允许 targetSchoolId
       if (!dto.targetSchoolId || dto.targetSponsorAdminId) {
-        throw new BadRequestException('商家发起洽谈须且仅须提供 targetSchoolId');
+        throw new BadRequestException('广告商发起洽谈须且仅须提供 targetSchoolId');
       }
       const school = await this.prisma.school.findUnique({
         where: { id: dto.targetSchoolId },
@@ -192,15 +192,15 @@ export class PartnersService {
         !sponsor.sourcedBySchoolId ||
         sponsor.sourcedBySchoolId === mySchool.id
       ) {
-        // 仅可洽谈他校自拉的活跃商家（本校自拉商家有既有线下渠道，平台直签走平台）
-        throw new BadRequestException('目标商家不存在或不可洽谈');
+        // 仅可洽谈他校自拉的活跃广告商（本校自拉广告商有既有线下渠道，平台直签走平台）
+        throw new BadRequestException('目标广告商不存在或不可洽谈');
       }
       sponsorAdminId = sponsor.id;
       schoolId = mySchool.id;
       side = ContactThreadSide.UNION;
     }
 
-    // 对侧未读：商家发 → 学校侧 +1；学生会发 → 商家侧 +1
+    // 对侧未读：广告商发 → 学校侧 +1；学生会发 → 广告商侧 +1
     const oppositeIncrement =
       side === ContactThreadSide.SPONSOR
         ? { schoolUnreadCount: { increment: 1 } }
@@ -258,7 +258,7 @@ export class PartnersService {
     return { ...this.shapeThread(actor, thread), existed: false };
   }
 
-  /** 线程列表：商家=本人线程；学生会=本校线程；平台=全量只读。lastMessageAt 倒序 */
+  /** 线程列表：广告商=本人线程；学生会=本校线程；平台=全量只读。lastMessageAt 倒序 */
   async listThreads(actor: AdminActor, q: ListThreadsQueryDto) {
     const where: any = this.scopeWhere(actor);
     if (q.search) where.subject = { contains: q.search, mode: 'insensitive' };
@@ -343,7 +343,7 @@ export class PartnersService {
     return message;
   }
 
-  /** 未读总数（角标）：商家按本人线程汇总商家侧计数；学生会按本校线程汇总学校侧计数 */
+  /** 未读总数（角标）：广告商按本人线程汇总广告商侧计数；学生会按本校线程汇总学校侧计数 */
   async unreadCount(actor: AdminActor): Promise<{ count: number }> {
     if (actor.role === AdminRole.SPONSOR) {
       const agg = await this.prisma.contactThread.aggregate({
@@ -363,7 +363,7 @@ export class PartnersService {
 
   // ── 私有 ──────────────────────────────────────────
 
-  /** 列表范围：商家=本人；学生会=本校；SUPER/TEAM=全量只读 */
+  /** 列表范围：广告商=本人；学生会=本校；SUPER/TEAM=全量只读 */
   private scopeWhere(actor: AdminActor): any {
     if (actor.role === AdminRole.SPONSOR) return { sponsorAdminId: actor.id };
     if (actor.role === AdminRole.STUDENT_UNION) {

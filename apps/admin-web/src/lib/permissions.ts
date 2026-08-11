@@ -63,10 +63,10 @@ export const NAV: NavEntry[] = [
 
   { href: '/ads', section: 'commerce', icon: Megaphone, roles: ALL_ROLES, label: '广告管理', roleLabels: { STUDENT_UNION: '广告审核', SPONSOR: '广告投放' }, quickLink: true },
   { href: '/wallet', section: 'commerce', icon: Coins, roles: ['SPONSOR'], label: '能量钱包' },
-  { href: '/partners', section: 'commerce', icon: HeartHandshake, roles: ALL_ROLES, label: '合作洽谈', roleLabels: { SPONSOR: '高校合作', STUDENT_UNION: '商家合作' } },
+  { href: '/partners', section: 'commerce', icon: HeartHandshake, roles: ALL_ROLES, label: '合作洽谈', roleLabels: { SPONSOR: '高校合作', STUDENT_UNION: '广告商合作' } },
   { href: '/finance', section: 'commerce', icon: Banknote, roles: ['SUPER', 'TEAM'], label: '财务', quickLink: true },
   { href: '/submissions', section: 'commerce', icon: Inbox, roles: ['SUPER', 'TEAM'], label: '官网提交' },
-  { href: '/accounts', section: 'commerce', icon: ShieldCheck, roles: ['STUDENT_UNION'], label: '赞助商' },
+  { href: '/accounts', section: 'commerce', icon: ShieldCheck, roles: ['STUDENT_UNION'], label: '广告商' },
   { href: '/earnings', section: 'commerce', icon: Wallet, roles: ['STUDENT_UNION'], label: '收益提现' },
   { href: '/square-post', section: 'commerce', icon: Send, roles: ['SPONSOR'], label: '官方发帖' },
 
@@ -82,11 +82,11 @@ export const NAV: NavEntry[] = [
 export const EXTRA_ROUTES: { prefix: string; roles: AdminRole[]; label: string; icon: LucideIcon }[] = [
   // 账号设置：全角色可达（修旧版 TEAM/SUPER 无入口改密码的缺陷）；由 Sidebar 底部固定渲染
   { prefix: '/account', roles: ALL_ROLES, label: '账号设置', icon: UserRound },
-  // 建单页仅商家（比 /ads 前缀更长故优先命中；后端 POST 也只放行 SPONSOR，这里防直链看到无用表单）
+  // 建单页仅广告商（比 /ads 前缀更长故优先命中；后端 POST 也只放行 SPONSOR，这里防直链看到无用表单）
   { prefix: '/ads/new', roles: ['SPONSOR'], label: '新建广告', icon: Megaphone },
   // 官方发帖页 URL 对团队/学生会保留（经广场管理页按钮进入，不占它们的侧栏）
   { prefix: '/square-post', roles: ['SUPER', 'TEAM', 'STUDENT_UNION', 'SPONSOR'], label: '官方发帖', icon: Send },
-  // 学生会侧栏「赞助商」与团队「账号管理」共用 /accounts（上面 NAV 已分别声明）
+  // 学生会侧栏「广告商」与团队「账号管理」共用 /accounts（上面 NAV 已分别声明）
 ];
 
 /** 仪表盘待办 chip / 快捷跳转的唯一深链定义 */

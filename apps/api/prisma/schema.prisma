@@ -39,14 +39,14 @@ enum SquareAuthorType {
   USER // 用户个人帖（authorUserId 非空）→ 小卡(recommend)/中卡(campus_wall)
   STUDENT_UNION // 学生会官方帖（adminId 非空；school 标注该校）→ 大卡
   TEAM // 团队官方帖（adminId 非空；跨校）→ 大卡
-  SPONSOR // 赞助商推广帖（adminId 非空；标 "Sponsored"）→ 大卡
+  SPONSOR // 广告商推广帖（adminId 非空；标 "Sponsored"）→ 大卡
 }
 
 enum AdminRole {
   SUPER // 超管：全校、全角色管理
   STUDENT_UNION // 学生会（绑定 schoolId）：仅发本校官方帖
   TEAM // 团队：发跨校官方帖
-  SPONSOR // 赞助商：发商业推广帖
+  SPONSOR // 广告商：发商业推广帖
 }
 
 // ─────────────────────────────────────────────
@@ -126,12 +126,12 @@ model AdminUser {
   isActive         Boolean    @default(true) // 软删除
   isSuperAdmin     Boolean    @default(false) // 兼容旧字段（与 role=SUPER 对齐）
 
-  // SPONSOR 商家来源：null=平台直签；非空=该学生会（学校）自拉赞助商
+  // SPONSOR 广告商来源：null=平台直签；非空=该学生会（学校）自拉广告商
   sourcedBySchoolId String?
   contactName       String?
   contactPhone      String?
 
-  // 经邀请码自注册的商家：所用码 id（纯 string 无 FK，同 convertedAdminId 惯例）
+  // 经邀请码自注册的广告商：所用码 id（纯 string 无 FK，同 convertedAdminId 惯例）
   invitedByCodeId String?
 
   createdAt DateTime @default(now())
@@ -879,14 +879,14 @@ enum AdPricingModel {
 }
 
 enum AdCampaignStatus {
-  DRAFT // 商家编辑中
-  PENDING_UNION_REVIEW // 学生会自拉商家提交 → 本校学生会审
-  PENDING_PLATFORM_REVIEW // 平台直签商家提交 → 团队审
+  DRAFT // 广告商编辑中
+  PENDING_UNION_REVIEW // 学生会自拉广告商提交 → 本校学生会审
+  PENDING_PLATFORM_REVIEW // 平台直签广告商提交 → 团队审
   REJECTED // 驳回（可改后重新提交）
   PENDING_PAYMENT // 审核通过，等待线下付款 + 团队确认收款
   SCHEDULED // 已付款，未到 startDate
   ACTIVE // 投放中
-  PAUSED // 商家自暂停（可恢复）
+  PAUSED // 广告商自暂停（可恢复）
   SUSPENDED // 平台强制下架（团队可解除回 ACTIVE）
   COMPLETED // 到期或预算耗尽（终态，触发分成入账）
 }
@@ -901,7 +901,7 @@ enum LedgerEntryType {
 
 // ─── 能量经济（2026-08）：1 元 = 100 分 = 100 能量，数值同构 ───
 
-// 商家能量钱包流水类型
+// 广告商能量钱包流水类型
 enum SponsorLedgerType {
   TOPUP // 充值到账（+，MVP mock 即时）
   CAMPAIGN_LOCK // 提交审核预扣（−，全额）
@@ -1093,14 +1093,14 @@ model WithdrawalRequest {
 }
 
 // ─────────────────────────────────────────────
-// 能量经济（2026-08）：商家钱包 / 学校现金账本 / 兑换申请
+// 能量经济（2026-08）：广告商钱包 / 学校现金账本 / 兑换申请
 // 1 元 = 100 分 = 100 能量（数值同构，*Cents 字段承载能量数）
 // ─────────────────────────────────────────────
 
-// 商家能量钱包账本（只增不改；余额 = Σ amountCents，与 SchoolLedgerEntry 同构无余额行）
+// 广告商能量钱包账本（只增不改；余额 = Σ amountCents，与 SchoolLedgerEntry 同构无余额行）
 model SponsorEnergyLedger {
   id      String            @id @default(cuid())
-  adminId String // 商家 AdminUser.id
+  adminId String // 广告商 AdminUser.id
   admin   AdminUser         @relation("SponsorEnergyLedger", fields: [adminId], references: [id])
   type    SponsorLedgerType
 
@@ -1159,10 +1159,10 @@ model SchoolConversionRequest {
 }
 
 // ─────────────────────────────────────────────
-// 学生会邀请码（商家自注册）+ 跨校合作消息（2026-08）
+// 学生会邀请码（广告商自注册）+ 跨校合作消息（2026-08）
 // ─────────────────────────────────────────────
 
-// 学生会邀请码：商家经 /register?code= 自注册，sourcedBySchoolId 恒为邀请学校
+// 学生会邀请码：广告商经 /register?code= 自注册，sourcedBySchoolId 恒为邀请学校
 model SponsorInviteCode {
   id               String    @id @default(cuid())
   code             String    @unique // INV-XXXXXXXXXXXX，randomBytes 生成防猜
@@ -1181,7 +1181,7 @@ model SponsorInviteCode {
   @@map("sponsor_invite_codes")
 }
 
-// 合作消息线程：商家 × 学校（学生会侧以校为主体，本校任一管理员可读可回）
+// 合作消息线程：广告商 × 学校（学生会侧以校为主体，本校任一管理员可读可回）
 // 未读防 N+1：双侧冗余计数（发消息事务内 increment 对侧；读消息置零本侧）
 // 注意：学生会侧计数按校共享——任一本校管理员打开即视为本校已读
 model ContactThread {
@@ -1289,7 +1289,7 @@ model PublicSubmission {
   handledByAdminId String? // 最近一次处理人
   handledAt        DateTime?
   handleNote       String? // 处理备注（联系记录/关闭原因）
-  convertedAdminId String? // 「一键开通」创建的后台账号（学生会/商家）
+  convertedAdminId String? // 「一键开通」创建的后台账号（学生会/广告商）
   updatedAt        DateTime               @default(now()) @updatedAt
 
   @@unique([type, email])

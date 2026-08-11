@@ -65,7 +65,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description:
-      'SPONSOR 来源学校 School.id（TEAM 代学生会创建自拉商家时显式指定；学生会创建时强制为本校）',
+      'SPONSOR 来源学校 School.id（TEAM 代学生会创建自拉广告商时显式指定；学生会创建时强制为本校）',
   })
   @IsOptional()
   @IsString()
@@ -118,7 +118,7 @@ export class UpdateAdminUserDto {
   @IsString()
   sourcedBySchoolId?: string;
 
-  @ApiPropertyOptional({ description: '启用/禁用（软删除）；SUPER 可改，学生会可对本校来源商家切换' })
+  @ApiPropertyOptional({ description: '启用/禁用（软删除）；SUPER 可改，学生会可对本校来源广告商切换' })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

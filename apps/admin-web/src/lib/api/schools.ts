@@ -14,7 +14,7 @@ import type {
   UpdateSchoolPayload,
 } from '@/lib/types';
 
-/** 学校列表（TEAM 全量含统计；学生会仅本校；商家为瘦身形状，由 ads 域自行收窄） */
+/** 学校列表（TEAM 全量含统计；学生会仅本校；广告商为瘦身形状，由 ads 域自行收窄） */
 export function listSchools(params: ListSchoolsParams): Promise<ListResult<School>> {
   return get<ListResult<School>>('/admin/schools', params);
 }

@@ -85,7 +85,7 @@ export function UnionCampaignList() {
           limit={list.limit}
           loading={list.loading}
           error={list.error}
-          empty={tab === 'review' ? '暂无待审广告，自拉赞助商提交的广告会出现在这里。' : '本校暂无广告'}
+          empty={tab === 'review' ? '暂无待审广告，自拉广告商提交的广告会出现在这里。' : '本校暂无广告'}
           onPage={list.setPage}
         />
       )}

@@ -49,7 +49,7 @@ export class SponsorInviteAdminController {
 
   @Get(':id/uses')
   @Roles(AdminRole.STUDENT_UNION, AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '某码的注册记录（经该码自注册的商家，分页）' })
+  @ApiOperation({ summary: '某码的注册记录（经该码自注册的广告商，分页）' })
   listInviteUses(
     @CurrentAdmin() actor: AdminActor,
     @Param('id') id: string,

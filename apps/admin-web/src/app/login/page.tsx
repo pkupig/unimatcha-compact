@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { login } from '@/lib/api/auth';
@@ -12,7 +13,7 @@ import { Field, Input } from '@/components/ui/form';
 const ROLE_HINTS = [
   { title: '平台团队', desc: '用户 / 内容 / 广告 / 财务的全平台运营' },
   { title: '学生会', desc: '本校用户、校园墙与活动，广告审核与收益提现' },
-  { title: '商家', desc: '广告投放与官方内容发布' },
+  { title: '广告商', desc: '广告投放与官方内容发布' },
 ];
 
 export default function LoginPage() {
@@ -71,6 +72,14 @@ export default function LoginPage() {
             登录
           </Button>
         </form>
+
+        {/* 开放注册入口（与 /register 页「已有账号？登录」次级链接同款式） */}
+        <p className="mt-4 text-center text-sm text-on-surface-variant">
+          没有账号？{' '}
+          <Link href="/register" className="font-medium text-neon-dark hover:underline">
+            注册广告商 →
+          </Link>
+        </p>
 
         <div className="mt-6 grid grid-cols-3 gap-2">
           {ROLE_HINTS.map((r) => (

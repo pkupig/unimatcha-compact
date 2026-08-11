@@ -10,18 +10,18 @@ import type { ListResult } from '@/lib/types';
 /** 线程参与侧（后端 ContactThreadSide） */
 export type ThreadSide = 'SPONSOR' | 'UNION';
 
-/** GET /admin/partners/schools 行（商家侧目录：启用中且有活跃学生会入驻） */
+/** GET /admin/partners/schools 行（广告商侧目录：启用中且有活跃学生会入驻） */
 export interface PartnerSchool {
   id: string;
   name: string;
   city: string | null;
-  /** 自拉本商家的学生会所在校 */
+  /** 自拉本广告商的学生会所在校 */
   isSourceSchool: boolean;
-  /** 与本商家的既有线程 id（null = 尚未洽谈过） */
+  /** 与本广告商的既有线程 id（null = 尚未洽谈过） */
   threadId: string | null;
 }
 
-/** GET /admin/partners/sponsors 行（学生会侧目录：他校自拉商家；后端刻意不返回联系方式） */
+/** GET /admin/partners/sponsors 行（学生会侧目录：他校自拉广告商；后端刻意不返回联系方式） */
 export interface PartnerSponsor {
   id: string;
   organizationName: string | null;
@@ -73,7 +73,7 @@ export function listPartnerSchools(params: PartnersPagedQuery): Promise<ListResu
   });
 }
 
-/** 商家目录（仅 STUDENT_UNION）；search 模糊匹配组织名 */
+/** 广告商目录（仅 STUDENT_UNION）；search 模糊匹配组织名 */
 export function listPartnerSponsors(params: PartnersPagedQuery): Promise<ListResult<PartnerSponsor>> {
   return get<ListResult<PartnerSponsor>>('/admin/partners/sponsors', {
     page: params.page,
@@ -82,7 +82,7 @@ export function listPartnerSponsors(params: PartnersPagedQuery): Promise<ListRes
   });
 }
 
-/** 线程列表（商家=本人 / 学生会=本校 / 平台=全量只读），lastMessageAt 倒序；search 匹配主题 */
+/** 线程列表（广告商=本人 / 学生会=本校 / 平台=全量只读），lastMessageAt 倒序；search 匹配主题 */
 export function listThreads(params: PartnersPagedQuery): Promise<ListResult<PartnerThread>> {
   return get<ListResult<PartnerThread>>('/admin/partners/threads', {
     page: params.page,
@@ -95,7 +95,7 @@ export function getThread(id: string): Promise<PartnerThread> {
   return get<PartnerThread>(`/admin/partners/threads/${id}`);
 }
 
-/** 发起洽谈：目标字段按角色二选一（商家传 targetSchoolId / 学生会传 targetSponsorAdminId） */
+/** 发起洽谈：目标字段按角色二选一（广告商传 targetSchoolId / 学生会传 targetSponsorAdminId） */
 export function createThread(data: {
   subject: string;
   content: string;

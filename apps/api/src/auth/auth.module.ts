@@ -25,7 +25,7 @@ import { SponsorInviteModule } from '../sponsor-invite/sponsor-invite.module';
     }),
     UsersModule,
     AdminCoreModule,
-    // B5 商家自注册：AdminAuthController 挂两个公开端点（invite-info / register-sponsor）
+    // B5 广告商自注册：AdminAuthController 挂两个公开端点（invite-info / register-sponsor）
     SponsorInviteModule,
   ],
   controllers: [AuthController, AdminAuthController],

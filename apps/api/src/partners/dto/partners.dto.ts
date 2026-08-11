@@ -13,11 +13,11 @@ import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /**
  * 跨校合作消息线程 DTO（B6）。
- * 目录（学校/商家）与线程列表均为 ListQueryDto + search 的标准分页形状；
+ * 目录（学校/广告商）与线程列表均为 ListQueryDto + search 的标准分页形状；
  * 消息列表默认 limit 放大到 50（聊天场景一页 20 太碎）。
  */
 
-// 学校目录查询（GET /admin/partners/schools，商家侧）
+// 学校目录查询（GET /admin/partners/schools，广告商侧）
 export class ListPartnerSchoolsQueryDto extends ListQueryDto {
   @ApiPropertyOptional({ description: '模糊匹配学校名' })
   @IsOptional()
@@ -25,9 +25,9 @@ export class ListPartnerSchoolsQueryDto extends ListQueryDto {
   search?: string;
 }
 
-// 商家目录查询（GET /admin/partners/sponsors，学生会侧）
+// 广告商目录查询（GET /admin/partners/sponsors，学生会侧）
 export class ListPartnerSponsorsQueryDto extends ListQueryDto {
-  @ApiPropertyOptional({ description: '模糊匹配商家组织名' })
+  @ApiPropertyOptional({ description: '模糊匹配广告商组织名' })
   @IsOptional()
   @IsString()
   search?: string;
@@ -55,7 +55,7 @@ export class ListThreadMessagesQueryDto extends ListQueryDto {
 /**
  * 发起洽谈（POST /admin/partners/threads）。
  * 目标字段按发起方角色二选一（服务层校验必填组合，多余组合 400）：
- *   商家发起 → targetSchoolId 必填；学生会发起 → targetSponsorAdminId 必填。
+ *   广告商发起 → targetSchoolId 必填；学生会发起 → targetSponsorAdminId 必填。
  */
 export class CreateThreadDto {
   @ApiProperty({ description: '洽谈主题', maxLength: 80, example: '迎新周奶茶联名活动' })
@@ -70,12 +70,12 @@ export class CreateThreadDto {
   @MaxLength(2000, { message: '消息内容最长 2000 字' })
   content: string;
 
-  @ApiPropertyOptional({ description: '目标学校 id（商家发起时必填）' })
+  @ApiPropertyOptional({ description: '目标学校 id（广告商发起时必填）' })
   @IsOptional()
   @IsString()
   targetSchoolId?: string;
 
-  @ApiPropertyOptional({ description: '目标商家管理员 id（学生会发起时必填）' })
+  @ApiPropertyOptional({ description: '目标广告商管理员 id（学生会发起时必填）' })
   @IsOptional()
   @IsString()
   targetSponsorAdminId?: string;

@@ -14,7 +14,7 @@ import { SponsorLedgerType } from '@prisma/client';
 import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /**
- * 商家能量钱包 DTO（能量经济 2026-08，B1）。
+ * 广告商能量钱包 DTO（能量经济 2026-08，B1）。
  * 1 元 = 100 分 = 100 能量，数值同构；amountCents 承载能量数。
  */
 
@@ -33,7 +33,7 @@ export class TopupDto {
 
 // 平台手工调整（POST /admin/sponsor-wallet/adjustments，SUPER/TEAM）
 export class AdjustWalletDto {
-  @ApiProperty({ description: '目标商家 AdminUser.id（须为 SPONSOR 角色）' })
+  @ApiProperty({ description: '目标广告商 AdminUser.id（须为 SPONSOR 角色）' })
   @IsString()
   @IsNotEmpty()
   sponsorAdminId: string;

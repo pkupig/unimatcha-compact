@@ -24,12 +24,12 @@ export function AccountsPageHeader({
   onCreateAccount: () => void;
   onCreateInvite: () => void;
 }) {
-  const title = unionView ? (invitesTab ? '邀请码' : '赞助商') : '账号管理';
+  const title = unionView ? (invitesTab ? '邀请码' : '广告商') : '账号管理';
   const sub = unionView
     ? invitesTab
-      ? `${schoolName} · 生成邀请码发给商家自注册开通投放账号（恒绑定本校，按自拉档分成）`
-      : `${schoolName} · 自拉赞助商账号（其广告仅可投放本校，按自拉档分成）`
-    : `学生会 / 商家${superView ? ' / 管理员' : ''} 账号的创建与停启用`;
+      ? `${schoolName} · 生成邀请码发给广告商自注册开通投放账号（恒绑定本校，按自拉档分成）`
+      : `${schoolName} · 自拉广告商账号（其广告仅可投放本校，按自拉档分成）`
+    : `学生会 / 广告商${superView ? ' / 管理员' : ''} 账号的创建与停启用`;
 
   return (
     <PageHeader
@@ -45,7 +45,7 @@ export function AccountsPageHeader({
         ) : (
           <Button variant="cta" onClick={onCreateAccount}>
             <Plus size={15} />
-            {unionView ? '新建赞助商' : CREATE_LABELS[listTab]}
+            {unionView ? '新建广告商' : CREATE_LABELS[listTab]}
           </Button>
         )
       }

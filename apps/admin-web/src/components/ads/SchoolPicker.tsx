@@ -2,7 +2,7 @@
 
 /**
  * 投放学校多选（ADSN-4/5）：BUYOUT 态显示每校包断日价（后端已合并 学校覆盖价→全局默认，
- * 缺失显示「待核价」）；自拉商家锁定本校并提示。
+ * 缺失显示「待核价」）；自拉广告商锁定本校并提示。
  */
 import clsx from 'clsx';
 import { formatEnergy } from '@/lib/format';
@@ -19,7 +19,7 @@ export function SchoolPicker({
   selected: string[];
   onToggle: (id: string) => void;
   pricingModel: PricingModel;
-  /** 自拉商家的来源学校：非空时锁定单选本校 */
+  /** 自拉广告商的来源学校：非空时锁定单选本校 */
   lockedSchoolId: string | null;
 }) {
   if (lockedSchoolId) {
@@ -33,7 +33,7 @@ export function SchoolPicker({
           </span>
           {pricingModel === 'BUYOUT' && locked && <DailyPrice school={locked} />}
         </label>
-        <p className="text-xs text-outline mt-2">自拉赞助商仅可投放本校</p>
+        <p className="text-xs text-outline mt-2">自拉广告商仅可投放本校</p>
       </div>
     );
   }

@@ -68,7 +68,7 @@ export class ConvertSubmissionDto {
   @MaxLength(64)
   newSchoolCity?: string;
 
-  @ApiPropertyOptional({ description: 'SPONSOR 必填：组织/商家名' })
+  @ApiPropertyOptional({ description: 'SPONSOR 必填：组织/广告商名' })
   @IsOptional()
   @IsString()
   @MaxLength(128)

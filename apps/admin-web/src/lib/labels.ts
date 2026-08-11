@@ -37,7 +37,7 @@ export const ADMIN_ROLE = defineEnum({
   SUPER: ['超级管理员', 'ink'],
   TEAM: ['平台团队', 'ink'],
   STUDENT_UNION: ['学生会', 'neon'],
-  SPONSOR: ['商家', 'outline'],
+  SPONSOR: ['广告商', 'outline'],
 });
 
 export const USER_STATUS = defineEnum({
@@ -133,7 +133,7 @@ export const INVITE_STATUS = defineEnum({
 
 /** 合作消息线程的参与侧（气泡署名与发起方徽标共用） */
 export const THREAD_SIDE = defineEnum({
-  SPONSOR: ['商家', 'outline'],
+  SPONSOR: ['广告商', 'outline'],
   UNION: ['学生会', 'neon'],
 });
 
@@ -148,7 +148,7 @@ export const AUTHOR_TYPE = defineEnum({
   USER: ['用户', 'neutral'],
   STUDENT_UNION: ['学生会', 'neon'],
   TEAM: ['平台团队', 'ink'],
-  SPONSOR: ['商家', 'outline'],
+  SPONSOR: ['广告商', 'outline'],
 });
 
 export const POLL_STATUS = defineEnum({

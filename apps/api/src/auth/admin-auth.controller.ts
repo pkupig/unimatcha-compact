@@ -26,7 +26,7 @@ export class AdminAuthController {
     return this.adminAuthService.login(dto);
   }
 
-  // ── 商家自注册（B5）：无鉴权公开端点 + IP 限流 ──────────────
+  // ── 广告商自注册（B5 + 开放注册）：无鉴权公开端点 + IP 限流 ──────
 
   @Public()
   @UseGuards(PublicRateLimitGuard)
@@ -41,7 +41,9 @@ export class AdminAuthController {
   @UseGuards(PublicRateLimitGuard)
   @Post('register-sponsor')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '商家经学生会邀请码自注册（注册即登录，返回 {admin, token}）' })
+  @ApiOperation({
+    summary: '广告商自注册：凭学生会邀请码或直接注册（无码=平台直签；注册即登录，返回 {admin, token}）',
+  })
   async registerSponsor(@Body() dto: RegisterSponsorDto) {
     const admin = await this.sponsorInviteService.registerViaCode(dto);
     return this.adminAuthService.issueFor(admin);

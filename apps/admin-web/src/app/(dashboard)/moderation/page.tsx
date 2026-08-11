@@ -30,7 +30,7 @@ function ModerationInner() {
     router.replace(k === 'posts' ? '/moderation' : `/moderation?tab=${k}`, { scroll: false });
   };
 
-  // SUPER 无官方发帖权限（后端 canPublishOfficial），入口只给团队/学生会；商家从侧栏直达
+  // SUPER 无官方发帖权限（后端 canPublishOfficial），入口只给团队/学生会；广告商从侧栏直达
   const canPublish = admin?.role === 'TEAM' || admin?.role === 'STUDENT_UNION';
 
   return (

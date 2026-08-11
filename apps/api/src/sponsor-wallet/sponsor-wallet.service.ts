@@ -6,7 +6,7 @@ import { paginated, skipTake } from '../common/utils/pagination';
 import { AdjustWalletDto, ListLedgerQueryDto, TopupDto } from './dto/sponsor-wallet.dto';
 
 /**
- * 商家能量钱包服务（能量经济 2026-08，B1）。
+ * 广告商能量钱包服务（能量经济 2026-08，B1）。
  * - 1 元 = 100 分 = 100 能量，数值同构（amountCents 承载能量数）
  * - 账本只增不改（SponsorEnergyLedger），无余额行：余额 = Σ amountCents（唯一余额实现）
  * - 广告在途锁定按 refType='campaign' 净额汇总：预扣后为正、退完为 0，净额天然幂等
@@ -112,11 +112,11 @@ export class SponsorWalletService {
       where: { id: dto.sponsorAdminId },
       select: { id: true, role: true },
     });
-    if (!target) throw new NotFoundException('商家账号不存在');
+    if (!target) throw new NotFoundException('广告商账号不存在');
     if (target.role !== AdminRole.SPONSOR) {
-      throw new BadRequestException('目标账号不是商家（SPONSOR），不能调整钱包');
+      throw new BadRequestException('目标账号不是广告商（SPONSOR），不能调整钱包');
     }
-    // 复查 ISSUE-2 加固：refId 关联单据必须归属该商家（防误挂他人单污染净额）；
+    // 复查 ISSUE-2 加固：refId 关联单据必须归属该广告商（防误挂他人单污染净额）；
     // 仅正向退款计入 'campaign' 净额（负向罚扣若挂 campaign 会抬高 outstanding 造成超退）
     let refType: string = 'adjustment';
     if (dto.refId) {
@@ -125,7 +125,7 @@ export class SponsorWalletService {
         select: { advertiserId: true },
       });
       if (!campaign || campaign.advertiserId !== dto.sponsorAdminId) {
-        throw new BadRequestException('关联广告不存在或不属于该商家');
+        throw new BadRequestException('关联广告不存在或不属于该广告商');
       }
       if (dto.amountCents > 0) refType = 'campaign';
     }

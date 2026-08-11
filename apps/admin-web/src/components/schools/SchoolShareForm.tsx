@@ -134,7 +134,7 @@ export function SchoolShareForm({
       <form onSubmit={submit} className="space-y-4">
         <Field
           label="平台直签分成"
-          hint="平台直签商家广告给学校的分成比例"
+          hint="平台直签广告商广告给学校的分成比例"
           error={error}
         >
           <PctInput
@@ -143,7 +143,7 @@ export function SchoolShareForm({
             placeholder={placeholderOf(defaults?.platformShareBps)}
           />
         </Field>
-        <Field label="自拉赞助分成" hint="学生会自拉商家广告给学校的分成比例">
+        <Field label="自拉赞助分成" hint="学生会自拉广告商广告给学校的分成比例">
           <PctInput
             value={selfPct}
             onChange={setSelfPct}

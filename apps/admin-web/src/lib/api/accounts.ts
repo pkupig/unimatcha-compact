@@ -2,7 +2,7 @@
  * accounts 域 API（admin.controller.ts 的 admin-users 段）。
  * 口径统一（本次重写明确要修的点）：停用/启用一律 updateAdminUser(id,{isActive})——
  * 旧 DELETE /admin-users/:id 仅 SUPER 可调且语义与 PUT isActive:false 重复，
- * 学生会停启本校商家只有 PUT 路径有权限链，故本文件不暴露 DELETE。
+ * 学生会停启本校广告商只有 PUT 路径有权限链，故本文件不暴露 DELETE。
  */
 import { get, patch, post, put } from './client';
 import type {
@@ -74,7 +74,7 @@ export function fetchAccountsTab(q: {
   if (q.tab === 'admin') {
     return listPlatformAdmins({ page: q.page, limit: q.limit, isActive: q.isActive });
   }
-  // 学生会视角同样走 role=SPONSOR——服务端自动 scope 到本校来源商家
+  // 学生会视角同样走 role=SPONSOR——服务端自动 scope 到本校来源广告商
   return listAdminUsers({
     role: q.tab === 'union' ? 'STUDENT_UNION' : 'SPONSOR',
     page: q.page,

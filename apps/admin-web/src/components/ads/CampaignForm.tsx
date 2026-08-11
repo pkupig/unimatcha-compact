@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * 商家创建/编辑广告表单（ADSN-1..8）：
+ * 广告商创建/编辑广告表单（ADSN-1..8）：
  * - ?id= 编辑模式仅 DRAFT/REJECTED，否则 toast + 跳详情
  * - 双动作：存草稿 / 提交审核（先 create-or-update 再 submit）
- * - 自拉商家锁定本校；右侧 QuotePanel 实时报价
+ * - 自拉广告商锁定本校；右侧 QuotePanel 实时报价
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -40,7 +40,7 @@ export function CampaignForm() {
   const router = useRouter();
   const editId = useSearchParams().get('id');
   const { admin } = useAdmin();
-  /** 自拉商家：锁定到来源学校（ADSN-5） */
+  /** 自拉广告商：锁定到来源学校（ADSN-5） */
   const lockedSchoolId = admin?.sourcedBySchoolId ?? null;
 
   const [title, setTitle] = useState('');
@@ -59,13 +59,13 @@ export function CampaignForm() {
   const [saving, setSaving] = useState<'draft' | 'submit' | null>(null);
 
   useEffect(() => {
-    // 商家视角的 listSchools 只返回启用学校且附 effectivePrices（后端 limit 封顶 100）
+    // 广告商视角的 listSchools 只返回启用学校且附 effectivePrices（后端 limit 封顶 100）
     listSchools({ page: 1, limit: 100 })
       .then((res) => setSchools(res.items))
       .catch((e) => toastError(e, '加载学校列表失败'));
   }, []);
 
-  // 自拉商家：强制只投本校
+  // 自拉广告商：强制只投本校
   useEffect(() => {
     if (lockedSchoolId) setSchoolIds([lockedSchoolId]);
   }, [lockedSchoolId]);

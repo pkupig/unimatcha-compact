@@ -50,14 +50,14 @@ export const ACTION_CONFIGS: Record<CampaignAction, CampaignActionConfig> = {
   approve: {
     title: '审核通过',
     confirmText: '通过',
-    desc: '费用已在商家提交时预扣，通过后广告直接进入排期 / 投放。',
+    desc: '费用已在广告商提交时预扣，通过后广告直接进入排期 / 投放。',
     note: 'optional',
     noteLabel: '审核备注',
   },
   reject: {
     title: '驳回广告',
     confirmText: '驳回',
-    desc: '驳回后预扣能量原路退回，商家可修改素材与排期重新提交。',
+    desc: '驳回后预扣能量原路退回，广告商可修改素材与排期重新提交。',
     danger: true,
     note: 'required',
     noteLabel: '驳回原因',
@@ -88,7 +88,7 @@ export const ACTION_CONFIGS: Record<CampaignAction, CampaignActionConfig> = {
 
 /**
  * 操作矩阵（与后端各端点的状态守卫逐条对齐）：
- * - owner 商家：submit（DRAFT/REJECTED）· withdraw（两种审核中）· pause（ACTIVE）· resume（PAUSED）
+ * - owner 广告商：submit（DRAFT/REJECTED）· withdraw（两种审核中）· pause（ACTIVE）· resume（PAUSED）
  * - 学生会：approve/reject（PENDING_UNION_REVIEW，本校自拉单）
  * - 团队：approve/reject（PENDING_PLATFORM_REVIEW）· confirm-payment（PENDING_PAYMENT，旧流程存量）
  *         · pause+suspend（ACTIVE）· resume+suspend（PAUSED）· suspend（SCHEDULED）· unsuspend（SUSPENDED）

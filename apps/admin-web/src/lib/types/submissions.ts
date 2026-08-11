@@ -78,7 +78,7 @@ export interface ConvertSubmissionResult {
     schoolId: string | null;
     organizationName: string | null;
   };
-  /** 学生会绑定/新建的学校，或商家的来源学校；无则 null */
+  /** 学生会绑定/新建的学校，或广告商的来源学校；无则 null */
   school: { id: string; name: string } | null;
   initialPassword: string;
 }

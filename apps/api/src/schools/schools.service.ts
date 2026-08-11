@@ -143,7 +143,7 @@ export class SchoolsService {
       where.id = admin.schoolId;
     }
 
-    // 商家：仅启用学校，返回瘦身字段 + 生效单价（选校与实时报价用），
+    // 广告商：仅启用学校，返回瘦身字段 + 生效单价（选校与实时报价用），
     // 不暴露分成配置 / 银行账户 / 运营统计
     if (admin.role === AdminRole.SPONSOR) {
       where.isActive = true;

@@ -177,7 +177,7 @@ export interface TeamAdsOverview {
 
 export type AdsOverview = TeamAdsOverview | UnionAdsOverview | SponsorAdsOverview;
 
-// ── 商家选校（listSchools 对 SPONSOR 的瘦身行） ──
+// ── 广告商选校（listSchools 对 SPONSOR 的瘦身行） ──
 
 /** 后端已合并（学校覆盖价 → 全局默认）后的生效单价 */
 export interface AdSchoolPrices {
@@ -187,7 +187,7 @@ export interface AdSchoolPrices {
 }
 
 /**
- * 商家视角的学校行：在 ads 域宽化而非要求 schools 域声明该字段——
+ * 广告商视角的学校行：在 ads 域宽化而非要求 schools 域声明该字段——
  * effectivePrices 仅对 SPONSOR 返回，缺失时报价显示「待核价」
  */
 export type SponsorSchool = School & { effectivePrices?: AdSchoolPrices | null };

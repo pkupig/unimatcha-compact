@@ -137,7 +137,7 @@ export function InvitesPanel({
           rowKey={(r) => r.id}
           loading={list.loading}
           error={list.error}
-          empty="暂无邀请码 · 生成后发给商家自注册开通投放账号"
+          empty="暂无邀请码 · 生成后发给广告商自注册开通投放账号"
         />
       </Card>
       <Pager page={list.page} limit={list.limit} total={list.total} onPage={list.setPage} />
@@ -153,8 +153,8 @@ export function InvitesPanel({
           confirmText={toggleRow.isActive ? '停用' : '启用'}
           message={
             toggleRow.isActive
-              ? `停用后「${toggleRow.code}」立即失效，商家无法再经此码注册；已注册的账号不受影响，可随时重新启用。`
-              : `确认重新启用「${toggleRow.code}」？启用后商家即可继续经此码注册（过期时间与次数上限仍独立生效）。`
+              ? `停用后「${toggleRow.code}」立即失效，广告商无法再经此码注册；已注册的账号不受影响，可随时重新启用。`
+              : `确认重新启用「${toggleRow.code}」？启用后广告商即可继续经此码注册（过期时间与次数上限仍独立生效）。`
           }
           onConfirm={async () => {
             await toggleInvite(toggleRow.id, !toggleRow.isActive);

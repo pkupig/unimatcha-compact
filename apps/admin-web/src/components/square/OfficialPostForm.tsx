@@ -2,7 +2,7 @@
 
 /**
  * 官方发帖表单（SQP-2..6）：authorType 由登录角色推导展示（后端同样推导，DTO 不收该字段）。
- * 学生会锁定本校必填；商家强制 Sponsored；提交成功重置可编辑字段、保留锁定项。
+ * 学生会锁定本校必填；广告商强制 Sponsored；提交成功重置可编辑字段、保留锁定项。
  */
 import { useState } from 'react';
 import clsx from 'clsx';
@@ -78,7 +78,7 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
         images: images.length ? images : undefined,
       });
       toast.success('官方帖已发布');
-      // 重置可编辑字段，保留锁定项（本校 / 商家 Sponsored）
+      // 重置可编辑字段，保留锁定项（本校 / 广告商 Sponsored）
       setTitle('');
       setContent('');
       setImages([]);
@@ -136,7 +136,7 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
         </div>
       </div>
 
-      {/* 学校：学生会锁定本校必填；团队/商家选填（空=跨校） */}
+      {/* 学校：学生会锁定本校必填；团队/广告商选填（空=跨校） */}
       <Field
         label="学校标注"
         required={schoolLocked}
@@ -207,12 +207,12 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
         )}
       </div>
 
-      {/* 赞助内容开关：商家强制开且禁用（后端同样强制） */}
+      {/* 赞助内容开关：广告商强制开且禁用（后端同样强制） */}
       <div className="flex items-center justify-between gap-4">
         <div>
           <span className="label mb-0">标记为赞助内容</span>
           <p className="text-xs text-outline mt-0.5">
-            {sponsorForced ? '商家帖子始终标记为赞助' : '商业推广类帖子请开启'}
+            {sponsorForced ? '广告商帖子始终标记为赞助' : '商业推广类帖子请开启'}
           </p>
         </div>
         <Switch

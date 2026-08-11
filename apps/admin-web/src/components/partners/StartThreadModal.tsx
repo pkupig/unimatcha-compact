@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 发起洽谈弹窗：主题 + 首条消息。后端同一 商家×学校 唯一线程——
+ * 发起洽谈弹窗：主题 + 首条消息。后端同一 广告商×学校 唯一线程——
  * 重复发起不报错而是并入既有线程（existed:true），成功后直落线程页。
  */
 import { useState } from 'react';
@@ -14,10 +14,10 @@ import { createThread } from '@/lib/api/partners';
 import { toastError } from '@/lib/toast';
 
 export interface StartThreadTarget {
-  /** school=商家发起（目标学校）；sponsor=学生会发起（目标商家） */
+  /** school=广告商发起（目标学校）；sponsor=学生会发起（目标广告商） */
   kind: 'school' | 'sponsor';
   id: string;
-  /** 弹窗标题区展示的目标名（校名 / 商家组织名） */
+  /** 弹窗标题区展示的目标名（校名 / 广告商组织名） */
   name: string;
 }
 

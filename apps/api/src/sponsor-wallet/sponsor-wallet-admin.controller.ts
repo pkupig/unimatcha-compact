@@ -10,10 +10,10 @@ import { AdminActor } from '../admin-core/admin-actor';
 import { AdjustWalletDto, ListLedgerQueryDto, TopupDto } from './dto/sponsor-wallet.dto';
 
 /**
- * 商家能量钱包控制器（能量经济 2026-08，B1）。
+ * 广告商能量钱包控制器（能量经济 2026-08，B1）。
  * SPONSOR：查概览/流水、mock 充值；SUPER/TEAM：手工调整（人工通道）。
  */
-@ApiTags('商家能量钱包')
+@ApiTags('广告商能量钱包')
 @ApiBearerAuth()
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/sponsor-wallet')
@@ -43,7 +43,7 @@ export class SponsorWalletAdminController {
 
   @Post('adjustments')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '手工调整商家钱包（SUPER/TEAM；SUSPENDED 退款等人工通道）' })
+  @ApiOperation({ summary: '手工调整广告商钱包（SUPER/TEAM；SUSPENDED 退款等人工通道）' })
   adjust(@CurrentAdmin() admin: AdminActor, @Body() dto: AdjustWalletDto) {
     return this.sponsorWalletService.adjust(admin, dto);
   }

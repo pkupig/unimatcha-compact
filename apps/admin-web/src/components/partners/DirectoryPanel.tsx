@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 合作目录（角色分叉）：商家看「有学生会入驻的学校」/ 学生会看「他校自拉商家」。
+ * 合作目录（角色分叉）：广告商看「有学生会入驻的学校」/ 学生会看「他校自拉广告商」。
  * 操作列统一语义：已有唯一线程直接进入，否则弹发起洽谈；发起弹窗两表共享。
  * 平台角色不渲染本面板（页面层已按角色隐藏 directory tab）。
  */
@@ -42,7 +42,7 @@ function ThreadAction({ threadId, onStart }: { threadId: string | null; onStart:
   );
 }
 
-/** 商家侧：学校目录 */
+/** 广告商侧：学校目录 */
 function SchoolDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) => void }) {
   const list = usePagedList<PartnerSchool, Record<string, never>>({
     fetcher: (q) => listPartnerSchools({ page: q.page, limit: q.limit, search: q.search }),
@@ -94,7 +94,7 @@ function SchoolDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) => 
   );
 }
 
-/** 学生会侧：他校自拉商家目录（后端不返回联系方式，联系一律走线程） */
+/** 学生会侧：他校自拉广告商目录（后端不返回联系方式，联系一律走线程） */
 function SponsorDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) => void }) {
   const list = usePagedList<PartnerSponsor, Record<string, never>>({
     fetcher: (q) => listPartnerSponsors({ page: q.page, limit: q.limit, search: q.search }),
@@ -104,7 +104,7 @@ function SponsorDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) =>
   const columns: Column<PartnerSponsor>[] = [
     {
       key: 'organizationName',
-      header: '商家',
+      header: '广告商',
       render: (s) => (
         <span className="font-medium text-ink">{s.organizationName ?? s.name}</span>
       ),
@@ -133,7 +133,7 @@ function SponsorDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) =>
   return (
     <>
       <FilterBar>
-        <FilterBar.Search value={list.search} onChange={list.setSearch} placeholder="搜索商家组织名" />
+        <FilterBar.Search value={list.search} onChange={list.setSearch} placeholder="搜索广告商组织名" />
       </FilterBar>
       <Card flush>
         <DataTable<PartnerSponsor>
@@ -142,7 +142,7 @@ function SponsorDirectoryTable({ onStart }: { onStart: (t: StartThreadTarget) =>
           rowKey={(r) => r.id}
           loading={list.loading}
           error={list.error}
-          empty="暂无他校商家可洽谈"
+          empty="暂无他校广告商可洽谈"
         />
       </Card>
       <Pager page={list.page} limit={list.limit} total={list.total} onPage={list.setPage} />

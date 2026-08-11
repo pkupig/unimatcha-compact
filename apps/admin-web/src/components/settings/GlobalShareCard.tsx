@@ -111,7 +111,7 @@ export function GlobalShareCard() {
           <Field
             label="平台直签分成"
             required
-            hint="平台直签商家广告给学校的分成比例（缺省 10%）"
+            hint="平台直签广告商广告给学校的分成比例（缺省 10%）"
             error={error}
           >
             <PctInput value={platformPct} onChange={setPlatformPct} disabled={loading} />
@@ -119,7 +119,7 @@ export function GlobalShareCard() {
           <Field
             label="自拉赞助分成"
             required
-            hint="学生会自拉商家广告给学校的分成比例（缺省 30%）"
+            hint="学生会自拉广告商广告给学校的分成比例（缺省 30%）"
           >
             <PctInput value={selfPct} onChange={setSelfPct} disabled={loading} />
           </Field>

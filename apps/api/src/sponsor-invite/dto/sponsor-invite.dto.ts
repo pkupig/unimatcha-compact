@@ -54,11 +54,12 @@ export class ListInvitesQueryDto extends ListQueryDto {
   schoolId?: string;
 }
 
-/** 商家公开自注册（POST /admin/auth/register-sponsor，无鉴权 + IP 限流） */
+/** 广告商公开自注册（POST /admin/auth/register-sponsor，无鉴权 + IP 限流） */
 export class RegisterSponsorDto {
-  @ApiProperty({ description: '学生会邀请码', example: 'INV-XXXXXXXXXXXX' })
+  @ApiPropertyOptional({ description: '学生会邀请码（选填；不填=平台直签注册）', example: 'INV-XXXXXXXXXXXX' })
+  @IsOptional()
   @IsString({ message: '邀请码必须为字符串' })
-  code: string;
+  code?: string;
 
   @ApiProperty({ example: 'sponsor@example.com' })
   @IsEmail({}, { message: '请输入合法的邮箱地址' })
@@ -69,7 +70,7 @@ export class RegisterSponsorDto {
   @Length(8, 64, { message: '密码长度须为 8–64 位' })
   password: string;
 
-  @ApiProperty({ description: '商家/组织名称', example: '校门口奶茶店' })
+  @ApiProperty({ description: '广告商/组织名称', example: '校门口奶茶店' })
   @IsString({ message: '组织名必须为字符串' })
   @MaxLength(80, { message: '组织名最长 80 字' })
   organizationName: string;

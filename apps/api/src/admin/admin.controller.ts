@@ -40,32 +40,32 @@ export class AdminController {
 
   @Get('dashboard')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
-  @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/商家）' })
+  @ApiOperation({ summary: '仪表盘统计数据（按角色返回不同 payload：团队/学生会/广告商）' })
   getDashboard(@CurrentAdmin() admin: AdminActor) {
     return this.adminService.getDashboardStats(admin);
   }
 
   // ─── Admin Users（后管账号管理，§8.1.3 + ADMIN-REDESIGN §4） ─────
-  // SUPER：任意角色；TEAM：商家/学生会；学生会：仅创建本校自拉商家（服务层强制 scope）
+  // SUPER：任意角色；TEAM：广告商/学生会；学生会：仅创建本校自拉广告商（服务层强制 scope）
   @Post('admin-users')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '创建后管账号（SUPER 全部 / TEAM 商家+学生会 / 学生会仅本校自拉商家）' })
+  @ApiOperation({ summary: '创建后管账号（SUPER 全部 / TEAM 广告商+学生会 / 学生会仅本校自拉广告商）' })
   createAdminUser(@CurrentAdmin() admin: AdminActor, @Body() dto: CreateAdminUserDto) {
     return this.adminService.createAdminUser(admin, dto);
   }
 
   @Get('admin-users')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
-  @ApiOperation({ summary: '后管账号列表（分页；学生会仅见本校来源商家，TEAM 见商家+学生会）' })
+  @ApiOperation({ summary: '后管账号列表（分页；学生会仅见本校来源广告商，TEAM 见广告商+学生会）' })
   listAdminUsers(@CurrentAdmin() admin: AdminActor, @Query() q: ListAdminUsersQueryDto) {
     return this.adminService.listAdminUsers(admin, q);
   }
 
-  // 四角色全开（本人改 name/密码/联系方式，商家账户页自助维护）；
+  // 四角色全开（本人改 name/密码/联系方式，广告商账户页自助维护）；
   // 越权字段仍由服务层拦截——@Roles 把 role=null 的旧只读账号挡在门外
   @Put('admin-users/:id')
   @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
-  @ApiOperation({ summary: '更新后管账号（SUPER 改权限字段；本人改 name/密码/联系方式；学生会可停启本校来源商家）' })
+  @ApiOperation({ summary: '更新后管账号（SUPER 改权限字段；本人改 name/密码/联系方式；学生会可停启本校来源广告商）' })
   updateAdminUser(
     @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,
@@ -117,7 +117,7 @@ export class AdminController {
 
   @Post('submissions/:id/convert')
   @Roles(AdminRole.SUPER, AdminRole.TEAM)
-  @ApiOperation({ summary: '一键开通后台账号（学生会/商家；事务内可新建学校；密码一次性回显）' })
+  @ApiOperation({ summary: '一键开通后台账号（学生会/广告商；事务内可新建学校；密码一次性回显）' })
   convertSubmission(
     @CurrentAdmin() admin: AdminActor,
     @Param('id') id: string,

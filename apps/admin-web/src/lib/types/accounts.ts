@@ -61,7 +61,7 @@ export type CreateAdminUserData = {
   sourcedBySchoolId?: string;
 };
 
-/** 更新（UpdateAdminUserDto）；权限字段仅 SUPER，学生会仅可对本校来源商家切 isActive */
+/** 更新（UpdateAdminUserDto）；权限字段仅 SUPER，学生会仅可对本校来源广告商切 isActive */
 export type UpdateAdminUserData = {
   name?: string;
   password?: string;
@@ -113,7 +113,7 @@ export interface SponsorInviteListItem extends SponsorInvite {
   createdByAdmin: { id: string; name: string } | null;
 }
 
-/** 经该码自注册的商家账号（GET /admin/sponsor-invites/:id/uses 的 select 裁剪） */
+/** 经该码自注册的广告商账号（GET /admin/sponsor-invites/:id/uses 的 select 裁剪） */
 export interface InviteUseRow {
   id: string;
   email: string;

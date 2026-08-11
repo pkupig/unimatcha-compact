@@ -2,7 +2,7 @@
 
 /**
  * /partners — 跨校合作洽谈（B6）。
- * 角色差异：SPONSOR「高校合作」/ STUDENT_UNION「商家合作」/ 平台「合作洽谈」（只读监管、无目录 tab）；
+ * 角色差异：SPONSOR「高校合作」/ STUDENT_UNION「广告商合作」/ 平台「合作洽谈」（只读监管、无目录 tab）；
  * 标题直接复用 permissions.NAV 的 roleLabels（单一真源，不再抄一份 map）。
  * ?tab= 深链（DEEP_LINKS.partnersDirectory）+ 回同步，照 accounts 页模式。
  */
@@ -53,10 +53,10 @@ function PartnersInner() {
     ? navForRole(admin.role).find((e) => e.href === '/partners')?.resolvedLabel ?? '合作洽谈'
     : '合作洽谈';
   const sub = platformView
-    ? '商家 × 学校全部洽谈的只读监管视图'
+    ? '广告商 × 学校全部洽谈的只读监管视图'
     : isSponsor(admin?.role)
       ? '浏览高校目录、与学生会洽谈合作；同一学校只保留一条线程'
-      : '浏览他校商家目录、发起跨校合作洽谈；同一商家只保留一条线程';
+      : '浏览他校广告商目录、发起跨校合作洽谈；同一广告商只保留一条线程';
 
   return (
     <>

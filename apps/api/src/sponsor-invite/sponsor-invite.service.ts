@@ -27,10 +27,10 @@ export interface InviteInfo {
 }
 
 /**
- * 学生会邀请码 + 商家公开自注册（B5）。
- *   学生会：生成/停用本校邀请码、查看经码注册的商家；
+ * 学生会邀请码 + 广告商公开自注册（B5）。
+ *   学生会：生成/停用本校邀请码、查看经码注册的广告商；
  *   平台侧（SUPER/TEAM）：全量查看，SUPER 可停用任意码；
- *   商家：拿码在 /admin/auth/register-sponsor 自注册（sourcedBySchoolId 恒为邀请学校）。
+ *   广告商：拿码在 /admin/auth/register-sponsor 自注册（sourcedBySchoolId 恒为邀请学校）。
  */
 @Injectable()
 export class SponsorInviteService {
@@ -122,7 +122,7 @@ export class SponsorInviteService {
     });
   }
 
-  /** 某码的注册记录（经该码自注册的商家账号，分页；范围校验同 toggle） */
+  /** 某码的注册记录（经该码自注册的广告商账号，分页；范围校验同 toggle） */
   async listInviteUses(actor: AdminActor, id: string, q: ListQueryDto) {
     await this.getScopedInvite(actor, id);
 
@@ -169,10 +169,45 @@ export class SponsorInviteService {
   }
 
   /**
-   * 商家经码自注册：校验码 → 邮箱预检 → 事务内乐观锁自增 usedCount + 建号。
+   * 广告商公开自注册，两路语义：
+   * - 有码：校验邀请码 → 邮箱预检 → 事务内乐观锁自增 usedCount + 建号，
+   *   sourcedBySchoolId 恒为邀请学校（学生会自拉，享自拉档分成、广告走本校学生会审核）；
+   * - 无码（code 为空/未传）：平台直签——跳过邀请码全部校验与乐观锁，直接建号，
+   *   sourcedBySchoolId/invitedByCodeId 均为 null（广告走平台团队审核、直签档分成）。
    * 返回完整 AdminUser 行（供 AdminAuthService.issueFor 注册即登录）。
    */
   async registerViaCode(dto: RegisterSponsorDto): Promise<AdminUser> {
+    // ⓪ 无码 = 平台直签：其余字段与有码路径完全一致（role 恒 SPONSOR / bcrypt12 / 展示名默认取组织名）
+    if (!dto.code || !dto.code.trim()) {
+      const taken = await this.prisma.adminUser.findUnique({ where: { email: dto.email } });
+      if (taken) throw new BadRequestException('该邮箱已被注册');
+
+      const directHash = await bcrypt.hash(dto.password, 12);
+      return this.prisma.adminUser
+        .create({
+          data: {
+            email: dto.email,
+            passwordHash: directHash,
+            name: dto.organizationName, // 后台展示名默认取组织名
+            role: AdminRole.SPONSOR, // 自注册恒为广告商
+            organizationName: dto.organizationName,
+            sourcedBySchoolId: null, // 平台直签：无来源学校
+            invitedByCodeId: null,
+            contactName: dto.contactName,
+            contactPhone: dto.contactPhone ?? null,
+            isActive: true,
+            isSuperAdmin: false,
+          },
+        })
+        .catch((e) => {
+          // 并发同邮箱穿过预检：email 唯一约束触发 P2002 → 同有码路径转中文 400
+          if (e?.code === 'P2002') {
+            throw new BadRequestException('该邮箱已被注册');
+          }
+          throw e;
+        });
+    }
+
     // ① 查码逐项校验（错误消息区分原因，注册页可直接展示）
     const invite = await this.prisma.sponsorInviteCode.findUnique({
       where: { code: dto.code },
@@ -212,7 +247,7 @@ export class SponsorInviteService {
           email: dto.email,
           passwordHash,
           name: dto.organizationName, // 后台展示名默认取组织名
-          role: AdminRole.SPONSOR, // 自注册恒为商家
+          role: AdminRole.SPONSOR, // 自注册恒为广告商
           organizationName: dto.organizationName,
           sourcedBySchoolId: invite.schoolId, // 恒记邀请学校（自拉分成档位判定）
           invitedByCodeId: invite.id,

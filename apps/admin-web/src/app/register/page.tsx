@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * /register — 商家经学生会邀请码公开自注册页。
+ * /register — 广告商公开自注册页（邀请码选填：有码=学生会邀请归属该校；无码=平台直签）。
  * 与 /login 同层（(dashboard) 组外）：不进 permissions/Guard，无鉴权可达；
  * 表单三态（校验中 / 无效原因 / 有效邀请卡）由 RegisterSponsorForm 内部承载。
  */
@@ -25,7 +25,7 @@ function RegisterInner() {
           </p>
           <p className="caption mt-2">Sponsor Registration</p>
           <p className="text-sm text-on-surface-variant mt-3">
-            凭学生会邀请码入驻，注册即可登录投放
+            注册广告商账号，注册即可登录投放；学生会邀请码选填
           </p>
         </div>
 

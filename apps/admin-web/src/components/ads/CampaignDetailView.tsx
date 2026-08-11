@@ -2,7 +2,7 @@
 
 /**
  * 广告详情视图（ADSD-1..8 的装配层）：加载详情 + 日序列，
- * 头部（状态/计价/档期/商家/来源）+ 操作栏 + 素材/数据/时间线 + 金额/投放学校 + 操作弹窗。
+ * 头部（状态/计价/档期/广告商/来源）+ 操作栏 + 素材/数据/时间线 + 金额/投放学校 + 操作弹窗。
  */
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';

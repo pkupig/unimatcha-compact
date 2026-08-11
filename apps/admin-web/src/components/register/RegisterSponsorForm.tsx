@@ -1,8 +1,9 @@
 'use client';
 
 /**
- * 商家自注册表单（公开页 /register 专用）：
- * 邀请码防抖预校验三态（校验中 / 无效原因 / 有效展示邀请学校）+ 注册即登录。
+ * 广告商自注册表单（公开页 /register 专用）：
+ * 邀请码选填——空码=平台直签（不调预校验，展示中性说明卡，可直接提交）；
+ * 填码走防抖预校验三态（校验中 / 无效原因 / 有效展示邀请学校），无效码禁提交。
  * 预校验接口恒 200 不抛错；网络错误不拦提交——最终校验以后端注册接口为准。
  */
 import { useEffect, useRef, useState } from 'react';
@@ -101,7 +102,8 @@ export function RegisterSponsorForm({ initialCode }: { initialCode: string }) {
     setBusy(true);
     try {
       const res = await registerSponsor({
-        code: code.trim(),
+        // 空码不发字段（invites.ts 内省略）——无码 = 平台直签
+        code: code.trim() || undefined,
         email: email.trim(),
         password,
         organizationName: orgName.trim(),
@@ -118,21 +120,26 @@ export function RegisterSponsorForm({ initialCode }: { initialCode: string }) {
     }
   };
 
-  // 明确无效的码直接禁提交；校验中/网络未知不拦（后端兜底）
+  // 明确无效的码直接禁提交；空码可提交（平台直签）；校验中/网络未知不拦（后端兜底）
   const blocked = !!info && !info.valid;
 
   return (
     <form className="card space-y-4" onSubmit={submit}>
-      <Field label="邀请码 · Invite Code" required>
+      <Field label="邀请码 · Invite Code（选填）">
         <Input
-          required
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="INV-XXXXXXXXXXXX"
           className="font-mono"
         />
       </Field>
-      <InviteStateCard checking={checking} info={info} />
+      {code.trim() ? (
+        <InviteStateCard checking={checking} info={info} />
+      ) : (
+        <div className="rounded-lg bg-surface-low px-4 py-3 text-sm text-on-surface-variant leading-relaxed">
+          不填邀请码将注册为平台直签广告商（广告由平台审核）；有学生会邀请码可填写，归属该校并享自拉分成通道。
+        </div>
+      )}
       <Field label="组织名称 · Organization" required>
         <Input
           required
