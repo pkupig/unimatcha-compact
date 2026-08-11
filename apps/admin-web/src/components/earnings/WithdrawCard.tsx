@@ -12,17 +12,18 @@ import { createWithdrawal, type SchoolBankInfo } from '@/lib/api/earnings';
 import { yuanToCents } from '@/lib/format';
 
 /**
- * EARN-4：申请提现卡。
- * 元输入实时换算（yuanToCents）+ 余额提示与超额内联警告；
+ * 提现段：申请提现卡（从赞助费余额提现，能量须先兑换入账才可提）。
+ * 元输入实时换算（yuanToCents）+ 赞助费余额提示与超额内联警告；
  * 未绑卡整卡禁用；确认弹窗展示打款卡尾号；成功后重置输入并通知父层刷新两表。
  */
 export function WithdrawCard({
-  balanceCents,
+  cashBalanceCents,
   bank,
   bound,
   onDone,
 }: {
-  balanceCents: number;
+  /** 赞助费现金可用余额（已扣在途提现冻结） */
+  cashBalanceCents: number;
   bank: SchoolBankInfo | null;
   /** 已绑卡（由父层按 hasBankAccount 口径计算） */
   bound: boolean;
@@ -33,7 +34,7 @@ export function WithdrawCard({
 
   const amountCents = yuanToCents(amountYuan);
   const valid = amountCents !== null && amountCents > 0;
-  const over = valid && amountCents > balanceCents;
+  const over = valid && amountCents > cashBalanceCents;
 
   const submit = async () => {
     if (amountCents === null) return;
@@ -54,8 +55,8 @@ export function WithdrawCard({
           required
           hint={
             <>
-              可用余额 <Money cents={balanceCents} />
-              {over && <span className="text-neon-pink ml-2">超出可用余额</span>}
+              赞助费余额 <Money cents={cashBalanceCents} />
+              {over && <span className="text-neon-pink ml-2">超出赞助费余额</span>}
             </>
           }
         >
@@ -81,7 +82,7 @@ export function WithdrawCard({
         </Button>
         {!bound && <p className="text-xs text-neon-pink">请先绑定银行账户后再申请提现。</p>}
         <p className="text-xs text-outline">
-          提交后由平台团队审核，通过后线下打款；审核期间金额冻结。
+          从赞助费余额提现（能量须先兑换入账）；提交后由平台团队审核，通过后线下打款，审核期间金额冻结。
         </p>
       </div>
 

@@ -9,6 +9,8 @@ import {
   Banknote,
   CalendarDays,
   ClipboardList,
+  Coins,
+  HeartHandshake,
   Inbox,
   LayoutDashboard,
   Megaphone,
@@ -60,6 +62,8 @@ export const NAV: NavEntry[] = [
   { href: '/events', section: 'content', icon: CalendarDays, roles: ['SUPER', 'TEAM', 'STUDENT_UNION'], label: '活动管理', quickLink: true },
 
   { href: '/ads', section: 'commerce', icon: Megaphone, roles: ALL_ROLES, label: '广告管理', roleLabels: { STUDENT_UNION: '广告审核', SPONSOR: '广告投放' }, quickLink: true },
+  { href: '/wallet', section: 'commerce', icon: Coins, roles: ['SPONSOR'], label: '能量钱包' },
+  { href: '/partners', section: 'commerce', icon: HeartHandshake, roles: ALL_ROLES, label: '合作洽谈', roleLabels: { SPONSOR: '高校合作', STUDENT_UNION: '商家合作' } },
   { href: '/finance', section: 'commerce', icon: Banknote, roles: ['SUPER', 'TEAM'], label: '财务', quickLink: true },
   { href: '/submissions', section: 'commerce', icon: Inbox, roles: ['SUPER', 'TEAM'], label: '官网提交' },
   { href: '/accounts', section: 'commerce', icon: ShieldCheck, roles: ['STUDENT_UNION'], label: '赞助商' },
@@ -90,10 +94,14 @@ export const DEEP_LINKS = {
   adsPendingPlatform: '/ads?status=PENDING_PLATFORM_REVIEW',
   adsPendingUnion: '/ads?tab=review',
   financeWithdrawals: '/finance?tab=withdrawals&status=PENDING',
+  financeConversions: '/finance?tab=conversions&status=PENDING',
   submissionsPending: '/submissions?tab=SPONSOR&status=PENDING',
   moderationReported: '/moderation?tab=reported',
   moderationPolls: '/moderation?tab=polls',
   earnings: '/earnings',
+  sponsorWallet: '/wallet',
+  accountsInvites: '/accounts?tab=invites',
+  partnersDirectory: '/partners?tab=directory',
 } as const;
 
 /** 角色菜单（含分组信息与按角色解析后的 label） */

@@ -4,13 +4,18 @@
  * 旧 DELETE /admin-users/:id 仅 SUPER 可调且语义与 PUT isActive:false 重复，
  * 学生会停启本校商家只有 PUT 路径有权限链，故本文件不暴露 DELETE。
  */
-import { get, post, put } from './client';
+import { get, patch, post, put } from './client';
 import type {
-  AccountsTab,
+  AccountsListTab,
   AdminAccount,
   CreateAdminUserData,
+  CreateInviteData,
+  InviteUseRow,
   ListAdminUsersParams,
+  ListInvitesParams,
   ListResult,
+  SponsorInvite,
+  SponsorInviteListItem,
   UpdateAdminUserData,
 } from '@/lib/types';
 
@@ -61,7 +66,7 @@ export async function listPlatformAdmins(params: {
 
 /** 账号列表统一取数入口（按 tab 分派；供 usePagedList 的 fetcher 直连） */
 export function fetchAccountsTab(q: {
-  tab: AccountsTab;
+  tab: AccountsListTab;
   isActive?: string;
   page: number;
   limit: number;
@@ -75,5 +80,41 @@ export function fetchAccountsTab(q: {
     page: q.page,
     limit: q.limit,
     isActive: q.isActive,
+  });
+}
+
+// ── 学生会邀请码（B5，sponsor-invite-admin.controller.ts）────────
+// 管理端封装归本域；lib/api/invites.ts 只封装公开注册端点（register 域），勿混。
+
+/** 邀请码列表（学生会强制本校；平台侧可按 schoolId 筛） */
+export function listInvites(
+  params: ListInvitesParams = {},
+): Promise<ListResult<SponsorInviteListItem>> {
+  return get<ListResult<SponsorInviteListItem>>('/admin/sponsor-invites', {
+    page: params.page,
+    limit: params.limit,
+    isActive: params.isActive,
+    schoolId: params.schoolId,
+  });
+}
+
+/** 生成邀请码（学生会；后端恒绑定本校，schoolId 不可传） */
+export function createInvite(data: CreateInviteData): Promise<SponsorInvite> {
+  return post<SponsorInvite>('/admin/sponsor-invites', data);
+}
+
+/** 停用/启用（学生会仅本校码，SUPER 任意） */
+export function toggleInvite(id: string, isActive: boolean): Promise<SponsorInvite> {
+  return patch<SponsorInvite>(`/admin/sponsor-invites/${id}`, { isActive });
+}
+
+/** 某码的注册记录（后端 ListQueryDto 仅收 page/limit，多传会 400） */
+export function listInviteUses(
+  id: string,
+  params: { page?: number; limit?: number } = {},
+): Promise<ListResult<InviteUseRow>> {
+  return get<ListResult<InviteUseRow>>(`/admin/sponsor-invites/${id}/uses`, {
+    page: params.page,
+    limit: params.limit,
   });
 }

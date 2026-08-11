@@ -5,47 +5,18 @@
  * 密码只在接口响应里出现一次，关闭即不可再查——必须当场复制交付。
  */
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 import { AlertTriangle, Check, Copy } from 'lucide-react';
-
-/** 剪贴板写入——clipboard API 优先，非安全上下文（http 内网）降级 execCommand */
-async function copyText(text: string): Promise<boolean> {
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      /* 权限被拒/非安全上下文，走降级路径 */
-    }
-  }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
+import { copyText } from '@/lib/clipboard';
 
 function CredentialRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
-    if (await copyText(value)) {
-      setCopied(true);
-      toast.success(`${label}已复制`);
-      // 短暂展示「已复制」后还原，支持反复复制
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      toast.error('复制失败，请手动选中复制');
-    }
+    // 成功/失败 toast 由共享 copyText 统一处理（失败极罕见：双路径全挂才会），
+    // 这里只管按钮的「已复制」短暂反馈，2s 后还原支持反复复制
+    await copyText(value, `${label}已复制`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (

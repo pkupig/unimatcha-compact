@@ -4,6 +4,7 @@ import type {
   LedgerEntry,
   ListResult,
   RevenueReport,
+  SchoolConversionRequest,
   SchoolFinanceSummary,
   WithdrawalRequest,
 } from '@/lib/types';
@@ -47,6 +48,31 @@ export function createAdjustment(data: {
   note: string;
 }): Promise<LedgerEntry> {
   return post<LedgerEntry>('/admin/finance/adjustments', data);
+}
+
+/** 兑换申请列表（平台侧可按 status/schoolId 过滤；学生会后端强制本校） */
+export function listConversions(params: {
+  status?: string;
+  schoolId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<ListResult<SchoolConversionRequest>> {
+  return get<ListResult<SchoolConversionRequest>>('/admin/finance/conversions', params);
+}
+
+/** 学生会发起能量兑换（学校取自当前账号；PENDING 冻结等额能量；创建响应无 school join） */
+export function createConversion(data: {
+  amountCents: number;
+}): Promise<Omit<SchoolConversionRequest, 'school'>> {
+  return post<Omit<SchoolConversionRequest, 'school'>>('/admin/finance/conversions', data);
+}
+
+/** 审批兑换（PENDING → APPROVED / REJECTED；通过时能量扣减 + 赞助费入账原子对冲） */
+export function reviewConversion(
+  id: string,
+  data: { approve: boolean; note?: string },
+): Promise<SchoolConversionRequest> {
+  return post<SchoolConversionRequest>(`/admin/finance/conversions/${id}/review`, data);
 }
 
 /** 学校财务概要（余额/累计收入/冻结 + 分页流水） */

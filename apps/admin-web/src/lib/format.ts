@@ -32,6 +32,14 @@ export function centsToYuanInput(cents?: number | null): string {
   return (cents / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
 }
 
+/**
+ * 能量展示（能量经济：1 元 = 100 分 = 100 能量，数值同构）：
+ * formatEnergy(20000) === '20,000 能量'——数值就是 *Cents 字段原值，绝不 /100。
+ */
+export function formatEnergy(value?: number | null): string {
+  return `${(value ?? 0).toLocaleString('zh-CN')} 能量`;
+}
+
 /** 千分位整数：formatNumber(1234567) === '1,234,567' */
 export function formatNumber(n?: number | null): string {
   return (n ?? 0).toLocaleString('zh-CN');

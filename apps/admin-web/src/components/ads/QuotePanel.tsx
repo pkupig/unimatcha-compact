@@ -1,14 +1,42 @@
 'use client';
 
 /**
- * 实时报价侧栏（ADSN-7）：
+ * 实时报价侧栏（ADSN-7，能量经济）：
  * - BUYOUT：逐校 单价 × 天数 明细行，未知单价显示「待核价」，合计仅含已知项并提示以平台核价为准
  * - CPM/CPC：预算封顶 + 逐校单价行
+ * - 底部恒带预扣提示：提交审核即从能量钱包预扣全额，驳回/撤回原路退回
  */
 import { Card } from '@/components/ui/Card';
-import { Money } from '@/components/ui/Money';
-import { fenToYuan } from '@/lib/format';
+import { Energy } from '@/components/ui/Energy';
+import { formatEnergy } from '@/lib/format';
 import type { PricingModel, SponsorSchool } from '@/lib/types';
+
+/**
+ * 报价合计估算（能量）：BUYOUT = 已知单价学校 × 天数合计（未核价学校不计入）；
+ * CPM/CPC = 预算封顶。与面板展示同口径，供表单余额检查（EnergyBalanceBanner）共用。
+ */
+export function estimateQuoteCents(
+  pricingModel: PricingModel,
+  days: number,
+  selectedSchools: SponsorSchool[],
+  budgetCents: number | null,
+): number {
+  if (pricingModel !== 'BUYOUT') return budgetCents ?? 0;
+  if (days <= 0) return 0;
+  return selectedSchools.reduce((sum, s) => {
+    const daily = s.effectivePrices?.buyoutDailyPriceCents;
+    return daily != null ? sum + daily * days : sum;
+  }, 0);
+}
+
+/** 预扣语义提示（两种计价分支共用底注） */
+function PrepayHint() {
+  return (
+    <p className="text-xs text-outline border-t border-outline-variant/40 pt-3">
+      提交审核时将从能量钱包预扣全额，驳回或撤回原路退回
+    </p>
+  );
+}
 
 export function QuotePanel({
   pricingModel,
@@ -26,7 +54,7 @@ export function QuotePanel({
       school: s,
       daily: s.effectivePrices?.buyoutDailyPriceCents ?? null,
     }));
-    const knownTotal = lines.reduce((sum, l) => sum + (l.daily != null ? l.daily * days : 0), 0);
+    const knownTotal = estimateQuoteCents(pricingModel, days, selectedSchools, budgetCents);
     const hasUnknown = lines.some((l) => l.daily == null);
 
     return (
@@ -40,7 +68,7 @@ export function QuotePanel({
                 <li key={l.school.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-on-surface-variant truncate">{l.school.name}</span>
                   <span className="font-mono text-xs text-on-surface whitespace-nowrap">
-                    {l.daily != null ? `${fenToYuan(l.daily)} × ${days}天` : '待核价'}
+                    {l.daily != null ? `${formatEnergy(l.daily)} × ${days}天` : '待核价'}
                   </span>
                 </li>
               ))}
@@ -51,13 +79,14 @@ export function QuotePanel({
                 <p className="text-sm text-on-surface-variant">提交后以平台核价为准</p>
               ) : (
                 <>
-                  <Money cents={knownTotal} className="text-2xl font-bold text-on-surface" />
+                  <Energy value={knownTotal} className="text-2xl font-bold text-on-surface" />
                   {hasUnknown && (
                     <p className="text-xs text-outline mt-1">部分学校未配置单价，提交后以平台核价为准</p>
                   )}
                 </>
               )}
             </div>
+            <PrepayHint />
           </div>
         )}
       </Card>
@@ -70,7 +99,7 @@ export function QuotePanel({
       <div className="space-y-3">
         <div>
           <p className="caption mb-1">预算封顶</p>
-          <Money cents={budgetCents ?? 0} className="text-2xl font-bold text-on-surface" />
+          <Energy value={budgetCents ?? 0} className="text-2xl font-bold text-on-surface" />
           <p className="text-xs text-outline mt-1">
             {isCpm ? '按每 1000 次曝光计费，消耗达预算即停' : '按每次点击计费，消耗达预算即停'}
           </p>
@@ -85,13 +114,14 @@ export function QuotePanel({
                 <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-on-surface-variant truncate">{s.name}</span>
                   <span className="font-mono text-xs text-on-surface whitespace-nowrap">
-                    {unit != null ? `${fenToYuan(unit)}/${isCpm ? '千次曝光' : '点击'}` : '待核价'}
+                    {unit != null ? `${formatEnergy(unit)}/${isCpm ? '千次曝光' : '点击'}` : '待核价'}
                   </span>
                 </li>
               );
             })}
           </ul>
         )}
+        <PrepayHint />
       </div>
     </Card>
   );

@@ -1,11 +1,12 @@
 'use client';
 
-/** 团队/SUPER 仪表盘：4 统计卡 + 3 待办 chip + 近 30 天广告消耗趋势 + 快捷入口 */
+/** 团队/SUPER 仪表盘：4 统计卡 + 4 待办 chip + 近 30 天广告消耗趋势 + 快捷入口 */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Banknote, School, Users, Zap } from 'lucide-react';
 import type { AdminRole, TeamAdsOverview, TeamDashboard as TeamDashboardData } from '@/lib/types';
 import { getAdsOverview } from '@/lib/api/ads';
+import { listConversions } from '@/lib/api/finance';
 import { DEEP_LINKS, navForRole } from '@/lib/permissions';
 import { toastError } from '@/lib/toast';
 import { fenToYuan, formatNumber, formatShortDate } from '@/lib/format';
@@ -19,6 +20,22 @@ import { ChartSkeleton, StatGrid, TodoChip } from './DashboardShared';
 export function TeamDashboard({ data, role }: { data: TeamDashboardData; role: AdminRole }) {
   const [overview, setOverview] = useState<TeamAdsOverview | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
+  // 待审批兑换计数：dashboard 主 payload 尚无此字段，limit=1 只取 total；失败静默显示 0
+  const [pendingConversions, setPendingConversions] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    listConversions({ status: 'PENDING', page: 1, limit: 1 })
+      .then((r) => {
+        if (!cancelled) setPendingConversions(r.total);
+      })
+      .catch(() => {
+        // 静默：计数失败不打断仪表盘其余内容
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +85,7 @@ export function TeamDashboard({ data, role }: { data: TeamDashboardData; role: A
 
       <div className="flex flex-wrap gap-3">
         <TodoChip href={DEEP_LINKS.financeWithdrawals} label="待审核提现" count={data.pendingWithdrawals} />
+        <TodoChip href={DEEP_LINKS.financeConversions} label="待审批兑换" count={pendingConversions} />
         <TodoChip href={DEEP_LINKS.adsPendingPlatform} label="平台待审广告" count={data.pendingPlatformReview} />
         <TodoChip href={DEEP_LINKS.submissionsPending} label="待处理赞助申请" count={data.pendingSubmissions} />
       </div>

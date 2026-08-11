@@ -11,3 +11,12 @@ export interface SystemConfigItem {
   value: unknown;
   updatedAt: string;
 }
+
+/**
+ * 全局分成默认值（GET/PUT /admin/ad-pricing/share-defaults，SystemConfig ad_share_defaults）。
+ * School.platformShareBps / selfSourcedShareBps 为 null 时继承此处（bps，0–10000）。
+ */
+export interface AdShareDefaults {
+  platformShareBps: number;
+  selfSourcedShareBps: number;
+}

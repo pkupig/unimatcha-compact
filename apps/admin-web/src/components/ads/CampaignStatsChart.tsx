@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatCard } from '@/components/ui/StatCard';
 import { TrendChart } from '@/components/ui/TrendChart';
-import { fenToYuan, formatNumber, formatShortDate } from '@/lib/format';
+import { formatEnergy, formatNumber, formatShortDate } from '@/lib/format';
 import type { CampaignDailyStat, CampaignDetail } from '@/lib/types';
 
 export function CampaignStatsChart({
@@ -52,7 +52,7 @@ export function CampaignStatsChart({
         <StatCard label="曝光" value={formatNumber(summary.impressions)} icon={Eye} />
         <StatCard label="点击" value={formatNumber(summary.clicks)} icon={MousePointerClick} />
         <StatCard label="CTR" value={summary.ctr} icon={Percent} />
-        <StatCard label="消耗" value={fenToYuan(campaign.spendCents)} icon={Wallet} />
+        <StatCard label="消耗" value={formatEnergy(campaign.spendCents)} icon={Wallet} />
       </div>
       {daily.length === 0 ? (
         <EmptyState text="暂无投放数据，广告开始投放后将展示每日曝光与点击趋势。" />

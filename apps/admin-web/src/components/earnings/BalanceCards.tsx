@@ -1,29 +1,32 @@
-import { HandCoins, Landmark, Wallet } from 'lucide-react';
+import { ArrowRightLeft, HandCoins, Zap } from 'lucide-react';
 import { StatCard } from '@/components/ui/StatCard';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import type { SchoolFinanceSummary } from '@/lib/api/earnings';
 
-/** EARN-2：余额三统计卡（可用余额已扣除在途冻结，副行点明口径） */
+/**
+ * 能量段：能量三统计卡。
+ * 余额已扣除在途兑换冻结（approx 附带 ≈¥ 换算副注）；提现改扣现金账本后，
+ * 能量侧冻结只剩待审批的兑换申请。
+ */
 export function BalanceCards({ summary }: { summary: SchoolFinanceSummary | null }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
-        label="可用余额 / BALANCE"
-        value={<Money cents={summary?.balanceCents} />}
-        icon={Wallet}
-        sub="可申请提现的金额（不含在途冻结）"
+        label="能量余额 / ENERGY"
+        value={<Energy value={summary?.balanceCents} approx />}
+        icon={Zap}
+        sub="广告分成与赞助发放收入"
       />
       <StatCard
         label="累计收入 / TOTAL INCOME"
-        value={<Money cents={summary?.totalIncomeCents} />}
+        value={<Energy value={summary?.totalIncomeCents} />}
         icon={HandCoins}
-        sub="广告分成 + 赞助发放累计"
       />
       <StatCard
-        label="冻结中 / FROZEN"
-        value={<Money cents={summary?.frozenCents} />}
-        icon={Landmark}
-        sub="在途提现（待审核 / 待打款）"
+        label="兑换在途 / PENDING"
+        value={<Energy value={summary?.frozenCents} />}
+        icon={ArrowRightLeft}
+        sub="待平台审批的兑换申请"
       />
     </div>
   );

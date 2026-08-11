@@ -19,8 +19,9 @@ import { useAdmin } from '@/lib/auth-context';
 import { getCampaign, createCampaign, updateCampaign, submitCampaign } from '@/lib/api/ads';
 import { listSchools } from '@/lib/api/schools';
 import { toastError } from '@/lib/toast';
-import { centsToYuanInput, toDateInput, yuanToCents } from '@/lib/format';
+import { toDateInput } from '@/lib/format';
 import type { CampaignInput, PricingModel, SponsorSchool } from '@/lib/types';
+import { EnergyBalanceBanner } from './EnergyBalanceBanner';
 import { ImageUrlListInput } from './ImageUrlListInput';
 import { PricingModelPicker } from './PricingModelPicker';
 import { QuotePanel } from './QuotePanel';
@@ -50,7 +51,8 @@ export function CampaignForm() {
   const [schoolIds, setSchoolIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [budgetYuan, setBudgetYuan] = useState('');
+  // 能量经济：预算即能量数（≡ budgetCents 原值），正整数输入，无元↔分换算
+  const [budgetEnergy, setBudgetEnergy] = useState('');
 
   const [schools, setSchools] = useState<SponsorSchool[]>([]);
   const [loading, setLoading] = useState(!!editId);
@@ -90,7 +92,7 @@ export function CampaignForm() {
         setSchoolIds(c.placements.map((p) => p.schoolId));
         setStartDate(toDateInput(c.startDate));
         setEndDate(toDateInput(c.endDate));
-        setBudgetYuan(centsToYuanInput(c.budgetCents));
+        setBudgetEnergy(c.budgetCents != null ? String(c.budgetCents) : '');
       } catch (e) {
         if (cancelled) return;
         toastError(e, '加载广告失败');
@@ -109,7 +111,13 @@ export function CampaignForm() {
     () => schools.filter((s) => schoolIds.includes(s.id)),
     [schools, schoolIds],
   );
-  const budgetCents = yuanToCents(budgetYuan);
+  // 正整数能量通过，空/非法为 null（buildPayload 拦截并提示）
+  const budgetCents = useMemo(() => {
+    const t = budgetEnergy.trim();
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  }, [budgetEnergy]);
 
   const toggleSchool = (id: string) => {
     if (lockedSchoolId) return;
@@ -129,8 +137,8 @@ export function CampaignForm() {
     if (schoolIds.length === 0) return fail('请选择至少 1 所投放学校');
     if (!startDate || !endDate) return fail('请选择投放起止日期');
     if (days <= 0) return fail('结束日期不能早于开始日期');
-    if (pricingModel !== 'BUYOUT' && (budgetCents == null || budgetCents <= 0)) {
-      return fail('CPM / CPC 模式需填写正数预算');
+    if (pricingModel !== 'BUYOUT' && budgetCents == null) {
+      return fail('CPM / CPC 模式需填写正整数能量预算');
     }
     const trimmedLanding = landingUrl.trim();
     return {
@@ -158,7 +166,12 @@ export function CampaignForm() {
       toast.success(submit ? '已提交审核' : '草稿已保存');
       router.push(`/ads/${saved.id}`);
     } catch (e) {
-      toastError(e);
+      // 后端提交预扣 400「能量不足，请先充值」→ 附充值引导（横条同时可见）
+      if (e instanceof Error && e.message.includes('能量不足')) {
+        toast.error('能量不足，请先前往「能量钱包」充值后再提交审核');
+      } else {
+        toastError(e);
+      }
       // create 成功但 submit 失败：切入编辑模式复用已建草稿，重试不再重复建单
       if (savedId && !editId) {
         router.replace(`/ads/new?id=${savedId}`);
@@ -189,6 +202,13 @@ export function CampaignForm() {
             返回
           </Link>
         }
+      />
+
+      <EnergyBalanceBanner
+        pricingModel={pricingModel}
+        days={days}
+        selectedSchools={selectedSchools}
+        budgetCents={budgetCents}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -250,14 +270,14 @@ export function CampaignForm() {
               </Field>
               {pricingModel !== 'BUYOUT' && (
                 <div className="sm:col-span-2">
-                  <Field label="预算（元）" required hint="消耗达到预算后自动停止投放">
+                  <Field label="预算（能量）" required hint="正整数；消耗达到预算后自动停止投放，结算结余原路退回">
                     <Input
                       type="number"
-                      min={0}
-                      step="0.01"
-                      value={budgetYuan}
-                      onChange={(e) => setBudgetYuan(e.target.value)}
-                      placeholder="如 5000"
+                      min={1}
+                      step={1}
+                      value={budgetEnergy}
+                      onChange={(e) => setBudgetEnergy(e.target.value)}
+                      placeholder="如 500000"
                       className="font-mono"
                     />
                   </Field>
@@ -292,7 +312,7 @@ export function CampaignForm() {
               存草稿
             </Button>
             <p className="text-xs text-outline text-center">
-              提交后计价将按平台快照锁定，审核期间不可编辑
+              提交后计价按平台快照锁定并预扣能量，审核期间不可编辑
             </p>
           </div>
         </div>

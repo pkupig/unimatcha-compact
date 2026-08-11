@@ -1,8 +1,9 @@
 'use client';
 
 /**
- * 流转时间线（ADSD-6）：创建 / 审核备注 / 驳回原因（粉）/ 确认收款+备注 /
- * 强制下架+原因（粉）/ 投放完成 / 分成已入账。
+ * 流转时间线（ADSD-6，能量经济）：创建 / 审核备注 / 驳回原因（粉）/
+ * 审核通过（费用已预扣）——旧流程存量单据显示「确认收款」/
+ * 强制下架+原因（粉）/ 投放完成 / 分成已入账 / CPM·CPC 结余退回。
  */
 import clsx from 'clsx';
 import { Card } from '@/components/ui/Card';
@@ -24,13 +25,32 @@ function buildTimeline(c: Campaign): TimelineItem[] {
     items.push({ key: 'rejected', label: '驳回原因', text: c.rejectedReason, pink: true });
   }
   if (c.paidAt || c.paymentNote) {
-    items.push({ key: 'paid', label: '确认收款', text: c.paymentNote, time: c.paidAt });
+    // 能量经济后审核通过即写 paidAt（预扣即付）；走过 confirmPayment 的旧流程存量单据
+    // 有确认人/收款备注，按原「确认收款」语义展示
+    const legacyPayment = !!c.paymentConfirmedByAdminId || !!c.paymentNote;
+    items.push({
+      key: 'paid',
+      label: legacyPayment ? '确认收款（旧流程）' : '审核通过（费用已预扣）',
+      text: c.paymentNote,
+      time: c.paidAt,
+    });
   }
   if (c.suspendedAt || c.suspendReason) {
     items.push({ key: 'suspended', label: '强制下架', text: c.suspendReason, time: c.suspendedAt, pink: true });
   }
   if (c.completedAt) items.push({ key: 'completed', label: '投放完成', time: c.completedAt });
-  if (c.settledAt) items.push({ key: 'settled', label: '分成已入账', time: c.settledAt });
+  if (c.settledAt) {
+    items.push({ key: 'settled', label: '分成已入账', time: c.settledAt });
+    // CPM/CPC 结算时按「预算 − 实际消耗」退回商家钱包（后端 settleCampaign，与 settledAt 同锚点）
+    if (c.pricingModel !== 'BUYOUT') {
+      items.push({
+        key: 'leftover',
+        label: '结余退回',
+        text: '预算 − 实际消耗的结余（如有）已原路退回能量钱包',
+        time: c.settledAt,
+      });
+    }
+  }
   return items;
 }
 

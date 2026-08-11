@@ -13,13 +13,15 @@ import { FilterBar } from '@/components/ui/FilterBar';
 import { Field, Input } from '@/components/ui/form';
 import { Money } from '@/components/ui/Money';
 
-/** 五个金额列共用定义（表格列 + 合计条一处维护，字段名不重复手写） */
+/** 六个金额列共用定义（表格列 + 合计条一处维护，字段名不重复手写）。
+ *  「已提现」为现金账本口径（已打款）；「兑换出账」为能量账本 CONVERSION_OUT 绝对值。 */
 const MONEY_COLS: { key: keyof Omit<RevenueReportRow, 'schoolId' | 'schoolName'>; label: string }[] = [
   { key: 'grossAdSpendCents', label: '广告流水' },
   { key: 'schoolShareCents', label: '学校分成' },
   { key: 'platformKeepCents', label: '平台留存' },
   { key: 'grantCents', label: '发放赞助' },
   { key: 'withdrawalPaidCents', label: '已提现' },
+  { key: 'conversionOutCents', label: '兑换出账' },
 ];
 
 const COLUMNS: Column<RevenueReportRow>[] = [

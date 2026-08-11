@@ -1,16 +1,18 @@
 'use client';
 
-/** 商家仪表盘：4 投放统计卡 + 近 7 天曝光/点击趋势（页头「新建广告」CTA 由 page 渲染） */
+/** 商家仪表盘：能量余额 + 4 投放统计卡 + 近 7 天曝光/点击趋势（页头「新建广告」CTA 由 page 渲染） */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Banknote, Eye, Megaphone, MousePointerClick } from 'lucide-react';
+import { Banknote, Eye, Megaphone, MousePointerClick, Wallet } from 'lucide-react';
 import type { SponsorAdsOverview, SponsorDashboard as SponsorDashboardData } from '@/lib/types';
 import { getAdsOverview } from '@/lib/api/ads';
+import { getWalletSummary, type WalletSummary } from '@/lib/api/wallet';
+import { DEEP_LINKS } from '@/lib/permissions';
 import { toastError } from '@/lib/toast';
 import { formatNumber, formatShortDate } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TrendChart } from '@/components/ui/TrendChart';
 import { ChartSkeleton, StatGrid } from './DashboardShared';
@@ -18,6 +20,22 @@ import { ChartSkeleton, StatGrid } from './DashboardShared';
 export function SponsorDashboard({ data }: { data: SponsorDashboardData }) {
   const [overview, setOverview] = useState<SponsorAdsOverview | null>(null);
   const [chartLoading, setChartLoading] = useState(true);
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+
+  // 能量余额独立取数：钱包接口失败不拖累投放统计（静默显示 0 会误导，故仍 toast）
+  useEffect(() => {
+    let cancelled = false;
+    getWalletSummary()
+      .then((w) => {
+        if (!cancelled) setWallet(w);
+      })
+      .catch((e) => {
+        if (!cancelled) toastError(e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,10 +61,20 @@ export function SponsorDashboard({ data }: { data: SponsorDashboardData }) {
   return (
     <>
       <StatGrid>
+        <StatCard
+          label="能量余额"
+          value={<Energy value={wallet?.balanceCents} approx />}
+          sub={
+            <Link href={DEEP_LINKS.sponsorWallet} className="font-medium text-neon-dark hover:underline">
+              去充值
+            </Link>
+          }
+          icon={Wallet}
+        />
         <StatCard label="投放中广告" value={formatNumber(data.activeCampaigns)} icon={Megaphone} />
         <StatCard
           label="总消耗"
-          value={<Money cents={data.totalSpendCents} />}
+          value={<Energy value={data.totalSpendCents} />}
           sub="累计口径（全部投放）"
           icon={Banknote}
         />

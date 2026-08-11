@@ -4,12 +4,14 @@ import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Menu, X } from 'lucide-react';
 import { Sidebar } from './Sidebar';
+import { PartnersUnreadProvider } from './PartnersUnreadProvider';
 
-/** 应用壳：桌面固定侧栏 + 移动端抽屉/顶栏 + 主内容区 */
+/** 应用壳：桌面固定侧栏 + 移动端抽屉/顶栏 + 主内容区（合作消息未读角标在此供给，桌面/抽屉双侧栏共享） */
 export function AppShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
+    <PartnersUnreadProvider>
     <div className="h-screen flex overflow-hidden">
       {/* 桌面侧栏 */}
       <div className="hidden lg:block h-full">
@@ -44,5 +46,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
     </div>
+    </PartnersUnreadProvider>
   );
 }

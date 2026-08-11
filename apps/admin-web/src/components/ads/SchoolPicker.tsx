@@ -5,7 +5,7 @@
  * 缺失显示「待核价」）；自拉商家锁定本校并提示。
  */
 import clsx from 'clsx';
-import { fenToYuan } from '@/lib/format';
+import { formatEnergy } from '@/lib/format';
 import type { PricingModel, SponsorSchool } from '@/lib/types';
 
 export function SchoolPicker({
@@ -73,7 +73,7 @@ function DailyPrice({ school }: { school: SponsorSchool }) {
   const daily = school.effectivePrices?.buyoutDailyPriceCents ?? null;
   return (
     <span className="font-mono text-xs text-on-surface-variant whitespace-nowrap">
-      {daily != null ? `${fenToYuan(daily)}/天` : '待核价'}
+      {daily != null ? `${formatEnergy(daily)}/天` : '待核价'}
     </span>
   );
 }

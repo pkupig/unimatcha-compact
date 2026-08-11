@@ -10,6 +10,8 @@ import type {
   CampaignInput,
   CampaignStatsResponse,
   ListResult,
+  School,
+  UpdateUnionAdPricingPayload,
 } from '@/lib/types';
 
 /** 角色化投放总览（判别联合，消费方按 role 收窄；dashboard 域共用） */
@@ -47,9 +49,14 @@ export function updateCampaign(id: string, data: CampaignInput): Promise<Campaig
   return put<Campaign>(`/admin/ads/campaigns/${id}`, data);
 }
 
-/** 提交审核：计价快照锁定；自拉→学生会审，直签→平台审 */
+/** 提交审核：计价快照锁定 + 能量钱包预扣全额；自拉→学生会审，直签→平台审（余额不够 400「能量不足，请先充值」） */
 export function submitCampaign(id: string): Promise<Campaign> {
   return post<Campaign>(`/admin/ads/campaigns/${id}/submit`);
+}
+
+/** 撤回审核（own）：审核中 → DRAFT，提交预扣按在途净额原路退回 */
+export function withdrawCampaignSubmission(id: string): Promise<Campaign> {
+  return post<Campaign>(`/admin/ads/campaigns/${id}/withdraw-submission`);
 }
 
 // ── 审核 / 收款 / 状态流转 ──────────────────────────────────
@@ -79,4 +86,18 @@ export function suspendCampaign(id: string, data: { reason: string }): Promise<C
 
 export function unsuspendCampaign(id: string): Promise<Campaign> {
   return post<Campaign>(`/admin/ads/campaigns/${id}/unsuspend`);
+}
+
+// ── 学生会：自设本校单价 ────────────────────────────────────
+
+/**
+ * 学生会自设本校广告单价（PUT /admin/schools/:id/ad-pricing，学生会仅本校 / 团队任意）。
+ * 端点挂在 schools 控制器下，但消费方是 ads 域的「广告定价」tab，故封装在此；
+ * 字段传 null = 清除覆盖回落全局默认。响应为学校裸行（无 stats）。
+ */
+export function updateUnionAdPricing(
+  schoolId: string,
+  data: UpdateUnionAdPricingPayload,
+): Promise<School> {
+  return put<School>(`/admin/schools/${schoolId}/ad-pricing`, data);
 }

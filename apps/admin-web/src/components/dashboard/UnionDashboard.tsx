@@ -12,6 +12,7 @@ import { toastError } from '@/lib/toast';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
+import { Energy } from '@/components/ui/Energy';
 import { Money } from '@/components/ui/Money';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -64,8 +65,8 @@ export function UnionDashboard({ data }: { data: UnionDashboardData }) {
           icon={Users}
         />
         <StatCard
-          label="账户余额"
-          value={<Money cents={data.balanceCents} />}
+          label="能量余额"
+          value={<Energy value={data.balanceCents} approx />}
           sub="不含在途冻结"
           icon={Wallet}
         />

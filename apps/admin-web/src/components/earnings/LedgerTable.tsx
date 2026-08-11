@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/Card';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import { Pager } from '@/components/ui/Pager';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { LEDGER_TYPE } from '@/lib/labels';
@@ -17,9 +17,9 @@ const columns: Column<LedgerEntry>[] = [
   },
   {
     key: 'amount',
-    header: '金额',
+    header: '能量',
     align: 'right',
-    render: (e) => <Money cents={e.amountCents} signed />,
+    render: (e) => <Energy value={e.amountCents} signed />,
   },
   {
     key: 'note',
@@ -37,7 +37,7 @@ const columns: Column<LedgerEntry>[] = [
   },
 ];
 
-/** EARN-6：收支明细流水表（独立第二分页，数据来自财务概要接口的嵌套 ledger） */
+/** 能量段：能量收支明细流水表（独立分页，数据来自能量概要接口的嵌套 ledger） */
 export function LedgerTable({
   items,
   total,
@@ -56,14 +56,14 @@ export function LedgerTable({
   onPage: (page: number) => void;
 }) {
   return (
-    <Card caption="LEDGER" title="收支明细" flush>
+    <Card caption="ENERGY LEDGER" title="能量收支明细" flush>
       <DataTable<LedgerEntry>
         columns={columns}
         rows={items}
         rowKey={(e) => e.id}
         loading={loading}
         error={error}
-        empty="暂无收支明细"
+        empty="暂无能量收支明细"
       />
       {total > limit && (
         <div className="px-4 py-3 border-t border-outline-variant/40">

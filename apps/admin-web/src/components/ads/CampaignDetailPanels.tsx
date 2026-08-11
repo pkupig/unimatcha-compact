@@ -6,7 +6,7 @@
  */
 import { ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import type { CampaignDetail } from '@/lib/types';
 
 export function CreativeCard({ campaign }: { campaign: CampaignDetail }) {
@@ -50,14 +50,14 @@ export function AmountCard({ campaign }: { campaign: CampaignDetail }) {
       <div className="space-y-4">
         <div>
           <p className="caption mb-1">{isBuyout ? '报价' : '预算'}</p>
-          <Money
-            cents={isBuyout ? campaign.totalPriceCents : campaign.budgetCents}
+          <Energy
+            value={isBuyout ? campaign.totalPriceCents : campaign.budgetCents}
             className="text-2xl font-bold text-on-surface"
           />
         </div>
         <div className="border-t border-outline-variant/40 pt-4">
           <p className="caption mb-1">已消耗</p>
-          <Money cents={campaign.spendCents} className="text-2xl font-bold text-on-surface" />
+          <Energy value={campaign.spendCents} className="text-2xl font-bold text-on-surface" />
         </div>
       </div>
     </Card>
@@ -78,8 +78,8 @@ export function PlacementsCard({ campaign }: { campaign: CampaignDetail }) {
                 {p.schoolName ?? p.schoolId}
               </span>
               {isBuyout && (
-                <Money
-                  cents={p.buyoutPriceCents}
+                <Energy
+                  value={p.buyoutPriceCents}
                   className="text-xs text-on-surface-variant whitespace-nowrap"
                 />
               )}

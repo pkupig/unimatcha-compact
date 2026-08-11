@@ -7,7 +7,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import type { Column } from '@/components/ui/DataTable';
 import { CAMPAIGN_STATUS, PRICING_MODEL } from '@/lib/labels';
 import { formatDate } from '@/lib/format';
@@ -68,19 +68,19 @@ const colSchedule: Column<Campaign> = {
   ),
 };
 
-/** BUYOUT 显示锁定报价，CPM/CPC 显示预算 */
+/** BUYOUT 显示锁定报价，CPM/CPC 显示预算（能量经济：数值 ≡ *Cents 原值） */
 const colQuote: Column<Campaign> = {
   key: 'quote',
   header: '报价 / 预算',
   align: 'right',
-  render: (c) => <Money cents={c.pricingModel === 'BUYOUT' ? c.totalPriceCents : c.budgetCents} />,
+  render: (c) => <Energy value={c.pricingModel === 'BUYOUT' ? c.totalPriceCents : c.budgetCents} />,
 };
 
 const colSpend: Column<Campaign> = {
   key: 'spend',
   header: '消耗',
   align: 'right',
-  render: (c) => <Money cents={c.spendCents} />,
+  render: (c) => <Energy value={c.spendCents} />,
 };
 
 const colStatus: Column<Campaign> = {

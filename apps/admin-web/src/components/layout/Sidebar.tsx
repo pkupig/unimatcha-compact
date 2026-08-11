@@ -11,10 +11,13 @@ import { LogOut, UserRound } from 'lucide-react';
 import { useAdmin } from '@/lib/auth-context';
 import { navForRole, SECTION_LABELS, type NavSection } from '@/lib/permissions';
 import { ADMIN_ROLE, labelOf } from '@/lib/labels';
+import { usePartnersUnread } from './PartnersUnreadProvider';
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { admin, logout } = useAdmin();
   const pathname = usePathname();
+  // 合作消息未读角标（context 由 AppShell 供给，桌面/抽屉双实例共享同一份计数）
+  const { count: partnersUnread } = usePartnersUnread();
   if (!admin?.role) return null;
 
   const entries = navForRole(admin.role);
@@ -54,6 +57,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   >
                     <e.icon size={17} />
                     {e.resolvedLabel}
+                    {e.href === '/partners' && partnersUnread > 0 && (
+                      <span className="badge badge-pink ml-auto">
+                        {partnersUnread > 99 ? '99+' : partnersUnread}
+                      </span>
+                    )}
                   </Link>
                 ))}
             </div>

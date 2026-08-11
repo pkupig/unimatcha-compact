@@ -12,10 +12,12 @@ import {
   submitCampaign,
   suspendCampaign,
   unsuspendCampaign,
+  withdrawCampaignSubmission,
 } from '@/lib/api/ads';
 
 export type CampaignAction =
   | 'submit'
+  | 'withdraw'
   | 'approve'
   | 'reject'
   | 'confirm-payment'
@@ -38,27 +40,32 @@ export const ACTION_CONFIGS: Record<CampaignAction, CampaignActionConfig> = {
   submit: {
     title: '提交审核',
     confirmText: '提交',
-    desc: '提交后计价按平台快照锁定并进入审核流程，审核期间不可编辑。',
+    desc: '提交后计价按平台快照锁定，并从能量钱包预扣全额（驳回或撤回原路退回），审核期间不可编辑。',
+  },
+  withdraw: {
+    title: '撤回审核',
+    confirmText: '撤回',
+    desc: '撤回后回到草稿，预扣能量原路退回；可修改后重新提交。',
   },
   approve: {
     title: '审核通过',
     confirmText: '通过',
-    desc: '通过后广告将进入待付款状态。',
+    desc: '费用已在商家提交时预扣，通过后广告直接进入排期 / 投放。',
     note: 'optional',
     noteLabel: '审核备注',
   },
   reject: {
     title: '驳回广告',
     confirmText: '驳回',
-    desc: '驳回后商家可修改素材与排期重新提交。',
+    desc: '驳回后预扣能量原路退回，商家可修改素材与排期重新提交。',
     danger: true,
     note: 'required',
     noteLabel: '驳回原因',
   },
   'confirm-payment': {
-    title: '确认收款',
+    title: '确认收款（旧流程）',
     confirmText: '确认收款',
-    desc: '确认线下款项已到账；广告将进入排期，到起始日自动投放。',
+    desc: '（旧流程存量单据）确认线下款项已到账；广告将进入排期，到起始日自动投放。',
     note: 'optional',
     noteLabel: '收款备注',
   },
@@ -81,9 +88,9 @@ export const ACTION_CONFIGS: Record<CampaignAction, CampaignActionConfig> = {
 
 /**
  * 操作矩阵（与后端各端点的状态守卫逐条对齐）：
- * - owner 商家：submit（DRAFT/REJECTED）· pause（ACTIVE）· resume（PAUSED）
+ * - owner 商家：submit（DRAFT/REJECTED）· withdraw（两种审核中）· pause（ACTIVE）· resume（PAUSED）
  * - 学生会：approve/reject（PENDING_UNION_REVIEW，本校自拉单）
- * - 团队：approve/reject（PENDING_PLATFORM_REVIEW）· confirm-payment（PENDING_PAYMENT）
+ * - 团队：approve/reject（PENDING_PLATFORM_REVIEW）· confirm-payment（PENDING_PAYMENT，旧流程存量）
  *         · pause+suspend（ACTIVE）· resume+suspend（PAUSED）· suspend（SCHEDULED）· unsuspend（SUSPENDED）
  */
 export function availableCampaignActions(
@@ -94,6 +101,9 @@ export function availableCampaignActions(
   const acts: CampaignAction[] = [];
   if (isOwner) {
     if (status === 'DRAFT' || status === 'REJECTED') acts.push('submit');
+    if (status === 'PENDING_UNION_REVIEW' || status === 'PENDING_PLATFORM_REVIEW') {
+      acts.push('withdraw');
+    }
     if (status === 'ACTIVE') acts.push('pause');
     if (status === 'PAUSED') acts.push('resume');
   }
@@ -118,6 +128,9 @@ export async function runCampaignAction(
   switch (action) {
     case 'submit':
       await submitCampaign(campaign.id);
+      return;
+    case 'withdraw':
+      await withdrawCampaignSubmission(campaign.id);
       return;
     case 'approve':
       await reviewCampaign(campaign.id, { approve: true, note });

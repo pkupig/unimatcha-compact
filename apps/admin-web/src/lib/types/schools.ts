@@ -22,10 +22,10 @@ export interface School {
   name: string;
   city: string | null;
   isActive: boolean;
-  /** 平台直签广告分成（bps，默认 1000 = 10%） */
-  platformShareBps: number;
-  /** 学生会自拉赞助分成（bps，默认 3000 = 30%） */
-  selfSourcedShareBps: number;
+  /** 平台直签广告分成（bps）：null = 继承全局 ad_share_defaults（缺省 10%） */
+  platformShareBps: number | null;
+  /** 学生会自拉赞助分成（bps）：null = 继承全局（缺省 30%，鼓励拉新） */
+  selfSourcedShareBps: number | null;
   /** 计价覆盖：null = 继承全局默认（SystemConfig ad_pricing_defaults） */
   buyoutDailyPriceCents: number | null;
   cpmPriceCents: number | null;
@@ -61,13 +61,13 @@ export type CreateSchoolPayload = {
   isActive?: boolean;
 };
 
-/** 更新学校：全部可选；计价覆盖字段显式传 null = 清除覆盖回落全局默认 */
+/** 更新学校：全部可选；分成/计价覆盖字段显式传 null = 清除覆盖回落全局默认 */
 export type UpdateSchoolPayload = {
   name?: string;
   city?: string | null;
   isActive?: boolean;
-  platformShareBps?: number;
-  selfSourcedShareBps?: number;
+  platformShareBps?: number | null;
+  selfSourcedShareBps?: number | null;
   buyoutDailyPriceCents?: number | null;
   cpmPriceCents?: number | null;
   cpcPriceCents?: number | null;

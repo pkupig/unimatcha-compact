@@ -74,5 +74,72 @@ export type UpdateAdminUserData = {
   isActive?: boolean;
 };
 
-/** 账号管理页 Tab（admin=SUPER 专属，合并展示 SUPER+TEAM） */
-export type AccountsTab = 'union' | 'sponsor' | 'admin';
+/**
+ * 账号管理页 Tab（admin=SUPER 专属，合并展示 SUPER+TEAM；
+ * invites=学生会邀请码 tab，学生会视角专属）
+ */
+export type AccountsTab = 'union' | 'sponsor' | 'admin' | 'invites';
+
+/** 账号列表三 tab（fetchAccountsTab 合法入参；invites 列表在 InvitesPanel 内自管） */
+export type AccountsListTab = Exclude<AccountsTab, 'invites'>;
+
+// ── 学生会邀请码（B5，sponsor-invite-admin.controller.ts）────────
+
+/**
+ * 邀请码行——对照 sponsor-invite.service.ts 如实定义：
+ * create/toggle 响应 include school（无 createdByAdmin）。
+ */
+export interface SponsorInvite {
+  id: string;
+  code: string;
+  schoolId: string;
+  /** 生成者管理员 id（库中无外键，列表响应由服务端二查拼装成 createdByAdmin） */
+  createdByAdminId: string;
+  note: string | null;
+  isActive: boolean;
+  /** 成功注册数（服务端事务内乐观锁自增） */
+  usedCount: number;
+  /** null = 不限次 */
+  maxUses: number | null;
+  /** null = 永久有效 */
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  school: AccountSchoolRef;
+}
+
+/** 列表行：额外带二查拼装的生成者（生成者账号已删则为 null） */
+export interface SponsorInviteListItem extends SponsorInvite {
+  createdByAdmin: { id: string; name: string } | null;
+}
+
+/** 经该码自注册的商家账号（GET /admin/sponsor-invites/:id/uses 的 select 裁剪） */
+export interface InviteUseRow {
+  id: string;
+  email: string;
+  name: string;
+  organizationName: string | null;
+  contactName: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+/** 创建（CreateInviteDto）；schoolId 不在入参内——后端恒绑定当前学生会本校 */
+export type CreateInviteData = {
+  /** 备注/用途标签，最长 64 字 */
+  note?: string;
+  /** 最大使用次数（≥1；缺省不限次） */
+  maxUses?: number;
+  /** 过期时间 ISO 串（缺省永久有效） */
+  expiresAt?: string;
+};
+
+/** 邀请码列表查询（ListInvitesQueryDto） */
+export type ListInvitesParams = {
+  page?: number;
+  limit?: number;
+  /** 'true' / 'false'（后端按字符串解析） */
+  isActive?: string;
+  /** 按学校过滤；仅平台侧生效，学生会强制本校 */
+  schoolId?: string;
+};

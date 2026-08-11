@@ -191,3 +191,13 @@ export interface AdSchoolPrices {
  * effectivePrices 仅对 SPONSOR 返回，缺失时报价显示「待核价」
  */
 export type SponsorSchool = School & { effectivePrices?: AdSchoolPrices | null };
+
+/**
+ * 学生会自设本校单价载荷（PUT /admin/schools/:id/ad-pricing）：
+ * null = 清除覆盖回落全局默认；数值为正整数能量（≡ *Cents 原值）
+ */
+export interface UpdateUnionAdPricingPayload {
+  buyoutDailyPriceCents: number | null;
+  cpmPriceCents: number | null;
+  cpcPriceCents: number | null;
+}

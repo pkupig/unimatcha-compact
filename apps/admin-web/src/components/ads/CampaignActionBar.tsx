@@ -12,10 +12,10 @@ import { isTeam, isUnion } from '@/lib/auth';
 import type { AdminRole, Campaign } from '@/lib/types';
 import { ACTION_CONFIGS, availableCampaignActions, type CampaignAction } from './campaignActions';
 
-/** 按钮语义：破坏性 danger；推进性 primary；暂停类中性 secondary（CTA 名额留给列表新建） */
+/** 按钮语义：破坏性 danger；推进性 primary；暂停/撤回类中性 secondary（CTA 名额留给列表新建） */
 function variantOf(action: CampaignAction): 'primary' | 'secondary' | 'danger' {
   if (ACTION_CONFIGS[action].danger) return 'danger';
-  if (action === 'pause') return 'secondary';
+  if (action === 'pause' || action === 'withdraw') return 'secondary';
   return 'primary';
 }
 

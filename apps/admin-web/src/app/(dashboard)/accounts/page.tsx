@@ -2,42 +2,28 @@
 
 /**
  * 账号管理（/accounts）：SUPER=学生会/商家/管理员三 tab；TEAM=前两 tab；
- * 学生会=无 tab 的本校「赞助商」视图（旧 /sponsors 页并入，IA 决策见重写规范）。
+ * 学生会=「赞助商/邀请码」双 tab（旧 /sponsors 并入 + B5 邀请码自注册）。
+ * tab 状态独立于账号列表筛选——邀请码 tab 的列表在 InvitesPanel 内自管。
  */
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs } from '@/components/ui/Tabs';
-import { FilterBar } from '@/components/ui/FilterBar';
-import { Select } from '@/components/ui/form';
 import { Button } from '@/components/ui/Button';
 import { usePagedList } from '@/hooks/usePagedList';
 import { useModal } from '@/hooks/useModal';
 import { useAdmin } from '@/lib/auth-context';
 import { isUnion } from '@/lib/auth';
 import { fetchAccountsTab } from '@/lib/api/accounts';
-import type { AccountsTab, AdminAccount } from '@/lib/types';
+import type { AccountsListTab, AccountsTab, AdminAccount } from '@/lib/types';
 import { adminColumns, sponsorColumns, unionColumns } from '@/components/accounts/columns';
+import { parseTab, PLATFORM_TABS, UNION_TABS } from '@/components/accounts/tabs';
+import { AccountsPageHeader } from '@/components/accounts/AccountsPageHeader';
 import { AccountsTableCard } from '@/components/accounts/AccountsTableCard';
+import { ActiveFilterBar } from '@/components/accounts/ActiveFilterBar';
 import { CreateAccountModal } from '@/components/accounts/CreateAccountModal';
 import { ToggleActiveDialog } from '@/components/accounts/ToggleActiveDialog';
-
-const TAB_LABELS: { key: AccountsTab; label: string }[] = [
-  { key: 'union', label: '学生会' },
-  { key: 'sponsor', label: '商家' },
-  { key: 'admin', label: '管理员' },
-];
-
-const CREATE_LABELS: Record<AccountsTab, string> = {
-  union: '创建学生会账号',
-  sponsor: '创建商家账号',
-  admin: '创建管理员账号',
-};
-
-function parseTab(raw: string | null, allowed: AccountsTab[]): AccountsTab {
-  return allowed.includes(raw as AccountsTab) ? (raw as AccountsTab) : allowed[0];
-}
+import { InvitesPanel } from '@/components/accounts/InvitesPanel';
 
 function AccountsInner() {
   const { admin } = useAdmin();
@@ -49,90 +35,98 @@ function AccountsInner() {
   const router = useRouter();
   const params = useSearchParams();
   const allowedTabs: AccountsTab[] = unionView
-    ? ['sponsor']
+    ? ['sponsor', 'invites']
     : superView
       ? ['union', 'sponsor', 'admin']
       : ['union', 'sponsor'];
 
-  const list = usePagedList<AdminAccount, { tab: AccountsTab; isActive: string }>({
+  const [tab, setTab] = useState<AccountsTab>(() => parseTab(params.get('tab'), allowedTabs));
+  const invitesTab = tab === 'invites';
+  const listTab: AccountsListTab = invitesTab ? 'sponsor' : tab;
+
+  const list = usePagedList<AdminAccount, { tab: AccountsListTab; isActive: string }>({
     fetcher: (q) =>
       fetchAccountsTab({ tab: q.tab, isActive: q.isActive || undefined, page: q.page, limit: q.limit }),
-    initialFilters: { tab: parseTab(params.get('tab'), allowedTabs), isActive: '' },
+    initialFilters: { tab: listTab, isActive: '' },
+    enabled: !invitesTab, // 邀请码 tab 不拉账号列表
   });
-  const tab = list.filters.tab;
+
+  const applyTab = (next: AccountsTab) => {
+    setTab(next);
+    if (next !== 'invites') list.setFilter('tab', next);
+  };
 
   // URL → tab 回同步（前进后退/深链切换时列表跟随 URL）
   const urlTab = parseTab(params.get('tab'), allowedTabs);
   useEffect(() => {
-    if (tab !== urlTab) list.setFilter('tab', urlTab);
+    if (tab !== urlTab) applyTab(urlTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlTab]);
 
-  const createModal = useModal();
-  const toggleModal = useModal<AdminAccount>();
-  const toggleRow = toggleModal.data;
-
   const switchTab = (key: string) => {
     const next = parseTab(key, allowedTabs);
-    list.setFilter('tab', next);
+    applyTab(next);
     router.replace(`/accounts?tab=${next}`);
   };
 
+  const createModal = useModal();
+  const inviteModal = useModal(); // 生成邀请码：按钮在页头，弹窗挂 InvitesPanel 内闭环刷新
+  const toggleModal = useModal<AdminAccount>();
+  const toggleRow = toggleModal.data;
+
   const colOpts = { canOperate, onToggle: toggleModal.openWith };
   const columns =
-    tab === 'union' ? unionColumns(colOpts) : tab === 'admin' ? adminColumns(colOpts) : sponsorColumns(colOpts);
+    listTab === 'union'
+      ? unionColumns(colOpts)
+      : listTab === 'admin'
+        ? adminColumns(colOpts)
+        : sponsorColumns(colOpts);
 
   return (
     <>
-      <PageHeader
-        caption="ACCOUNTS"
-        title={unionView ? '赞助商' : '账号管理'}
-        sub={
-          unionView
-            ? `${admin?.schoolName ?? '本校'} · 自拉赞助商账号（其广告仅可投放本校，按自拉档分成）`
-            : `学生会 / 商家${superView ? ' / 管理员' : ''} 账号的创建与停启用`
-        }
-        actions={
-          <Button variant="cta" onClick={createModal.openEmpty}>
-            <Plus size={15} />
-            {unionView ? '新建赞助商' : CREATE_LABELS[tab]}
-          </Button>
-        }
+      <AccountsPageHeader
+        unionView={unionView}
+        superView={superView}
+        invitesTab={invitesTab}
+        listTab={listTab}
+        schoolName={admin?.schoolName ?? '本校'}
+        onCreateAccount={createModal.openEmpty}
+        onCreateInvite={inviteModal.openEmpty}
       />
 
-      {!unionView && (
-        <Tabs items={TAB_LABELS.filter((t) => allowedTabs.includes(t.key))} value={tab} onChange={switchTab} />
+      <Tabs
+        items={unionView ? UNION_TABS : PLATFORM_TABS.filter((t) => allowedTabs.includes(t.key))}
+        value={tab}
+        onChange={switchTab}
+      />
+
+      {invitesTab ? (
+        <InvitesPanel createOpen={inviteModal.open} onCreateClose={inviteModal.close} />
+      ) : (
+        <>
+          <ActiveFilterBar
+            value={list.filters.isActive}
+            onChange={(v) => list.setFilter('isActive', v)}
+          />
+          <AccountsTableCard
+            list={list}
+            columns={columns}
+            empty={unionView ? '暂无赞助商 · 为本校合作商家开通投放账号' : '暂无账号'}
+            emptyAction={
+              unionView ? (
+                <Button variant="primary" size="sm" onClick={createModal.openEmpty}>
+                  <Plus size={14} />
+                  新建赞助商账号
+                </Button>
+              ) : undefined
+            }
+          />
+        </>
       )}
 
-      <FilterBar>
-        <Select
-          className="w-36"
-          value={list.filters.isActive}
-          onChange={(e) => list.setFilter('isActive', e.target.value)}
-        >
-          <option value="">全部状态</option>
-          <option value="true">启用</option>
-          <option value="false">停用</option>
-        </Select>
-      </FilterBar>
-
-      <AccountsTableCard
-        list={list}
-        columns={columns}
-        empty={unionView ? '暂无赞助商 · 为本校合作商家开通投放账号' : '暂无账号'}
-        emptyAction={
-          unionView ? (
-            <Button variant="primary" size="sm" onClick={createModal.openEmpty}>
-              <Plus size={14} />
-              新建赞助商账号
-            </Button>
-          ) : undefined
-        }
-      />
-
-      {createModal.open && (
+      {createModal.open && !invitesTab && (
         <CreateAccountModal
-          kind={unionView ? 'sponsor' : tab}
+          kind={unionView ? 'sponsor' : listTab}
           unionScoped={unionView}
           onClose={createModal.close}
           onDone={() => void list.refresh()}

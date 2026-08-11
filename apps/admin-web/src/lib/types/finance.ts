@@ -7,7 +7,31 @@ import type { ListResult } from './common';
 
 export type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
 
-export type LedgerEntryType = 'AD_SHARE' | 'SPONSOR_GRANT' | 'WITHDRAWAL' | 'ADJUSTMENT';
+/** WITHDRAWAL 仅历史行保留：能量经济后新提现改写现金账本（SchoolCashLedgerEntry） */
+export type LedgerEntryType =
+  | 'AD_SHARE'
+  | 'SPONSOR_GRANT'
+  | 'WITHDRAWAL'
+  | 'ADJUSTMENT'
+  | 'CONVERSION_OUT';
+
+/** 能量 → 赞助费兑换申请状态（prisma ConversionStatus） */
+export type ConversionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+/** SchoolConversionRequest + include school（listConversions / reviewConversion 响应） */
+export interface SchoolConversionRequest {
+  id: string;
+  schoolId: string;
+  status: ConversionStatus;
+  /** 兑换能量数 = 入账赞助费分数（1 能量 = 1 分，数值同构） */
+  amountCents: number;
+  requestedByAdminId: string;
+  reviewedByAdminId: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  school: { id: string; name: string };
+}
 
 /** 提现申请时的银行卡快照（此后改绑不影响在途提现） */
 export interface BankSnapshot {
@@ -63,7 +87,10 @@ export interface RevenueReportRow {
   schoolShareCents: number;
   platformKeepCents: number;
   grantCents: number;
+  /** 已打款提现（口径已切现金账本 SchoolCashLedgerType.WITHDRAWAL，取绝对值） */
   withdrawalPaidCents: number;
+  /** 能量兑换出账（能量账本 CONVERSION_OUT，取绝对值） */
+  conversionOutCents: number;
 }
 
 /** 报表合计（后端已算好，前端直接消费，不再自行 reduce） */

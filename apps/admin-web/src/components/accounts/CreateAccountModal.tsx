@@ -15,15 +15,16 @@ import { toastError } from '@/lib/toast';
 import { listSchools } from '@/lib/api/schools';
 import { createAdminUser } from '@/lib/api/accounts';
 import { ADMIN_ROLE } from '@/lib/labels';
-import type { AccountsTab, AdminRole, CreateAdminUserData, School } from '@/lib/types';
+import type { AccountsListTab, AdminRole, CreateAdminUserData, School } from '@/lib/types';
 
-const TITLES: Record<AccountsTab, string> = {
+// kind 限账号三 tab（AccountsListTab）——邀请码 tab 走 CreateInviteModal，与本弹窗无关
+const TITLES: Record<AccountsListTab, string> = {
   union: '创建学生会账号',
   sponsor: '创建商家账号',
   admin: '创建管理员账号',
 };
 
-const EMAIL_PLACEHOLDERS: Record<AccountsTab, string> = {
+const EMAIL_PLACEHOLDERS: Record<AccountsListTab, string> = {
   union: 'union.warwick@unimatcha.ai',
   sponsor: 'sponsor@company.com',
   admin: 'team@unimatcha.ai',
@@ -35,7 +36,7 @@ export function CreateAccountModal({
   onClose,
   onDone,
 }: {
-  kind: AccountsTab;
+  kind: AccountsListTab;
   /** 学生会视角创建本校自拉商家：来源由服务端强制为本校 */
   unionScoped?: boolean;
   onClose: () => void;

@@ -9,7 +9,12 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { Textarea } from '@/components/ui/form';
-import { AD_PRICING_CONFIG_KEY, listSystemConfigs, updateSystemConfig } from '@/lib/api/settings';
+import {
+  AD_PRICING_CONFIG_KEY,
+  AD_SHARE_CONFIG_KEY,
+  listSystemConfigs,
+  updateSystemConfig,
+} from '@/lib/api/settings';
 import { formatDateTime } from '@/lib/format';
 import { toastError } from '@/lib/toast';
 import type { SystemConfigItem } from '@/lib/types';
@@ -77,7 +82,7 @@ export function SystemConfigList() {
   );
 }
 
-/** 单键编辑行：行数自适应 textarea + 独立保存；ad_pricing_defaults 后端拒写，此处禁用 */
+/** 单键编辑行：行数自适应 textarea + 独立保存；计价/分成两键后端拒写，此处禁用 */
 function ConfigRow({
   item,
   onSaved,
@@ -89,7 +94,7 @@ function ConfigRow({
   const [text, setText] = useState(initial);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const locked = item.key === AD_PRICING_CONFIG_KEY;
+  const locked = item.key === AD_PRICING_CONFIG_KEY || item.key === AD_SHARE_CONFIG_KEY;
   const dirty = text !== initial;
 
   const save = async () => {

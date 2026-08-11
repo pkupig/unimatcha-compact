@@ -100,6 +100,41 @@ export const LEDGER_TYPE = defineEnum({
   SPONSOR_GRANT: ['赞助发放', 'ink'],
   WITHDRAWAL: ['提现扣减', 'pink'],
   ADJUSTMENT: ['手工调整', 'outline'],
+  CONVERSION_OUT: ['兑换扣减', 'pink'],
+});
+
+// ── 能量经济（2026-08）─────────────────────────────────────
+export const SPONSOR_LEDGER_TYPE = defineEnum({
+  TOPUP: ['充值', 'neon'],
+  CAMPAIGN_LOCK: ['投放预扣', 'pink'],
+  REFUND: ['退回', 'neon'],
+  ADJUSTMENT: ['手工调整', 'outline'],
+});
+
+export const CASH_LEDGER_TYPE = defineEnum({
+  CONVERSION_IN: ['兑换入账', 'neon'],
+  WITHDRAWAL: ['提现扣减', 'pink'],
+  ADJUSTMENT: ['手工调整', 'outline'],
+});
+
+export const CONVERSION_STATUS = defineEnum({
+  PENDING: ['待审批', 'outline'],
+  APPROVED: ['已通过', 'neon'],
+  REJECTED: ['已驳回', 'pink'],
+});
+
+/** 邀请码派生态（前端由 isActive/expiresAt/maxUses/usedCount 派生 key，禁止页面手写 map） */
+export const INVITE_STATUS = defineEnum({
+  active: ['生效中', 'neon'],
+  disabled: ['已停用', 'neutral'],
+  expired: ['已过期', 'pink'],
+  exhausted: ['已用完', 'ink'],
+});
+
+/** 合作消息线程的参与侧（气泡署名与发起方徽标共用） */
+export const THREAD_SIDE = defineEnum({
+  SPONSOR: ['商家', 'outline'],
+  UNION: ['学生会', 'neon'],
 });
 
 // ── 广场 ─────────────────────────────────────────────────
