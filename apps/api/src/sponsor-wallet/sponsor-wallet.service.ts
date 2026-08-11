@@ -26,10 +26,15 @@ export class SponsorWalletService {
   }
 
   // 某 campaign 的在途锁定净额 = −Σ(refType='campaign' 且 refId=campaignId 的 amountCents)
-  // 预扣后为正、退完为 0；按净额退款天然幂等（重复退款只会退到 0 为止，不会双退）
-  async outstandingForCampaign(tx: Prisma.TransactionClient, campaignId: string): Promise<number> {
+  // 预扣后为正、退完为 0；按净额退款天然幂等（重复退款只会退到 0 为止，不会双退）。
+  // adminId 过滤（复查 ISSUE-2）：防止手工调整误挂他人单据的 campaignId 污染净额
+  async outstandingForCampaign(
+    tx: Prisma.TransactionClient,
+    campaignId: string,
+    adminId?: string,
+  ): Promise<number> {
     const agg = await tx.sponsorEnergyLedger.aggregate({
-      where: { refType: 'campaign', refId: campaignId },
+      where: { refType: 'campaign', refId: campaignId, ...(adminId ? { adminId } : {}) },
       _sum: { amountCents: true },
     });
     return -(agg._sum.amountCents ?? 0);
@@ -76,22 +81,29 @@ export class SponsorWalletService {
     return paginated(rows, total, q);
   }
 
-  // 充值（MVP mock 即时到账）：clientToken 幂等——同键重复请求直接返回既有行，不重复入账
+  // 充值（MVP mock 即时到账）：clientToken 幂等——同键重复请求直接返回既有行，不重复入账。
+  // Serializable（复查 ISSUE-4）：读空+插入构成 SSI 危险结构，同 token 并发双请求
+  // 必有一方序列化回滚，无唯一约束也不会双入账；接真支付网关时应再加条件唯一索引兜底
   async topup(actor: AdminActor, dto: TopupDto) {
-    const existing = await this.prisma.sponsorEnergyLedger.findFirst({
-      where: { adminId: actor.id, refType: 'topup', refId: dto.clientToken },
-    });
-    if (existing) return existing;
-    return this.prisma.sponsorEnergyLedger.create({
-      data: {
-        adminId: actor.id,
-        type: SponsorLedgerType.TOPUP,
-        amountCents: dto.amountCents,
-        refType: 'topup',
-        refId: dto.clientToken,
-        note: `充值 ${dto.amountCents} 能量（mock 支付）`,
+    return this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.sponsorEnergyLedger.findFirst({
+          where: { adminId: actor.id, refType: 'topup', refId: dto.clientToken },
+        });
+        if (existing) return existing;
+        return tx.sponsorEnergyLedger.create({
+          data: {
+            adminId: actor.id,
+            type: SponsorLedgerType.TOPUP,
+            amountCents: dto.amountCents,
+            refType: 'topup',
+            refId: dto.clientToken,
+            note: `充值 ${dto.amountCents} 能量（mock 支付）`,
+          },
+        });
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   // 平台手工调整（SUPER/TEAM）：SUSPENDED 退款等人工通道，操作人留痕
@@ -104,15 +116,25 @@ export class SponsorWalletService {
     if (target.role !== AdminRole.SPONSOR) {
       throw new BadRequestException('目标账号不是商家（SPONSOR），不能调整钱包');
     }
+    // 复查 ISSUE-2 加固：refId 关联单据必须归属该商家（防误挂他人单污染净额）；
+    // 仅正向退款计入 'campaign' 净额（负向罚扣若挂 campaign 会抬高 outstanding 造成超退）
+    let refType: string = 'adjustment';
+    if (dto.refId) {
+      const campaign = await this.prisma.adCampaign.findUnique({
+        where: { id: dto.refId },
+        select: { advertiserId: true },
+      });
+      if (!campaign || campaign.advertiserId !== dto.sponsorAdminId) {
+        throw new BadRequestException('关联广告不存在或不属于该商家');
+      }
+      if (dto.amountCents > 0) refType = 'campaign';
+    }
     return this.prisma.sponsorEnergyLedger.create({
       data: {
         adminId: dto.sponsorAdminId,
         type: SponsorLedgerType.ADJUSTMENT,
         amountCents: dto.amountCents,
-        // 带 refId（通常是 campaignId，如 SUSPENDED 人工退款）时记 refType='campaign'，
-        // 使其计入该单在途净额（outstandingForCampaign），后续自动退款通道不会双退；
-        // 无关联单据的独立调整记 refType='adjustment'
-        refType: dto.refId ? 'campaign' : 'adjustment',
+        refType,
         refId: dto.refId ?? null,
         note: dto.note,
         createdByAdminId: actor.id,

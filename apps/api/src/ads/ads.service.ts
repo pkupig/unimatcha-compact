@@ -424,7 +424,7 @@ export class AdsService {
       if (claimed.count === 0) throw new BadRequestException('仅审核中的广告可撤回');
 
       // 按在途净额退回（锁后为正、退完为 0，净额天然幂等）
-      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id);
+      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id, admin.id);
       if (locked > 0) {
         await tx.sponsorEnergyLedger.create({
           data: {
@@ -601,25 +601,40 @@ export class AdsService {
 
     if (dto.approve) {
       // 通过：预扣即付——paidAt 立即写入（settleCampaign / accrueBuyoutSpend 以 paidAt 为结算前置），
-      // 按 startDate 直接排期或激活；BUYOUT 包断价即全部消耗（平移原 confirmPayment 语义）
+      // 按 startDate 直接排期或激活；BUYOUT 包断价即全部消耗（平移原 confirmPayment 语义）。
+      // 对抗复查 ISSUE-1：与驳回/撤回对称的事务 claim——否则「审核员读到待审 → 商家并发撤回退款
+      // → 无条件 update 覆盖成 ACTIVE」会造成预扣已退、广告照跑、结算再退结余的双重资金漏洞
       const now = new Date();
       const nextStatus =
         campaign.startDate <= now ? AdCampaignStatus.ACTIVE : AdCampaignStatus.SCHEDULED;
-      const updated = await this.prisma.adCampaign.update({
-        where: { id },
-        data: {
-          status: nextStatus,
-          paidAt: now,
-          reviewNote: dto.note ?? null,
-          rejectedReason: null,
-          [reviewerField]: admin.id,
-          ...(campaign.pricingModel === AdPricingModel.BUYOUT
-            ? { spendCents: campaign.totalPriceCents ?? 0 }
-            : {}),
-        },
-        include: this.campaignInclude(),
+      const lockAmount =
+        campaign.pricingModel === AdPricingModel.BUYOUT
+          ? (campaign.totalPriceCents ?? 0)
+          : (campaign.budgetCents ?? 0);
+      const approved = await this.prisma.$transaction(async (tx) => {
+        const claimed = await tx.adCampaign.updateMany({
+          where: { id, status: campaign.status },
+          data: {
+            status: nextStatus,
+            paidAt: now,
+            reviewNote: dto.note ?? null,
+            rejectedReason: null,
+            [reviewerField]: admin.id,
+            ...(campaign.pricingModel === AdPricingModel.BUYOUT
+              ? { spendCents: campaign.totalPriceCents ?? 0 }
+              : {}),
+          },
+        });
+        if (claimed.count === 0) throw new BadRequestException('当前状态不可审核');
+        // 预扣断言：在途净额必须覆盖锁定额——挡住并发撤回后的幽灵通过，
+        // 也天然拦截无预扣的切换期存量旧单（那类单应打回重提，ISSUE-3a）
+        const locked = await this.sponsorWallet.outstandingForCampaign(tx, id, campaign.advertiserId);
+        if (locked < lockAmount) {
+          throw new BadRequestException('该广告无有效预扣（可能已撤回或为旧流程单），无法通过审核');
+        }
+        return tx.adCampaign.findUnique({ where: { id }, include: this.campaignInclude() });
       });
-      return this.shapeCampaign(updated);
+      return this.shapeCampaign(approved);
     }
 
     // 驳回：事务内 claim 状态 + 按在途净额退回预扣（净额天然幂等，并发/重复驳回不双退）
@@ -636,7 +651,7 @@ export class AdsService {
       });
       if (claimed.count === 0) throw new BadRequestException('当前状态不可审核');
 
-      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id);
+      const locked = await this.sponsorWallet.outstandingForCampaign(tx, id, campaign.advertiserId);
       if (locked > 0) {
         await tx.sponsorEnergyLedger.create({
           data: {
@@ -1158,9 +1173,16 @@ export class AdsService {
 
       // CPM/CPC 结余退款（能量经济 B2）：预算 − 实际消耗（按预算封顶）> 0 时退回商家钱包。
       // 幂等与 settledAt 共用锚点——上方 claim 败者整段不执行，不会重复退。
+      // 复查 ISSUE-2：结余额外按在途净额封顶——SUSPENDED 期人工已退（adjust 挂 campaignId）
+      // 的部分不再重复退，恒不超过实际仍锁定的能量
       if (campaign.pricingModel !== AdPricingModel.BUYOUT && campaign.budgetCents != null) {
         const charged = Math.min(rawTotal, campaign.budgetCents);
-        const leftover = campaign.budgetCents - charged;
+        const outstanding = await this.sponsorWallet.outstandingForCampaign(
+          tx,
+          campaignId,
+          campaign.advertiserId,
+        );
+        const leftover = Math.min(campaign.budgetCents - charged, outstanding);
         if (leftover > 0) {
           await tx.sponsorEnergyLedger.create({
             data: {

@@ -53,7 +53,8 @@ export class SchoolsService {
   }
 
   // ─── 批量统计（groupBy 聚合，避免 N+1）────────────────────────
-  // 余额定义（§2）：balance = Σ ledger.amountCents − Σ(PENDING/APPROVED 提现金额)
+  // 能量余额定义（能量经济）：balance = Σ ledger.amountCents − Σ(PENDING 兑换申请金额)
+  // （提现改冻现金侧；与 FinanceService.computeBalance 同口径）
   private async computeStats(
     schools: { id: string; name: string }[],
   ): Promise<Map<string, SchoolStats>> {

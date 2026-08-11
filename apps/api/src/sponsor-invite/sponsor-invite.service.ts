@@ -196,7 +196,8 @@ export class SponsorInviteService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     // ③ 事务：等值乐观锁防超发——usedCount 仍为读到的旧值才允许自增，
-    //    并发注册/中途停用会使影响行数为 0 → 整个事务回滚
+    //    并发注册/中途停用会使影响行数为 0 → 整个事务回滚。
+    //    邮箱预检到建号之间的并发窗口由 email 唯一约束兜底（P2002 转中文 400，复查 ISSUE-5）
     return this.prisma.$transaction(async (tx) => {
       const bumped = await tx.sponsorInviteCode.updateMany({
         where: { id: invite.id, isActive: true, usedCount: invite.usedCount },
@@ -221,6 +222,12 @@ export class SponsorInviteService {
           isSuperAdmin: false,
         },
       });
+    }).catch((e) => {
+      // 并发同邮箱穿过预检：email 唯一约束触发 P2002（usedCount 增量随事务回滚，无超发）
+      if (e?.code === 'P2002') {
+        throw new BadRequestException('该邮箱已被注册');
+      }
+      throw e;
     });
   }
 
