@@ -13,14 +13,14 @@ import { formatDateTime, formatNumber } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
 import { Energy } from '@/components/ui/Energy';
-import { Money } from '@/components/ui/Money';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { StatGrid, TodoChip } from './DashboardShared';
 
 const LEDGER_COLUMNS: Column<DashboardLedgerItem>[] = [
   { key: 'type', header: '类型', render: (r) => <StatusBadge meta={LEDGER_TYPE} value={r.type} /> },
-  { key: 'amount', header: '金额', align: 'right', render: (r) => <Money cents={r.amountCents} signed /> },
+  // 学校账本现为能量计价（能量经济）：与 /earnings 能量段同口径
+  { key: 'amount', header: '能量', align: 'right', render: (r) => <Energy value={r.amountCents} signed /> },
   { key: 'note', header: '备注', className: 'max-w-[280px] truncate', render: (r) => r.note ?? '-' },
   {
     key: 'time',
