@@ -1340,6 +1340,14 @@ async function loadMyTickets() {
     if (t.status === 'cancelled') return '<span class="px-2 py-0.5 rounded-[8px] bg-surface-container-high text-on-surface-variant text-[9px] font-bold tracking-widest">CANCELLED</span>';
     return '<span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest">VALID</span>';
   };
+  // 实付行（能量计费：pricePaidCents = 支付格数 × 100）。免费票不显；
+  // 动态数字串词典匹配不了，按语言直接出文案 + data-no-i18n（同 formatPostTime 惯例）
+  const zh = (window.getLang?.() || 'en') === 'zh';
+  const paidLine = (t) => {
+    if (!t.pricePaidCents) return '';
+    const cells = Math.ceil(t.pricePaidCents / 100);
+    return `<p class="text-xs text-on-surface-variant mt-0.5" data-no-i18n>${zh ? `${cells} 格能量` : `${cells} ${cells === 1 ? 'cell' : 'cells'}`}</p>`;
+  };
   c.innerHTML = tickets.map((t, i) => `
     <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 overflow-hidden ${t.status !== 'valid' ? 'opacity-60' : ''}">
       <div class="p-5 pb-4">
@@ -1348,6 +1356,7 @@ async function loadMyTickets() {
           ${statusBadge(t)}
         </div>
         <p class="text-xs text-on-surface-variant" data-no-i18n>${fmtTime(t.event?.startAt)}${t.event?.venue ? ' · ' + window.escapeHtml(t.event.venue) : ''}</p>
+        ${paidLine(t)}
         ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(t.event.school)}</p>` : ''}
       </div>
       <div class="ticket-divider"></div>

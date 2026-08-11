@@ -679,8 +679,15 @@ async function votePollOption(postId, optionIndex) {
 window.votePollOption = votePollOption;
 
 // ── 活动信息（活动帖卡片行 + 详情购票块，本轮反馈2）──
+// 门票能量计费：priceCents 数值 ≡ 能量数，用户按格支付 cells = ceil(priceCents/100)。
+// 返回串含数字（动态），全局词典逐句匹配不了——按语言直接出文案（同 formatPostTime 惯例），
+// 调用处包 data-no-i18n；'Free' 保持词典键可译。
 function eventPrice(ev) {
-  return ev.priceCents ? `¥${(ev.priceCents / 100).toFixed(ev.priceCents % 100 ? 2 : 0)}` : 'Free';
+  if (!ev.priceCents) return 'Free';
+  const cells = Math.ceil(ev.priceCents / 100);
+  return (window.getLang?.() || 'en') === 'zh'
+    ? `${cells} 格能量`
+    : `${cells} energy ${cells === 1 ? 'cell' : 'cells'}`;
 }
 function eventTimeShort(iso) {
   const d = new Date(iso);
@@ -694,7 +701,7 @@ function eventStrip(p) {
   return `<div class="flex items-center gap-2 flex-wrap mt-1">
     <span class="px-2 py-0.5 rounded-[8px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>EVENT</span>
     <span class="text-[11px] text-on-surface-variant font-medium" data-no-i18n>${eventTimeShort(ev.startAt)}${ev.venue ? ' · ' + window.escapeHtml(ev.venue) : ''}</span>
-    <span class="text-[11px] font-bold">${soldOut ? 'Sold out' : eventPrice(ev)}</span>
+    <span class="text-[11px] font-bold"${soldOut || !ev.priceCents ? '' : ' data-no-i18n'}>${soldOut ? 'Sold out' : eventPrice(ev)}</span>
   </div>`;
 }
 function eventDetailBlock(p) {
@@ -722,20 +729,68 @@ function eventDetailBlock(p) {
   </div>`;
 }
 
+// 门票能量计费：按格支付 cells = ceil(priceCents/100)。付费票先刷新余额校验，
+// 不足引导充值；确认卡明示消耗格数（同 match.js 增强付费惯例，绝不静默扣）。
 async function buyEventTicket(eventId) {
-  const ok = await window.confirmCard({
-    title: 'Get this ticket?',
-    body: 'Payment is mocked in beta — the ticket lands in My Tickets instantly.',
-    confirmLabel: 'Confirm',
-  });
-  if (!ok) return;
+  // 取数路径：购票按钮只出现在帖子详情的活动块，ev 通常就在 S.pdPostData.event；
+  // 缓存未命中（防御）再退列表缓存 → GET /events/:id
+  let ev = S.pdPostData?.event?.id === eventId ? S.pdPostData.event : null;
+  if (!ev) {
+    for (const list of Object.values(S.squarePostsByTab || {})) {
+      const hit = (list || []).find((p) => p?.event?.id === eventId);
+      if (hit) { ev = hit.event; break; }
+    }
+  }
+  if (!ev) {
+    try { ev = unwrap(await window.api(`/events/${eventId}`)); } catch (e) { /* 拿不到票价：按免费文案走，后端仍会校验扣费 */ }
+  }
+  const cells = ev?.priceCents ? Math.ceil(ev.priceCents / 100) : 0;
+  if (cells > 0) {
+    // 新鲜余额再校验（S.energy 可能是冷启动默认 0 或旧值）
+    await window.loadEnergyBar?.();
+    const avail = S.energy?.availableEnergy ?? 0;
+    if (avail < cells) {
+      window.toast('Not enough energy — top up');
+      window.openEnergyModal?.();
+      return;
+    }
+    const zh = (window.getLang?.() || 'en') === 'zh';
+    const ok = await window.confirmCard(zh ? {
+      title: '购买这张门票？',
+      body: `将消耗 ${cells} 格能量（当前 ${avail} 格），门票立即进入我的票夹。`,
+      confirmLabel: `消耗 ${cells} 格购票`,
+      cancelLabel: '取消',
+    } : {
+      title: 'Get this ticket?',
+      body: `${cells} energy ${cells === 1 ? 'cell' : 'cells'} will be spent now (you have ${avail}). The ticket lands in My Tickets instantly.`,
+      confirmLabel: `Spend ${cells} & get ticket`,
+      cancelLabel: 'Cancel',
+    });
+    if (!ok) return;
+  } else {
+    // 免费票沿用原确认文案
+    const ok = await window.confirmCard({
+      title: 'Get this ticket?',
+      body: 'Payment is mocked in beta — the ticket lands in My Tickets instantly.',
+      confirmLabel: 'Confirm',
+    });
+    if (!ok) return;
+  }
   try {
     const data = await window.api(`/events/${eventId}/purchase`, 'POST', {});
     const res = unwrap(data);
     window.toast(`Ticket ${res.code || ''} added to My Tickets`);
+    // 扣了能量：余额条即时刷新
+    if (cells > 0) window.loadEnergyBar?.();
     // 详情里的余票/已售即时刷新
     if (S.currentPostId) window.loadPostDetail(S.currentPostId);
   } catch (e) {
+    // 前置校验与后端扣费之间余额可能已变（并发消费）：同样引导充值
+    if (/not enough energy/i.test(e?.message || '')) {
+      window.toast('Not enough energy — top up');
+      window.openEnergyModal?.();
+      return;
+    }
     window.toast(e?.message || 'Purchase failed');
   }
 }

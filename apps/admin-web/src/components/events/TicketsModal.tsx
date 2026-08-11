@@ -13,7 +13,7 @@ import { usePagedList } from '@/hooks/usePagedList';
 import { Modal } from '@/components/ui/Modal';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import { Pager } from '@/components/ui/Pager';
 
 const COLUMNS: Column<AdminEventTicket>[] = [
@@ -40,8 +40,9 @@ const COLUMNS: Column<AdminEventTicket>[] = [
     header: '实付',
     align: 'right',
     render: (t) =>
+      // pricePaidCents ≡ 实付能量数（= 支付格数 × 100）
       t.pricePaidCents > 0 ? (
-        <Money cents={t.pricePaidCents} />
+        <Energy value={t.pricePaidCents} />
       ) : (
         <span className="text-sm text-on-surface-variant">免费</span>
       ),

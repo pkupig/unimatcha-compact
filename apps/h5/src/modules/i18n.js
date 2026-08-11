@@ -77,6 +77,7 @@ const ZH = {
   'Show this QR at the entrance': '入场时出示此二维码',
   'Get Ticket': '购票', 'Sold out': '已售罄', 'Sales closed': '停止售票', 'Event ended': '活动已结束',
   Free: '免费', 'UNDER REVIEW': '审核中', 'REJECTED': '已驳回',
+  'Not enough energy — top up': '能量不足，请先充值',
   // ── 注册分步向导 ──
   'What should we call you?': '怎么称呼你？', 'Your nickname is what others see.': '昵称是别人看到的名字。',
   'Your real name': '你的真实姓名', 'Only shown to confirmed partners.': '仅对确认的伴侣可见。',

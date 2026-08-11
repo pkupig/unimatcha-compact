@@ -3,21 +3,22 @@
 /**
  * EVT-2/EVT-3 活动表格：列定义 + 行操作（购票名单 / 停售 / 恢复 / 取消）。
  * 停售（published→closed）与恢复（closed→published）即时 PATCH；
- * 取消走 danger 确认弹窗——不可逆、显示已售张数与流水、存量有效票一并作废。
+ * 取消走 danger 确认弹窗——不可逆、显示已售张数与能量流水估算、有效票作废并自动退能量。
+ * 票价为能量口径（priceCents ≡ 能量数）：展示用 <Energy>，绝不 /100 当元。
  */
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { updateEventStatus } from '@/lib/api/events';
 import type { AdminEvent } from '@/lib/types';
 import { ADMIN_ROLE, EVENT_STATUS, labelOf } from '@/lib/labels';
-import { fenToYuan, formatDateTime, formatNumber } from '@/lib/format';
+import { formatDateTime, formatEnergy, formatNumber } from '@/lib/format';
 import { toastError } from '@/lib/toast';
 import { useModal } from '@/hooks/useModal';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Money } from '@/components/ui/Money';
+import { Energy } from '@/components/ui/Energy';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 export function EventTable({
@@ -86,7 +87,7 @@ export function EventTable({
       header: '票价',
       align: 'right',
       render: (ev) =>
-        ev.priceCents > 0 ? <Money cents={ev.priceCents} /> : <Badge variant="outline">免费</Badge>,
+        ev.priceCents > 0 ? <Energy value={ev.priceCents} /> : <Badge variant="outline">免费</Badge>,
     },
     {
       key: 'sold',
@@ -183,15 +184,18 @@ function CancelEventDialog({
             确定取消「{event.title}」吗？<span className="font-bold text-on-surface">此操作不可逆。</span>
           </p>
           <p className="mt-2">
-            已售 <span className="font-mono text-on-surface">{formatNumber(event.ticketsSold)}</span> 张 · 流水{' '}
-            <span className="font-mono text-on-surface">{fenToYuan(event.priceCents * event.ticketsSold)}</span>
-            ；取消后存量有效票将一并作废。
+            已售 <span className="font-mono text-on-surface">{formatNumber(event.ticketsSold)}</span> 张 · 流水估算{' '}
+            <span className="font-mono text-on-surface">
+              {/* 用户按格支付：每张实付 = ceil(票面能量 / 100) × 100 */}
+              {formatEnergy(Math.ceil(event.priceCents / 100) * 100 * event.ticketsSold)}
+            </span>
+            ；取消后有效票将作废并自动退回能量（用户退格、学校账本冲回；已核销票不退）。
           </p>
         </>
       }
       onConfirm={async () => {
         await updateEventStatus(event.id, 'cancelled');
-        toast.success('活动已取消，存量有效票已作废');
+        toast.success('活动已取消，有效票已作废并自动退回能量');
         onDone();
       }}
       onClose={onClose}

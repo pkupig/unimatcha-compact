@@ -3,7 +3,7 @@
 /**
  * EVT-4 发布活动弹窗（创建成功即同时生成广场活动帖）。
  * - 学校字段仅团队显示（空=全网；学生会由服务端自动填本校）
- * - 票价「元」输入 → yuanToCents 转分（0=免费）；名额空=不限（正整数）
+ * - 票价「能量」输入（priceCents 数值 ≡ 能量数，0=免费；用户按格支付，1 格=100 能量）；名额空=不限（正整数）
  * - 板块默认推荐流：团队未指定学校时发校园墙会被后端 400，前端先拦
  */
 import { useEffect, useState } from 'react';
@@ -13,7 +13,6 @@ import { listSchools } from '@/lib/api/schools';
 import type { CreateEventInput, EventBoard } from '@/lib/types';
 import { isTeam } from '@/lib/auth';
 import { useAdmin } from '@/lib/auth-context';
-import { yuanToCents } from '@/lib/format';
 import { toastError } from '@/lib/toast';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -33,7 +32,7 @@ const EMPTY_FORM = {
   venue: '',
   startAt: '',
   endAt: '',
-  priceYuan: '0',
+  priceEnergy: '0',
   capacity: '',
   // 默认推荐流：团队 + 校园墙 + 未选学校会被后端 400
   board: 'recommend' as EventBoard,
@@ -80,11 +79,13 @@ export function EventFormModal({ onClose, onDone }: { onClose: () => void; onDon
       toast.error('结束时间需晚于开始时间');
       return;
     }
-    const priceCents = yuanToCents(form.priceYuan.trim() || '0');
-    if (priceCents === null) {
-      toast.error('票价格式不正确');
+    // priceCents 数值 ≡ 能量数（1 格 = 100 能量，用户按格支付），只收非负整数
+    const priceRaw = form.priceEnergy.trim() || '0';
+    if (!/^\d+$/.test(priceRaw)) {
+      toast.error('票价需为非负整数能量值（0 = 免费）');
       return;
     }
+    const priceCents = Number(priceRaw);
     let capacity: number | undefined;
     if (form.capacity.trim()) {
       if (!/^\d+$/.test(form.capacity.trim()) || Number(form.capacity) <= 0) {
@@ -178,8 +179,8 @@ export function EventFormModal({ onClose, onDone }: { onClose: () => void; onDon
           <Field label="结束时间" hint="选填；需晚于开始时间">
             <Input type="datetime-local" value={form.endAt} onChange={(e) => set('endAt', e.target.value)} />
           </Field>
-          <Field label="票价（元）" hint="0 = 免费">
-            <Input type="number" min={0} step="0.01" value={form.priceYuan} onChange={(e) => set('priceYuan', e.target.value)} />
+          <Field label="票价（能量）" hint="100 能量 = 1 格，用户按格支付；0 = 免费">
+            <Input type="number" min={0} step={1} value={form.priceEnergy} onChange={(e) => set('priceEnergy', e.target.value)} />
           </Field>
           <Field label="名额" hint="留空 = 不限">
             <Input type="number" min={1} step={1} value={form.capacity} onChange={(e) => set('capacity', e.target.value)} placeholder="不限" />

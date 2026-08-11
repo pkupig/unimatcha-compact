@@ -101,6 +101,7 @@ export const LEDGER_TYPE = defineEnum({
   WITHDRAWAL: ['提现扣减', 'pink'],
   ADJUSTMENT: ['手工调整', 'outline'],
   CONVERSION_OUT: ['兑换扣减', 'pink'],
+  EVENT_TICKET: ['门票收入', 'neon'],
 });
 
 // ── 能量经济（2026-08）─────────────────────────────────────

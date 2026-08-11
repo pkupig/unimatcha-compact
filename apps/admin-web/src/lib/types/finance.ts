@@ -87,6 +87,8 @@ export interface RevenueReportRow {
   schoolShareCents: number;
   platformKeepCents: number;
   grantCents: number;
+  /** 门票净额（能量账本 EVENT_TICKET 有符号求和：售出 +，取消冲回 −） */
+  eventTicketCents: number;
   /** 已打款提现（口径已切现金账本 SchoolCashLedgerType.WITHDRAWAL，取绝对值） */
   withdrawalPaidCents: number;
   /** 能量兑换出账（能量账本 CONVERSION_OUT，取绝对值） */
