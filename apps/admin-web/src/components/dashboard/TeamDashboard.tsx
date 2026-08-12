@@ -41,8 +41,8 @@ export function TeamDashboard({ data, role }: { data: TeamDashboardData; role: A
     let cancelled = false;
     getAdsOverview()
       .then((o) => {
-        // 按团队分支独有的日序列字段收窄联合（不依赖 role 字面量的具体类型写法）
-        if (!cancelled && 'dailySeries30d' in o) setOverview(o);
+        // 按团队分支独有字段收窄联合（dailySeries30d 已非团队独有：SPONSOR 分支也带）
+        if (!cancelled && 'pendingPlatformReview' in o) setOverview(o);
       })
       .catch((e) => {
         if (!cancelled) toastError(e);

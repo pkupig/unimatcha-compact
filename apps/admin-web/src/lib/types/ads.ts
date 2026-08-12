@@ -158,6 +158,8 @@ export interface SponsorAdsOverview {
   impressions7d: number;
   clicks7d: number;
   dailySeries7d: AdsDailyPoint[];
+  /** 近 30 天逐日（仪表盘消耗趋势用；点位形状同 7d） */
+  dailySeries30d: AdsDailyPoint[];
 }
 
 export interface UnionAdsOverview {

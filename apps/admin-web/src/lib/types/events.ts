@@ -70,6 +70,23 @@ export interface CreateEventResult extends EventBase {
   postId: string;
 }
 
+/**
+ * PATCH /admin/events/:id/content 请求体（部分更新，只发生变字段）：
+ * school 不可改；已售票时改 priceCents 会 400；capacity 三态——
+ * 未传=不变 / null=改为不限（已售票后放宽恒可）/ 数值=新上限（已售票后只可上调）；
+ * 清空 endAt 前端按「不改动」省略（后端不支持清除）
+ */
+export interface UpdateEventContentInput {
+  title?: string;
+  content?: string;
+  images?: string[];
+  venue?: string;
+  startAt?: string;
+  endAt?: string;
+  priceCents?: number;
+  capacity?: number | null;
+}
+
 /** PATCH /admin/events/:id 响应 */
 export interface UpdateEventStatusResult {
   id: string;

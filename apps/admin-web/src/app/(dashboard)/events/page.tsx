@@ -27,6 +27,7 @@ export default function EventsPage() {
     initialFilters: {},
   });
   const create = useModal();
+  const edit = useModal<AdminEvent>();
   const tickets = useModal<AdminEvent>();
 
   return (
@@ -54,12 +55,16 @@ export default function EventsPage() {
           loading={list.loading}
           error={list.error}
           onShowTickets={tickets.openWith}
+          onEdit={edit.openWith}
           onChanged={() => void list.refresh()}
         />
       </Card>
       <Pager page={list.page} limit={list.limit} total={list.total} onPage={list.setPage} />
 
       {create.open && <EventFormModal onClose={create.close} onDone={() => void list.refresh()} />}
+      {edit.open && edit.data && (
+        <EventFormModal event={edit.data} onClose={edit.close} onDone={() => void list.refresh()} />
+      )}
       {tickets.open && tickets.data && <TicketsModal event={tickets.data} onClose={tickets.close} />}
     </>
   );

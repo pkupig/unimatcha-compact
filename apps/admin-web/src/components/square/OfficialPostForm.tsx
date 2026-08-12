@@ -111,11 +111,11 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
         <StatusBadge meta={AUTHOR_TYPE} value={authorType} />
       </div>
 
-      {/* 板块选择 */}
+      {/* 板块选择：广告商仅可发推荐流（后端对 SPONSOR + campus_wall 直接 403） */}
       <div>
         <span className="label">发布板块</span>
         <div className="grid grid-cols-2 gap-3">
-          {BOARD_OPTIONS.map((b) => (
+          {(sponsorForced ? BOARD_OPTIONS.filter((b) => b.value === 'recommend') : BOARD_OPTIONS).map((b) => (
             <button
               key={b.value}
               type="button"
@@ -134,6 +134,9 @@ export function OfficialPostForm({ admin }: { admin: AdminInfo }) {
             </button>
           ))}
         </div>
+        {sponsorForced && (
+          <p className="text-xs text-on-surface-variant mt-1.5">广告商推广帖仅可发布在推荐流</p>
+        )}
       </div>
 
       {/* 学校：学生会锁定本校必填；团队/广告商选填（空=跨校） */}

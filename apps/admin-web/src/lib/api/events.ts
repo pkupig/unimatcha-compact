@@ -5,9 +5,11 @@ import type {
   CheckinResult,
   CreateEventInput,
   CreateEventResult,
+  EventBase,
   EventStatus,
   EventTicketsResult,
   ListResult,
+  UpdateEventContentInput,
   UpdateEventStatusResult,
 } from '@/lib/types';
 
@@ -19,6 +21,11 @@ export function listEvents(params: { page?: number; limit?: number }): Promise<L
 /** 发布活动（事务内同时生成广场活动帖） */
 export function createEvent(data: CreateEventInput): Promise<CreateEventResult> {
   return post<CreateEventResult>('/admin/events', data);
+}
+
+/** 编辑活动内容（部分字段；school 不可改，已售票时改票价 400、容量只可上调） */
+export function updateEventContent(id: string, data: UpdateEventContentInput): Promise<EventBase> {
+  return patch<EventBase>(`/admin/events/${id}/content`, data);
 }
 
 /** 状态流转：closed 停售 / published 恢复 / cancelled 取消（存量有效票一并作废） */

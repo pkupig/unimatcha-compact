@@ -5,6 +5,7 @@
 
 export type SquareBoardValue = 'RECOMMEND' | 'CAMPUS_WALL';
 export type SquareAuthorTypeValue = 'USER' | 'STUDENT_UNION' | 'TEAM' | 'SPONSOR';
+export type SquarePostTypeValue = 'normal' | 'poll' | 'event';
 export type PollReviewStatus = 'pending' | 'approved' | 'rejected';
 export type FeedbackStatus = 'open' | 'resolved';
 
@@ -19,6 +20,8 @@ export interface AdminSquarePost {
   id: string;
   board: SquareBoardValue;
   authorType: SquareAuthorTypeValue;
+  /** 活动帖（event）不可编辑/彻底删除（后端 400），前端按此隐藏入口 */
+  postType: SquarePostTypeValue;
   school: string | null;
   title: string | null;
   content: string;
@@ -28,6 +31,8 @@ export interface AdminSquarePost {
   anonymous: boolean;
   isSponsored: boolean;
   isHidden: boolean;
+  /** 非空 = 已置顶（仅校园墙帖可置顶） */
+  pinnedAt: string | null;
   /** 管理员 id 或 'reporter:auto'（举报自动隐藏） */
   deletedBy: string | null;
   deleteReason: string | null;
@@ -119,10 +124,41 @@ export interface DismissReportsResult {
   message: string;
 }
 
+// ─── 置顶 / 编辑 / 彻底删除 / 评论管理（square-admin 新端点）────
+/** PATCH /admin/square/posts/:id（仅官方帖，仅作者本人或 SUPER；活动帖 400） */
+export interface UpdateOfficialPostInput {
+  title?: string;
+  content?: string;
+  images?: string[];
+}
+
+/** POST /admin/square/posts/:id/purge 响应（不可恢复，评论点赞级联删除） */
+export interface PostPurgeResult {
+  ok: boolean;
+}
+
+/** GET /admin/square/posts/:id/comments 列表项 */
+export interface AdminPostComment {
+  id: string;
+  content: string;
+  imageUrl: string | null;
+  /** 非空 = 楼中楼回复 */
+  parentCommentId: string | null;
+  createdAt: string;
+  // email 学生会视角为 null（评论者可能来自外校，后端脱敏）
+  user: { id: string; email: string | null; profile: { nickname: string | null } | null };
+}
+
+/** DELETE /admin/square/comments/:id 响应；removed 为实删条数（父楼删除含其下回复） */
+export interface DeleteCommentResult {
+  ok: boolean;
+  removed: number;
+}
+
 // ─── 官方发帖（POST /admin/square/posts，CreateOfficialPostDto）───
 /** authorType 由后端按登录角色推导，DTO 已删除该字段，前端不得提交 */
 export interface CreateOfficialPostInput {
-  /** 缺省 recommend（DTO 用小写枚举） */
+  /** 缺省 recommend（DTO 用小写枚举）；SPONSOR 提交 campus_wall 后端 403 */
   board?: 'recommend' | 'campus_wall';
   /** 学生会必填且须为本校名；团队/广告商可空（跨校） */
   school?: string;

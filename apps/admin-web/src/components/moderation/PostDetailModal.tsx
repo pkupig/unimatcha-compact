@@ -1,12 +1,14 @@
 'use client';
 
 /** 帖子查看弹窗（MOD-5）+ 帖子表格共用的作者单元格/隐藏原因工具 */
+import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AUTHOR_TYPE, SQUARE_BOARD, labelOf } from '@/lib/labels';
 import { formatDateTime, formatNumber } from '@/lib/format';
 import type { AdminSquarePost } from '@/lib/types';
+import { PostCommentsSection } from './PostCommentsSection';
 
 /** 隐藏原因展示：举报自动隐藏优先于管理员填写的理由 */
 export function hiddenNote(p: AdminSquarePost): string {
@@ -30,10 +32,15 @@ export function AuthorCell({ post }: { post: AdminSquarePost }) {
 export function PostDetailModal({
   post,
   onClose,
+  onCommentsChanged,
 }: {
   post: AdminSquarePost;
   onClose: () => void;
+  /** 评论被删除后回调（外层刷新列表以更新 commentCount） */
+  onCommentsChanged?: () => void | Promise<void>;
 }) {
+  // post 是打开时的列表行快照：评论区删除后头部计数改跟评论区实时 total
+  const [liveCommentTotal, setLiveCommentTotal] = useState<number | null>(null);
   return (
     <Modal title={post.title || '帖子详情'} caption="POST DETAIL" size="lg" onClose={onClose}>
       <div className="space-y-4 pb-2">
@@ -69,7 +76,8 @@ export function PostDetailModal({
           <div className="flex items-center justify-between gap-4">
             <span className="text-on-surface-variant shrink-0">互动 · 举报</span>
             <span className="font-mono text-xs">
-              赞 {formatNumber(post.likeCount)} · 评 {formatNumber(post.commentCount)} · 举报{' '}
+              赞 {formatNumber(post.likeCount)} · 评{' '}
+              {formatNumber(liveCommentTotal ?? post.commentCount)} · 举报{' '}
               {formatNumber(post.reportCount)}
             </span>
           </div>
@@ -89,6 +97,12 @@ export function PostDetailModal({
             </div>
           )}
         </div>
+
+        <PostCommentsSection
+          postId={post.id}
+          onChanged={onCommentsChanged}
+          onTotal={setLiveCommentTotal}
+        />
       </div>
     </Modal>
   );

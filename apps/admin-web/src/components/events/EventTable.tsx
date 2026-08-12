@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * EVT-2/EVT-3 活动表格：列定义 + 行操作（购票名单 / 停售 / 恢复 / 取消）。
+ * EVT-2/EVT-3 活动表格：列定义 + 行操作（购票名单 / 编辑 / 停售 / 恢复 / 取消）。
  * 停售（published→closed）与恢复（closed→published）即时 PATCH；
  * 取消走 danger 确认弹窗——不可逆、显示已售张数与能量流水估算、有效票作废并自动退能量。
  * 票价为能量口径（priceCents ≡ 能量数）：展示用 <Energy>，绝不 /100 当元。
@@ -26,12 +26,14 @@ export function EventTable({
   loading,
   error,
   onShowTickets,
+  onEdit,
   onChanged,
 }: {
   items: AdminEvent[];
   loading: boolean;
   error: string | null;
   onShowTickets: (ev: AdminEvent) => void;
+  onEdit: (ev: AdminEvent) => void;
   onChanged: () => void;
 }) {
   // 行内即时切换的提交态（同一时刻只会有一行在提交）
@@ -126,6 +128,11 @@ export function EventTable({
           <Button size="sm" onClick={() => onShowTickets(ev)}>
             购票名单
           </Button>
+          {ev.status !== 'cancelled' && (
+            <Button size="sm" onClick={() => onEdit(ev)}>
+              编辑
+            </Button>
+          )}
           {ev.status === 'published' && (
             <Button size="sm" loading={busyId === ev.id} onClick={() => void toggleStatus(ev, 'closed')}>
               停售

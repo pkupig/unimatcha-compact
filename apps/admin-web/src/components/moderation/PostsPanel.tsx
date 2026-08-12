@@ -17,10 +17,19 @@ import { Input, Select } from '@/components/ui/form';
 import { useDebounced } from '@/hooks/useDebounced';
 import { useModal } from '@/hooks/useModal';
 import { usePagedList } from '@/hooks/usePagedList';
-import { dismissSquarePostReports, listSquarePosts, restoreSquarePost, takedownSquarePost } from '@/lib/api/moderation';
+import {
+  dismissSquarePostReports,
+  listSquarePosts,
+  pinSquarePost,
+  purgeSquarePost,
+  restoreSquarePost,
+  takedownSquarePost,
+} from '@/lib/api/moderation';
 import { formatDate, formatNumber } from '@/lib/format';
 import { SQUARE_BOARD, labelOf } from '@/lib/labels';
+import { toastError } from '@/lib/toast';
 import type { AdminSquarePost, SquareBoardValue } from '@/lib/types';
+import { EditOfficialPostModal } from './EditOfficialPostModal';
 import { AuthorCell, PostDetailModal, hiddenNote } from './PostDetailModal';
 
 interface PostsFilters {
@@ -60,6 +69,23 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
   const takedown = useModal<AdminSquarePost>();
   const restore = useModal<AdminSquarePost>();
   const dismiss = useModal<AdminSquarePost>();
+  const edit = useModal<AdminSquarePost>();
+  const purge = useModal<AdminSquarePost>();
+
+  // 置顶为行内即时动作（无确认弹窗），busy 态按行隔离
+  const [pinningId, setPinningId] = useState<string | null>(null);
+  const togglePin = async (p: AdminSquarePost) => {
+    setPinningId(p.id);
+    try {
+      await pinSquarePost(p.id, !p.pinnedAt);
+      toast.success(p.pinnedAt ? '已取消置顶' : '已置顶');
+      await list.refresh();
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setPinningId(null);
+    }
+  };
 
   const columns: Column<AdminSquarePost>[] = [
     {
@@ -67,7 +93,12 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
       header: '内容',
       render: (p) => (
         <div className="max-w-[240px]">
-          {p.title && <p className="font-bold text-on-surface truncate">{p.title}</p>}
+          {(p.pinnedAt || p.title) && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              {p.pinnedAt && <Badge variant="ink">置顶</Badge>}
+              {p.title && <p className="font-bold text-on-surface truncate">{p.title}</p>}
+            </div>
+          )}
           <p className="text-xs text-on-surface-variant truncate">{p.content}</p>
           {p.images.length > 0 && (
             <p className="text-[10px] font-mono text-outline mt-0.5">图 x{p.images.length}</p>
@@ -139,10 +170,22 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
           {reported && (
             <Button size="sm" onClick={() => dismiss.openWith(p)}>清除举报</Button>
           )}
+          {p.board === 'CAMPUS_WALL' && (
+            <Button size="sm" loading={pinningId === p.id} onClick={() => void togglePin(p)}>
+              {p.pinnedAt ? '取消置顶' : '置顶'}
+            </Button>
+          )}
+          {/* 官方帖可编辑（作者归属前端不可知，非作者由后端 403 兜底）；活动帖后端 400 → 不给入口 */}
+          {p.authorType !== 'USER' && p.postType !== 'event' && (
+            <Button size="sm" onClick={() => edit.openWith(p)}>编辑</Button>
+          )}
           {p.isHidden ? (
             <Button size="sm" variant="primary" onClick={() => restore.openWith(p)}>恢复</Button>
           ) : (
             <Button size="sm" variant="danger" onClick={() => takedown.openWith(p)}>下架</Button>
+          )}
+          {p.postType !== 'event' && (
+            <Button size="sm" variant="danger" onClick={() => purge.openWith(p)}>彻底删除</Button>
           )}
         </div>
       ),
@@ -190,7 +233,33 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
       </Card>
       <Pager page={list.page} limit={list.limit} total={list.total} onPage={list.setPage} />
 
-      {view.open && view.data && <PostDetailModal post={view.data} onClose={view.close} />}
+      {view.open && view.data && (
+        <PostDetailModal post={view.data} onClose={view.close} onCommentsChanged={list.refresh} />
+      )}
+
+      {edit.open && edit.data && (
+        <EditOfficialPostModal post={edit.data} onClose={edit.close} onSaved={list.refresh} />
+      )}
+
+      {purge.open && purge.data && (
+        <ConfirmDialog
+          title="彻底删除帖子"
+          danger
+          confirmText="确认彻底删除"
+          message={
+            <>
+              确认彻底删除「{purge.data.title || purge.data.content.slice(0, 20)}」？
+              此操作不可恢复，帖子的评论与点赞将一并删除。
+            </>
+          }
+          onConfirm={async () => {
+            await purgeSquarePost(purge.data!.id);
+            toast.success('帖子已彻底删除');
+            await list.refresh();
+          }}
+          onClose={purge.close}
+        />
+      )}
 
       {takedown.open && takedown.data && (
         <ConfirmDialog

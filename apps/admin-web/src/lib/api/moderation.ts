@@ -5,8 +5,10 @@
 import { del, get, patch, post } from './client';
 import type {
   AdminPollPost,
+  AdminPostComment,
   AdminSquarePost,
   CreateOfficialPostInput,
+  DeleteCommentResult,
   DismissReportsResult,
   FeedbackReport,
   FeedbackReportBase,
@@ -18,8 +20,10 @@ import type {
   OfficialPostCreated,
   PollReviewInput,
   PollReviewResult,
+  PostPurgeResult,
   PostRestoreResult,
   PostTakedownResult,
+  UpdateOfficialPostInput,
 } from '@/lib/types';
 
 // ─── 帖子管理 / 举报队列 ─────────────────────────────────────
@@ -50,6 +54,40 @@ export function restoreSquarePost(id: string): Promise<PostRestoreResult> {
 /** 清除举报（若为举报自动隐藏则同时恢复展示） */
 export function dismissSquarePostReports(id: string): Promise<DismissReportsResult> {
   return post(`/admin/square/posts/${id}/dismiss-reports`);
+}
+
+/** 置顶/取消置顶（仅校园墙帖；学生会仅本校），响应为更新后的后管帖行 */
+export function pinSquarePost(id: string, pinned: boolean): Promise<AdminSquarePost> {
+  return post(`/admin/square/posts/${id}/pin`, { pinned });
+}
+
+/** 编辑官方帖（仅作者本人或 SUPER，非作者后端 403；活动帖 400） */
+export function updateOfficialPost(
+  id: string,
+  input: UpdateOfficialPostInput,
+): Promise<AdminSquarePost> {
+  return patch(`/admin/square/posts/${id}`, input);
+}
+
+/** 彻底删除（不可恢复，评论点赞级联删除；活动帖 400；学生会仅本校） */
+export function purgeSquarePost(id: string): Promise<PostPurgeResult> {
+  return post(`/admin/square/posts/${id}/purge`);
+}
+
+// ─── 评论管理 ────────────────────────────────────────────────
+export function listPostComments(
+  postId: string,
+  params: { page?: number; limit?: number },
+): Promise<ListResult<AdminPostComment>> {
+  return get(`/admin/square/posts/${postId}/comments`, {
+    page: params.page,
+    limit: params.limit,
+  });
+}
+
+/** 删除评论（父楼删除时其下回复一并删，removed 为实删条数） */
+export function deletePostComment(commentId: string): Promise<DeleteCommentResult> {
+  return del(`/admin/square/comments/${commentId}`);
 }
 
 // ─── 投票审核 ────────────────────────────────────────────────
