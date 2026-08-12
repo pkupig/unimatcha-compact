@@ -1,7 +1,8 @@
 /**
  * users 域契约类型（镜像 apps/api/src/users/users-admin.service.ts 真实响应）。
- * listUsers 是 select 投影；getUserDetail 是 include 全量
- * （Profile 全字段 + modeStates + answers 近 50 条 + 双向 matches 各 5 条）。
+ * listUsers 与 getUserDetail 均为 select 受限投影——凭证与私密设置
+ * （passwordHash/verifyCode/connectCode/settings）永不下发；
+ * detail 附 Profile 全字段 + modeStates + answers 近 50 条 + 双向 matches 各 5 条。
  */
 
 export type UserStatus = 'ACTIVE' | 'BANNED';
@@ -130,10 +131,7 @@ export interface AdminUserDetail {
   verificationStatus: VerificationStatus;
   studentCardUrl: string | null;
   schoolEmail: string | null;
-  connectCode: string | null;
-  settings: unknown;
   createdAt: string;
-  updatedAt: string;
   profile: UserProfileDetail | null;
   modeStates: UserModeStateDetail[];
   answers: UserAnswerRecord[];
@@ -141,10 +139,10 @@ export interface AdminUserDetail {
   matchesAsUserB: (UserMatchRecord & { userA: MatchCounterpart })[];
 }
 
-/** PATCH :id/status 响应 */
+/** PATCH :id/status 响应；email 学生会视角为 null（处置响应不绕过受限投影） */
 export interface UpdateUserStatusResult {
   id: string;
-  email: string;
+  email: string | null;
   status: UserStatus;
 }
 
@@ -155,9 +153,64 @@ export interface ResetUserModeResult {
   matchState: 'idle';
 }
 
-/** PATCH :id/verification 响应 */
+/** PATCH :id/verification 响应；email 学生会视角为 null（处置响应不绕过受限投影） */
 export interface UpdateUserVerificationResult {
   id: string;
-  email: string;
+  email: string | null;
   verificationStatus: VerificationStatus;
+}
+
+/** GET /admin/users/overview 的年级桶（grade 为 Profile.grade 原值；null = 未填写） */
+export interface UsersOverviewGradeBucket {
+  grade: string | null;
+  count: number;
+}
+
+/** GET /admin/users/overview 的性别桶（male/female/non_binary/other；null = 未填写） */
+export interface UsersOverviewGenderBucket {
+  gender: string | null;
+  count: number;
+}
+
+/**
+ * GET /admin/users/overview 响应（学生会恒本校；school 参数仅 SUPER/TEAM 有效）。
+ * 学生会对本校用户只看群体统计——个体名单/详情由后端 403（产品口径）。
+ */
+export interface UsersOverview {
+  /** 统计口径的学校名；平台全量视角为 null */
+  school: string | null;
+  total: number;
+  newThisWeek: number;
+  byGrade: UsersOverviewGradeBucket[];
+  byGender: UsersOverviewGenderBucket[];
+  verification: Record<VerificationStatus, number>;
+  series30d: { date: string; count: number }[];
+  activity: UsersOverviewActivity;
+}
+
+/**
+ * 活跃度/内容流量（近 30 天）。活跃口径 = 发帖/评论/点赞/聊天消息任一行为按 (用户, 日) 去重；
+ * 私聊消息只进活跃去重，不单独出条数（群体统计不暴露个体聊天行为量）。
+ */
+export interface UsersOverviewActivity {
+  /** 近 7 天活跃去重人数 */
+  dau7: number;
+  /** 近 30 天活跃去重人数 */
+  dau30: number;
+  activeSeries30d: { date: string; activeUsers: number }[];
+  /** 公开内容流量：广场发帖/评论/点赞按日计数 */
+  contentSeries30d: { date: string; posts: number; comments: number; likes: number }[];
+  /** 匹配参与度：任一模式处于该状态的去重用户数 */
+  matching: { searching: number; relationship: number };
+}
+
+/** GET /admin/users/verifications 队列行（受限投影：只见认证材料与昵称/年级/学校） */
+export interface PendingVerificationItem {
+  id: string;
+  createdAt: string;
+  /** 近似提交时刻（H5 提交认证时写入 User.updatedAt；排序键同款） */
+  updatedAt: string;
+  studentCardUrl: string | null;
+  schoolEmail: string | null;
+  profile: { nickname: string | null; school: string | null; grade: string | null } | null;
 }

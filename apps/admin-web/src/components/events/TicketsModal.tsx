@@ -28,7 +28,9 @@ const COLUMNS: Column<AdminEventTicket>[] = [
     render: (t) => (
       <div className="max-w-[180px]">
         <p className="text-sm text-on-surface truncate">{t.user.profile?.nickname || '-'}</p>
-        <p className="font-mono text-[10px] text-outline truncate">{t.user.email}</p>
+        {t.user.email && (
+          <p className="font-mono text-[10px] text-outline truncate">{t.user.email}</p>
+        )}
         {t.user.profile?.school && (
           <p className="text-[10px] text-outline truncate">{t.user.profile.school}</p>
         )}

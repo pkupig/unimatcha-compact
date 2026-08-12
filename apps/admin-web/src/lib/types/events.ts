@@ -104,7 +104,8 @@ export interface AdminEventTicket {
   usedAt: string | null;
   createdAt: string;
   user: {
-    email: string;
+    // email 学生会视角为 null（后端脱敏）
+    email: string | null;
     profile: { nickname: string | null; school: string | null } | null;
   };
 }

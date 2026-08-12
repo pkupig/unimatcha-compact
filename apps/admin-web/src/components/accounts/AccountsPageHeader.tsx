@@ -28,7 +28,7 @@ export function AccountsPageHeader({
   const sub = unionView
     ? invitesTab
       ? `${schoolName} · 生成邀请码发给广告商自注册开通投放账号（恒绑定本校，按自拉档分成）`
-      : `${schoolName} · 自拉广告商账号（其广告仅可投放本校，按自拉档分成）`
+      : `${schoolName} · 本校广告商账号（经邀请码自注册开通，其广告仅可投放本校，按自拉档分成）`
     : `学生会 / 广告商${superView ? ' / 管理员' : ''} 账号的创建与停启用`;
 
   return (
@@ -37,7 +37,8 @@ export function AccountsPageHeader({
       title={title}
       sub={sub}
       actions={
-        invitesTab ? (
+        // 学生会不可手建广告商（后端 403）——两 tab 主按钮恒为生成邀请码
+        unionView ? (
           <Button variant="cta" onClick={onCreateInvite}>
             <Plus size={15} />
             生成邀请码
@@ -45,7 +46,7 @@ export function AccountsPageHeader({
         ) : (
           <Button variant="cta" onClick={onCreateAccount}>
             <Plus size={15} />
-            {unionView ? '新建广告商' : CREATE_LABELS[listTab]}
+            {CREATE_LABELS[listTab]}
           </Button>
         )
       }

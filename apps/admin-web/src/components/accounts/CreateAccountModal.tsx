@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * 创建后管账号弹窗（ACC-5），字段按 kind 条件渲染——
- * union：绑定学校必选；sponsor：组织名必填 + 来源选择（学生会视角来源被服务端
- * 锁定为本校，不渲染该项）；admin：TEAM/SUPER 二选一（SUPER 专属入口）。
+ * 创建后管账号弹窗（ACC-5，仅 TEAM/SUPER——学生会不可手建账号，广告商经邀请码
+ * 自注册），字段按 kind 条件渲染：union：绑定学校必选；sponsor：组织名必填 +
+ * 来源选择；admin：TEAM/SUPER 二选一（SUPER 专属入口）。
  * 后端创建接口不回传密码（密码由创建者当场设定），故此流程不走 CredentialCard。
  */
 import { useEffect, useState, type FormEvent } from 'react';
@@ -32,13 +32,10 @@ const EMAIL_PLACEHOLDERS: Record<AccountsListTab, string> = {
 
 export function CreateAccountModal({
   kind,
-  unionScoped = false,
   onClose,
   onDone,
 }: {
   kind: AccountsListTab;
-  /** 学生会视角创建本校自拉广告商：来源由服务端强制为本校 */
-  unionScoped?: boolean;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -55,8 +52,8 @@ export function CreateAccountModal({
   });
   const [saving, setSaving] = useState(false);
 
-  // 学校下拉仅两处需要：学生会绑定校 / 平台视角广告商来源；按需拉取避免无谓请求
-  const needSchools = kind === 'union' || (kind === 'sponsor' && !unionScoped);
+  // 学校下拉仅两处需要：学生会绑定校 / 广告商来源；按需拉取避免无谓请求
+  const needSchools = kind === 'union' || kind === 'sponsor';
   const [schools, setSchools] = useState<School[]>([]);
   useEffect(() => {
     if (!needSchools) return;
@@ -92,10 +89,9 @@ export function CreateAccountModal({
       payload.role = 'STUDENT_UNION';
       payload.schoolId = form.schoolId;
     } else if (kind === 'sponsor') {
-      // 学生会视角 role/sourcedBySchoolId 由服务端强制，这里只传平台视角的显式来源
       payload.role = 'SPONSOR';
       payload.organizationName = form.organizationName.trim();
-      if (!unionScoped && form.sourcedBySchoolId) payload.sourcedBySchoolId = form.sourcedBySchoolId;
+      if (form.sourcedBySchoolId) payload.sourcedBySchoolId = form.sourcedBySchoolId;
       if (form.contactName.trim()) payload.contactName = form.contactName.trim();
       if (form.contactPhone.trim()) payload.contactPhone = form.contactPhone.trim();
     } else {
@@ -115,11 +111,7 @@ export function CreateAccountModal({
   };
 
   return (
-    <Modal
-      title={unionScoped ? '新建广告商账号' : TITLES[kind]}
-      caption="NEW ACCOUNT"
-      onClose={onClose}
-    >
+    <Modal title={TITLES[kind]} caption="NEW ACCOUNT" onClose={onClose}>
       <form onSubmit={(e) => void submit(e)} className="space-y-4 pb-4">
         {kind === 'sponsor' && (
           <Field label="组织名" required>
@@ -177,7 +169,7 @@ export function CreateAccountModal({
           </Field>
         )}
 
-        {kind === 'sponsor' && !unionScoped && (
+        {kind === 'sponsor' && (
           <Field label="来源" hint="平台直签可多校投放；选择学校=该校学生会自拉，仅能投放来源学校">
             <Select
               value={form.sourcedBySchoolId}

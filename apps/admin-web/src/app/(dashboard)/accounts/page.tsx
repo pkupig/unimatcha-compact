@@ -71,6 +71,11 @@ function AccountsInner() {
 
   const createModal = useModal();
   const inviteModal = useModal(); // 生成邀请码：按钮在页头，弹窗挂 InvitesPanel 内闭环刷新
+  // 弹窗随 InvitesPanel 挂载——从广告商 tab 发起时先切到邀请码 tab 再开
+  const openInvite = () => {
+    if (!invitesTab) switchTab('invites');
+    inviteModal.openEmpty();
+  };
   const toggleModal = useModal<AdminAccount>();
   const toggleRow = toggleModal.data;
 
@@ -91,7 +96,7 @@ function AccountsInner() {
         listTab={listTab}
         schoolName={admin?.schoolName ?? '本校'}
         onCreateAccount={createModal.openEmpty}
-        onCreateInvite={inviteModal.openEmpty}
+        onCreateInvite={openInvite}
       />
 
       <Tabs
@@ -111,12 +116,12 @@ function AccountsInner() {
           <AccountsTableCard
             list={list}
             columns={columns}
-            empty={unionView ? '暂无广告商 · 为本校合作广告商开通投放账号' : '暂无账号'}
+            empty={unionView ? '广告商经邀请码自行注册，生成邀请码开始拉新' : '暂无账号'}
             emptyAction={
               unionView ? (
-                <Button variant="primary" size="sm" onClick={createModal.openEmpty}>
+                <Button variant="primary" size="sm" onClick={openInvite}>
                   <Plus size={14} />
-                  新建广告商账号
+                  生成邀请码
                 </Button>
               ) : undefined
             }
@@ -124,10 +129,10 @@ function AccountsInner() {
         </>
       )}
 
-      {createModal.open && !invitesTab && (
+      {/* 学生会不可手建账号（含广告商，后端 403）——弹窗仅平台视角可达 */}
+      {createModal.open && !unionView && (
         <CreateAccountModal
-          kind={unionView ? 'sponsor' : listTab}
-          unionScoped={unionView}
+          kind={listTab}
           onClose={createModal.close}
           onDone={() => void list.refresh()}
         />

@@ -1,6 +1,6 @@
 'use client';
 
-/** 仪表盘共用零件：统计卡栅格 / 待办 chip / 骨架占位（仅 dashboard 域使用） */
+/** 仪表盘共用零件：统计卡栅格 / 待办 chip / 骨架占位（dashboard 域 + 用户域群体概览复用） */
 import Link from 'next/link';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';

@@ -25,6 +25,7 @@ import {
   restoreSquarePost,
   takedownSquarePost,
 } from '@/lib/api/moderation';
+import { updateUserStatus } from '@/lib/api/users';
 import { formatDate, formatNumber } from '@/lib/format';
 import { SQUARE_BOARD, labelOf } from '@/lib/labels';
 import { toastError } from '@/lib/toast';
@@ -71,6 +72,7 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
   const dismiss = useModal<AdminSquarePost>();
   const edit = useModal<AdminSquarePost>();
   const purge = useModal<AdminSquarePost>();
+  const banAuthor = useModal<AdminSquarePost>(); // 仅举报队列 tab（处置语义绑定举报场景）
 
   // 置顶为行内即时动作（无确认弹窗），busy 态按行隔离
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -169,6 +171,9 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
           <Button size="sm" onClick={() => view.openWith(p)}>查看</Button>
           {reported && (
             <Button size="sm" onClick={() => dismiss.openWith(p)}>清除举报</Button>
+          )}
+          {reported && p.authorType === 'USER' && p.authorUserId && (
+            <Button size="sm" variant="danger" onClick={() => banAuthor.openWith(p)}>封禁作者</Button>
           )}
           {p.board === 'CAMPUS_WALL' && (
             <Button size="sm" loading={pinningId === p.id} onClick={() => void togglePin(p)}>
@@ -298,6 +303,26 @@ export function PostsPanel({ reported = false, team }: { reported?: boolean; tea
             await list.refresh();
           }}
           onClose={restore.close}
+        />
+      )}
+
+      {banAuthor.open && banAuthor.data && (
+        <ConfirmDialog
+          title="封禁作者"
+          danger
+          confirmText="确认封禁"
+          message={
+            <>
+              确认封禁「{banAuthor.data.title || banAuthor.data.content.slice(0, 20)}」的作者？
+              封禁后该用户无法登录使用，可由平台解封。
+            </>
+          }
+          onConfirm={async () => {
+            await updateUserStatus(banAuthor.data!.authorUserId!, 'BANNED');
+            toast.success('作者已封禁');
+            await list.refresh();
+          }}
+          onClose={banAuthor.close}
         />
       )}
 

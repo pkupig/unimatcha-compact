@@ -52,6 +52,14 @@ export const VERIFICATION_STATUS = defineEnum({
   rejected: ['已驳回', 'pink'],
 });
 
+/** Profile.gender（对齐 H5 注册枚举）；null=未填写在调用点兜底 */
+export const GENDER = defineEnum({
+  male: ['男', 'ink'],
+  female: ['女', 'pink'],
+  non_binary: ['非二元', 'neutral'],
+  other: ['其他', 'neutral'],
+});
+
 export const MATCH_MODE = defineEnum({
   romantic: ['恋爱', 'pink'],
   friend: ['朋友', 'neon'],

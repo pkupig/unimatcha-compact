@@ -20,6 +20,8 @@ export interface AdminSquarePost {
   id: string;
   board: SquareBoardValue;
   authorType: SquareAuthorTypeValue;
+  /** 作者用户 id（仅 USER 帖非空）——举报处置「封禁作者」用 */
+  authorUserId: string | null;
   /** 活动帖（event）不可编辑/彻底删除（后端 400），前端按此隐藏入口 */
   postType: SquarePostTypeValue;
   school: string | null;
