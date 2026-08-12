@@ -654,6 +654,25 @@
       text-transform: uppercase;
       line-height: 1.4;
     }
+    /* 校园墙置顶徽标：黑底荧光绿字——同属荧光绿系，但与 Sponsored（荧光绿底黑字）、
+       官方（半透明黑底白字）都区分得开。 */
+    .pinned-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex-shrink: 0;
+      padding: 0.125rem 0.5rem;
+      background: rgba(0, 0, 0, 0.75);
+      color: #CCFF00; /* neon */
+      border-radius: 10px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 0.5625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
 
     /* ---- §6.6 Chat 列表项倒计时徽标（临时对话「剩余 Xh」）----
        默认黑底白字；.is-urgent 临近 0 转荧光粉；.is-expired 灰显「即将消失」。 */

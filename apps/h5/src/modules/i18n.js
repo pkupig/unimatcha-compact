@@ -150,6 +150,7 @@ const ZH = {
   'This connection has ended. You can no longer send messages.': '这段连接已结束，无法再发送消息。',
   Reply: '回复', Observations: '评论', 'No observations yet. Share the first one.': '还没有评论，来抢沙发。',
   Sponsored: '赞助', 'Student Union': '学生会', 'Official Team': '官方团队', Official: '官方',
+  PINNED: '置顶',
   VALID: '有效', USED: '已使用', CANCELLED: '已作废',
   'Applies the next time you join the pool': '将在下次进入匹配池时生效',
   'Enhanced this round': '本轮已增强',

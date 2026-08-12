@@ -580,6 +580,13 @@ function officialBadge(p) {
   return `<span class="official-badge">${window.escapeHtml(org ? `${label} · ${org}` : label)}</span>`;
 }
 
+// Pinned badge for campus-wall pinned posts (shapePost.isPinned；feed 已由后端按
+// 置顶优先排序，这里只做视觉标注)。文案走词典（zh：置顶）。
+function pinnedBadge(p) {
+  if (!p?.isPinned) return '';
+  return `<span class="pinned-badge">PINNED</span>`;
+}
+
 // Render a single avatar (image / initials / anonymous placeholder) at a size.
 // `profile` is a {nickname,avatarUrl,anonymous?} shape (from postAuthorDisplay).
 // sizeClass controls the box; extra applies ring/border classes.
@@ -808,9 +815,11 @@ function postLikeButton(p) {
 // posts). Shows official / Sponsored badge + school pill on a top header row.
 function bentoTextCard(p) {
   const badge = officialBadge(p);
+  const pinned = pinnedBadge(p);
   const school = schoolBadge(p);
-  const header = (badge || school)
-    ? `<div class="flex items-center justify-between gap-2 mb-3">${badge || '<span></span>'}${school}</div>`
+  const left = (pinned || badge) ? `<div class="flex items-center gap-1.5">${pinned}${badge}</div>` : '<span></span>';
+  const header = (pinned || badge || school)
+    ? `<div class="flex items-center justify-between gap-2 mb-3">${left}${school}</div>`
     : '';
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[6px]" onclick="openPostDetail('${p.id}')">
     ${header}
@@ -830,12 +839,13 @@ function bentoLargeCard(p) {
   const img = (p.images || [])[0];
   if (!img) return bentoTextCard(p);
   const badge = officialBadge(p);
+  const pinned = pinnedBadge(p);
   const school = schoolBadge(p);
   // 图片贴满卡片上/左/右边缘（卡片 overflow-hidden 裁出圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
   return `<article data-post-id="${p.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[6px] overflow-hidden" onclick="openPostDetail('${p.id}')">
     <div class="relative overflow-hidden aspect-[4/5] bg-surface-container">
       <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${window.safeUrl(img)}" onerror="this.style.display='none'">
-      ${badge ? `<div class="absolute top-4 left-4">${badge}</div>` : ''}
+      ${(pinned || badge) ? `<div class="absolute top-4 left-4 flex items-center gap-1.5">${pinned}${badge}</div>` : ''}
       ${school ? `<div class="absolute top-4 right-4">${school}</div>` : ''}
     </div>
     <div class="space-y-1 min-w-0 px-3 pt-2">
@@ -895,6 +905,7 @@ function bentoWideCard(p) {
         <p class="font-headline text-base font-bold truncate">${window.escapeHtml(d.name)}</p>
         <p class="text-[10px] text-neutral-400 font-medium tracking-widest">${window.formatPostTime(p.createdAt)}</p>
       </div>
+      ${pinnedBadge(p)}
       ${school ? `<span class="school-badge shrink-0" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
     </div>
     ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[6px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
