@@ -691,6 +691,10 @@ model SquarePost {
   tags     String[] @default([])
   metadata Json? // { weight, pinned, campaignId, partnerInfo... }
 
+  // 校园墙置顶（学生会本校/平台全量；null=未置顶；置顶帖按此倒序排在墙顶。
+  // 与推荐流官方大卡的 metadata.pinned 机制无关，勿混用）
+  pinnedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

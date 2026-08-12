@@ -10,11 +10,14 @@ import { SquareService } from './square.service';
 import { AdminScopeService } from '../admin-core/admin-scope.service';
 import { AdminActor } from '../admin-core/admin-actor';
 import { paginated, skipTake } from '../common/utils/pagination';
+import { ListQueryDto } from '../common/dto/list-query.dto';
 import {
   CreateOfficialPostDto,
   ListPollsQueryDto,
   ListSquarePostsQueryDto,
+  PinPostDto,
   ReviewPollDto,
+  UpdateOfficialPostDto,
 } from './dto/square-admin.dto';
 
 /**
@@ -129,6 +132,9 @@ export class SquareAdminService {
     let school: string | null = dto.school ?? null;
     let isSponsored = dto.isSponsored ?? false;
 
+    // board 先于角色分支解析：SPONSOR 分支要按 board 拦校园墙
+    const board = dto.board ? this.squareService.toBoard(dto.board) : SquareBoard.RECOMMEND;
+
     if (actor.role === AdminRole.STUDENT_UNION) {
       // 学生会只能发本校：school 必填且须为本校名
       // （admin.schoolId 现为 School.id，post.school 存学校名 → 用解析出的名字比对，ADMIN-REDESIGN §4）
@@ -137,12 +143,14 @@ export class SquareAdminService {
       }
       this.adminScope.assertSchoolNameInScope(actor, school);
     } else if (actor.role === AdminRole.SPONSOR) {
+      // 校园墙是同校学生的真实生活流，商业推广只允许进推荐流
+      if (board === SquareBoard.CAMPUS_WALL) {
+        throw new ForbiddenException('广告商仅可在推荐流发布推广帖');
+      }
       // 广告商强制 Sponsored 标识；school 可空（跨校）
       isSponsored = true;
     }
     // TEAM：school 可空（跨校），无额外约束
-
-    const board = dto.board ? this.squareService.toBoard(dto.board) : SquareBoard.RECOMMEND;
 
     const post = await this.prisma.squarePost.create({
       data: {
@@ -304,10 +312,13 @@ export class SquareAdminService {
       commentCount: post.commentCount,
       anonymous: post.anonymous,
       isSponsored: post.isSponsored,
+      // 前端以 postType==='event' 隐藏编辑/彻底删除入口（活动帖走活动管理），缺此字段门控失效
+      postType: post.postType,
       isHidden: post.isHidden,
       deletedBy: post.deletedBy,
       deleteReason: post.deleteReason,
       deletedAt: post.deletedAt,
+      pinnedAt: post.pinnedAt,
       createdAt: post.createdAt,
       reportCount,
       author,
@@ -391,5 +402,168 @@ export class SquareAdminService {
       restored: wasAutoHidden,
       message: wasAutoHidden ? '举报已清除，帖子已恢复展示' : '举报已清除',
     };
+  }
+
+  // ─── 校园墙置顶（POST /admin/square/posts/:id/pin）────────────
+  // pinnedAt 非空即置顶，墙流按 pinnedAt desc nulls last 排在最前；
+  // 与推荐流官方大卡的 metadata.pinned 机制无关
+  async pinPost(actor: AdminActor, postId: string, dto: PinPostDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, board: true, school: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    if (post.board !== SquareBoard.CAMPUS_WALL) {
+      throw new BadRequestException('仅校园墙帖可置顶');
+    }
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      const own = this.adminScope.requireUnionSchool(actor);
+      if (post.school !== own.name) {
+        throw new ForbiddenException('仅可置顶本校校园墙帖');
+      }
+    }
+    const updated = await this.prisma.squarePost.update({
+      where: { id: postId },
+      data: { pinnedAt: dto.pinned ? new Date() : null },
+      include: this.squareService.postInclude(),
+    });
+    return this.shapeAdminPost(updated);
+  }
+
+  // ─── 编辑官方帖（PATCH /admin/square/posts/:id）───────────────
+  // SUPER 可编辑任意官方帖；其余角色仅限自己发布的。用户帖/活动帖不可在此编辑
+  async updateOfficialPost(actor: AdminActor, postId: string, dto: UpdateOfficialPostDto) {
+    this.adminScope.assertRole(
+      actor,
+      AdminRole.SUPER,
+      AdminRole.TEAM,
+      AdminRole.STUDENT_UNION,
+      AdminRole.SPONSOR,
+    );
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, authorType: true, postType: true, adminId: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    if (post.authorType === SquareAuthorType.USER) {
+      throw new BadRequestException('用户帖不可编辑');
+    }
+    if (post.postType === 'event') {
+      throw new BadRequestException('活动帖请在活动管理中编辑活动，正文会自动同步');
+    }
+    if (actor.role !== AdminRole.SUPER && post.adminId !== actor.id) {
+      throw new ForbiddenException('仅可编辑自己发布的官方帖');
+    }
+
+    const data: Prisma.SquarePostUpdateInput = {};
+    if (dto.title !== undefined) data.title = dto.title || null;
+    if (dto.content !== undefined) {
+      if (!dto.content.trim()) throw new BadRequestException('正文不能为空');
+      data.content = dto.content;
+    }
+    if (dto.images !== undefined) data.images = dto.images;
+
+    const updated = await this.prisma.squarePost.update({
+      where: { id: postId },
+      data,
+      include: this.squareService.postInclude(),
+    });
+    return this.shapeAdminPost(updated);
+  }
+
+  // ─── 彻底删除（POST /admin/square/posts/:id/purge）────────────
+  // 不可恢复，区别于软下架（adminDeletePost 仅 isHidden 隐藏可 restore）：
+  // 物理删除帖子行，评论/点赞/投票由 DB onDelete: Cascade 一并清除
+  async purgePost(actor: AdminActor, postId: string) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, school: true, postType: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    if (post.postType === 'event') {
+      throw new BadRequestException('活动帖随活动取消自动处理，不可单独删除');
+    }
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      const own = this.adminScope.requireUnionSchool(actor);
+      // school 为 null 的帖（跨校官方帖等）不属于任何一校，学生会一律拒绝
+      if (post.school !== own.name) {
+        throw new ForbiddenException('仅可删除本校帖子');
+      }
+    }
+    await this.prisma.squarePost.delete({ where: { id: postId } });
+    return { ok: true };
+  }
+
+  // ─── 评论管理（GET posts/:id/comments / DELETE comments/:id）──
+  async listPostComments(actor: AdminActor, postId: string, q: ListQueryDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: { id: true, school: true },
+    });
+    if (!post) throw new NotFoundException('帖子不存在');
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      const own = this.adminScope.requireUnionSchool(actor);
+      if (post.school !== own.name) {
+        throw new ForbiddenException('仅可查看本校帖子评论');
+      }
+    }
+    const where: Prisma.SquarePostCommentWhereInput = { postId };
+    const [comments, total] = await Promise.all([
+      this.prisma.squarePostComment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        ...skipTake(q),
+        select: {
+          id: true,
+          content: true,
+          imageUrl: true,
+          parentCommentId: true,
+          createdAt: true,
+          user: {
+            select: { id: true, email: true, profile: { select: { nickname: true } } },
+          },
+        },
+      }),
+      this.prisma.squarePostComment.count({ where }),
+    ]);
+    // 评论者可能来自外校（用户侧评论不限同校）：email 属跨校个人信息，
+    // 学生会一律脱敏——全站其余后管面对学生会也只露 nickname（users-admin 强制本校才见 email）
+    const items =
+      actor.role === AdminRole.STUDENT_UNION
+        ? comments.map((c) => ({ ...c, user: { ...c.user, email: null as string | null } }))
+        : comments;
+    return paginated(items, total, q);
+  }
+
+  async deleteComment(actor: AdminActor, commentId: string) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const comment = await this.prisma.squarePostComment.findUnique({
+      where: { id: commentId },
+      select: { id: true, postId: true, post: { select: { school: true } } },
+    });
+    if (!comment) throw new NotFoundException('评论不存在');
+    if (actor.role === AdminRole.STUDENT_UNION) {
+      const own = this.adminScope.requireUnionSchool(actor);
+      if (comment.post.school !== own.name) {
+        throw new ForbiddenException('仅可删除本校帖子下的评论');
+      }
+    }
+    // 删后按实况重算 commentCount 而非盲扣——盲扣在三种情况下漂移：
+    // count 与 delete 之间并发新增回复被级联删掉、并发双删同帖楼层、历史孙级回复（一层化修复前入库）。
+    // removed 按删前后差值计，级联多深都数得准。
+    const removed = await this.prisma.$transaction(async (tx) => {
+      const before = await tx.squarePostComment.count({ where: { postId: comment.postId } });
+      await tx.squarePostComment.delete({ where: { id: commentId } });
+      const after = await tx.squarePostComment.count({ where: { postId: comment.postId } });
+      await tx.squarePost.update({
+        where: { id: comment.postId },
+        data: { commentCount: after },
+      });
+      return before - after;
+    });
+    return { ok: true, removed };
   }
 }

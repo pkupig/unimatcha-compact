@@ -60,6 +60,33 @@ export class CreateOfficialPostDto {
   isSponsored?: boolean;
 }
 
+// 后管编辑官方帖（PATCH /admin/square/posts/:id）；校验口径与 CreateOfficialPostDto 对齐
+export class UpdateOfficialPostDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  content?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  images?: string[];
+}
+
+// 校园墙帖置顶/取消置顶（POST /admin/square/posts/:id/pin）
+export class PinPostDto {
+  @ApiProperty({ description: 'true=置顶，false=取消置顶' })
+  @IsBoolean()
+  pinned: boolean;
+}
+
 // 后管下架帖子（DELETE /admin/square/posts/:id）
 export class DeletePostDto {
   @ApiPropertyOptional({ description: '下架理由（可选）' })

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -21,8 +22,11 @@ import {
   DeletePostDto,
   ListPollsQueryDto,
   ListSquarePostsQueryDto,
+  PinPostDto,
   ReviewPollDto,
+  UpdateOfficialPostDto,
 } from './dto/square-admin.dto';
+import { ListQueryDto } from '../common/dto/list-query.dto';
 
 /** 广场后管（原 AdminController 广场段拆出；URL 不变） */
 @ApiTags('广场管理')
@@ -70,6 +74,53 @@ export class SquareAdminController {
   @ApiOperation({ summary: '清除举报（若为举报自动隐藏则同时恢复展示；学生会仅本校）' })
   dismissSquarePostReports(@CurrentAdmin() actor: AdminActor, @Param('id') id: string) {
     return this.squareAdminService.adminDismissReports(actor, id);
+  }
+
+  @Post('posts/:id/pin')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '置顶/取消置顶校园墙帖（学生会仅本校）' })
+  pinSquarePost(
+    @CurrentAdmin() actor: AdminActor,
+    @Param('id') id: string,
+    @Body() dto: PinPostDto,
+  ) {
+    return this.squareAdminService.pinPost(actor, id, dto);
+  }
+
+  @Patch('posts/:id')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION, AdminRole.SPONSOR)
+  @ApiOperation({ summary: '编辑官方帖（SUPER 任意；其余仅自己发布的；用户帖/活动帖不可编辑）' })
+  updateOfficialPost(
+    @CurrentAdmin() actor: AdminActor,
+    @Param('id') id: string,
+    @Body() dto: UpdateOfficialPostDto,
+  ) {
+    return this.squareAdminService.updateOfficialPost(actor, id, dto);
+  }
+
+  @Post('posts/:id/purge')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '彻底删除帖子（不可恢复，评论/点赞/投票级联清除；学生会仅本校）' })
+  purgeSquarePost(@CurrentAdmin() actor: AdminActor, @Param('id') id: string) {
+    return this.squareAdminService.purgePost(actor, id);
+  }
+
+  @Get('posts/:id/comments')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '帖子评论列表（学生会仅本校帖）' })
+  listPostComments(
+    @CurrentAdmin() actor: AdminActor,
+    @Param('id') id: string,
+    @Query() q: ListQueryDto,
+  ) {
+    return this.squareAdminService.listPostComments(actor, id, q);
+  }
+
+  @Delete('comments/:id')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '删除评论（连带其楼中楼回复；学生会仅本校帖）' })
+  deleteComment(@CurrentAdmin() actor: AdminActor, @Param('id') id: string) {
+    return this.squareAdminService.deleteComment(actor, id);
   }
 
   // ─── 校园墙投票审核（学生会本校 / 团队全量）──────────────────

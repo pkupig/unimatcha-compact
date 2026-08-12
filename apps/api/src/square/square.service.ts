@@ -282,7 +282,8 @@ export class SquareService {
     const [posts, total] = await Promise.all([
       this.prisma.squarePost.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        // 置顶帖恒在墙顶（后置顶的在前），其余按时间倒序
+        orderBy: [{ pinnedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
         include: this.postInclude(),
@@ -762,6 +763,9 @@ export class SquareService {
     // 若原样返回，任何人（含被举报作者）都能看到谁举报了自己。整块 metadata 目前只承载
     // 审核数据，前端无消费，直接剔除。
     delete out.metadata;
+    // 用户侧只给布尔（何时被置顶属后管信息）
+    out.isPinned = !!post.pinnedAt;
+    delete out.pinnedAt;
     // 是否本人（用于前端展示自删入口等）——须在删除 authorUserId 之前算出
     const isMine = !!viewerId && post.authorUserId === viewerId;
     if (post.anonymous && post.authorType === SquareAuthorType.USER) {
