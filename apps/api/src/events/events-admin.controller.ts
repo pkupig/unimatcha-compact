@@ -8,7 +8,12 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentAdmin } from '../admin-core/current-admin.decorator';
 import { AdminActor } from '../admin-core/admin-actor';
 import { ListQueryDto } from '../common/dto/list-query.dto';
-import { CreateEventDto, UpdateEventStatusDto, CheckinTicketDto } from './dto/events.dto';
+import {
+  CreateEventDto,
+  UpdateEventStatusDto,
+  UpdateEventContentDto,
+  CheckinTicketDto,
+} from './dto/events.dto';
 
 /** 活动与门票后管（原 AdminController 活动段拆出；学生会本校 / 团队全量） */
 @ApiTags('活动管理')
@@ -39,6 +44,16 @@ export class EventsAdminController {
     @Body() dto: UpdateEventStatusDto,
   ) {
     return this.eventsService.updateEventStatus(actor, id, dto.status);
+  }
+
+  @Patch(':id/content')
+  @ApiOperation({ summary: '编辑活动内容（已售票后票价锁定、容量只可上调；同步广场活动帖）' })
+  editEventContent(
+    @CurrentAdmin() actor: AdminActor,
+    @Param('id') id: string,
+    @Body() dto: UpdateEventContentDto,
+  ) {
+    return this.eventsService.editEventContent(actor, id, dto);
   }
 
   @Get(':id/tickets')

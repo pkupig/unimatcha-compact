@@ -833,7 +833,7 @@ export class AdsService {
   }
 
   private async sponsorOverview(admin: AdminActor) {
-    const since7 = this.sinceUtc(7);
+    const since30 = this.sinceUtc(30);
     const [activeCampaigns, spendAgg, statRows] = await Promise.all([
       this.prisma.adCampaign.count({
         where: { advertiserId: admin.id, status: AdCampaignStatus.ACTIVE },
@@ -844,10 +844,12 @@ export class AdsService {
       }),
       this.prisma.adDailyStat.groupBy({
         by: ['date'],
-        where: { date: { gte: since7 }, campaign: { advertiserId: admin.id } },
+        where: { date: { gte: since30 }, campaign: { advertiserId: admin.id } },
         _sum: { impressions: true, clicks: true, spendCents: true },
       }),
     ]);
+    // 一次按 30 天窗口取数；7 天序列从同批行裁出（buildDailySeries 只回看各自天数的键）
+    const dailySeries30d = this.buildDailySeries(statRows, 30);
     const dailySeries7d = this.buildDailySeries(statRows, 7);
     return {
       role: AdminRole.SPONSOR,
@@ -856,6 +858,7 @@ export class AdsService {
       impressions7d: dailySeries7d.reduce((a, s) => a + s.impressions, 0),
       clicks7d: dailySeries7d.reduce((a, s) => a + s.clicks, 0),
       dailySeries7d,
+      dailySeries30d,
     };
   }
 

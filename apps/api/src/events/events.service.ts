@@ -12,7 +12,7 @@ import { AdminScopeService } from '../admin-core/admin-scope.service';
 import { AdminActor } from '../admin-core/admin-actor';
 import { EnergyService } from '../energy/energy.service';
 import { PageQuery, paginated, skipTake } from '../common/utils/pagination';
-import { CreateEventDto } from './dto/events.dto';
+import { CreateEventDto, UpdateEventContentDto } from './dto/events.dto';
 
 /**
  * 活动 + 门票（学生会/团队发布活动 → 广场活动帖；用户购票 → 票夹二维码）。
@@ -188,6 +188,76 @@ export class EventsService {
       { timeout: 60_000 },
     );
     return { id: updated.id, status: updated.status };
+  }
+
+  // ─── 后管：编辑活动内容（已售票后票价锁定、容量只可上调；同步广场活动帖）──────
+  async editEventContent(actor: AdminActor, eventId: string, dto: UpdateEventContentDto) {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('活动不存在');
+    this.adminScope.assertSchoolNameInScope(actor, event.school);
+    if (event.status === 'cancelled') {
+      throw new BadRequestException('已取消的活动不可编辑');
+    }
+
+    // 时间窗校验按「新值或旧值」的合成结果——只改一端也不能让区间倒挂
+    const nextStart = dto.startAt ? new Date(dto.startAt) : null;
+    const nextEnd = dto.endAt != null ? new Date(dto.endAt) : null;
+    const effectiveStart = nextStart ?? event.startAt;
+    const effectiveEnd = nextEnd ?? event.endAt;
+    if (effectiveEnd && effectiveEnd <= effectiveStart) {
+      throw new BadRequestException('结束时间必须晚于开始时间');
+    }
+
+    if (event.ticketsSold > 0) {
+      // 票价锁定：退款/学校入账按售出时快照结算，改价会破坏扣退恒等
+      if (dto.priceCents !== undefined && dto.priceCents !== event.priceCents) {
+        throw new BadRequestException('已售出门票，票价不可修改');
+      }
+      // 容量只可放宽：改为 null（不限）恒可；改为数值时须 ≥ max(现容量, 已售)，
+      // 且现为不限时不可收窄回数值（无法证明不越过已售/在途购票）
+      if (dto.capacity !== undefined && dto.capacity !== null) {
+        if (event.capacity == null || dto.capacity < Math.max(event.capacity, event.ticketsSold)) {
+          throw new BadRequestException('已售出门票，容量只可上调');
+        }
+      }
+    }
+
+    const data: {
+      title?: string;
+      content?: string;
+      images?: string[];
+      venue?: string;
+      startAt?: Date;
+      endAt?: Date;
+      priceCents?: number;
+      capacity?: number | null;
+    } = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.content !== undefined) data.content = dto.content;
+    if (dto.images !== undefined) data.images = dto.images;
+    if (dto.venue !== undefined) data.venue = dto.venue;
+    if (nextStart) data.startAt = nextStart;
+    if (nextEnd) data.endAt = nextEnd;
+    if (dto.priceCents !== undefined) data.priceCents = dto.priceCents;
+    if (dto.capacity !== undefined) data.capacity = dto.capacity;
+
+    // 活动帖是创建时的「复制」而非引用（createEvent 事务里另写一份 title/content/images），
+    // 内容变更必须同步回帖，否则广场展示与活动详情漂移
+    const postSync: { title?: string; content?: string; images?: string[] } = {};
+    if (dto.title !== undefined && dto.title !== event.title) postSync.title = dto.title;
+    if (dto.content !== undefined && dto.content !== event.content) postSync.content = dto.content;
+    if (dto.images !== undefined && JSON.stringify(dto.images) !== JSON.stringify(event.images)) {
+      postSync.images = dto.images;
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.event.update({ where: { id: eventId }, data });
+      if (Object.keys(postSync).length > 0) {
+        // updateMany：eventId 唯一至多命中一行，活动帖不存在（如已被下架清理）时静默跳过
+        await tx.squarePost.updateMany({ where: { eventId }, data: postSync });
+      }
+      return updated;
+    });
   }
 
   // ─── 后管：购票名单（分页）───────────────────────────────────
