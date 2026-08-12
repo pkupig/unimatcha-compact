@@ -185,8 +185,8 @@ export class AdminService {
   async createAdminUser(actor: AdminActor, dto: CreateAdminUserDto) {
     const actorRole = actor.role;
 
-    // 分级创建权限（ADMIN-REDESIGN §1/§4）：
-    //   SUPER：任意角色；TEAM：SPONSOR/STUDENT_UNION；学生会：仅本校自拉 SPONSOR
+    // 分级创建权限（ADMIN-REDESIGN §1/§4 + 产品口径 2026-08）：
+    //   SUPER：任意角色；TEAM：SPONSOR/STUDENT_UNION；学生会：不可手建（走邀请码自注册）
     let role: AdminRole;
     let sourcedBySchoolId: string | null = null;
 
@@ -203,10 +203,8 @@ export class AdminService {
       // TEAM 可代学生会创建自拉广告商（显式指定来源学校）
       sourcedBySchoolId = role === AdminRole.SPONSOR ? (dto.sourcedBySchoolId ?? null) : null;
     } else if (actorRole === AdminRole.STUDENT_UNION) {
-      // 学生会：强制 role=SPONSOR、来源锁定本校（忽略 dto.role / dto.sourcedBySchoolId）
-      const school = this.resolveUnionSchool(actor);
-      role = AdminRole.SPONSOR;
-      sourcedBySchoolId = school.id;
+      // 手建广告商收归平台（产品口径 2026-08）：学生会改走邀请码 → 商家自注册
+      throw new ForbiddenException('学生会不可手建广告商账号，请生成邀请码由商家自行注册');
     } else {
       throw new ForbiddenException('当前角色无权创建后管账号');
     }

@@ -322,6 +322,8 @@ export class SquareAdminService {
       createdAt: post.createdAt,
       reportCount,
       author,
+      // 处置被举报作者（封禁）需要用户句柄；匿名帖对管理员本就显示真实昵称，此处不新增泄漏面
+      authorUserId: post.authorType === SquareAuthorType.USER ? post.authorUserId : null,
     };
   }
 

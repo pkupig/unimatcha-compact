@@ -276,9 +276,15 @@ export class EventsService {
       }),
       this.prisma.eventTicket.count({ where: { eventId } }),
     ]);
+    // 购票不限同校，票可属外校用户：email 属跨校个人信息，学生会一律脱敏
+    // （与 square-admin listPostComments 同口径）
+    const items =
+      actor.role === AdminRole.STUDENT_UNION
+        ? tickets.map((t) => ({ ...t, user: { ...t.user, email: null as string | null } }))
+        : tickets;
     return {
       event: { id: event.id, title: event.title, ticketsSold: event.ticketsSold, capacity: event.capacity },
-      ...paginated(tickets, total, q),
+      ...paginated(items, total, q),
     };
   }
 

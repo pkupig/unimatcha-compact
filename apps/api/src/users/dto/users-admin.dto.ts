@@ -27,3 +27,12 @@ export class ListUsersQueryDto extends ListQueryDto {
   @IsIn(['ACTIVE', 'BANNED'])
   status?: 'ACTIVE' | 'BANNED';
 }
+
+export class UsersOverviewQueryDto {
+  @ApiPropertyOptional({
+    description: '学校名（School.name）；SUPER/TEAM 可选，不传=全平台；学生会忽略此参数恒为本校',
+  })
+  @IsOptional()
+  @IsString()
+  school?: string;
+}
