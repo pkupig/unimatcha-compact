@@ -14,7 +14,11 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 
 项目待办总表见 [BACKLOG.md](BACKLOG.md)，**产品功能清单**按端分三份：[docs/FEATURES-APP.md](docs/FEATURES-APP.md) / [docs/FEATURES-WEBSITE.md](docs/FEATURES-WEBSITE.md) / [docs/FEATURES-ADMIN.md](docs/FEATURES-ADMIN.md)（纯功能列表，用户手动维护；技术视角底稿见 [docs/PROJECT-CHECKLIST.md](docs/PROJECT-CHECKLIST.md)），匹配调度方案见 [SCHEDULING.md](SCHEDULING.md)。详细架构、API 文档、快速开始见 [README.md](README.md)。
 
-仓库说明：GitHub 远程 `unipia`（https://github.com/pkupig/unipia）是**唯一**项目仓库，推送用 `git push unipia main`；旧远程 `origin`（campus-love）已弃用，不再同步。源码一律以 `apps/` 为准（unipia 原有的根目录 api/h5/admin-web 部署快照已于 2026-07-13 移除）。
+仓库说明：GitHub 远程 `origin`（https://github.com/pkupig/unimatcha）是**唯一**项目仓库，推送用 `git push origin main`，主分支 `main`。源码一律以 `apps/` 为准（根目录 api/h5/admin-web 部署快照已于 2026-07-13 移除，现已不存在）。
+
+> 2026-08-14 更正：本段此前写的是「远程 `unipia`（pkupig/unipia）为唯一仓库，推送用 `git push unipia main`；旧远程 `origin`（campus-love）已弃用」，与实际不符——当前工作副本只有一个远程 `origin`，指向 `pkupig/unimatcha`（即用户确认的仓库地址），没有 `unipia` 远程，`origin` 也不是 campus-love。推测仓库在 7/13 之后改名/重建而本文档未同步。
+>
+> 本机 git 身份未配置（提交会直接失败），已按历史提交作者在**本仓库**设为 `Mohan Ding <dingmohan2004@hotmail.com>`（未加 `--global`，不影响其他项目）。
 
 ## 每日日志规则
 
