@@ -438,20 +438,41 @@ export class SquareService {
                similarity(COALESCE(p.title, ''), ${q}) * 2.0,
                similarity(LEFT(p.content, 500), ${q}) * 1.2`
       : Prisma.empty;
-    const rows = await this.prisma.$queryRaw<{ id: string; rel: number }[]>(Prisma.sql`
+
+    // 评论命中（P1-9）：LEFT JOIN LATERAL 每帖只取一条最早的命中评论——
+    // 这既给出展示用的片段，又天然按帖去重（一帖 10 条评论命中也只出一张卡，
+    // 否则热帖会用自己的评论把整页搜索结果刷满）。
+    // 片段截断到 120 字：卡片放不下更多，也避免把整篇长评论塞进列表响应。
+    // 只取正文、不带评论作者——匿名帖的评论在详情页本就脱敏，
+    // 搜索结果更不该成为反推身份的旁路。
+    const rows = await this.prisma.$queryRaw<
+      { id: string; rel: number; commentSnippet: string | null }[]
+    >(Prisma.sql`
       SELECT p.id,
              GREATEST(
                CASE WHEN p.title ILIKE ${like} THEN 3.0 ELSE 0 END,
                CASE WHEN ${q} = ANY(p.tags) THEN 2.6 ELSE 0 END,
-               CASE WHEN p.content ILIKE ${like} THEN 1.8 ELSE 0 END${fuzzy}
-             )::float8 AS rel
+               CASE WHEN p.content ILIKE ${like} THEN 1.8 ELSE 0 END,
+               -- 评论命中弱于正文命中：讨论区提到 ≠ 帖子本身讲这个
+               CASE WHEN cm.snippet IS NOT NULL THEN 1.2 ELSE 0 END${fuzzy}
+             )::float8 AS rel,
+             cm.snippet AS "commentSnippet"
         FROM square_posts p
+        LEFT JOIN LATERAL (
+          SELECT LEFT(c.content, 120) AS snippet
+            FROM square_post_comments c
+           WHERE c."postId" = p.id
+             AND c.content ILIKE ${like}
+           ORDER BY c."createdAt" ASC
+           LIMIT 1
+        ) cm ON true
        WHERE p."isHidden" = false
          AND ${scope}
          AND (
               p.title ILIKE ${like}
            OR p.content ILIKE ${like}
            OR p.tags @> ARRAY[${q}]::text[]
+           OR cm.snippet IS NOT NULL
          )
        ORDER BY rel DESC, p."createdAt" DESC
        LIMIT 300
@@ -462,10 +483,19 @@ export class SquareService {
     }
 
     const relById = new Map(rows.map((r) => [r.id, Number(r.rel) || 0]));
+    // 命中片段：仅当帖子本身没命中时才展示，否则卡片上会同时出现标题高亮与
+    // 一句无关的评论，反而看不懂是为什么搜到的
+    const snippetById = new Map(
+      rows.filter((r) => r.commentSnippet).map((r) => [r.id, r.commentSnippet as string]),
+    );
     const posts = await this.prisma.squarePost.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
       include: this.postInclude(),
     });
+
+    // 判定帖子本身是否命中（与上面 SQL 的 ILIKE 同语义：大小写不敏感子串）
+    const needle = q.toLowerCase();
+    const matches = (s: string | null | undefined) => !!s && s.toLowerCase().includes(needle);
 
     // 终排：相关性 × (热度加成) × (新鲜度加成)。两个加成都是 ≤1.3 的乘子，
     // 保证「标题精确命中的冷帖」永远排在「只是正文擦边的热帖」前面。
@@ -482,9 +512,17 @@ export class SquareService {
 
     const total = ranked.length;
     const start = (page - 1) * limit;
-    const items = ranked
-      .slice(start, start + limit)
-      .map((x) => this.shapeCard(x.post, userId, mySchool));
+    const items = ranked.slice(start, start + limit).map((x) => {
+      const card = this.shapeCard(x.post, userId, mySchool);
+      const snippet = snippetById.get(x.post.id);
+      // 帖子本身命中（标题/正文/标签）时不挂片段——那时用户已经看得出为什么搜到它
+      const postItselfHit =
+        (x.post.title && matches(x.post.title)) ||
+        matches(x.post.content) ||
+        (x.post.tags || []).some((t) => t.toLowerCase() === q.toLowerCase());
+      if (snippet && !postItselfHit) card.commentSnippet = snippet;
+      return card;
+    });
     await this.annotateMyVotes(items, userId);
 
     return {

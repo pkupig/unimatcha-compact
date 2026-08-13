@@ -27,7 +27,7 @@ const ZH = {
   Send: '发送', 'Match Settings': '匹配设置', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
   // ── 搜索面板（会话 + 找同学 + 猜你认识）──
-  'Search & discover': '搜索与发现', PEOPLE: '同学', 'FIND PEOPLE': '找同学',
+  'Search & discover': '搜索与发现', PEOPLE: '同学', 'FIND PEOPLE': '找同学', COMMENT: '评论',
   'PEOPLE YOU MAY KNOW': '可能认识的人', 'Searching…': '搜索中…',
   'No one found. Try a nickname, school or major.': '没有找到。试试昵称、学校或专业。',
   'Search failed. Try again.': '搜索失败，请重试。',

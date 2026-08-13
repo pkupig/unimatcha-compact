@@ -797,6 +797,18 @@ function renderSearchPeople() {
   </div>`;
 }
 
+// 命中评论时的片段行（P1-9）：只有搜索命中的是评论、而帖子本身没命中时后端才下发
+// commentSnippet，用来回答「我搜的词明明不在这帖里，为什么搜到它」。
+// 片段是用户内容 → data-no-i18n，防被全局词典误翻。
+function commentSnippetLine(p) {
+  if (!p.commentSnippet) return '';
+  // data-no-i18n 只包住评论正文，不能包整行——否则会连带把「COMMENT」标签也挡在
+  // 词典之外，中文态标签漏译成英文（实测踩过）。标签在外层保持可译。
+  return `<p class="text-[11px] text-outline leading-snug mt-1 pl-2 border-l-2 border-neon/60" style="${clampStyle(2)}">
+    <span class="font-headline text-[9px] font-bold tracking-[0.15em] mr-1">COMMENT</span><span data-no-i18n>${window.escapeHtml(p.commentSnippet)}</span>
+  </p>`;
+}
+
 // Full-width text-only fallback card (also the no-image fallback for official
 // posts). Shows official / Sponsored badge + school pill on a top header row.
 function bentoTextCard(p) {
@@ -856,6 +868,7 @@ function bentoSmallCard(p) {
     ${media}
     <div class="px-2.5 pb-2.5 pt-2">
       <p class="font-headline text-[13px] font-bold tracking-tight leading-snug" style="${clampStyle(2)}" data-no-i18n>${window.escapeHtml(p.title || (p.content || '').substring(0, 60))}</p>
+      ${commentSnippetLine(p)}
       ${cardAuthorRow(p)}
     </div>
   </article>`;
@@ -878,7 +891,9 @@ function bentoWideCard(p) {
     </div>
     ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[6px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
-    <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
+    <p class="text-sm text-on-surface-variant leading-relaxed mb-1" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
+    ${commentSnippetLine(p)}
+    <div class="mb-3"></div>
     ${pollBlock(p)}
     <div class="flex items-center justify-between">
       <button class="flex items-center gap-1 text-neutral-400 active:scale-95 transition-transform" onclick="event.stopPropagation();openPostDetail('${p.id}', true)"><span class="material-symbols-outlined text-sm">chat_bubble</span><span class="text-xs font-bold" data-comment-count>${p.commentCount || 0}</span></button>

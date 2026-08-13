@@ -42,6 +42,12 @@ const STATEMENTS: { label: string; sql: string }[] = [
     sql: `CREATE INDEX IF NOT EXISTS idx_square_posts_tags
           ON square_posts USING gin (tags)`,
   },
+  // 评论正文检索（P1-9）：命中评论时回主帖并附命中片段
+  {
+    label: 'idx_square_post_comments_content_trgm',
+    sql: `CREATE INDEX IF NOT EXISTS idx_square_post_comments_content_trgm
+          ON square_post_comments USING gin (content gin_trgm_ops)`,
+  },
   // ── 联系人搜索：昵称/学校/专业/城市 ──
   {
     label: 'idx_profiles_nickname_trgm',
