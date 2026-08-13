@@ -1,13 +1,32 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { DiscoveryService } from '../discovery/discovery.service';
 import { CreateProfileDto } from '../profiles/dto/profile.dto';
 
-const PRIVACY_KEYS = ['showProfile', 'showOnline', 'showMoments'] as const;
+// searchable：他人按昵称/学校搜索时能否搜到我
+// discoverable：能否把我推荐进他人的「可能认识的人」
+// 两者分开：愿意被认识我名字的人找到 ≠ 愿意被系统主动推给同校同学
+const PRIVACY_KEYS = [
+  'showProfile',
+  'showOnline',
+  'showMoments',
+  'searchable',
+  'discoverable',
+] as const;
 
 const DEFAULT_SETTINGS = {
   pushEnabled: true,
-  privacy: { showProfile: true, showOnline: true, showMoments: true },
+  privacy: {
+    showProfile: true,
+    showOnline: true,
+    showMoments: true,
+    searchable: true,
+    // 默认关闭：这是一个恋爱匹配平台，把用户默认曝光给同校同学
+    // 意味着他还没决定要不要让熟人知道自己在用，就已经被推出去了。
+    // 「猜你认识」必须是用户明确打开的功能，不是默认承担的风险。
+    discoverable: false,
+  },
 };
 
 @Injectable()
@@ -15,6 +34,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private profilesService: ProfilesService,
+    private discovery: DiscoveryService,
   ) {}
 
   async findById(id: string) {
@@ -119,59 +139,12 @@ export class UsersService {
   }
 
   // 查找好友（本轮反馈3）：按昵称/学校模糊搜索，排除自己与封禁用户，标注与我的现有关系。
+  // 找人：实现已迁到 DiscoveryService（trgm 相关性排序 + 更多可检索字段 +
+  // 连接码精确命中 + searchable 隐私过滤）。此处保留为兼容壳，
+  // 出参仍是 { users: [...] }，老调用方不受影响。新端点见 GET /discovery/users。
   async searchUsers(viewerId: string, q: string, limit = 20) {
-    const term = (q || '').trim();
-    if (term.length < 1) return { users: [] };
-    const profiles = await this.prisma.profile.findMany({
-      where: {
-        userId: { not: viewerId },
-        user: { status: { not: 'BANNED' } },
-        OR: [
-          { nickname: { contains: term, mode: 'insensitive' } },
-          { school: { contains: term, mode: 'insensitive' } },
-        ],
-      },
-      select: { userId: true, nickname: true, avatarUrl: true, school: true },
-      take: Math.min(30, Math.max(1, limit)),
-    });
-    const ids = profiles.map((p) => p.userId);
-    const matches = ids.length
-      ? await this.prisma.match.findMany({
-          where: {
-            dissolvedAt: null,
-            status: {
-              in: [
-                'RELATIONSHIP_ROMANTIC',
-                'RELATIONSHIP_MODE',
-                'FRIEND_CONFIRMED',
-                'MATCHED_FRIEND',
-                'MATCHED_ROMANTIC',
-              ],
-            },
-            OR: [
-              { userAId: viewerId, userBId: { in: ids } },
-              { userBId: viewerId, userAId: { in: ids } },
-            ],
-          },
-          select: { userAId: true, userBId: true, status: true },
-        })
-      : [];
-    const relOf = (uid: string) => {
-      const m = matches.find((x) => x.userAId === uid || x.userBId === uid);
-      if (!m) return 'none';
-      if (m.status === 'RELATIONSHIP_ROMANTIC' || m.status === 'RELATIONSHIP_MODE') return 'romantic';
-      if (m.status === 'FRIEND_CONFIRMED') return 'friend';
-      return 'pending';
-    };
-    return {
-      users: profiles.map((p) => ({
-        id: p.userId,
-        nickname: p.nickname,
-        avatarUrl: p.avatarUrl,
-        school: p.school,
-        relationship: relOf(p.userId),
-      })),
-    };
+    const res = await this.discovery.searchUsers(viewerId, q, { limit });
+    return { users: res.users };
   }
 
   // 旧端点（无 mode 参数）：默认返回恋人模式状态，读 UserModeState

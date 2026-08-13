@@ -1116,6 +1116,24 @@ model MatchBehaviorEvent {
 }
 
 // ─────────────────────────────────────────────
+// 「猜你认识」——用户主动忽略的推荐对象（见 src/users/discovery.service.ts）
+// 忽略是单向的：A 忽略 B 后，A 不再看到 B，但 B 仍可能看到 A。
+// 双向屏蔽属于举报/拉黑范畴，不在推荐层解决。
+// ─────────────────────────────────────────────
+
+model UserSuggestionDismiss {
+  id           String @id @default(cuid())
+  userId       String // 执行忽略的人
+  targetUserId String // 被忽略的人
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetUserId])
+  @@index([userId, createdAt])
+  @@map("user_suggestion_dismisses")
+}
+
+// ─────────────────────────────────────────────
 // 官网公开提交（候补名单 / 赞助申请），见 src/public
 // ─────────────────────────────────────────────
 

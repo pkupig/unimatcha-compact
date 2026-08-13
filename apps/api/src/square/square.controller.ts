@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { SquareBoard } from '@prisma/client';
 import { SquareService } from './square.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -45,17 +46,20 @@ export class SquareController {
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 20 })
   @ApiQuery({ name: 'cursor', required: false })
+  @ApiQuery({ name: 'search', required: false, description: '关键词；传了则返回搜索结果而非混排信息流' })
   async listRecommend(
     @CurrentUser('id') userId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
   ) {
     return this.squareService.listRecommend(userId, {
       page: page ? Number(page) : undefined,
       // 页大小由客户端传入，须夹在 [1,50] 防止超大 limit 拖垮查询
       limit: limit != null ? Math.min(Math.max(Number(limit), 1), 50) : undefined,
       cursor,
+      search,
     });
   }
 
@@ -64,17 +68,46 @@ export class SquareController {
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 20 })
   @ApiQuery({ name: 'cursor', required: false })
+  @ApiQuery({ name: 'search', required: false, description: '关键词；同校硬过滤在搜索路径同样保持' })
   async listCampusWall(
     @CurrentUser('id') userId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
+    @Query('search') search?: string,
   ) {
     return this.squareService.listCampusWall(userId, {
       page: page ? Number(page) : undefined,
       // 页大小由客户端传入，须夹在 [1,50] 防止超大 limit 拖垮查询
       limit: limit != null ? Math.min(Math.max(Number(limit), 1), 50) : undefined,
       cursor,
+      search,
+    });
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: '统一搜索：帖子 + 用户两组结果（用户组仅第 1 页返回）' })
+  @ApiQuery({ name: 'q', required: true })
+  @ApiQuery({ name: 'board', required: false, enum: ['recommend', 'campus_wall'], description: '不传则跨两个板块搜' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  async search(
+    @CurrentUser('id') userId: string,
+    @Query('q') q: string,
+    @Query('board') board?: 'recommend' | 'campus_wall',
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.squareService.searchAll(userId, {
+      q: q || '',
+      board:
+        board === 'campus_wall'
+          ? SquareBoard.CAMPUS_WALL
+          : board === 'recommend'
+            ? SquareBoard.RECOMMEND
+            : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit != null ? Math.min(Math.max(Number(limit), 1), 50) : undefined,
     });
   }
 

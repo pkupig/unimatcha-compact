@@ -25,6 +25,7 @@ import { SchoolsModule } from './schools/schools.module';
 import { AdsModule } from './ads/ads.module';
 import { FinanceModule } from './finance/finance.module';
 import { PublicModule } from './public/public.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { PublicModule } from './public/public.module';
     AdminModule,
     LeaderboardModule,
     SquareModule,
+    DiscoveryModule,
     EventsModule,
     MetadataModule,
     UploadsModule,
