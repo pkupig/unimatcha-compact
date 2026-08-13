@@ -26,6 +26,18 @@ const ZH = {
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
   Send: '发送', 'Match Settings': '匹配设置', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
+  // ── 搜索面板（会话 + 找同学 + 猜你认识）──
+  'Search & discover': '搜索与发现', PEOPLE: '同学', 'FIND PEOPLE': '找同学',
+  'PEOPLE YOU MAY KNOW': '可能认识的人', 'Searching…': '搜索中…',
+  'No one found. Try a nickname, school or major.': '没有找到。试试昵称、学校或专业。',
+  'Search failed. Try again.': '搜索失败，请重试。',
+  'No conversations matched.': '没有匹配的会话。', 'No conversations yet.': '还没有会话。',
+  'No posts found': '没有找到帖子', 'Try a different keyword': '换个关键词试试',
+  'Turn on discovery to see classmates you may know. Others only see you if you turn it on too.':
+    '打开发现开关，才能看到可能认识的同学；同样，只有你打开后别人才会看到你。',
+  'Open settings': '前往设置', 'Not interested': '不感兴趣',
+  PENDING: '待确认', PARTNER: '恋人', FRIEND: '好友', Added: '已添加',
+  'Failed to add': '添加失败',
   Save: '保存', Cancel: '取消', Delete: '删除', Remove: '移除', Add: '添加', Close: '关闭', Done: '完成',
   Anniversaries: '纪念日', 'Craving today': '今天想吃', 'Gift jar': '礼物罐', 'Plans & checklist': '计划清单',
   "Today's status": '今日状态', 'Find Friends': '查找好友', Verify: '认证', Pending: '审核中',
@@ -39,6 +51,12 @@ const ZH = {
   'Show my profile': '公开我的资料', 'Allow others to view your profile': '允许他人查看你的资料',
   'Show online status': '显示在线状态', 'Let your match see when you are active': '让匹配对象看到你的在线状态',
   'Show my moments': '公开我的动态', 'Display your moments to others': '向他人展示你的动态',
+  // ── 找人 / 猜你认识（隐私开关文案要把后果说清楚，不能只写开关名）──
+  'Let others find me by name': '允许他人搜到我',
+  'Appear in search results for nickname, school or major': '出现在昵称、学校、专业的搜索结果中',
+  'Suggest me to people I may know': '把我推荐给可能认识的人',
+  'Off by default. Turn it on to see and be seen in “People you may know”. Classmates may recognise you.':
+    '默认关闭。打开后你才能看到「可能认识的人」，同时也会被推荐给他们——同校同学可能认出你。',
   'Push Notifications': '推送通知', 'Match results, messages and likes': '匹配结果、消息与点赞',
   Support: '支持', 'Help Center': '帮助中心', 'Safety Tips': '安全提示', 'Report a Problem': '问题反馈',
   Legal: '法律条款', 'Terms of Service': '用户协议', 'Privacy Policy': '隐私政策',
@@ -167,6 +185,7 @@ const ZH = {
 const ZH_PLACEHOLDER = {
   'Search posts': '搜索帖子', 'Type your response...': '输入消息…',
   'Add an observation...': '写下你的评论…', 'Search your chats': '搜索会话',
+  'Search chats, people, schools': '搜索会话、同学、学校',
   'Title': '标题', 'Capture the moment...': '记录此刻…',
   'Add new interest...': '添加兴趣…', 'e.g. Photography': '例如：摄影',
   'The Scholar': '你的昵称', 'Given name (名)': '名', 'Family name (姓)': '姓',

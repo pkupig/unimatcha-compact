@@ -80,8 +80,14 @@ function switchSquareTab(el, tab) {
   // pending debounced search so it can't fire a stale query after the switch.
   clearTimeout(S._squareSearchTimer);
   S.squareSearchQuery = '';
+  S.squareSearchUsers = []; // 同时清掉「同学」结果，否则切页后它会残留在新页顶部
   const searchEl = document.getElementById('square-search');
   if (searchEl) searchEl.value = '';
+  // 关键词清空后右上角的「筛选中」高亮也要跟着灭
+  const sBtn = document.getElementById('square-search-btn');
+  if (sBtn) sBtn.style.color = '';
+  const sClear = document.getElementById('square-search-clear');
+  if (sClear) sClear.classList.add('hidden');
   // Toggle .active on the header segments (CSS .square-seg.active = neon underline).
   const container = el?.parentElement || document.getElementById('square-tabs');
   if (container) {
@@ -318,8 +324,11 @@ async function loadSquareTab2(tabArg) {
   const search = (S.squareSearchQuery || '').trim();
   const endpoint = tab === 'campus_wall' ? '/square/v2/campus-wall' : '/square/v2/recommend';
   try {
-    let url = `${endpoint}?page=1&limit=20`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
+    // 搜索态走统一搜索端点：一次返回「帖子 + 同学」两组结果。
+    // 非搜索态仍走原信息流端点，混排/广告逻辑完全不变。
+    const url = search
+      ? `/square/v2/search?q=${encodeURIComponent(search)}&board=${tab}&page=1&limit=20`
+      : `${endpoint}?page=1&limit=20`;
     // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，搜索态不插，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
     const wantAds = tab === 'recommend' && !search;
@@ -328,7 +337,10 @@ async function loadSquareTab2(tabArg) {
       wantAds ? fetchSquareAds() : Promise.resolve([]),
     ]);
     if (seq !== S.squareReqSeqs[tab]) return; // superseded by a newer load
-    const env = unwrap(data);
+    const raw = unwrap(data);
+    // 统一搜索的外层是 { query, posts: {...}, users: [...] }，信息流是 { items: [...] }
+    const env = search ? unwrap(raw.posts) : raw;
+    S.squareSearchUsers = search ? (raw.users || []) : [];
     // 记录本次渲染是否为搜索结果（切页时据此决定是否重拉为未过滤流）
     S.squareRenderedSearch = S.squareRenderedSearch || {};
     S.squareRenderedSearch[tab] = !!search;
@@ -381,11 +393,19 @@ function renderSquareNeedSchool(tab) {
 function renderSquareFeed(posts, ads = [], tab) {
   const container = feedEl(tab);
   if (!container) return;
+  // 搜索到的同学：整行卡片置于结果最上方（非搜索态为空串，信息流完全不受影响）
+  const peopleBlock = renderSearchPeople();
   if (!posts.length) {
-    container.innerHTML = `<div class="col-span-2 text-center py-24">
+    container.innerHTML = peopleBlock + `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('grid_view')}
-      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No posts yet</p>
-      <p class="text-sm text-on-surface-variant mt-2">Be the first to share a moment</p>
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">${
+        (S.squareSearchQuery || '').trim() ? 'No posts found' : 'No posts yet'
+      }</p>
+      <p class="text-sm text-on-surface-variant mt-2">${
+        (S.squareSearchQuery || '').trim()
+          ? 'Try a different keyword'
+          : 'Be the first to share a moment'
+      }</p>
     </div>`;
     layoutSquareMasonry();
     return;
@@ -401,7 +421,7 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 奇数小卡或被大卡打断都不再留视觉空位。
   // 广告插入规则（ADMIN-REDESIGN §6）：首屏第 3 个卡位后插 1 个，此后每 8 个小卡
   // 插 1 个；按拉取顺序轮换，本次渲染内不重复，用完即止。校园墙调用方传空 ads。
-  let html = '';
+  let html = peopleBlock;
   let adIdx = 0;             // 下一个待插广告下标
   let cardCount = 0;         // 总卡计数（首个广告在第 3 卡之后）
   let smallSinceAd = 0;      // 上个广告以来累计的小卡数（每满 8 再插）
@@ -759,6 +779,21 @@ function cardAuthorRow(p) {
       <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>
     </div>
     ${postLikeButton(p)}
+  </div>`;
+}
+
+// ── 搜索结果里的「同学」区（整行，置于帖子结果之上）─────────────────
+// 数据来自 GET /square/v2/search 的 users 字段；非搜索态 S.squareSearchUsers 为空，
+// 返回空串，普通信息流的 DOM 完全不变。
+function renderSearchPeople() {
+  const users = S.squareSearchUsers || [];
+  if (!users.length) return '';
+  const rows = users.map((u) => window.userResultRow(u, { compact: true })).join('');
+  return `<div class="col-span-2 mb-1.5">
+    <div class="bg-surface-container-lowest border border-outline-variant/10 rounded-[6px] overflow-hidden">
+      <div class="px-4 pt-3 pb-1 font-headline text-[10px] font-bold tracking-[0.2em] text-outline">PEOPLE</div>
+      ${rows}
+    </div>
   </div>`;
 }
 

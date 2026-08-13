@@ -58,7 +58,7 @@ function toggleChatPlusMenu() {
   const existing = document.getElementById('chat-plus-menu');
   if (existing) { existing.remove(); return; }
   const items = [
-    { icon: 'search', label: 'Search chats', run: () => window.openFriendHubAt('search') },
+    { icon: 'search', label: 'Search & discover', run: () => window.openFriendHubAt('search') },
     { icon: 'qr_code_2', label: 'Add by QR', run: () => window.openFriendHubAt('qr') },
     { icon: 'hub', label: 'Relationship Network', run: () => window.openFriendHubAt('graph') },
     { icon: 'dark_mode', label: 'Dark mode', run: () => window.toggleDarkMode() },
