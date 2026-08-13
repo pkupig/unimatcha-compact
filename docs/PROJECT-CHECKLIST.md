@@ -1,7 +1,8 @@
 # Unimatcha 项目内容总清单
 
-> **技术视角底稿**（2026-08-10 全仓实扫生成：7 大模块 367 条 + 查漏 4 条，含代码路径，开发时对照用）。
-> **产品视角主档见 [PRODUCT-CHECKLIST.md](PRODUCT-CHECKLIST.md)**——日常维护勾选以产品主档为准，本文件随代码变动同步。
+> **技术视角底稿**（2026-08-10 全仓实扫生成：7 大模块 367 条 + 查漏 4 条，含代码路径，开发时对照用；2026-08-13 补录搜索与发现）。
+> **产品视角主档见按端拆分的三份纯功能列表**：[FEATURES-APP.md](FEATURES-APP.md) / [FEATURES-WEBSITE.md](FEATURES-WEBSITE.md) / [FEATURES-ADMIN.md](FEATURES-ADMIN.md)——日常维护勾选以产品主档为准，本文件随代码变动同步。
+> （原 PRODUCT-CHECKLIST.md 已于 2026-08-10 拆分为上述三份并删除，内容存于 git 历史 1457de7。）
 
 **状态图例**
 
@@ -21,8 +22,8 @@
 
 | 模块 | 条目 | ✅ 完成 | 🟡 半成品/mock | 🚧 进行中 | ⬜ 待办 | ❓ | 完成度 |
 |---|---|---|---|---|---|---|---|
-| 后端 API | 52 | 42 | 8 | 0 | 2 | 0 | 81% |
-| H5 移动端 | 75 | 70 | 4 | 0 | 1 | 0 | 93% |
+| 后端 API | 58 | 48 | 8 | 0 | 2 | 0 | 83% |
+| H5 移动端 | 75 | 71 | 4 | 0 | 0 | 0 | 95% |
 | 管理后台 | 49 | 43 | 5 | 0 | 1 | 0 | 88% |
 | 官网 | 47 | 44 | 1 | 0 | 2 | 0 | 94% |
 | iOS 客户端 + 旧版 Web 官网 | 46 | 28 | 9 | 0 | 6 | 3 | 61% |
@@ -61,6 +62,10 @@
 - [x] **聊天** — 会话列表、消息发送/轮询（复合游标不丢同毫秒消息，无 WebSocket）、已读/未读、拍一拍 nudge（消息文案为英文写死，H5 侧本地化）、每会话聊天背景 `apps/api/src/chat/chat.controller.ts`
 - [x] **情侣空间** — GET /couple/:matchId 聚合页；封面、说 100 次我爱你、状态、想吃/想要 craving、日程、纪念日、愿望清单（bucket）各自 CRUD，里程碑通知 `apps/api/src/couple/couple.controller.ts`
 - [x] **广场 v2（推荐流 + 校园墙）** — 发帖（含匿名化名/官方帖/投票帖审核制）、recommend/campus-wall 双流（按天稳定洗牌）、详情、投票/改票、点赞（匿名 token 防反推）、评论（楼中楼）、举报、删帖 `apps/api/src/square/square.controller.ts`
+- [x] **广场搜索** — GET /square/v2/search（帖子+用户两组，用户组仅第 1 页）；recommend/campus-wall 亦支持 search 参数（此前该参数被静默忽略，H5 已在发但后端不读）。pg_trgm 子串检索，相关性 标题 3.0 > 标签精确 2.6 > 正文 1.8 + similarity 模糊兜底，终排 rel×(1+0.12·热度)×(1+0.1·新鲜度)；可见性与信息流同口径（校园墙同校硬过滤在跨板 OR 时各自带约束） `apps/api/src/square/square.service.ts` searchPosts/searchAll
+- [x] **猜你喜欢（推荐流个性化）** — 由点赞/评论聚合 tag/作者/学校三张权重表（评论权重 2.5×点赞），进程内 5 分钟 TTL 缓存 + 点赞/评论即时失效；affinity 以 0.45 权重进 scorePersonalCard（低于热度 0.5），行为 <3 次不做个性化避免冷启动劣化 `apps/api/src/square/square.service.ts` getTasteProfile/affinityOf
+- [x] **找人（联系人搜索）** — GET /discovery/users：昵称/学校/专业/城市/标签/兴趣 + 连接码精确命中置顶（绕过 searchable，因对方给码即同意）；相关性排序 + 分页 + 关系态标注；`/users/search` 保留为兼容壳 `apps/api/src/discovery/discovery.service.ts`
+- [x] **猜你认识** — GET /discovery/suggestions + POST suggestions/:userId/dismiss。三路召回：二度好友（3.0·log2(1+共同好友)，对数抑制中心节点刷屏）/ 同校同年级同专业+兴趣重合 / 广场共现（≥2 次）；原因码由后端下发、文案前端出。**隐私为主设计**：privacy.discoverable 默认关闭且双向要求（viewer 未开→功能不可用并引导，候选未开→不被推出），单侧打开零曝光；排除集合含已解除关系的人（故意不带 dissolvedAt 过滤） `apps/api/src/discovery/discovery.service.ts`
 - [ ] 🟡 **活动与门票** — GET /events/:id、tickets/mine、POST /:id/purchase——购票即出票为 mock 支付（每人限购 2 张、条件自增防超卖）；核销/名单在 admin 侧 `apps/api/src/events/events.service.ts:15`
 - [ ] 🟡 **能量系统** — 余额/流水/领取/消耗退款闭环完整；充值 purchase/confirm 为 mock 支付（仅生成订单号，paymentIntent {mock:true}，无真实渠道） `apps/api/src/energy/energy.service.ts:267-321`
 - [x] **通知** — GET /notifications、unread-count、单条/批量已读；16 类通知（赞/评论/审核/退款/里程碑等，正文英文，H5 本地化） `apps/api/src/notifications/notification.controller.ts`
@@ -87,8 +92,10 @@
 - [x] **广场与活动域** — SquarePost（postType/reviewStatus/eventId）/SquarePostComment/SquarePostLike/SquarePollVote + Event/EventTicket `apps/api/prisma/schema.prisma:640-807`
 - [x] **消息通知与举报域** — Message/Notification/Report/SystemConfig `apps/api/prisma/schema.prisma:808-867`
 - [x] **商业化域** — School/AdCampaign/AdPlacement/AdDailyStat/SchoolLedgerEntry/WithdrawalRequest `apps/api/prisma/schema.prisma:901-1058`
-- [x] **官网提交域** — PublicSubmission（WAITLIST/SPONSOR 类型 + 处理工作流状态与经手人字段） `apps/api/prisma/schema.prisma:1105-1136`
+- [x] **官网提交域** — PublicSubmission（WAITLIST/SPONSOR 类型 + 处理工作流状态与经手人字段） `apps/api/prisma/schema.prisma`
+- [x] **发现域** — UserSuggestionDismiss（(userId,targetUserId) 唯一，单向永久忽略）；隐私开关 searchable/discoverable 复用 User.settings.privacy JSON（无需建列） `apps/api/prisma/schema.prisma` UserSuggestionDismiss
 - [ ] 🟡 **迁移管理** — prisma/migrations 目录为空——生产走 db push 而非 migrate（Dockerfile 启动时 npx prisma db push） `apps/api/prisma/migrations（空）`
+- [x] **搜索索引（db push 无法声明的部分）** — prisma/ensure-search-indexes.ts 幂等补 pg_trgm 扩展 + 10 个 GIN/复合索引（square_posts title/content/tags、profiles nickname/school/major/city/interests/tags、school+grade），接入 Dockerfile 启动链；**失败不阻断启动**，配套 PrismaService.hasTrgm() 探测一次并缓存，缺扩展时 SQL 去掉 similarity 分量降级为纯 ILIKE `apps/api/prisma/ensure-search-indexes.ts`
 
 ### 任务调度、Seed 与脚本
 
@@ -157,7 +164,7 @@
 - [x] **能量退款横幅** — 过期未确认匹配的退款通知在会话列表顶部浮出 `chat.js(checkRefundOnSessions/showRefundBanner)`
 - [x] **加好友中心** — 我的连接码二维码(qrcodejs)/摄像头扫码(html5-qrcode,失败退手输)/手输码连接 → 直开会话 `apps/h5/src/modules/addfriend.js`
 - [x] **关系网图谱** — SVG 绘制直接关系图，线粗=亲密度，点节点开聊 `addfriend.js(loadFriendGraph/renderGraphSvg)`
-- [x] **聊天搜索** — 按昵称过滤会话（副行含学校中文映射），点结果直开 `addfriend.js(runFriendSearch)`
+- [x] **搜索与发现面板** — 上区按昵称/备注/学校/末条消息过滤本地会话（点结果直开）；下区空关键词时挂「可能认识的人」（原因标签+忽略+一键加好友），有关键词时改挂 /discovery/users 找同学；未开 discoverable 出引导开启而非空列表 `addfriend.js(runFriendSearch/searchPeople/loadSuggestions/userResultRow)`
 
 ### 广场（推荐流+校园墙）
 
@@ -169,10 +176,10 @@
 - [ ] 🟡 **活动卡与购票** — 活动条/详情块/购票确认卡已完整，但支付为 mock（确认文案自述 beta 期 mock，直接落票夹） `square.js(buyEventTicket: 'Payment is mocked in beta')`
 - [x] **帖子详情与评论** — 图片轮播、楼层分组评论+回复、点赞、评论数点击滚动聚焦输入条、时间/排序 `square.js(renderPostDetail/renderPdComment/focusPdComposer)`
 - [x] **点赞与双页状态同步** — 列表/详情/两页副本三方同步 `square.js(syncPostLikeState/patchSquareCard)`
-- [x] **广场搜索** — 搜索条展开/收起、走后端 ?search= 参数、有筛选时图标变绿提示、清空恢复（后端搜索语义升级待定） `square.js(runSquareSearch)`
+- [x] **广场搜索** — 搜索条展开/收起、有筛选时图标变绿提示、清空/切页恢复未过滤流并熄灭高亮；搜索态改走 /square/v2/search，结果顶部渲染 PEOPLE 区（共享 userResultRow） `square.js(runSquareSearch/loadSquareTab2/renderSearchPeople)`
 - [x] **可拖动发帖按钮** — FAB 拖动+边缘吸附+localStorage 位置记忆，拖动期间禁横滑 `square.js(bindFabDrag)`
 - [x] **广告注入** — 推荐流插 Sponsored 大卡（搜索态/校园墙不插），IntersectionObserver 计曝光去重、点击落地页或详情浮层、事件批量上报+pagehide flush、换账号重置会话 `apps/h5/src/modules/ads.js`
-- [ ] **帖子内举报入口** — 卡片/详情无单帖举报按钮，仅设置页通用「报告问题」表单可选 Report a user；后台举报队列已就绪 `square.js 无 report 调用`
+- [x] **帖子内举报入口** — 详情页页眉「更多」操作卡（分享/举报帖子，两步确认防误触）走 POST /square/v2/posts/:id/report；评论长按 600ms 弹操作卡（分享/点赞/举报），评论举报走通用 POST /reports（category=content，带 commentId/postId/摘要） `square.js:1066,1092`
 
 ### 情侣空间与里程碑
 
@@ -204,7 +211,7 @@
 
 ### 设置与支持
 
-- [x] **设置页** — 账号(改密)/偏好(语言+深色)/推送/拍一拍后缀/隐私三开关，全部即时保存带并发防抖 `apps/h5/src/modules/settings.js`
+- [x] **设置页** — 账号(改密)/偏好(语言+深色)/推送/拍一拍后缀/隐私五开关（公开资料·在线状态·公开动态·允许被搜到·允许被推荐），全部即时保存带并发防抖；SETTING_FALLBACKS 让 discoverable 缺键兜底 false（其余仍兜底 true），避免老用户看到与后端相反的开态 `apps/h5/src/modules/settings.js(getSettingValue)`
 - [x] **内容页四篇双语** — 帮助中心/安全提示/用户协议/隐私政策，中文态整页切换英文回退 `settings.js(CONTENT_PAGES/CONTENT_PAGES_ZH)`
 - [x] **联系我们与报告问题** — 联系弹窗(contact@unimatcha.ai)；报告表单分类(bug/用户等)提交 feedback 接口 `settings.js(openContactUs/submitReport)`
 
@@ -551,10 +558,10 @@
 
 ### 根目录核心文档
 
-- [ ] 🟡 **README.md（项目总览）** — 架构图/技术栈/ERD/API 文档/快速开始/AI 接入点齐全，但内容停在早期单模式世代：仍写排行榜、情侣广场、campuslove.com 默认管理员、5 服务端口直连，与现双模式+八容器+Caddy 生产架构脱节 `README.md（排行榜/情侣广场章节 vs CLAUDE.md 2026-07-18「删除排行榜」、广场改版记录）`
+- [ ] 🟡 **README.md（项目总览）** — 2026-08-13 已修：广场章节从**已下线的 v1 路径**（`/square/posts`，实际只挂 `/square/v2`，文档端点全 404）更正为 v2 全量端点、新增「搜索与发现」章节与隐私模型表、新增 pg_trgm 索引部署说明、默认管理员补 env 覆盖提示、模块图与目录树补 discovery。**仍待修**：ERD 与「核心表说明」停在单模式世代（无 UserModeState/能量/广告/活动等域）、排行榜章节仍在（后端保留但前端已下线）、快速开始的 5 服务端口直连与现八容器 + Caddy 生产架构脱节 `README.md`
 - [x] **SCHEDULING.md（匹配调度与活动发布方案）** — 白话讲解 cron/MatchConfig；方案 A（改 cron 周日公布，零代码）步骤+文案齐备；方案 B（MatchRound 两阶段轮次）与 Announcement 公告系统仅为设计（对应 P1-4/P1-5 未实现） `SCHEDULING.md`
 - [x] **DEPLOY.md（生产部署手册）** — unimatcha.ai 五子域架构表、Spaceship DNS 5 条 A 记录、生产 .env 模板（密钥/MATCH_API_KEY fail-closed/SEED_DEMO=false）、启动/验证清单/日常更新/常见问题，与实际上线流程一致 `DEPLOY.md`
-- [x] **BACKLOG.md（待办与缺口总表）** — 项目「记忆备份」：已完成现状清单 + P0/P1/P2 分级待办 + 五项关键决策 + 纪律红线，更新至 2026-07-13；逐条状态见下方专节 `BACKLOG.md`
+- [x] **BACKLOG.md（待办与缺口总表）** — 项目「记忆备份」：已完成现状清单 + P0/P1/P2 分级待办 + 五项关键决策 + 纪律红线，更新至 2026-08-13（新增 P1-9 广场搜索纳入评论、P1-10 猜你认识用反馈调权）；逐条状态见下方专节 `BACKLOG.md`
 - [x] **CLAUDE.md（每日日志制度）** — 日志规则+按日倒序开发日志（2026-07-03 起），是判断各待办完成状态的主要依据；超 30 条归档到 docs/DEVLOG-archive.md 的规则尚未触发（该文件不存在） `CLAUDE.md`
 
 ### docs/ 设计与规格文档
@@ -587,6 +594,9 @@
 - [ ] **P1-5 调度 B 方案（MatchRound 两阶段轮次）** — 开池/计算/公布三时刻分离+公布前人工审核，仅 SCHEDULING.md 有设计，无代码 `BACKLOG.md P1-5`
 - [ ] 🟡 **P1-6 前端反馈收集 UI** — 行为埋点半（viewed/openedProfile 上报）07-21 已接；显式反馈（合适/不合适原因、聊后反馈、解除原因）UI 未见实现 `BACKLOG.md P1-6`
 - [ ] 🟡 **P1-7 探索流量（反马太效应加权）** — waitingRounds/exposureCount 字段已在 schema 预留，后端填充候选与加权逻辑未实现 `BACKLOG.md P1-7`
+- [ ] 🟡 **P1-8 门票加入 Apple Wallet** — 前端入口与下载逻辑已就绪（addTicketToWallet），入口由 ENABLE_APPLE_WALLET 暂隐；阻塞在 Apple 证书（开发者计划 + Pass Type ID + WWDR），后端 pkpass 签发未实现 `BACKLOG.md P1-8`
+- [ ] **P1-9 广场搜索纳入评论内容** — 现仅检索帖子 title/content/tags；square_post_comments.content 无 trgm 索引，且命中评论后返回主帖还是定位楼层的产品语义未定 `BACKLOG.md P1-9`
+- [ ] **P1-10 「猜你认识」用真实反馈调权** — 各路召回权重目前是手写常数；UserSuggestionDismiss（强负）与加好友（强正）尚未作为训练信号采集 `BACKLOG.md P1-10`
 - [ ] **P2-1~P2-5 规模化远期（Embedding 召回/Blossom 全局匹配/端到端精排/分群监控与 A/B/回放仪表盘）** — 全部为用户量上万或有大量真实反馈后才启动的远期项，均无实现 `BACKLOG.md 第四节`
 - [ ] 🚧 **五项关键决策待拍板（基座模型/时区/匹配周期/首版档位/匹配花费）** — 均未正式确认：脚本默认 Europe/London、生产仍周五 17:00 沪时公布、档位事实用 mock、花费用 ModeProfile 默认值（恋爱 3/朋友 1） `BACKLOG.md 第五节`
 

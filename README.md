@@ -42,7 +42,7 @@
 │                   API Server (NestJS)                       │
 │                                                             │
 │  Auth  Users  Profiles  Questionnaire  Answers  Matching   │
-│  Square  Chat  Notifications  Leaderboard  Uploads  Admin  │
+│  Square  Discovery  Chat  Notifications  Uploads  Admin    │
 │                                                             │
 │  ┌──────────────────┐    ┌─────────────────────────┐       │
 │  │   BullMQ Queue   │    │   MatchModelProvider    │       │
@@ -103,7 +103,8 @@ unimatcha/
 │   │   │   ├── answers/              # 用户答案
 │   │   │   ├── matching/             # 匹配引擎 & 状态机
 │   │   │   │   └── providers/        # AI 接入点（Stub + 接口定义）
-│   │   │   ├── square/               # 情侣广场（帖子 + 评论 + 点赞）
+│   │   │   ├── square/               # 广场 v2（双流 + 帖子搜索 + 个性化重排）
+│   │   │   ├── discovery/            # 找人 + 猜你认识（含隐私开关口径）
 │   │   │   ├── chat/                 # 情侣实时聊天（轮询）
 │   │   │   ├── notifications/        # 系统通知中心
 │   │   │   ├── uploads/              # 图片上传（头像 / 封面 / 帖子图）
@@ -113,6 +114,7 @@ unimatcha/
 │   │   │   └── common/               # 公共装饰器 / 过滤器 / 守卫
 │   │   ├── prisma/
 │   │   │   ├── schema.prisma         # 数据库 Schema
+│   │   │   ├── ensure-search-indexes.ts  # pg_trgm 扩展 + 搜索 GIN 索引（幂等）
 │   │   │   └── seed.ts               # 初始数据
 │   │   └── Dockerfile
 │   │
@@ -341,23 +343,91 @@ POST /matching/dissolve          解除恋爱关系
 }
 ```
 
-### 情侣广场
+### 广场 v2
+
+> 旧的 `/square/posts`（情侣广场 CouplePost 体系）已废弃且**不再挂载**，全部用户侧端点在 `/square/v2/*`。
 
 ```
-GET  /square/posts               获取帖子列表（支持分页）
-POST /square/posts               发布新帖子（需 relationship 状态）
-GET  /square/posts/:id           获取帖子详情（含评论）
-POST /square/posts/:id/comments  发表评论
-POST /square/posts/:id/like      点赞 / 取消点赞
+POST /square/v2/posts                发帖（board=recommend|campus_wall，支持匿名 / 投票帖）
+GET  /square/v2/recommend            推荐流（加权混排 + 个性化重排），支持 ?search=
+GET  /square/v2/campus-wall          校园墙流（同校硬过滤），支持 ?search=
+GET  /square/v2/search               统一搜索：帖子 + 用户
+GET  /square/v2/posts/:id            帖子详情（含评论、myLiked）
+POST /square/v2/posts/:id/like       点赞 / 取消点赞
+POST /square/v2/posts/:id/comments   发表评论（支持楼中楼）
+POST /square/v2/comments/:id/like    评论点赞
+POST /square/v2/posts/:id/vote       投票 / 改票
+POST /square/v2/posts/:id/report     举报帖子
+DELETE /square/v2/posts/:id          删除自己的帖子
 ```
+
+**搜索参数：**
+
+| 参数 | 说明 |
+|---|---|
+| `q` | 关键词（`/search`）；两个信息流端点上叫 `search` |
+| `board` | `recommend` / `campus_wall`，不传则跨两个板块搜 |
+| `page` / `limit` | 分页，limit 夹在 [1,50] |
+
+检索基于 **pg_trgm** 子串匹配（中英混排内容不能用 Postgres 内置全文检索——它对中文不分词）。
+相关性：标题命中 > 标签精确命中 > 正文命中，另有 `similarity()` 模糊兜底；
+终排 `rel × (1+0.12·热度) × (1+0.1·新鲜度)`，保证标题精确命中的冷帖排在正文擦边的热帖之前。
+可见性与信息流完全同口径：校园墙的同校硬过滤在跨板搜索时仍然生效。
 
 **发布帖子：**
 ```json
 {
-  "content": "今天一起去看了落日，很美。",
-  "images": ["http://.../uploads/xxx.jpg", "http://.../uploads/yyy.jpg"]
+  "board": "recommend",
+  "title": "期末复习互助",
+  "content": "找人一起复习高等数学",
+  "images": ["http://.../uploads/xxx.jpg"],
+  "anonymous": false
 }
 ```
+
+### 搜索与发现
+
+```
+GET  /discovery/users                       找人（昵称/学校/专业/城市/标签/兴趣，也支持连接码精确命中）
+GET  /discovery/suggestions                 猜你认识
+POST /discovery/suggestions/:userId/dismiss 忽略某个推荐（单向、永久）
+GET  /users/search                          兼容壳，等价于 /discovery/users（出参仅 { users }）
+```
+
+**隐私模型（改动前务必先读）：**
+
+这是恋爱匹配平台，把「谁在用这个 app」暴露给熟人是真实伤害，因此发现能力由两个**相互独立**的开关控制，
+均存于 `User.settings.privacy`：
+
+| 开关 | 默认 | 含义 |
+|---|---|---|
+| `searchable` | **开** | 别人按昵称/学校搜索时能否搜到我 |
+| `discoverable` | **关** | 能否把我推荐进他人的「猜你认识」 |
+
+- 两者刻意分离：愿意被知道名字的人找到 ≠ 愿意被系统主动推给同校同学。
+- `discoverable` 是**双向要求**：调用方自己没打开则整个功能不可用（返回 `enabled:false`，前端引导开启
+  而不是给空列表），被推荐方没打开则不会被推出去——**单侧打开产生零曝光**。
+- 连接码精确命中**刻意绕过 `searchable`**：对方把码给了你，就是明确同意被你找到。
+- 推荐候选排除**所有已建立过关系的人，包括已解除的**（故意不带 `dissolvedAt` 过滤）——
+  把分手/绝交的两人再推到对方面前是明确伤害。
+
+**猜你认识响应：**
+```json
+{
+  "enabled": true,
+  "items": [{
+    "id": "clxxx", "nickname": "晨曦", "school": "University of Warwick",
+    "relationship": "none", "score": 4.2,
+    "reasons": [
+      { "code": "mutualFriends", "count": 3 },
+      { "code": "sameMajor", "value": "Computer Science" }
+    ]
+  }]
+}
+```
+
+原因码（`mutualFriends` / `sameMajor` / `sameGrade` / `sameSchool` / `sharedInterests` / `coEngagement`）
+由后端下发，**文案在前端生成**——这样中英切换不需要后端参与。
 
 ### 聊天
 
@@ -461,8 +531,11 @@ open http://localhost:3002            # H5 移动端
 
 ### 默认管理员账号
 
-- 邮箱：`admin@campuslove.com`
-- 密码：`Admin@123456`
+- 邮箱：`admin@campuslove.com`（seed 默认值，沿用旧品牌；由 `SEED_ADMIN_EMAIL` 覆盖）
+- 密码：`Admin@123456`（由 `SEED_ADMIN_PASSWORD` 覆盖）
+
+> 生产环境两项均通过环境变量设置（线上实际为 `admin@unimatcha.ai`），
+> 切勿使用上述默认值部署。
 
 ---
 
@@ -570,6 +643,34 @@ docker compose exec api npx prisma db push --accept-data-loss
 docker compose exec api npx prisma studio
 ```
 
+### 搜索索引（pg_trgm）
+
+搜索依赖 `pg_trgm` 扩展与一组 GIN 索引。这些**无法用 Prisma schema 声明**（本项目走 `db push` 而非
+migrate），因此由幂等脚本 `apps/api/prisma/ensure-search-indexes.ts` 补齐，已接入容器启动链，
+正常部署无需手动操作：
+
+```bash
+# 启动链：db push → ensure-search-indexes → seed → 启动
+# 需要时也可单独重跑（幂等，可重复执行）
+docker compose exec api node dist/prisma/ensure-search-indexes.js
+```
+
+**权限要求**：建扩展需要 DB 用户具备 `CREATE EXTENSION` 权限（自建 Postgres 的 superuser 默认有；
+部分托管数据库需要先在控制台启用 pg_trgm）。
+
+**没有权限也不会挂**：脚本吞异常不阻断启动，运行时 `PrismaService.hasTrgm()` 探测一次并缓存，
+缺扩展时自动去掉 SQL 里的 `similarity()` 模糊分量、降级为无索引的纯 `ILIKE`——
+搜索功能仍可用（少了错别字容错），只是大数据量下会变慢。日志会打印
+`pg_trgm not installed — search falls back to unranked ILIKE`。
+
+验证扩展与索引是否就位：
+
+```bash
+docker compose exec postgres psql -U unimatcha -d unimatcha \
+  -c "SELECT extname FROM pg_extension WHERE extname='pg_trgm';" \
+  -c "SELECT indexname FROM pg_indexes WHERE indexname LIKE 'idx_%' ORDER BY 1;"
+```
+
 ---
 
 ## AI 匹配接入点
@@ -635,8 +736,11 @@ interface MatchResult {
 |---|---|
 | 启动 | Splash 动画过渡 |
 | 注册 / 登录 | 邮箱密码认证 |
-| **匹配**（4-Tab 导航之一） | 加入匹配池 → 匹配中动画（含周五倒计时）→ 周五 17:00 弹窗公布结果 → 永久展示配对信息 |
-| **广场** | 小红书双列瀑布流；点进帖子查看完整内容、翻页图片、评论区（按热度 / 时间排序）；发布图文帖子 |
+| **匹配**（3-Tab 导航之一：匹配 / 广场 / 我的） | 加入匹配池 → 匹配中动画（含周五倒计时）→ 周五 17:00 弹窗公布结果 → 永久展示配对信息 |
+| **广场** | 双列瀑布流（推荐 + 校园墙双页横滑）；帖子详情、翻页图片、楼中楼评论；发布图文 / 匿名 / 投票帖 |
+| **广场搜索** | 按标题 / 正文 / 标签检索（中英文均可），结果顶部并列展示搜到的同学 |
+| **猜你喜欢** | 推荐流按点赞与评论历史个性化重排（行为不足 3 次不介入，避免冷启动劣化） |
+| **搜索与发现** | 搜会话 / 找同学（昵称·学校·专业·城市·标签·连接码）/ 可能认识的人（带推荐理由、可忽略、可一键加好友） |
 | **聊天** | 配对后专属聊天室，微信风格气泡 |
 | **我的** | 小红书风格个人主页；编辑资料、头像、封面；恋爱积分展示；社交链接；退出 |
 | 通知中心 | 全局右上角通知铃；匹配结果、点赞、评论通知 |
