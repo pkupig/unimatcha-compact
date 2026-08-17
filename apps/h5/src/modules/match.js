@@ -466,9 +466,9 @@ function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
       ${renderMatchWaitAnim(true)}
-      <div class="mt-8 flex flex-col items-center">
-        <div class="font-mono text-4xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
-        ${lastEnhancedRound[mode] ? '<span class="mt-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
+      <div class="mt-8 w-full max-w-sm mx-auto flex flex-col items-center">
+        ${renderCountdownBoxes()}
+        ${lastEnhancedRound[mode] ? '<span class="mt-5 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
@@ -734,6 +734,37 @@ function getNextCronRun(cronExpr) {
 }
 window.getNextCronRun = getNextCronRun;
 
+// 倒计时分格（用户反馈：要有格子分开时间单位的大格子）：天/时/分/秒 各占一格。
+// 只渲染骨架，数字由 startCountdownTick 每秒按 [data-cd] 就地更新——不整块重渲，
+// 避免每秒重建 DOM 打断过渡与无障碍焦点。
+function countdownParts(diff) {
+  if (!(diff > 0)) return { d: 0, h: 0, m: 0, s: 0 };
+  return {
+    d: Math.floor(diff / 86400000),
+    h: Math.floor((diff % 86400000) / 3600000),
+    m: Math.floor((diff % 3600000) / 60000),
+    s: Math.floor((diff % 60000) / 1000),
+  };
+}
+
+function renderCountdownBoxes() {
+  const zh = (window.getLang?.() === 'zh');
+  const units = [
+    ['d', zh ? '天' : 'DAYS'],
+    ['h', zh ? '时' : 'HRS'],
+    ['m', zh ? '分' : 'MIN'],
+    ['s', zh ? '秒' : 'SEC'],
+  ];
+  // 恒为 4 格（天为 0 时显示 00），避免格数变化导致布局跳动
+  return `<div id="match-countdown" class="w-full flex items-stretch gap-2">
+    ${units.map(([k, label]) => `
+      <div class="flex-1 min-w-0 rounded-[16px] bg-surface-container-low py-4 px-1 flex flex-col items-center">
+        <span data-cd="${k}" class="font-mono text-[36px] font-bold leading-none tracking-tight text-primary tabular-nums" data-no-i18n>00</span>
+        <span class="text-[9px] font-bold tracking-[0.16em] text-outline mt-2.5" data-no-i18n>${label}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
 function formatCountdown(diff) {
   if (diff <= 0) return '00:00:00';
   const d = Math.floor(diff / 86400000),
@@ -747,13 +778,27 @@ window.formatCountdown = formatCountdown;
 
 // 优先用后端下发的 nextRunAt；缺失时 fallback 到本地 cron 解析，再退到周五 17:00。
 // 按当前匹配模式从分桶读取状态。
-function getMatchCycleCountdown() {
+// 距下一轮公布的毫秒数：优先后端 nextRunAt → 本地 cron 解析 → 周五 17:00 兜底
+function getMatchCycleMs() {
   const mode = S.activeMatchMode || 'romantic';
   const st = S.matchStatus?.[mode];
   let next = st?.nextRunAt ? new Date(st.nextRunAt) : null;
   if (!next || isNaN(next.getTime())) next = window.getNextCronRun(st?.matchConfig?.cronExpr);
-  if (!next) return window.getNextFriday5pmCountdown();
-  return window.formatCountdown(next - Date.now());
+  if (!next) {
+    const now = new Date();
+    const day = now.getDay();
+    let dd = (5 - day + 7) % 7;
+    if (dd === 0 && now.getHours() >= 17) dd = 7;
+    next = new Date(now);
+    next.setDate(now.getDate() + dd);
+    next.setHours(17, 0, 0, 0);
+  }
+  return next - Date.now();
+}
+window.getMatchCycleMs = getMatchCycleMs;
+
+function getMatchCycleCountdown() {
+  return window.formatCountdown(getMatchCycleMs());
 }
 window.getMatchCycleCountdown = getMatchCycleCountdown;
 
@@ -771,9 +816,18 @@ window.getNextFriday5pmCountdown = getNextFriday5pmCountdown;
 
 function startCountdownTick() {
   window.stopCountdownTick();
-  const el = document.getElementById('match-countdown');
   const tick = () => {
-    if (el) el.textContent = window.getMatchCycleCountdown();
+    // 每次重新查 DOM：分支重渲后旧节点会失联，缓存引用会让倒计时静默停摆
+    const root = document.getElementById('match-countdown');
+    if (!root) return;
+    const p = countdownParts(window.getMatchCycleMs());
+    ['d', 'h', 'm', 's'].forEach((k) => {
+      const cell = root.querySelector(`[data-cd="${k}"]`);
+      if (cell) {
+        const v = String(p[k]).padStart(2, '0');
+        if (cell.textContent !== v) cell.textContent = v;
+      }
+    });
   };
   tick();
   S.countdownInterval = setInterval(tick, 1000);
