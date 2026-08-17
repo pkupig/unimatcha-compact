@@ -583,8 +583,8 @@ function swipePanel(el) {
     if (e.cancelable) e.preventDefault();
     if (dx <= 0) return;
     panel.style.transition = 'none';
+    // 只位移不淡出（用户反馈：左滑退出过程中不要透明）
     panel.style.transform = 'translateX(' + dx + 'px)';
-    panel.style.opacity = String(Math.max(0.4, 1 - dx / (window.innerWidth * 1.2)));
   }, { passive: false });
   const finish = () => {
     const p = panel, tg = target, wasEdge = edge, wasHoriz = horiz, moved = dx;
@@ -595,18 +595,16 @@ function swipePanel(el) {
     if (!wasEdge || !wasHoriz) { resetPanel(p); return; }
     const W = window.innerWidth;
     if (moved >= 80) {
-      p.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
+      p.style.transition = 'transform 0.2s ease-out';
       p.style.transform = 'translateX(' + W + 'px)';
-      p.style.opacity = '0';
       setTimeout(() => {
         resetPanel(p);
         if (tg === 'questionnaire') { window.showPage('page-home'); window.switchTab('match'); }
         else if (tg) (SWIPE_BACK_CLOSE[tg.id] || (() => window.hideOverlay(tg.id)))();
       }, 200);
     } else {
-      p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1), opacity 0.25s';
+      p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1)';
       p.style.transform = 'translateX(0)';
-      p.style.opacity = '';
       setTimeout(() => resetPanel(p), 280);
     }
   };

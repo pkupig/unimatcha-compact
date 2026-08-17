@@ -888,6 +888,23 @@
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
     .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
     .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }
+    /* ---- 匹配等待：动画铺底 + 2×2 倒计时盖在其上（用户反馈）----
+       stack 用 grid 单元格重叠而非 absolute，高度由两层中较高者自然撑开，
+       不会因动画尺寸变化而错位。动画放大到 300px 以托住上层格子。 */
+    .match-wait-stack { display: grid; place-items: center; }
+    .match-wait-stack > * { grid-area: 1 / 1; }
+    .match-wait-anim-layer { pointer-events: none; }
+    .match-wait-anim-layer .match-anim { width: 300px; height: 300px; }
+    .match-wait-anim-layer .match-anim-frame { width: 300px; height: 300px; }
+    .match-wait-cd-layer { width: 100%; display: flex; flex-direction: column; align-items: center; padding: 0 8px; }
+    /* 格子半透明 + 背景模糊：动画从格子后面透出，不至于被完全盖死 */
+    .cd-box {
+      background: rgba(249, 249, 249, 0.82);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .dark .cd-box { background: rgba(31, 31, 38, 0.82); border-color: rgba(255, 255, 255, 0.06); }
 
 
     

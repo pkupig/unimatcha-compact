@@ -465,10 +465,13 @@ window.renderFriendCandidateCard = renderFriendCandidateCard;
 function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
-      ${renderMatchWaitAnim(true)}
-      <div class="mt-8 w-full max-w-sm mx-auto flex flex-col items-center">
-        ${renderCountdownBoxes()}
-        ${lastEnhancedRound[mode] ? '<span class="mt-5 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
+      <!-- 动画与倒计时叠放（用户反馈）：动画铺底、2×2 大格盖在其上 -->
+      <div class="match-wait-stack w-full max-w-sm mx-auto">
+        <div class="match-wait-anim-layer">${renderMatchWaitAnim(true)}</div>
+        <div class="match-wait-cd-layer">
+          ${renderCountdownBoxes()}
+          ${lastEnhancedRound[mode] ? '<span class="mt-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
+        </div>
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
@@ -755,12 +758,13 @@ function renderCountdownBoxes() {
     ['m', zh ? '分' : 'MIN'],
     ['s', zh ? '秒' : 'SEC'],
   ];
-  // 恒为 4 格（天为 0 时显示 00），避免格数变化导致布局跳动
-  return `<div id="match-countdown" class="w-full flex items-stretch gap-2">
+  // 2×2 大格（用户反馈）：叠在等待动画之上，格子半透明 + 背景模糊，
+  // 动画仍可从格子后面透出。恒为 4 格（天为 0 显示 00）避免布局跳动。
+  return `<div id="match-countdown" class="w-full grid grid-cols-2 gap-2.5">
     ${units.map(([k, label]) => `
-      <div class="flex-1 min-w-0 rounded-[16px] bg-surface-container-low py-4 px-1 flex flex-col items-center">
-        <span data-cd="${k}" class="font-mono text-[36px] font-bold leading-none tracking-tight text-primary tabular-nums" data-no-i18n>00</span>
-        <span class="text-[9px] font-bold tracking-[0.16em] text-outline mt-2.5" data-no-i18n>${label}</span>
+      <div class="cd-box rounded-[18px] py-5 px-2 flex flex-col items-center">
+        <span data-cd="${k}" class="font-mono text-[46px] font-bold leading-none tracking-tight text-primary tabular-nums" data-no-i18n>00</span>
+        <span class="text-[10px] font-bold tracking-[0.18em] text-outline mt-2.5" data-no-i18n>${label}</span>
       </div>`).join('')}
   </div>`;
 }
@@ -1054,7 +1058,24 @@ function currentMode() {
 window.currentMode = currentMode;
 
 // 打开偏好面板：按当前匹配模式拉取偏好并回填对应区（增强字段已移至 Match Settings，此处不含）。
+// ── 匹配中锁定设置（产品规则）──
+// 偏好与增强都只在下一次撮合时生效，进池后再改会与本轮已提交的条件不一致，
+// 因此 searching 状态一律禁止修改，必须先离开匹配池。
+// 只锁 searching：matched/confirming 时改的是下一轮的条件，应当放行。
+function isMatchPoolActive(mode) {
+  const m = (mode === 'friend' || mode === 'romantic') ? mode : (S.activeMatchMode || 'romantic');
+  return S.matchStatus?.[m]?.state === 'searching';
+}
+window.isMatchPoolActive = isMatchPoolActive;
+
+function matchSettingsLockedToast() {
+  const zh = (window.getLang?.() === 'zh');
+  window.toast(zh ? '匹配中无法修改设置，请先离开匹配池' : 'Leave the matching pool before changing settings');
+}
+window.matchSettingsLockedToast = matchSettingsLockedToast;
+
 async function openFilterSheet(mode) {
+  if (isMatchPoolActive(mode)) { matchSettingsLockedToast(); return; }
   window.openOverlay('filter-overlay');
   const m = (mode === 'friend' || mode === 'romantic') ? mode : (S.activeMatchMode || 'romantic');
   S.prefMode = m;
@@ -1152,6 +1173,8 @@ window.closeFilterSheet = closeFilterSheet;
 // 保存偏好：按当前偏好面板模式取字段 PUT（不含增强——增强由 saveMatchSettings 负责）。
 async function saveFilterPrefs(mode) {
   const m = (mode === 'friend' || mode === 'romantic') ? mode : currentMode();
+  // 二次拦截：面板打开期间状态可能变成 searching（轮询/另一端进池）
+  if (isMatchPoolActive(m)) { matchSettingsLockedToast(); window.closeFilterSheet(); return; }
   // 年龄/同校/同城为恋人/朋友共享输入控件（始终在 DOM）。增强字段不在此提交（已移至 Match Settings）。
   const ageAny = document.getElementById('filter-age-any')?.checked || false;
   const rawMin = parseInt(document.getElementById('filter-age-min')?.value, 10) || 18;
@@ -1427,6 +1450,7 @@ window.updateEnhanceUI = updateEnhanceUI;
 // （Match Basis 三选已按用户要求移除，后端 matchBasis 保持存量值/默认 both）
 // ========================================
 async function openMatchSettings() {
+  if (isMatchPoolActive()) { matchSettingsLockedToast(); return; }
   window.openOverlay('match-settings-overlay');
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
@@ -1468,6 +1492,8 @@ window.closeMatchSettings = closeMatchSettings;
 async function saveMatchSettings() {
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
+  // 二次拦截：面板打开期间状态可能变成 searching
+  if (isMatchPoolActive(mode)) { matchSettingsLockedToast(); return; }
   const extraEl = document.getElementById('match-extra-info');
   const extraMatchInfo = extraEl?.value || '';
   // 偏好没加载成功且用户没动过输入框：这次保存不带 extraMatchInfo，

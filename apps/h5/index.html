@@ -667,7 +667,7 @@
     </div>
     <button class="shrink-0 relative w-10 h-10 rounded-full flex items-center justify-center active:scale-95 duration-200 hover:bg-surface-container-low transition-colors" onclick="openNotifications()" title="Notifications">
       <span class="material-symbols-outlined text-black" style="font-size:22px">notifications_none</span>
-      <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-neon-pink text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
+      <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-neon text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
     </button>
   </div>
 
@@ -1348,18 +1348,15 @@
 </div>
 
 <!-- Notifications Overlay -->
-<div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)closeNotifications()">
-  <div class="slide-right relative z-50 h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
+<!-- 通知：全屏展示（原为右侧滑出卡片），页眉返回键+标题靠左 -->
+<div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-surface" onclick="if(event.target===this)closeNotifications()">
+  <div class="relative z-50 h-full w-full bg-surface overflow-y-auto flex flex-col">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
-      <div class="flex justify-between items-center px-6 h-16 w-full">
-        <div></div>
-        <div class="flex items-center gap-6">
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
-          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
-            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
-          </button>
-        </div>
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
+          <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
       </div>
     </header>
     <main id="notifications-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-6 pb-16">
@@ -1368,18 +1365,15 @@
 </div>
 
 <!-- Notification Detail Overlay -->
-<div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
-  <div class="slide-right relative z-[60] h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
+<!-- 通知详情：全屏展示，页眉返回键+标题靠左 -->
+<div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-surface" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
+  <div class="relative z-[60] h-full w-full bg-surface overflow-y-auto flex flex-col">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
-      <div class="flex justify-between items-center px-6 h-16 w-full">
-        <div></div>
-        <div class="flex items-center gap-6">
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
-          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
-            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
-          </button>
-        </div>
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
+          <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
       </div>
     </header>
     <main id="notif-detail-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
