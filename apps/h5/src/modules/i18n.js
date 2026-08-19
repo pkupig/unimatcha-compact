@@ -113,6 +113,8 @@ const ZH = {
   'Select School': '选择学校', 'Select Institution': '选择学校', 'Select Grade': '选择年级',
   'Select City': '选择城市', 'Select Major': '选择专业', 'Select MBTI': '选择 MBTI',
   'Select Nationality': '选择国籍', 'Student ID': '学生卡号',
+  // 编辑资料里的 signature 字段（原标签 Description，语义不清）
+  Signature: '个性签名',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
   // ── 中文态补漏（本轮反馈）──
   'Enter your academic credentials': '输入你的账号信息',

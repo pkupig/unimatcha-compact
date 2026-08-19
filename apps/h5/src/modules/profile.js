@@ -436,9 +436,12 @@ function renderProfileFacts(profile) {
     days ? (zh ? `已加入 ${days} 天` : `Day ${days}`) : '',
   ].filter(Boolean);
   const sep = '<span class="pf-sep">·</span>';
+  // 个性签名（profile.signature）：作为独立一行，字号介于主副行之间
+  const signature = (profile.signature || '').trim();
   box.innerHTML = `
     ${primary.length ? `<p class="pf-primary" data-no-i18n>${primary.map(esc).join(sep)}</p>` : ''}
-    ${secondary.length ? `<p class="pf-secondary" data-no-i18n>${secondary.map(esc).join(sep)}</p>` : ''}`;
+    ${secondary.length ? `<p class="pf-secondary" data-no-i18n>${secondary.map(esc).join(sep)}</p>` : ''}
+    ${signature ? `<p class="pf-signature" data-no-i18n>${esc(signature)}</p>` : ''}`;
 }
 window.renderProfileFacts = renderProfileFacts;
 
@@ -506,25 +509,29 @@ window.loadProfileTab = loadProfileTab;
 function renderVerifyButton() {
   const btn = document.getElementById('verify-btn');
   if (!btn) return;
+  // 徽章已纳入 hero 排版（跟在名字右侧），不再绝对定位到右上角。
+  // 已认证只出一枚荧光绿对勾（名字旁的认证标，不占文字宽度）；
+  // 待审/未认证仍带文字，便于点击引导。
   const status = S.currentUser?.verificationStatus || 'unverified';
+  const zh = (window.getLang?.() === 'zh');
   if (status === 'verified') {
-    btn.className = 'absolute top-6 right-6 z-30 w-9 h-9 rounded-full bg-neon text-black flex items-center justify-center shadow-lg';
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:20px;font-variation-settings:'FILL' 1">check</span>`;
+    btn.className = 'shrink-0 w-[22px] h-[22px] rounded-full bg-neon text-black flex items-center justify-center';
+    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;font-variation-settings:'FILL' 1">check</span>`;
     btn.disabled = true;
     btn.onclick = null;
-    btn.title = 'Verified';
+    btn.title = zh ? '已认证' : 'Verified';
   } else if (status === 'pending') {
-    btn.className = 'absolute top-6 right-6 z-30 inline-flex items-center gap-1.5 bg-black/35 backdrop-blur-md text-white rounded-full px-3 py-1.5 shadow';
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px">hourglass_top</span><span class="text-[10px] font-bold tracking-widest">Pending</span>`;
+    btn.className = 'shrink-0 inline-flex items-center gap-1 bg-white/22 backdrop-blur-md text-white rounded-full px-2.5 py-1';
+    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px">hourglass_top</span><span class="text-[10px] font-bold tracking-wider" data-no-i18n>${zh ? '审核中' : 'Pending'}</span>`;
     btn.disabled = true;
     btn.onclick = null;
-    btn.title = 'Verification under review';
+    btn.title = zh ? '认证审核中' : 'Verification under review';
   } else {
-    btn.className = 'absolute top-6 right-6 z-30 inline-flex items-center gap-1.5 bg-black/35 backdrop-blur-md text-white rounded-full px-3 py-1.5 shadow active:scale-95 transition-transform';
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px">verified_user</span><span class="text-[10px] font-bold tracking-widest">Verify</span>`;
+    btn.className = 'shrink-0 inline-flex items-center gap-1 bg-white/22 backdrop-blur-md text-white rounded-full px-2.5 py-1 active:scale-95 transition-transform';
+    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px">verified_user</span><span class="text-[10px] font-bold tracking-wider" data-no-i18n>${zh ? '认证' : 'Verify'}</span>`;
     btn.disabled = false;
     btn.onclick = window.openVerify;
-    btn.title = 'Get student verified';
+    btn.title = zh ? '进行学生认证' : 'Get student verified';
   }
 }
 window.renderVerifyButton = renderVerifyButton;
@@ -616,8 +623,8 @@ window.submitVerification = submitVerification;
 const BLUR_REVEAL_DIST = 140;
 // 小红书式跟手延展：hero 容器高度 1:1 跟手（图片 object-cover 自动填充、模糊层
 // inset-0 跟随），头像与下方功能区一起 1:1 下移、保持一致。
-// HERO_H 与 main.css 的 #profile-hero 基准高度绑定。
-const HERO_H = 340;
+// 基准高度定义在 main.css 的 #profile-hero --hero-base（含状态栏安全区），
+// JS 只在其上叠加拉距，不复制像素值以免两处漂移。
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
@@ -635,9 +642,10 @@ function setupBgPullReveal() {
         // 图片由 object-cover 填充新高度，放大速度因此与手指严格同步。
         // 刻意不叠额外 scale：那会让图片内容的移动快于手指，正是「放大与
         // 下拉有差距」的来源（用户反馈）。
+        // 基准走 CSS 变量 --hero-base（含状态栏安全区），不写死像素。
         if (hero) {
           hero.style.transition = 'none';
-          hero.style.height = (HERO_H + dist) + 'px';
+          hero.style.height = `calc(var(--hero-base) + ${dist}px)`;
         }
       } else {
         // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回

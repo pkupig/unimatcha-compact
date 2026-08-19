@@ -11,7 +11,10 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <!-- black-translucent：状态栏透明、内容延伸到它下面（default 是白底不透明，
+       会在顶部留一条白边，profile 封面就铺不到屏幕最上方）。
+       配合 viewport-fit=cover 与各页的 safe-area 内边距使用。 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Unimatcha">
   <meta name="theme-color" content="#f9f9f9">
 
@@ -748,7 +751,7 @@
 
 <!-- PROFILE TAB（定稿：背景固定打底；头像+功能区同为滚动内容，浮于背景之上滚动） -->
 <div id="tab-profile" class="tab-content" style="display: none;">
-  <button id="verify-btn" type="button" class="absolute top-6 right-6 z-30"></button>
+  <!-- 认证徽章已移入 hero 排版（名字右侧），此处不再浮于右上角 -->
   <!-- 固定背景层（滚动/下拉都不动） -->
   <!-- 高度移到 main.css（#profile-hero）：下拉时 JS 写 inline height 跟手延展，
        松手清空 inline 值即可回落到基准高度并走 CSS 过渡 -->
@@ -764,7 +767,8 @@
        （桌面 Chrome 无触摸橡皮筋，所以只在真机上暴露）。none 让 JS 独占下拉。 -->
   <main id="profile-scroll" class="absolute inset-0 overflow-y-auto z-10" style="overscroll-behavior-y: none;">
     <div id="profile-menu-inner">
-      <div style="height:120px"></div>
+      <!-- 高度含状态栏安全区，见 main.css 的 .profile-top-spacer -->
+      <div class="profile-top-spacer"></div>
       <!-- Hero 文字区：封面多为深色照片，故整体改白字 + 文字阴影保证可读；
            头像加白边并提亮底色（原来在暗封面上几乎糊成一团） -->
       <!-- Hero：头像居左 + 右侧信息栈（不再居中对称、不再用卡片框住信息）。
@@ -774,13 +778,17 @@
           <div id="profile-avatar" class="w-[84px] h-[84px] shrink-0 bg-white overflow-hidden rounded-full ring-[3px] ring-white/90 shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
             <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23e8e8e8'/%3E%3C/svg%3E"/>
           </div>
-          <div class="min-w-0 flex-1 pb-0.5">
-            <h2 id="profile-name" class="font-headline text-[26px] font-extrabold tracking-tight leading-tight truncate">Elara Vance</h2>
-            <div id="profile-meta" class="mt-0.5"></div>
+          <div class="min-w-0 flex-1 pb-1">
+            <!-- 认证徽章跟在名字后（原为浮在右上角，现纳入排版） -->
+            <div class="flex items-center gap-2 min-w-0">
+              <h2 id="profile-name" class="font-headline text-[26px] font-extrabold tracking-tight leading-tight truncate">Elara Vance</h2>
+              <button id="verify-btn" type="button" class="shrink-0"></button>
+            </div>
+            <div id="profile-meta" class="mt-1"></div>
           </div>
         </div>
-        <!-- 姓名 · 年龄 · 学业阶段 / 学号 · 加入天数（renderProfileFacts 填充） -->
-        <div id="profile-facts" class="mt-3"></div>
+        <!-- 姓名 · 年龄 · 学业阶段 / 学号 · 加入天数 / 个性签名（renderProfileFacts 填充） -->
+        <div id="profile-facts" class="mt-4"></div>
         <div id="profile-photos-strip" class="hidden"></div>
       </section>
       <!-- 圆角衔接（用户反馈：背景与功能区衔接太僵硬）：上移 24px 盖住背景底边，
@@ -1155,7 +1163,7 @@
         </div>
         <div class="space-y-2">
           <div class="flex justify-between items-baseline">
-            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Description</label>
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Signature</label>
             <span class="text-[10px] font-medium text-outline"><span id="edit-signature-count">0</span> / 100</span>
           </div>
           <textarea id="edit-signature" maxlength="100" placeholder="A short line about you" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-body text-sm leading-relaxed resize-none" rows="2"></textarea>
