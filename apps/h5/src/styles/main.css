@@ -1,4 +1,7 @@
 /* Unimatcha — global styles (extracted from inline <style>) */
+    /* 安全区暴露成变量，供 JS 读取（元素不可见时 getBoundingClientRect 全 0，
+       只能按公式兜底算顶栏高度——见 square.js 的 FAB 拖拽上边界） */
+    :root { --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); }
     /* ====== SPA Navigation Core ====== */
     .page { display: none; position: fixed; inset: 0; z-index: 40; flex-direction: column; background: #f9f9f9; color: #1b1b1b; min-height: 100vh; overflow-y: auto; }
     .page.active { display: flex; }
@@ -357,7 +360,12 @@
        状态栏改 black-translucent 后，页面内容会延伸到状态栏下方（这正是让
        profile 封面铺到屏幕最顶的前提）。代价是所有贴顶的固定栏会被状态栏压住，
        故按类批量补内边距——覆盖全部 fixed/sticky 顶栏，避免逐个改漏。
-       注意：全屏弹层用的是 inset-0（不含 top-0），不会被误伤。 */
+       注意：全屏弹层用的是 inset-0（不含 top-0），不会被误伤。
+       但本规则【只认类名、不认位置】：贴屏幕【底部】的弹层（.overlay + justify-end，
+       如 #filter-overlay）其页眉在屏幕下半部分，**不得**带 top-0，否则会被平白灌进
+       一个安全区高度的白带（曾真实中招）。新增底部弹层页眉时只写 sticky、不写 top-0。
+       另：绝对定位、不在 header 里的贴顶控件（启动页 Skip、资料页返回键等）
+       这套类选择器一律不命中，需在下方逐个用 id 规则补。 */
     .fixed.top-0, .sticky.top-0,
     /* 全屏弹层的三段式页眉是 flex 子项（shrink-0，非 fixed/sticky），
        同样贴在屏幕最上沿，必须一并补——否则标题/返回键会被状态栏压住 */
@@ -383,6 +391,11 @@
     /* profile 的 hero 是 absolute top-0，要铺满到状态栏下，不加内边距；
        改为整体加高，内容占位同步下移，保持原有视觉比例 */
     .pt-safe { padding-top: env(safe-area-inset-top); }
+    /* 以下两个是「浮在满幅图上的绝对定位控件」：图片本就有意铺到状态栏下，
+       不能给容器加 padding（绝对定位子元素以 padding box 顶边为基准，加了也不动），
+       只把控件自身下移一个安全区。用 id 作用域声明，不受构建后工具类顺序影响。 */
+    #splash-skip { top: calc(2rem + env(safe-area-inset-top, 0px)); }        /* 启动页 Skip（原 top-8 整段落在灵动岛内） */
+    #partner-profile-content .pp-back { top: calc(1rem + env(safe-area-inset-top, 0px)); } /* 对方资料页返回键——该页唯一的关闭入口 */
     /* 状态栏挡板已移除（用户要求）：它是 fixed 定位、不占文档流，删除不影响
        任何排版距离；状态栏区域改为透出各页顶栏自身的半透明背景，
        profile 页则透出封面。 */
@@ -446,7 +459,9 @@
     /* Toast Notification */
     #toast {
       position: fixed;
+      /* 页面铺到状态栏下，写死 16px 会让提示条被灵动岛从中间挖空 */
       top: 16px;
+      top: calc(16px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 999;
@@ -868,7 +883,12 @@
        过阈值 .ptr-ready 图标转荧光绿，刷新中 .ptr-spinning 图标持续转圈。 */
     .ptr-indicator {
       position: absolute;
+      /* 起点=状态栏下沿：顶栏已按安全区加高（56/44 + inset），起点仍写 0 的话
+         40px 圆片全程藏在加高后的顶栏后面，真机上下拉刷新完全没有视觉反馈。
+         两条并存是刻意的——env() 不被解析时整条声明会被丢弃，top 退化成 auto
+         会把圆片甩到内容末尾，比原状更糟，故留 0 作兜底。 */
       top: 0; /* 藏于顶栏后，下拉滑出；悬停位（+70px）落在顶栏与回弹内容中间 */
+      top: env(safe-area-inset-top, 0px);
       left: 50%;
       width: 40px;
       height: 40px;
@@ -910,7 +930,12 @@
     #chat-plus-menu .cpm-backdrop { position: fixed; inset: 0; z-index: 68; background: rgba(0, 0, 0, 0.12); }
     #chat-plus-menu .cpm-card {
       position: fixed;
+      /* 锚在顶栏下沿：该顶栏是 .fixed.top-0.h-14，高度已按安全区变成 3.5rem+inset，
+         写死 56px 会让卡片整体上移一个安全区、盖住分段控件。
+         留第一行兜底：top 若因 env() 不被解析而失效会退成 auto，
+         卡片是 append 到 body 末尾的，会直接掉到页面底部。 */
       top: 56px;
+      top: calc(3.5rem + env(safe-area-inset-top, 0px));
       left: 12px;
       z-index: 69;
       min-width: 208px;

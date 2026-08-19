@@ -263,10 +263,19 @@ function bindFabDrag() {
   if (!fab || fab.dataset.dragBound) return;
   fab.dataset.dragBound = '1';
   const KEY = 'cl_fab_pos';
+  // 上边界 = 顶栏下沿 + 8。原来写死 70，而顶栏实高 = 44 + 状态栏安全区，
+  // 灵动岛机上顶栏下沿已到 103px——按钮能被拖到顶栏底下，之后每次进广场都停在那里，
+  // 触点被顶栏抢走，既点不到也拖不回来。优先实测，页面不可见时（启动恢复走这条）按公式兜底。
+  const minTop = () => {
+    const b = document.querySelector('#tab-square > header')?.getBoundingClientRect().bottom || 0;
+    if (b > 0) return b + 8;
+    const sat = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sat')) || 0;
+    return 44 + sat + 8;
+  };
   const place = (x, y) => {
     const w = fab.offsetWidth || 56, h2 = fab.offsetHeight || 56;
     const maxX = window.innerWidth - w - 8, maxY = window.innerHeight - h2 - 8;
-    const cx = Math.max(8, Math.min(maxX, x)), cy = Math.max(70, Math.min(maxY, y));
+    const cx = Math.max(8, Math.min(maxX, x)), cy = Math.max(minTop(), Math.min(maxY, y));
     fab.style.left = cx + 'px';
     fab.style.top = cy + 'px';
     fab.style.right = 'auto';
@@ -1652,25 +1661,50 @@ function openNewPost() {
 window.openNewPost = openNewPost;
 
 // ── 校园墙投票（本轮反馈1）：发帖里开投票 → 强制校园墙 + 2–6 个选项，审核后展示 ──
-function renderPollOptionInputs(count) {
+const POLL_MIN_OPTIONS = 2;
+const POLL_MAX_OPTIONS = 6;
+
+// values 可显式传入（删除某项时用），不传则从当前 DOM 读回——避免删除后其余输入内容丢失
+function renderPollOptionInputs(count, values) {
   const list = document.getElementById('poll-option-list');
   if (!list) return;
-  const existing = [...list.querySelectorAll('input')].map(i => i.value);
-  const n = Math.min(6, Math.max(2, count));
+  const existing = values || [...list.querySelectorAll('input')].map(i => i.value);
+  const n = Math.min(POLL_MAX_OPTIONS, Math.max(POLL_MIN_OPTIONS, count));
+  // 只有多于下限时才给删除键：留 2 个时删掉任何一个都会让投票不成立
+  const removable = n > POLL_MIN_OPTIONS;
   list.innerHTML = Array.from({ length: n }, (_, i) => `
-    <input type="text" maxlength="50" placeholder="Option ${i + 1}"
-      class="poll-option-input w-full bg-surface-container-lowest rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>`).join('');
+    <div class="flex items-center gap-2">
+      <input type="text" maxlength="50" placeholder="Option ${i + 1}"
+        class="poll-option-input flex-1 min-w-0 bg-surface-container-lowest rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none"/>
+      ${removable ? `<button type="button" onclick="removePollOptionInput(${i})" aria-label="Remove option"
+        class="poll-option-remove shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-outline active:scale-90 transition-transform">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>` : ''}
+    </div>`).join('');
   // 值用属性赋值回填（不拼 HTML）：escapeHtml 不转义引号，含 " 的选项会截断属性甚至注入
   [...list.querySelectorAll('input')].forEach((el, i) => { el.value = existing[i] || ''; });
 }
 
 function addPollOptionInput() {
   const list = document.getElementById('poll-option-list');
-  const cur = list ? list.querySelectorAll('input').length : 2;
-  if (cur >= 6) { window.toast('Up to 6 options'); return; }
+  const cur = list ? list.querySelectorAll('input').length : POLL_MIN_OPTIONS;
+  if (cur >= POLL_MAX_OPTIONS) { window.toast('Up to 6 options'); return; }
   renderPollOptionInputs(cur + 1);
 }
 window.addPollOptionInput = addPollOptionInput;
+
+// 删除某个选项（用户要求：选项要可以减）。删除后整段重渲染 → placeholder 重新编号，
+// 其余输入的值经 values 原样带过去，减到只剩 2 个时删除键自动消失。
+function removePollOptionInput(idx) {
+  const list = document.getElementById('poll-option-list');
+  if (!list) return;
+  const values = [...list.querySelectorAll('input')].map(i => i.value);
+  if (values.length <= POLL_MIN_OPTIONS) { window.toast('At least 2 options'); return; }
+  if (idx < 0 || idx >= values.length) return;
+  values.splice(idx, 1);
+  renderPollOptionInputs(values.length, values);
+}
+window.removePollOptionInput = removePollOptionInput;
 
 function toggleNewPostPoll(checked) {
   S.newPostPoll = !!checked;

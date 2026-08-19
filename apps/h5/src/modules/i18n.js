@@ -34,6 +34,8 @@ const ZH = {
   'No conversations matched.': '没有匹配的会话。', 'No conversations yet.': '还没有会话。',
   'No posts found': '没有找到帖子', 'Try a different keyword': '换个关键词试试',
   'Search the square': '搜索广场', 'Find posts, topics and people': '搜索帖子、话题和同学',
+  'Up to 6 options': '最多 6 个选项', 'At least 2 options': '至少保留 2 个选项',
+  'A poll needs at least 2 options': '投票至少需要 2 个选项',
   'Turn on discovery to see classmates you may know. Others only see you if you turn it on too.':
     '打开发现开关，才能看到可能认识的同学；同样，只有你打开后别人才会看到你。',
   'Open settings': '前往设置', 'Not interested': '不感兴趣',
@@ -192,6 +194,8 @@ const ZH_PLACEHOLDER = {
   'Add an observation...': '写下你的评论…', 'Search your chats': '搜索会话',
   'Search chats, people, schools': '搜索会话、同学、学校',
   'Title': '标题', 'Capture the moment...': '记录此刻…',
+  'Option 1': '选项 1', 'Option 2': '选项 2', 'Option 3': '选项 3',
+  'Option 4': '选项 4', 'Option 5': '选项 5', 'Option 6': '选项 6',
   'Add new interest...': '添加兴趣…', 'e.g. Photography': '例如：摄影',
   'The Scholar': '你的昵称', 'Given name (名)': '名', 'Family name (姓)': '姓',
   'Anything else to help matching...': '还有什么想让匹配知道的…',

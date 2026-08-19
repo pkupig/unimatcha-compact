@@ -984,7 +984,7 @@ function renderPartnerProfile(p) {
       <div class="relative h-60 bg-surface-container-low overflow-hidden">
         ${cover ? `<img src="${window.safeUrl(cover)}" alt="" class="absolute inset-0 w-full h-full object-cover ${p.coverUrl ? '' : 'blur-2xl scale-125'}">` : ''}
         <div class="absolute inset-0" style="background:linear-gradient(to bottom,rgba(0,0,0,0.28),rgba(0,0,0,0) 38%,rgba(249,249,249,0) 68%,#f9f9f9)"></div>
-        <button onclick="hideOverlay('partner-profile-overlay')" class="absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white flex items-center justify-center active:scale-95 transition-transform" title="Back">
+        <button onclick="hideOverlay('partner-profile-overlay')" class="pp-back absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/35 backdrop-blur text-white flex items-center justify-center active:scale-95 transition-transform" title="Back">
           <span class="material-symbols-outlined" style="font-size:20px;">arrow_back</span>
         </button>
       </div>
