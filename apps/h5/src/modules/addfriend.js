@@ -1,0 +1,32 @@
+/* Interface outline: implementation bodies removed. */
+import { S } from '../state.js';
+
+function openFriendHub();
+function friendHubShow(view);
+function friendHubBack();
+function openAddFriend();
+function openFriendHubAt(view);
+function closeFriendHub();
+function closeAddFriend();
+function switchAddFriendView(view);
+async function renderMyQR();
+async function startAfScan();
+async function stopAfScan();
+function submitConnectCode();
+async function connectWithCode(code);
+async function loadFriendGraph();
+function graphAvatar(node, cx, cy, r);
+function renderGraphSvg(g);
+async function openConnectionChatFromGraph(userId);
+function onFriendSearchInput();
+function runFriendSearch(q);
+async function searchPeople(term, seq);
+async function loadSuggestions(seq);
+function sectionShell(label, inner);
+function unwrapEnv(d);
+async function connectToUser(userId, btn);
+async function dismissSuggestion(userId, el);
+function userResultRow(...);
+function reasonLabel(r);
+function renderChatSearchResults(sessions, isSearching);
+async function openChatFromSearch(matchId);

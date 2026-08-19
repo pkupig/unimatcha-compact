@@ -1,0 +1,364 @@
+/* CSS outline: selectors retained, declarations removed. */
+html.lenis, html.lenis body { /* TODO */ }
+.lenis.lenis-smooth { /* TODO */ }
+.lenis.lenis-smooth [data-lenis-prevent] { /* TODO */ }
+.lenis.lenis-stopped { /* TODO */ }
+.lenis.lenis-smooth iframe { /* TODO */ }
+:root { /* TODO */ }
+* { /* TODO */ }
+html { /* TODO */ }
+body { /* TODO */ }
+::selection { /* TODO */ }
+a { /* TODO */ }
+.material-symbols-rounded { /* TODO */ }
+.progress { /* TODO */ }
+header { /* TODO */ }
+header.hide { /* TODO */ }
+.nav { /* TODO */ }
+header.scrolled { /* TODO */ }
+header.scrolled .nav { /* TODO */ }
+.brand { /* TODO */ }
+.brand .blip { /* TODO */ }
+@keyframes pulse { /* TODO */ }
+.navlinks { /* TODO */ }
+.navlinks a { /* TODO */ }
+.navlinks a:hover { /* TODO */ }
+.navlinks a::after { /* TODO */ }
+.navlinks a:hover::after { /* TODO */ }
+.nav-cta { /* TODO */ }
+.lang { /* TODO */ }
+.lang:hover { /* TODO */ }
+.lang .material-symbols-rounded { /* TODO */ }
+.btn { /* TODO */ }
+.btn .material-symbols-rounded { /* TODO */ }
+.btn-neon { /* TODO */ }
+.btn-neon:hover { /* TODO */ }
+.btn-neon:hover .material-symbols-rounded { /* TODO */ }
+.btn-ghost { /* TODO */ }
+.btn-ghost:hover { /* TODO */ }
+.btn-lg { /* TODO */ }
+@media(max-width:920px) { /* TODO */ }
+.wrap { /* TODO */ }
+section { /* TODO */ }
+.sec { /* TODO */ }
+.eyebrow { /* TODO */ }
+.eyebrow .dot { /* TODO */ }
+.sec-head { /* TODO */ }
+.sec-head .eyebrow { /* TODO */ }
+.sec-head h2 { /* TODO */ }
+.sec-head p { /* TODO */ }
+.bg-ivory { /* TODO */ }
+.bg-white { /* TODO */ }
+.bg-stone { /* TODO */ }
+.bg-wash { /* TODO */ }
+.bg-warm { /* TODO */ }
+.bg-ink { /* TODO */ }
+.hero { /* TODO */ }
+.hero::before { /* TODO */ }
+.hero-grid { /* TODO */ }
+.h-left { /* TODO */ }
+h1.title { /* TODO */ }
+h1.title .mark { /* TODO */ }
+h1.title .mark span { /* TODO */ }
+h1.title .mark::before { /* TODO */ }
+@keyframes swipe { /* TODO */ }
+.hero p.lede { /* TODO */ }
+.hero p.lede b { /* TODO */ }
+.hero-cta { /* TODO */ }
+.hero-meta { /* TODO */ }
+.hm .n { /* TODO */ }
+.hm .l { /* TODO */ }
+.h-right { /* TODO */ }
+.h-right .hero-meta { /* TODO */ }
+.h-right .hm { /* TODO */ }
+.globe-wrap { /* TODO */ }
+#globe { /* TODO */ }
+.globe-tip { /* TODO */ }
+.globe-tip .gt-name { /* TODO */ }
+.globe-tip ul { /* TODO */ }
+.globe-tip li { /* TODO */ }
+.globe-tip li .material-symbols-rounded { /* TODO */ }
+.globe-tip li.gt-etc { /* TODO */ }
+@keyframes breathe { /* TODO */ }
+@keyframes breatheSoft { /* TODO */ }
+.globe-chip { /* TODO */ }
+.globe-chip .gc-top { /* TODO */ }
+.globe-chip .live { /* TODO */ }
+.globe-chip .live i { /* TODO */ }
+@keyframes blink { /* TODO */ }
+.globe-chip .gc-cd { /* TODO */ }
+.gc-cell { /* TODO */ }
+.gc-cell .v { /* TODO */ }
+.gc-cell .k { /* TODO */ }
+.gc-sep { /* TODO */ }
+.scrollcue { /* TODO */ }
+.hero { /* TODO */ }
+.hero .wrap,.hero .scrollcue { /* TODO */ }
+.pfield { /* TODO */ }
+.pfield span { /* TODO */ }
+@keyframes pdrift { /* TODO */ }
+.pfield--rise span { /* TODO */ }
+@keyframes prise { /* TODO */ }
+@media(prefers-reduced-motion:reduce) { /* TODO */ }
+.scrollcue .ln { /* TODO */ }
+.scrollcue .ln::after { /* TODO */ }
+@keyframes slide { /* TODO */ }
+@media(max-width:920px) { /* TODO */ }
+.statband { /* TODO */ }
+.statband .st { /* TODO */ }
+.statband .st:last-child { /* TODO */ }
+.statband .st .n { /* TODO */ }
+.statband .st .n .material-symbols-rounded { /* TODO */ }
+.statband .st .c { /* TODO */ }
+@media(max-width:760px) { /* TODO */ }
+#features { /* TODO */ }
+#features::before { /* TODO */ }
+.feat-grid { /* TODO */ }
+.feat { /* TODO */ }
+.feat:hover { /* TODO */ }
+.feat .ficon { /* TODO */ }
+.feat .ficon .material-symbols-rounded { /* TODO */ }
+.feat h3 { /* TODO */ }
+.feat p { /* TODO */ }
+.feat-tags { /* TODO */ }
+.ftag { /* TODO */ }
+.ftag .material-symbols-rounded { /* TODO */ }
+.ftag-on { /* TODO */ }
+.showcase { /* TODO */ }
+.show-grid { /* TODO */ }
+.showcase.reverse .show-text { /* TODO */ }
+.show-badge { /* TODO */ }
+.show-badge .material-symbols-rounded { /* TODO */ }
+.show-text .eyebrow { /* TODO */ }
+.show-idx { /* TODO */ }
+.show-text h2 { /* TODO */ }
+.show-text>p { /* TODO */ }
+.show-list { /* TODO */ }
+.show-list li { /* TODO */ }
+.show-list li .ic { /* TODO */ }
+.show-list li .ic .material-symbols-rounded { /* TODO */ }
+.show-text .feat-tags { /* TODO */ }
+.show-phone { /* TODO */ }
+@media(max-width:860px) { /* TODO */ }
+.phone { /* TODO */ }
+.phone::before { /* TODO */ }
+.screen { /* TODO */ }
+.screen .ph-media { /* TODO */ }
+.ph-placeholder { /* TODO */ }
+.ph-placeholder .material-symbols-rounded { /* TODO */ }
+.ph-placeholder span:last-child { /* TODO */ }
+.showcase3 { /* TODO */ }
+.show3-grid { /* TODO */ }
+.showcase3 .show-text h2 { /* TODO */ }
+.showcase3 .st-top>p { /* TODO */ }
+.showcase3 .show-badge { /* TODO */ }
+.show-center { /* TODO */ }
+.show-center .phone { /* TODO */ }
+.show-steps .eyebrow { /* TODO */ }
+.show-steps h3 { /* TODO */ }
+.ss-timeline { /* TODO */ }
+.ss-timeline::before { /* TODO */ }
+.ss-step { /* TODO */ }
+.ss-step:last-child { /* TODO */ }
+.ss-step:nth-child(odd) { /* TODO */ }
+.ss-step:nth-child(even) { /* TODO */ }
+.ss-n { /* TODO */ }
+.ss-step:nth-child(odd) .ss-n { /* TODO */ }
+.ss-step:nth-child(even) .ss-n { /* TODO */ }
+.ss-card { /* TODO */ }
+.ss-card:hover { /* TODO */ }
+.ss-step:nth-child(odd) .ss-card { /* TODO */ }
+.ss-card b { /* TODO */ }
+.ss-card span { /* TODO */ }
+@media(min-width:981px) { /* TODO */ }
+.show3-grid { /* TODO */ }
+.showcase3 .show-text { /* TODO */ }
+.show-steps { /* TODO */ }
+.show-steps .ss-timeline { /* TODO */ }
+.show-steps .ss-timeline .ss-step { /* TODO */ }
+@media(max-width:980px) { /* TODO */ }
+.more-placeholder { /* TODO */ }
+.more-placeholder .material-symbols-rounded { /* TODO */ }
+.more-placeholder span:last-child { /* TODO */ }
+@media(max-width:760px) { /* TODO */ }
+.steps { /* TODO */ }
+.steps::before { /* TODO */ }
+.step { /* TODO */ }
+.step:last-child { /* TODO */ }
+.step .s-num { /* TODO */ }
+.step .s-card { /* TODO */ }
+.step .s-card:hover { /* TODO */ }
+.step .s-card .si { /* TODO */ }
+.step .s-card .si .material-symbols-rounded { /* TODO */ }
+.step .s-card h3 { /* TODO */ }
+.step .s-card p { /* TODO */ }
+.step:nth-child(odd) .s-card { /* TODO */ }
+.step:nth-child(odd) .s-side { /* TODO */ }
+.step:nth-child(even) .s-card { /* TODO */ }
+.step:nth-child(even) .s-side { /* TODO */ }
+.s-side { /* TODO */ }
+@media(max-width:760px) { /* TODO */ }
+.rev-rows { /* TODO */ }
+.rev-track { /* TODO */ }
+.rev-track.rev2 { /* TODO */ }
+.rev-rows:hover .rev-track { /* TODO */ }
+@keyframes marq { /* TODO */ }
+.rev-card { /* TODO */ }
+.rev-card .stars { /* TODO */ }
+.rev-card .stars .material-symbols-rounded { /* TODO */ }
+.rev-card .q { /* TODO */ }
+.rev-card .who { /* TODO */ }
+.rev-card .who .av { /* TODO */ }
+.rev-card .who .nm { /* TODO */ }
+.rev-card .who .ro { /* TODO */ }
+.rev-fade { /* TODO */ }
+.rev-fade.l { /* TODO */ }
+.rev-fade.r { /* TODO */ }
+.logos { /* TODO */ }
+.logo { /* TODO */ }
+.logo:hover { /* TODO */ }
+.partner-cta { /* TODO */ }
+.partner-cta::before { /* TODO */ }
+.partner-cta .pc-text { /* TODO */ }
+.partner-cta h3 { /* TODO */ }
+.partner-cta h3 em { /* TODO */ }
+.partner-cta p { /* TODO */ }
+.partner-cta .pc-btn { /* TODO */ }
+@media(max-width:920px) { /* TODO */ }
+@media(max-width:520px) { /* TODO */ }
+#wall { /* TODO */ }
+#wall::before { /* TODO */ }
+#wall::after { /* TODO */ }
+#wall .wrap { /* TODO */ }
+#wall .eyebrow { /* TODO */ }
+#wall .eyebrow .dot { /* TODO */ }
+#wall .show-idx { /* TODO */ }
+#wall .show-text h2 { /* TODO */ }
+#wall .show-text h2 .accent,#wall .show-text h2 em { /* TODO */ }
+#wall .show-text>p { /* TODO */ }
+#wall .wall-lead { /* TODO */ }
+#wall .wall-folder { /* TODO */ }
+#wall .wall-tabs { /* TODO */ }
+#wall .wall-tab { /* TODO */ }
+#wall .wall-tab .material-symbols-rounded { /* TODO */ }
+#wall .wall-tab:hover { /* TODO */ }
+#wall .wall-tab.is-active { /* TODO */ }
+#wall .wall-tab.is-active .material-symbols-rounded { /* TODO */ }
+#wall .wall-tab:focus-visible { /* TODO */ }
+#wall .wall-panel { /* TODO */ }
+#wall .wall-page { /* TODO */ }
+#wall .wall-page.is-active { /* TODO */ }
+@keyframes wpfade { /* TODO */ }
+#wall .wall-page-title { /* TODO */ }
+#wall .wall-page-desc { /* TODO */ }
+#wall .wall-explore { /* TODO */ }
+#wall .wall-explore .material-symbols-rounded { /* TODO */ }
+#wall .wall-explore:hover { /* TODO */ }
+#wall .wall-explore:hover .material-symbols-rounded { /* TODO */ }
+@media (prefers-reduced-motion:reduce) { /* TODO */ }
+#wall .wall-page.is-active { /* TODO */ }
+#wall .wall-tab,#wall .wall-explore .material-symbols-rounded { /* TODO */ }
+@media (max-width:860px) { /* TODO */ }
+#wall .wall-folder { /* TODO */ }
+#wall .wall-panel { /* TODO */ }
+#wall .wall-page-title { /* TODO */ }
+#wall .phone { /* TODO */ }
+#wall .screen { /* TODO */ }
+#wall .ph-placeholder { /* TODO */ }
+#wall .ph-placeholder .material-symbols-rounded { /* TODO */ }
+#wall .ph-placeholder span:last-child { /* TODO */ }
+.epoch { /* TODO */ }
+.epoch canvas { /* TODO */ }
+.epoch .wrap { /* TODO */ }
+.epoch .eyebrow { /* TODO */ }
+.epoch .eyebrow .dot { /* TODO */ }
+.epoch h2 { /* TODO */ }
+.epoch h2 em { /* TODO */ }
+.big-cd { /* TODO */ }
+.bc { /* TODO */ }
+.bc .v { /* TODO */ }
+.bc .v.flash { /* TODO */ }
+.bc .k { /* TODO */ }
+.epoch .sub { /* TODO */ }
+.epoch .ecta { /* TODO */ }
+.getapp { /* TODO */ }
+.getapp .ga-grid { /* TODO */ }
+.getapp::before { /* TODO */ }
+.ga-ring { /* TODO */ }
+.ga-ring::after { /* TODO */ }
+.getapp .wrap>* { /* TODO */ }
+.ga-eyebrow { /* TODO */ }
+.ga-h { /* TODO */ }
+.ga-h em { /* TODO */ }
+.ga-sub { /* TODO */ }
+.ga-badges { /* TODO */ }
+.ga-badge { /* TODO */ }
+.ga-badge:hover { /* TODO */ }
+.ga-bi { /* TODO */ }
+.ga-bi svg { /* TODO */ }
+.ga-bt { /* TODO */ }
+.ga-bt small { /* TODO */ }
+.ga-bt b { /* TODO */ }
+.ga-soon { /* TODO */ }
+.ga-wait { /* TODO */ }
+.ga-wait:hover { /* TODO */ }
+.final { /* TODO */ }
+.final::before { /* TODO */ }
+.final .wrap { /* TODO */ }
+.final h2 { /* TODO */ }
+.final h2 .u { /* TODO */ }
+.final h2 .u::after { /* TODO */ }
+.final p { /* TODO */ }
+.final .btns { /* TODO */ }
+footer { /* TODO */ }
+.foot { /* TODO */ }
+.foot .brand { /* TODO */ }
+.foot .desc { /* TODO */ }
+.foot-cols { /* TODO */ }
+.fcol h5 { /* TODO */ }
+.fcol a { /* TODO */ }
+.fcol a:hover { /* TODO */ }
+.foot-bot { /* TODO */ }
+@media(max-width:760px) { /* TODO */ }
+.nav-cta { /* TODO */ }
+.sec { /* TODO */ }
+.foot-cols { /* TODO */ }
+.rev-card { /* TODO */ }
+@media(max-width:560px) { /* TODO */ }
+.wrap { /* TODO */ }
+.nav { /* TODO */ }
+header.scrolled .nav { /* TODO */ }
+.brand { /* TODO */ }
+#langLabel { /* TODO */ }
+.lang { /* TODO */ }
+.nav-cta { /* TODO */ }
+.nav-cta .btn-neon { /* TODO */ }
+.hero { /* TODO */ }
+.globe-wrap { /* TODO */ }
+h1.title { /* TODO */ }
+.hero p.lede { /* TODO */ }
+.hero-meta { /* TODO */ }
+.sec { /* TODO */ }
+.sec-head { /* TODO */ }
+.sec-head p { /* TODO */ }
+.feat { /* TODO */ }
+.phone .screen { /* TODO */ }
+.epoch { /* TODO */ }
+.epoch h2 { /* TODO */ }
+.big-cd { /* TODO */ }
+.bc { /* TODO */ }
+.bc .v { /* TODO */ }
+.partner-cta { /* TODO */ }
+.partner-cta .pc-btn { /* TODO */ }
+.getapp { /* TODO */ }
+.ga-badges { /* TODO */ }
+.ga-badge { /* TODO */ }
+.ga-ring { /* TODO */ }
+.foot { /* TODO */ }
+.foot-cols { /* TODO */ }
+.reveal { /* TODO */ }
+.reveal.in { /* TODO */ }
+.reveal.l { /* TODO */ }
+.reveal.l.in,.reveal.r.in { /* TODO */ }
+.reveal.d1 { /* TODO */ }
+@media(prefers-reduced-motion:reduce) { /* TODO */ }

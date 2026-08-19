@@ -1,0 +1,30 @@
+# XcodeGen spec — generate the Xcode project from this checked-in file:
+#   brew install xcodegen && cd apps/ios && xcodegen generate && open Unimatcha.xcodeproj
+# Keeping project.yml (text) in git instead of a binary .pbxproj makes the project reviewable/mergeable.
+name: Unimatcha
+options:
+  bundleIdPrefix: com.unimatcha
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    TARGETED_DEVICE_FAMILY: "1,2"
+targets:
+  Unimatcha:
+    type: application
+    platform: iOS
+    sources:
+      - path: Unimatcha
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.unimatcha.app
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Unimatcha/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES

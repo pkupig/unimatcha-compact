@@ -1,0 +1,1172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// 枚举（双模式 + 增强 + 广场改版）
+// ─────────────────────────────────────────────
+
+enum QuestionnaireType {
+  ROMANTIC
+  FRIEND
+}
+
+enum MatchMode {
+  ROMANTIC
+  FRIEND
+}
+
+// 增强模式：能量流水类型（§10）
+enum EnergyTxType {
+  RECHARGE // 充值购买
+  CONSUME // 匹配预扣
+  REFUND // 退还（空池 / 48h 未确认）
+  CLAIM // 领取免费（注册/签到/任务）
+}
+
+// 广场改版（§8.1）
+enum SquareBoard {
+  RECOMMEND // 推荐 tab
+  CAMPUS_WALL // 校园墙 tab（同校可见）
+}
+
+enum SquareAuthorType {
+  USER // 用户个人帖（authorUserId 非空）→ 小卡(recommend)/中卡(campus_wall)
+  STUDENT_UNION // 学生会官方帖（adminId 非空；school 标注该校）→ 大卡
+  TEAM // 团队官方帖（adminId 非空；跨校）→ 大卡
+  SPONSOR // 赞助商推广帖（adminId 非空；标 "Sponsored"）→ 大卡
+}
+
+enum AdminRole {
+  SUPER // 超管：全校、全角色管理
+  STUDENT_UNION // 学生会（绑定 schoolId）：仅发本校官方帖
+  TEAM // 团队：发跨校官方帖
+  SPONSOR // 赞助商：发商业推广帖
+}
+
+// ─────────────────────────────────────────────
+// 用户体系
+// ─────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  status       UserStatus @default(ACTIVE)
+  // 已删除：mode / matchState / matchSearchingSince / weeklyMatchNote（迁入 UserModeState）
+
+  // 认证状态（unverified/pending/verified/rejected）
+  verificationStatus String @default("unverified")
+
+  // 学生认证材料（上传学生卡 + 学校邮箱验证码）
+  studentCardUrl      String? // 学生卡照片 URL（管理员审核用）
+  schoolEmail         String? // 已通过验证码校验的学校邮箱
+  verifyCode          String? // 学校邮箱验证码（临时，提交后清空）
+  verifyCodeExpiresAt DateTime?
+
+  // 扫码加好友：每人唯一连接码（二维码编码它，对方扫/输入即建立朋友会话）
+  connectCode String? @unique
+
+  // 用户设置 { pushEnabled, privacy: { showProfile, showOnline, showMoments } }
+  settings Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile        Profile?
+  answers        Answer[]
+  matchesAsUserA Match[]   @relation("MatchUserA")
+  matchesAsUserB Match[]   @relation("MatchUserB")
+  sentMessages   Message[] @relation("MessageSender")
+
+  // 旧广场（CouplePost：迁移后废弃，暂保留兼容）
+  couplePosts  CouplePost[]
+  postComments PostComment[]
+  postLikes    PostLike[]
+
+  // 广场改版（SquarePost）
+  squarePosts    SquarePost[]        @relation("SquarePostAuthor")
+  squareComments SquarePostComment[] @relation("SquarePostCommentAuthor")
+  squareLikes    SquarePostLike[]    @relation("SquarePostLikes")
+  squareCommentLikes SquareCommentLike[] @relation("SquareCommentLikes")
+
+  // 匹配偏好（每模式一条）
+  matchPreferences UserMatchPreferences[]
+  modeStates       UserModeState[]
+
+  // 增强模式能量账户（§10）
+  energyBalance      EnergyBalance?
+  energyTransactions EnergyTransaction[]
+
+  notifications Notification[]
+  reports       Report[]
+  pollVotes     SquarePollVote[]
+  eventTickets  EventTicket[]
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+model AdminUser {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  passwordHash     String
+  name             String
+  role             AdminRole? // null=仅查看（无发帖权）
+  schoolId         String? // STUDENT_UNION 必填（绑定本校 School.id）
+  organizationName String? // TEAM/SPONSOR 组织名
+  isActive         Boolean    @default(true) // 软删除
+  isSuperAdmin     Boolean    @default(false) // 兼容旧字段（与 role=SUPER 对齐）
+
+  // SPONSOR 商家来源：null=平台直签；非空=该学生会（学校）自拉赞助商
+  sourcedBySchoolId String?
+  contactName       String?
+  contactPhone      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  squarePosts SquarePost[]
+  events      Event[]      @relation("EventCreator")
+
+  school          School? @relation("SchoolUnionAdmins", fields: [schoolId], references: [id])
+  sourcedBySchool School? @relation("SponsorSource", fields: [sourcedBySchoolId], references: [id])
+
+  campaigns AdCampaign[] @relation("CampaignAdvertiser")
+
+  @@index([role, schoolId])
+  @@index([sourcedBySchoolId])
+  @@map("admin_users")
+}
+
+// 用户 per-mode 状态（替代 User 上 4 个字段）
+model UserModeState {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode   String // "romantic" | "friend"
+
+  // idle/searching/matched/confirming/relationship/no_match
+  matchState          String    @default("idle")
+  matchSearchingSince DateTime?
+  weeklyMatchNote     String? // "no_match" 或 null
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, mode])
+  @@index([userId, mode, matchState])
+  @@map("user_mode_states")
+}
+
+// 增强模式能量账户（§10.1）
+model EnergyBalance {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  totalEnergy Int @default(0) // 累计充值 + 赠送（只增）
+  usedEnergy  Int @default(0) // 已消耗（CONSUME += / REFUND -=）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("energy_balances")
+}
+
+// 增强模式能量流水（§10.1，只增不改）
+model EnergyTransaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type         EnergyTxType
+  amountEnergy Int // 变动格数（恒正）
+  balanceAfter Int // 交易后可用余额快照（对账）
+
+  relatedMatchId   String? // CONSUME/REFUND 关联 Match
+  relatedMatchMode String? // "romantic" | "friend"
+  reason           String?
+  metadata         Json? // { rechargeMethod, orderId, packageId }
+
+  // 幂等去重键（防双花）：CLAIM 用 userId:claimType:dayBucket / userId:task:taskKey；RECHARGE 用 recharge:orderId。
+  // 可空：历史流水与 CONSUME/REFUND 不写此键，多 NULL 在 Postgres 唯一索引下允许并存。
+  dedupeKey String? @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([relatedMatchId])
+  @@map("energy_transactions")
+}
+
+// ─────────────────────────────────────────────
+// 用户资料
+// ─────────────────────────────────────────────
+
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nickname   String?
+  realName   String? // 合成的全名（givenName + familyName），向后兼容显示用
+  familyName String? // 姓
+  givenName  String? // 名
+  school     String?
+  grade      String?
+  gender     String?
+  genderPref String?
+  age        Int?
+  birthday   String? // YYYY-MM-DD；注册改收生日，age 由生日推算后仍存（匹配按 age 过滤）
+  city       String?
+  interests  String[]
+  bio        String?  @db.Text
+  avatarUrl  String?
+
+  socialLinks Json?
+
+  signature String?  @db.Text
+  coverUrl  String?
+  tags      String[]
+
+  major       String?
+  mbti        String?
+  nationality String?
+  realPhotos  String[]
+  zodiac      String?
+  wishGifts   String[] // 礼物罐子（本轮反馈2-5）：最多5个想要的礼物，仅伴侣可见
+
+  extraData           Json?
+  relationshipScore   Float @default(0)
+  profileCompleteness Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+// ─────────────────────────────────────────────
+// 情侣空间（本轮反馈2）— 均按 matchId 归属于一段恋人关系，仅该 Match 的两人可读写
+// ─────────────────────────────────────────────
+model CoupleMemberState {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String
+  status    String? // 当日状态/心情（#1）
+  craving   String? // 今天想吃什么（#3）
+  schedule  String? // 近期安排/报备（#4）
+  loveYouCount Int     @default(0) // 我爱你累计次数（彩蛋：双方各满100次发里程碑）
+  loveYouDate  String? // 最近一次发送日期 YYYY-MM-DD（每日限一次）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@map("couple_member_states")
+}
+
+model CoupleAnniversary {
+  id        String   @id @default(cuid())
+  matchId   String
+  title     String
+  date      DateTime
+  note      String? // 详情文字（本轮反馈6b）
+  image     String? // 旧单图（兼容）
+  images    String[] // 多图（本轮反馈4）
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([matchId])
+  @@map("couple_anniversaries")
+}
+
+model CoupleBucketItem {
+  id        String   @id @default(cuid())
+  matchId   String
+  text      String
+  done      Boolean  @default(false)
+  createdBy String
+  doneBy    String?
+  doneNote   String? // 打勾时附的文字（本轮反馈2）
+  doneImage  String? // 旧单图（兼容）
+  doneImages String[] // 多图（本轮反馈4）
+  createdAt DateTime @default(now())
+
+  @@index([matchId])
+  @@map("couple_bucket_items")
+}
+
+// 近期安排/报备（本轮反馈2）：每条带起止时间，结束后变灰成记录
+model CoupleScheduleEntry {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String
+  text      String
+  startAt   DateTime
+  endAt     DateTime
+  createdAt DateTime @default(now())
+
+  @@index([matchId])
+  @@map("couple_schedule_entries")
+}
+
+// 今天想吃（本轮反馈2）：每次输入入历史，最新为当前，历史供快速再选
+model CoupleCravingEntry {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([matchId])
+  @@map("couple_craving_entries")
+}
+
+// ─────────────────────────────────────────────
+// 匹配偏好（每模式一条 + 增强开关）
+// ─────────────────────────────────────────────
+
+model UserMatchPreferences {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode   String // "romantic" | "friend"
+
+  // 恋人 / 通用字段
+  requireSameCity       Boolean @default(false)
+  requireSameUniversity Boolean @default(false)
+  requireSameMajor      Boolean @default(false)
+
+  preferredNationalities String[]
+  preferredMbti          String[]
+
+  preferredGender String?
+  ageMin          Int?
+  ageMax          Int?
+  universityStage String?
+
+  // 朋友字段
+  preferredInterests  String[]
+  preferredActivities String[]
+  friendRequirements  String?  @db.Text
+
+  // 增强模式开关（§10，J 规则）
+  enhancedModeEnabled Boolean @default(false)
+  friendEnhancedCells Int?    @default(1) // 朋友 1–5 档（=保证匹配的朋友数 N）；恋人忽略（固定 3）
+
+  matchBasis     String? @default("both")
+  extraMatchInfo String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, mode])
+  @@map("user_match_preferences")
+}
+
+// ─────────────────────────────────────────────
+// 问卷体系（新增 type）
+// ─────────────────────────────────────────────
+
+model QuestionnaireVersion {
+  id          String            @id @default(cuid())
+  version     Int               @unique
+  type        QuestionnaireType @default(ROMANTIC)
+  title       String
+  description String?           @db.Text
+  isActive    Boolean           @default(false)
+  publishedAt DateTime?
+
+  questions Question[]
+  answers   Answer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 每 type 至多一个 active：应用层 publishVersion 保证（partial unique index 由 db push 无法表达，故应用层强制）
+  @@map("questionnaire_versions")
+}
+
+model Question {
+  id              String               @id @default(cuid())
+  questionnaireId String
+  questionnaire   QuestionnaireVersion @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+
+  type        QuestionType
+  title       String
+  titleEn     String? // 英文题面：H5 英文态显示（缺省回退中文 title）
+  description String?
+  isRequired  Boolean      @default(true)
+  isEnabled   Boolean      @default(true)
+  order       Int          @default(0)
+  group       String?
+
+  options QuestionOption[]
+  answers Answer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  SCALE
+  TEXT
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  label String
+  value String
+  order Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("question_options")
+}
+
+model Answer {
+  id                     String               @id @default(cuid())
+  userId                 String
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionnaireVersionId String
+  questionnaireVersion   QuestionnaireVersion @relation(fields: [questionnaireVersionId], references: [id])
+  questionId             String
+  question               Question             @relation(fields: [questionId], references: [id])
+
+  value Json
+
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, questionnaireVersionId, questionId])
+  @@map("answers")
+}
+
+// ─────────────────────────────────────────────
+// 匹配体系（新增 mode + 扩展 status + 增强字段）
+// ─────────────────────────────────────────────
+
+model MatchConfig {
+  id          String  @id @default(cuid())
+  cronExpr    String
+  isEnabled   Boolean @default(true)
+  description String?
+  timezone    String  @default("Asia/Shanghai")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("match_configs")
+}
+
+model MatchJob {
+  id           String         @id @default(cuid())
+  status       MatchJobStatus @default(PENDING)
+  triggeredBy  String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?        @db.Text
+
+  totalCandidates Int @default(0)
+  totalMatched    Int @default(0)
+
+  matches Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("match_jobs")
+}
+
+enum MatchJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Match {
+  id         String   @id @default(cuid())
+  // 可空：扫码加好友建立的会话没有匹配任务（matchJobId=null）
+  matchJobId String?
+  matchJob   MatchJob? @relation(fields: [matchJobId], references: [id])
+
+  userAId String
+  userA   User   @relation("MatchUserA", fields: [userAId], references: [id])
+  userBId String
+  userB   User   @relation("MatchUserB", fields: [userBId], references: [id])
+
+  mode     MatchMode   @default(ROMANTIC)
+  status   MatchStatus @default(MATCHED_ROMANTIC)
+  score    Float?
+  metadata Json?
+
+  // 增强模式记录（§10）
+  enhancedMode        String? // null | "romantic" | "friend"
+  enhancedUserEnergy  Int? // 预扣/消耗格数（恋爱=3 / 朋友=friendEnhancedCells）
+  enhancedAttemptedAt DateTime? // 增强配对时刻（退款窗口锚点）
+
+  userAConfirmed Boolean   @default(false)
+  userBConfirmed Boolean   @default(false)
+  confirmedAt    DateTime?
+
+  relationshipStartedAt DateTime?
+
+  // 排行榜占位字段（前端已下线，后端保留兼容）
+  compatibilityScore Float?
+  interactionStreak  Int    @default(0)
+  growthScore        Float  @default(0)
+  empathyScore       Float  @default(0)
+
+  dissolvedBy    String?
+  dissolvedAt    DateTime?
+  dissolveReason String?
+
+  couplePosts CouplePost[]
+  messages    Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userAId, userBId, mode])
+  @@index([mode, status])
+  @@index([userAId, mode, status])
+  @@index([userBId, mode, status])
+  @@map("matches")
+}
+
+enum MatchStatus {
+  // 恋人模式（先聊后定 + 双确认 + 48h 过期）
+  MATCHED_ROMANTIC // 临时对话：可聊，48h 倒计时中
+  ROMANTIC_CONFIRMING // 单方已确认，等待对方
+  RELATIONSHIP_ROMANTIC // 双方确认 → 永久恋人
+
+  // 朋友模式（与恋人对称）
+  MATCHED_FRIEND // 临时对话：可聊，48h 倒计时中
+  FRIEND_CONFIRMING // 单方已确认，等待对方
+  FRIEND_CONFIRMED // 双方确认 → 永久朋友
+
+  // 通用终态
+  REJECTED
+  DISSOLVED
+  EXPIRED // 48h 未双确：对话消失 + 双方通知
+
+  // 废弃（保留兼容，不再写入）
+  PENDING_CONFIRM
+  MATCHED
+  RELATIONSHIP_MODE
+}
+
+// ─────────────────────────────────────────────
+// 旧广场（情侣动态）：迁移后废弃，暂保留兼容（§8.1.6）
+// ─────────────────────────────────────────────
+
+model CouplePost {
+  id           String  @id @default(cuid())
+  matchId      String?
+  match        Match?  @relation(fields: [matchId], references: [id])
+  authorUserId String
+  author       User    @relation(fields: [authorUserId], references: [id])
+
+  title   String?
+  content String   @db.Text
+  images  String[]
+
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  comments PostComment[]
+  likes    PostLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("couple_posts")
+}
+
+model PostComment {
+  id     String     @id @default(cuid())
+  postId String
+  post   CouplePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User       @relation(fields: [userId], references: [id])
+
+  content  String  @db.Text
+  imageUrl String?
+
+  parentCommentId String?
+  parent          PostComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         PostComment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+
+  @@map("post_comments")
+}
+
+model PostLike {
+  id        String     @id @default(cuid())
+  postId    String
+  post      CouplePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+// ─────────────────────────────────────────────
+// 广场改版：推荐 + 校园墙（新表，取代 CouplePost）
+// ─────────────────────────────────────────────
+
+model SquarePost {
+  id String @id @default(cuid())
+
+  board      SquareBoard      @default(RECOMMEND)
+  authorType SquareAuthorType @default(USER)
+
+  // 作者标识（USER 帖 authorUserId 非空；官方帖 adminId 非空）
+  authorUserId String?
+  authorUser   User?      @relation("SquarePostAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  adminId      String?
+  admin        AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  school String? // 右上角学校标注
+
+  coupleMatchId String? // 可选：CouplePost 迁移而来的情侣帖（前端取双方 profile 展示双头像）
+
+  title   String?
+  content String   @db.Text
+  images  String[] @default([])
+
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  anonymous   Boolean @default(false) // 隐藏头像/昵称为"匿名同学"（学校仍标注）
+  isSponsored Boolean @default(false) // SPONSOR 帖=true，UI 显示 "Sponsored"
+
+  // ─── 投票帖（校园墙投票，需审核）───
+  postType    String  @default("normal") // normal | poll | event
+  pollOptions Json? // [{ text, votes }]（votes 由投票事务内重算冗余存储，feed 免 N+1）
+  // 审核：普通帖默认 approved；投票帖创建即 pending，学生会（本校）或团队审核
+  reviewStatus      String    @default("approved") // approved | pending | rejected
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+
+  // ─── 活动帖（1:1 关联 Event）───
+  eventId String? @unique
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  isHidden     Boolean   @default(false) // 举报/下架后对他人隐藏
+  deletedBy    String?
+  deletedAt    DateTime?
+  deleteReason String?
+
+  tags     String[] @default([])
+  metadata Json? // { weight, pinned, campaignId, partnerInfo... }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  SquarePostComment[]
+  likes     SquarePostLike[]
+  pollVotes SquarePollVote[]
+
+  @@index([board, createdAt])
+  @@index([board, school])
+  @@index([authorType, createdAt])
+  @@index([isHidden, createdAt])
+  @@index([reviewStatus, school, createdAt])
+  @@index([coupleMatchId])
+  @@map("square_posts")
+}
+
+model SquarePostComment {
+  id     String     @id @default(cuid())
+  postId String
+  post   SquarePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User       @relation("SquarePostCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  content  String  @db.Text
+  imageUrl String?
+
+  parentCommentId String?
+  parent          SquarePostComment?  @relation("SquareCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         SquarePostComment[] @relation("SquareCommentReplies")
+  likes           SquareCommentLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId, createdAt])
+  @@map("square_post_comments")
+}
+
+// 评论点赞：每人每条评论一次（唯一约束保证幂等）。
+// 计数不落字段、按需 _count 聚合——评论量小，且避免 likeCount 漂移。
+model SquareCommentLike {
+  id        String            @id @default(cuid())
+  commentId String
+  comment   SquarePostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation("SquareCommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@map("square_comment_likes")
+}
+
+model SquarePostLike {
+  id        String     @id @default(cuid())
+  postId    String
+  post      SquarePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation("SquarePostLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("square_post_likes")
+}
+
+// 校园墙投票：每人每帖一票，可改票（更新 optionIndex）
+model SquarePollVote {
+  id          String     @id @default(cuid())
+  postId      String
+  post        SquarePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  optionIndex Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([postId, userId])
+  @@index([postId, optionIndex])
+  @@map("square_poll_votes")
+}
+
+// ─────────────────────────────────────────────
+// 活动 + 门票（学生会/团队发布活动 → 广场活动帖；用户购票 → 票夹二维码）
+// ─────────────────────────────────────────────
+model Event {
+  id      String   @id @default(cuid())
+  title   String
+  content String   @db.Text
+  images  String[] @default([])
+
+  school String? // 学生会活动=本校名；团队活动可空（全网）
+  venue  String?
+  startAt DateTime
+  endAt   DateTime?
+
+  priceCents  Int    @default(0) // 0=免费；分为单位
+  capacity    Int? // null=不限量
+  ticketsSold Int    @default(0)
+  status      String @default("published") // published | closed | cancelled
+
+  createdByAdminId String
+  createdByAdmin   AdminUser @relation("EventCreator", fields: [createdByAdminId], references: [id])
+
+  post    SquarePost? // 1:1（SquarePost.eventId @unique）
+  tickets EventTicket[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startAt])
+  @@index([school, startAt])
+  @@map("events")
+}
+
+model EventTicket {
+  id             String    @id @default(cuid())
+  code           String    @unique // 二维码内容（UMT-xxxx，入场核销）
+  eventId        String
+  event          Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pricePaidCents Int       @default(0)
+  status         String    @default("valid") // valid | used | cancelled
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([eventId, status])
+  @@map("event_tickets")
+}
+
+// ─────────────────────────────────────────────
+// 通知 / 系统配置 / 聊天 / 举报
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // 'match_result' | 'no_match' | 'match_expired' | 'comment' | 'like' | 'system' | 'dissolve'
+  title     String
+  body      String   @db.Text
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+model Message {
+  id       String  @id @default(cuid())
+  matchId  String
+  match    Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId String
+  sender   User    @relation("MessageSender", fields: [senderId], references: [id])
+  content  String  @db.Text
+  imageUrl String?
+  kind     String  @default("text") // 消息类型：'text' 普通消息 | 'nudge' 拍一拍（H5 据此判定，免去字符串匹配）
+  isRead   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([matchId, createdAt])
+  @@map("messages")
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  content   String   @db.Text
+  contact   String?
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────
+// 广告商业化体系（学校 / 广告 / 分成 / 提现）
+// 设计文档：docs/ADMIN-REDESIGN.md
+// 金额一律以分（cents, Int）存储
+// ─────────────────────────────────────────────
+
+enum AdPricingModel {
+  BUYOUT // 按天包断（单价按学校配置）
+  CPM // 千次曝光计费
+  CPC // 按点击计费
+}
+
+enum AdCampaignStatus {
+  DRAFT // 商家编辑中
+  PENDING_UNION_REVIEW // 学生会自拉商家提交 → 本校学生会审
+  PENDING_PLATFORM_REVIEW // 平台直签商家提交 → 团队审
+  REJECTED // 驳回（可改后重新提交）
+  PENDING_PAYMENT // 审核通过，等待线下付款 + 团队确认收款
+  SCHEDULED // 已付款，未到 startDate
+  ACTIVE // 投放中
+  PAUSED // 商家自暂停（可恢复）
+  SUSPENDED // 平台强制下架（团队可解除回 ACTIVE）
+  COMPLETED // 到期或预算耗尽（终态，触发分成入账）
+}
+
+enum LedgerEntryType {
+  AD_SHARE // 广告分成入账（+）
+  SPONSOR_GRANT // 平台发放赞助额度（+）
+  WITHDRAWAL // 提现打款（−）
+  ADJUSTMENT // 手工调整（±）
+}
+
+enum WithdrawalStatus {
+  PENDING // 学生会已申请，待团队审核
+  APPROVED // 审核通过，待线下打款
+  REJECTED // 驳回（释放冻结金额）
+  PAID // 已打款（写入负数 ledger）
+}
+
+model School {
+  id       String  @id @default(cuid())
+  name     String  @unique // 与 Profile.school / SquarePost.school 字符串相等匹配
+  city     String?
+  isActive Boolean @default(true)
+
+  // 分成配置（基点 bps，0–10000）
+  platformShareBps    Int @default(1000) // 平台直签广告分成
+  selfSourcedShareBps Int @default(3000) // 学生会自拉赞助分成（更高）
+
+  // 计价覆盖（null = 用 SystemConfig ad_pricing_defaults 全局默认）
+  buyoutDailyPriceCents Int? // 包断：每天每校
+  cpmPriceCents         Int? // 每 1000 次曝光
+  cpcPriceCents         Int? // 每次点击
+
+  // 学生会提现银行账户（MVP 仅记录，提现时快照）
+  bankAccountName String?
+  bankName        String?
+  bankAccountNo   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unionAdmins     AdminUser[]         @relation("SchoolUnionAdmins")
+  sourcedSponsors AdminUser[]         @relation("SponsorSource")
+  placements      AdPlacement[]
+  ledger          SchoolLedgerEntry[]
+  withdrawals     WithdrawalRequest[]
+
+  @@map("schools")
+}
+
+model AdCampaign {
+  id           String    @id @default(cuid())
+  advertiserId String
+  advertiser   AdminUser @relation("CampaignAdvertiser", fields: [advertiserId], references: [id])
+
+  // 素材（H5 广场大卡形态展示）
+  title      String
+  content    String   @db.Text
+  images     String[]
+  landingUrl String? // 点击跳转外链（空 = 仅详情浮层）
+
+  pricingModel AdPricingModel
+  status       AdCampaignStatus @default(DRAFT)
+
+  startDate DateTime // 投放起（含）
+  endDate   DateTime // 投放止（含）
+
+  budgetCents     Int? // CPM/CPC 必填预算；BUYOUT 为 null
+  totalPriceCents Int  @default(0) // BUYOUT=Σ placement 价；CPM/CPC=budgetCents
+  spendCents      Int  @default(0) // CPM/CPC 实时累计；BUYOUT 激活即 = totalPrice
+  priceSnapshot   Json? // 提交时锁定的各校单价 {schoolId: {buyoutDaily, cpm, cpc}}
+
+  sourcedBySchoolId String? // 提交时从 advertiser 冗余（分级审核 + 分成档位判定）
+
+  paymentConfirmedByAdminId String?
+  paymentNote               String?
+  paidAt                    DateTime?
+
+  unionReviewedByAdminId    String?
+  platformReviewedByAdminId String?
+  reviewNote                String?
+  rejectedReason            String?
+
+  suspendedAt   DateTime?
+  suspendReason String?
+  completedAt   DateTime?
+  settledAt     DateTime? // 分成已入账幂等标记
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  placements AdPlacement[]
+  dailyStats AdDailyStat[]
+
+  @@index([status, startDate])
+  @@index([advertiserId, createdAt])
+  @@index([sourcedBySchoolId, status])
+  @@map("ad_campaigns")
+}
+
+model AdPlacement {
+  id         String     @id @default(cuid())
+  campaignId String
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  schoolId   String
+  school     School     @relation(fields: [schoolId], references: [id])
+
+  buyoutPriceCents Int? // BUYOUT: 天数 × 该校日单价（提交时计算锁定）
+
+  @@unique([campaignId, schoolId])
+  @@map("ad_placements")
+}
+
+model AdDailyStat {
+  id         String     @id @default(cuid())
+  campaignId String
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  schoolId   String
+  date       DateTime   @db.Date
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  spendCents  Int @default(0) // 当日该校消耗（CPM/CPC 实时；BUYOUT 按天均摊展示用）
+
+  @@unique([campaignId, schoolId, date])
+  @@index([schoolId, date])
+  @@map("ad_daily_stats")
+}
+
+model SchoolLedgerEntry {
+  id       String          @id @default(cuid())
+  schoolId String
+  school   School          @relation(fields: [schoolId], references: [id])
+  type     LedgerEntryType
+
+  amountCents Int // 有符号：收入 +，提现 −
+  refType     String? // 'campaign' | 'withdrawal' | 'grant'
+  refId       String?
+  note        String?
+
+  createdByAdminId String?
+  createdAt        DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@map("school_ledger_entries")
+}
+
+model WithdrawalRequest {
+  id       String           @id @default(cuid())
+  schoolId String
+  school   School           @relation(fields: [schoolId], references: [id])
+  status   WithdrawalStatus @default(PENDING)
+
+  amountCents  Int
+  bankSnapshot Json // {accountName, bankName, accountNo} 申请时快照
+
+  requestedByAdminId String
+  reviewedByAdminId  String?
+  reviewNote         String?
+
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+  paidAt     DateTime?
+
+  @@index([schoolId, createdAt])
+  @@index([status])
+  @@map("withdrawal_requests")
+}
+
+// ─────────────────────────────────────────────
+// 匹配反馈埋点（BACKLOG P0-2）
+// schema 源自 matching-ml/feedback/prisma_models.prisma；训练侧按
+// (userA,userB,mode) 归因（feedback/attribution.py），字段名不可改。
+// 曝光在匹配公布时落库；行为事件在用户权威动作处落库。
+// ─────────────────────────────────────────────
+
+model MatchExposure {
+  id                  String   @id @default(cuid())
+  matchId             String?
+  matchJobId          String? // 本仓库补充列：Bull 重试幂等键（上游 schema 无此列，导出训练数据时忽略）
+  mode                String // "romantic" | "friend"
+  userAId             String
+  userBId             String
+  shownToUserId       String
+  position            Int      @default(0)
+  algorithmVersion    String   @default("")
+  constitutionVersion String   @default("")
+  modelVersions       Json     @default("{}")
+  featureSnapshot     Json // 展示时刻冻结特征——之后绝不重算（algorithm.md §9.4）
+  finalScore          Float    @default(0)
+  shownAt             DateTime @default(now())
+
+  @@unique([matchJobId, matchId])
+  @@index([mode, shownAt])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([matchId])
+  @@map("match_exposures")
+}
+
+model MatchBehaviorEvent {
+  id         String   @id @default(cuid())
+  matchId    String?
+  exposureId String?
+  mode       String
+  userAId    String
+  userBId    String
+  actorId    String
+  type       String // viewed|openedProfile|firstMessage|message|confirmed|rejected|dissolved|reported|blocked
+  meta       Json     @default("{}")
+  at         DateTime @default(now())
+
+  @@index([mode, at])
+  @@index([actorId])
+  @@index([matchId])
+  @@map("match_behavior_events")
+}
+
+// ─────────────────────────────────────────────
+// 「猜你认识」——用户主动忽略的推荐对象（见 src/users/discovery.service.ts）
+// 忽略是单向的：A 忽略 B 后，A 不再看到 B，但 B 仍可能看到 A。
+// 双向屏蔽属于举报/拉黑范畴，不在推荐层解决。
+// ─────────────────────────────────────────────
+
+model UserSuggestionDismiss {
+  id           String @id @default(cuid())
+  userId       String // 执行忽略的人
+  targetUserId String // 被忽略的人
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetUserId])
+  @@index([userId, createdAt])
+  @@map("user_suggestion_dismisses")
+}
+
+// ─────────────────────────────────────────────
+// 官网公开提交（候补名单 / 赞助申请），见 src/public
+// ─────────────────────────────────────────────
+
+model PublicSubmission {
+  id           String               @id @default(cuid())
+  type         PublicSubmissionType
+  email        String
+  organization String?
+  message      String?              @db.Text
+  locale       String?
+  createdAt    DateTime             @default(now())
+
+  // 后台处理工作流（docs/ADMIN-REDESIGN.md §5.6）
+  status           PublicSubmissionStatus @default(PENDING)
+  handledByAdminId String? // 最近一次处理人
+  handledAt        DateTime?
+  handleNote       String? // 处理备注（联系记录/关闭原因）
+  convertedAdminId String? // 「一键开通」创建的后台账号（学生会/商家）
+  updatedAt        DateTime               @default(now()) @updatedAt
+
+  @@unique([type, email])
+  @@index([type, status, createdAt])
+  @@map("public_submissions")
+}
+
+enum PublicSubmissionType {
+  WAITLIST
+  SPONSOR
+}
+
+enum PublicSubmissionStatus {
+  PENDING // 待处理
+  CONTACTED // 已联系
+  APPROVED // 已开通账号
+  REJECTED // 已关闭
+}

@@ -1,0 +1,29 @@
+/* CSS outline: selectors retained, declarations removed. */
+@layer base { /* TODO */ }
+body { /* TODO */ }
+h4 { /* TODO */ }
+.material-symbols-outlined { /* TODO */ }
+@layer components { /* TODO */ }
+.btn-cta { /* TODO */ }
+.btn-primary { /* TODO */ }
+.btn-secondary { /* TODO */ }
+.btn-danger { /* TODO */ }
+.btn-sm { /* TODO */ }
+.card { /* TODO */ }
+.input { /* TODO */ }
+.select { /* TODO */ }
+.label { /* TODO */ }
+.caption { /* TODO */ }
+.badge { /* TODO */ }
+.badge-neon { /* TODO */ }
+.badge-ink { /* TODO */ }
+.badge-pink { /* TODO */ }
+.badge-outline { /* TODO */ }
+.table-base { /* TODO */ }
+.table-base thead th { /* TODO */ }
+.table-base tbody td { /* TODO */ }
+.table-base tbody tr { /* TODO */ }
+.table-base tbody tr:last-child { /* TODO */ }
+.table-base tbody tr:hover { /* TODO */ }
+.nav-item { /* TODO */ }
+.nav-item-active { /* TODO */ }

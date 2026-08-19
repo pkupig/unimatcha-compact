@@ -1,0 +1,31 @@
+/* Interface outline: implementation bodies removed. */
+import { S } from '../state.js';
+
+function renderThumbStrip(container, urls);
+function renderThumbGallery(urls);
+function pickAndUploadImages(onDone);
+function fmtTime(d);
+async function renderCoupleSpace(container, matchId, partner);
+async function loadCoupleSpace();
+function section(title, addBtn, body);
+function schedEntry(e, mine);
+function renderCoupleHub(space);
+async function coupleApi(path, method, body);
+async function coupleSendLoveYou();
+function coupleEditCover(ev);
+function couplePopup(innerHtml);
+function coupleEditStatus();
+async function coupleEditCraving();
+async function coupleQuickCraving(enc);
+function openAddSchedule();
+async function coupleDelSchedule(id);
+function openAddAnniversary();
+async function coupleDelAnniversary(id);
+function openAnniversaryDetail(id);
+function openAnniversaryAll();
+function openGiftJar();
+async function coupleAddBucket();
+async function coupleTickBucket(id, currentDone);
+function openCompleteBucket(id, text);
+function coupleViewBucket(id);
+async function coupleDelBucket(id);

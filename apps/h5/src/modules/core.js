@@ -1,0 +1,30 @@
+/* Interface outline: implementation bodies removed. */
+import { S } from '../state.js';
+
+async function api(path, method = 'GET', body = null);
+async function uploadImageFile(file);
+function cleanupUserState();
+async function checkUserState();
+function showPage(id);
+function switchTab(tab);
+function openOverlay(id);
+function closeOverlay(id);
+function hideOverlay(id);
+function appCardBackdrop();
+function confirmCard(...);
+function promptCard(...);
+function closeAllOverlays();
+function hideSplash();
+function toast(msg, duration = 3000);
+function escapeHtml(t);
+function bindNavAutoHide(container);
+function attachPullToRefresh(container, onRefresh, contentSelector, opts);
+function bindSheetDragClose(overlayId);
+function topOpenOverlay();
+function hasBackButton(el);
+function swipePanel(el);
+function btnBusy(id, busy);
+function flatEmptyIcon(icon, tone = 'muted');
+function safeUrl(u);
+function safeCssUrl(u);
+function readFileAsDataUrl(file, cb);

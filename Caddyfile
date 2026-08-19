@@ -1,0 +1,21 @@
+# Unimatcha — single 80/443 entrypoint with automatic HTTPS (Let's Encrypt).
+# Caddy resolves the upstreams by docker-compose service name on the shared network.
+#
+# >>> Replace `unimatcha.ai` with your real Spaceship domain before deploying. <<<
+# DNS: add A records for @, www, app, admin, api → your DigitalOcean server IP.
+
+unimatcha.ai, www.unimatcha.ai {
+	reverse_proxy website:80
+}
+
+app.unimatcha.ai {
+	reverse_proxy h5:80
+}
+
+admin.unimatcha.ai {
+	reverse_proxy admin-web:3000
+}
+
+api.unimatcha.ai {
+	reverse_proxy api:3001
+}

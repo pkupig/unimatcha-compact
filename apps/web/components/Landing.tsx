@@ -1,0 +1,38 @@
+/* Interface outline: implementation bodies removed. */
+import { useEffect, useRef } from 'react';
+import Lenis from '@studio-freight/lenis';
+
+  useEffect(() =>;
+function applyLang(l);
+  buildReviews();
+function revCard(t);
+function buildReviews();
+  addEventListener('scroll',()=>;
+function rnd(a,b);
+function countUp(el);
+function tick(now);
+  requestAnimationFrame(tick);
+function nextFriday17();
+function roundNumber();
+function tickCD();
+  tickCD();setInterval(tickCD,1000);
+function buildLand();
+function isLand(lon,lat);
+function initCont();
+function continentOf(lon,lat);
+function buildPoints();
+function updateTip(cont,sx,sy);
+function buildGraticule();
+function resize();
+function renderFrame(yaw);
+  updateTip(newHover,hx,hy);
+function tick(ts);
+function start();
+function stop();
+function applyMotionPref();
+function init();
+  init();
+function size();
+function frame();
+  size();addEventListener('resize',size);frame();
+  applyLang(LANG);

@@ -1,0 +1,224 @@
+/* CSS outline: selectors retained, declarations removed. */
+.page { /* TODO */ }
+.page.active { /* TODO */ }
+.overlay { /* TODO */ }
+.overlay.active { /* TODO */ }
+#post-detail-overlay { /* TODO */ }
+#post-detail-overlay > footer { /* TODO */ }
+.overlay .bottom-sheet-transition { /* TODO */ }
+.overlay.active .bottom-sheet-transition { /* TODO */ }
+.slide-left { /* TODO */ }
+.overlay.active .slide-left { /* TODO */ }
+.slide-right { /* TODO */ }
+.overlay.active .slide-right { /* TODO */ }
+.auth-form { /* TODO */ }
+.auth-form.active { /* TODO */ }
+#splash { /* TODO */ }
+#splash.hide, #splash.hidden { /* TODO */ }
+#bottom-nav { /* TODO */ }
+.nav-item { /* TODO */ }
+.nav-item:hover { /* TODO */ }
+.nav-item.active { /* TODO */ }
+[id^="tab-"] { /* TODO */ }
+body { /* TODO */ }
+.material-symbols-outlined { /* TODO */ }
+body { /* TODO */ }
+h1, h2, h3, .font-headline { /* TODO */ }
+.academic-overlay { /* TODO */ }
+.academic-input { /* TODO */ }
+.academic-input:focus { /* TODO */ }
+.dark .academic-input { /* TODO */ }
+.font-cute { /* TODO */ }
+.status-orb { /* TODO */ }
+.status-orb::after { /* TODO */ }
+.status-orb--idle { /* TODO */ }
+.status-orb--idle::after { /* TODO */ }
+.status-orb--matching::after { /* TODO */ }
+.status-orb--established { /* TODO */ }
+.status-orb--established::after { /* TODO */ }
+@keyframes orbPulse { /* TODO */ }
+@keyframes orbGlow { /* TODO */ }
+*::-webkit-scrollbar { /* TODO */ }
+* { /* TODO */ }
+html.dark { /* TODO */ }
+.dark body { /* TODO */ }
+.dark .bg-neutral-50, .dark .bg-stone-50, .dark .bg-gray-50 { /* TODO */ }
+.dark .bg-surface-container-lowest, .dark .bg-white, .dark .bg-neutral-100, .dark .bg-stone-100 { /* TODO */ }
+.dark .bg-surface-container-low { /* TODO */ }
+.dark .bg-surface-container { /* TODO */ }
+.dark .bg-surface-container-high { /* TODO */ }
+.dark .bg-surface-container-highest { /* TODO */ }
+.dark .bg-surface\/80, .dark .bg-surface\/95 { /* TODO */ }
+.dark .text-neutral-900, .dark .text-neutral-800, .dark .text-neutral-700 { /* TODO */ }
+.dark .text-on-surface-variant, .dark .text-neutral-600, .dark .text-neutral-500 { /* TODO */ }
+.dark .text-outline, .dark .text-outline-variant, .dark .text-neutral-400, .dark .text-stone-400 { /* TODO */ }
+.dark .border-neutral-100, .dark .border-neutral-200 { /* TODO */ }
+.dark .border-black { /* TODO */ }
+.dark input, .dark textarea, .dark select { /* TODO */ }
+.dark .bg-neon { /* TODO */ }
+.dark .chat-bubble { /* TODO */ }
+.dark .chat-bubble.mine { /* TODO */ }
+.dark .chat-avatar--fallback { /* TODO */ }
+.btn-cta { /* TODO */ }
+.btn-cta:hover { /* TODO */ }
+.btn-cta:active { /* TODO */ }
+.btn-cta:disabled { /* TODO */ }
+.btn-secondary { /* TODO */ }
+.btn-secondary:hover { /* TODO */ }
+.btn-secondary:active { /* TODO */ }
+.btn-tag { /* TODO */ }
+.btn-tag:hover { /* TODO */ }
+.btn-tag:active { /* TODO */ }
+.btn-tag--filled { /* TODO */ }
+.tag-chip { /* TODO */ }
+.tag-chip .tag-remove { /* TODO */ }
+.tag-chip .tag-remove:hover { /* TODO */ }
+.tag-chip.add-tag { /* TODO */ }
+.tag-chip.add-tag:hover { /* TODO */ }
+.glass-header { /* TODO */ }
+.milestone-bg { /* TODO */ }
+#profile-hero { /* TODO */ }
+.profile-blur-mask { /* TODO */ }
+.bottom-sheet-transition { /* TODO */ }
+.bottom-sheet-gradient { /* TODO */ }
+.academic-grid { /* TODO */ }
+.academic-line { /* TODO */ }
+.academic-header { /* TODO */ }
+.monospace-timer { /* TODO */ }
+.hide-scrollbar::-webkit-scrollbar { /* TODO */ }
+.no-scrollbar::-webkit-scrollbar { /* TODO */ }
+.no-scrollbar { /* TODO */ }
+.pb-safe { /* TODO */ }
+#bottom-nav { /* TODO */ }
+#bottom-nav .nav-item span:last-child { /* TODO */ }
+#bottom-nav .nav-item { /* TODO */ }
+#bottom-nav .nav-item .material-symbols-outlined { /* TODO */ }
+#bottom-nav .nav-item.active { /* TODO */ }
+#bottom-nav .nav-item.active .material-symbols-outlined { /* TODO */ }
+#bottom-nav.nav-hide { /* TODO */ }
+.dark #bottom-nav { /* TODO */ }
+.auth-container { /* TODO */ }
+.tonal-shift { /* TODO */ }
+#toast { /* TODO */ }
+#toast.show { /* TODO */ }
+.feed-card { /* TODO */ }
+.feed-card:hover { /* TODO */ }
+.feed-image { /* TODO */ }
+.feed-image img { /* TODO */ }
+.feed-image-overlay { /* TODO */ }
+.feed-like-badge { /* TODO */ }
+.notif-item { /* TODO */ }
+.notif-item .notif-dot { /* TODO */ }
+.notif-item.unread .notif-dot { /* TODO */ }
+.notif-item:not(.unread) { /* TODO */ }
+.chat-row { /* TODO */ }
+.chat-row.mine { /* TODO */ }
+.chat-avatar { /* TODO */ }
+.chat-avatar--lg { /* TODO */ }
+.chat-avatar--fallback { /* TODO */ }
+.chat-col { /* TODO */ }
+.chat-row.mine .chat-col { /* TODO */ }
+.chat-bubble { /* TODO */ }
+.chat-bubble.mine { /* TODO */ }
+.chat-image { /* TODO */ }
+.chat-image + .chat-bubble { /* TODO */ }
+.chat-read { /* TODO */ }
+.chat-time-sep { /* TODO */ }
+@keyframes slideDown { /* TODO */ }
+from { /* TODO */ }
+to { /* TODO */ }
+input[type="range"].ink-range { /* TODO */ }
+input[type="range"].ink-range::-webkit-slider-thumb { /* TODO */ }
+input[type="range"].ink-range::-moz-range-thumb { /* TODO */ }
+input[type="range"].ink-range:disabled { /* TODO */ }
+input[type="range"].ink-range:disabled::-webkit-slider-thumb { /* TODO */ }
+input[type="range"].ink-range:disabled::-moz-range-thumb { /* TODO */ }
+input[type="checkbox"].neon-check { /* TODO */ }
+input[type="checkbox"].neon-check:checked:focus { /* TODO */ }
+input[type="checkbox"].ink-switch { /* TODO */ }
+input[type="checkbox"].ink-switch::after { /* TODO */ }
+input[type="checkbox"].ink-switch:checked { /* TODO */ }
+input[type="checkbox"].ink-switch:checked::after { /* TODO */ }
+input[type="checkbox"].ink-switch:focus { /* TODO */ }
+.btn-secondary:disabled { /* TODO */ }
+.btn-danger { /* TODO */ }
+.btn-danger:hover { /* TODO */ }
+.btn-danger:active { /* TODO */ }
+.home-mode-switch { /* TODO */ }
+.home-mode-seg { /* TODO */ }
+.home-mode-seg:hover { /* TODO */ }
+.home-mode-seg.active { /* TODO */ }
+.home-mode-seg.active:hover { /* TODO */ }
+.home-mode-seg:active { /* TODO */ }
+.square-seg.active { /* TODO */ }
+#square-tab-ink { /* TODO */ }
+.square-feed-grid { /* TODO */ }
+.rec-img { /* TODO */ }
+.school-badge { /* TODO */ }
+.school-badge--neon { /* TODO */ }
+.official-badge { /* TODO */ }
+.sponsored-badge { /* TODO */ }
+.chat-countdown-badge { /* TODO */ }
+.chat-countdown-badge.is-urgent { /* TODO */ }
+.chat-countdown-badge.is-expired { /* TODO */ }
+.chat-mode-tag { /* TODO */ }
+.energy-cell { /* TODO */ }
+.energy-cell--empty { /* TODO */ }
+.enhance-block { /* TODO */ }
+.enhance-block .enhance-cost { /* TODO */ }
+.enhance-block.is-locked { /* TODO */ }
+.enhance-hint-insufficient { /* TODO */ }
+.q-card--done .q-card-check { /* TODO */ }
+.notif-icon-plate { /* TODO */ }
+.dark .notif-icon-plate { /* TODO */ }
+.ptr-indicator { /* TODO */ }
+.ptr-indicator .material-symbols-outlined { /* TODO */ }
+.ptr-indicator.ptr-spinning .material-symbols-outlined { /* TODO */ }
+.ptr-indicator.ptr-spinning .material-symbols-outlined { /* TODO */ }
+@keyframes ptr-spin { /* TODO */ }
+.dark .ptr-indicator { /* TODO */ }
+.dark .ptr-indicator .material-symbols-outlined { /* TODO */ }
+.splash-in { /* TODO */ }
+@keyframes splash-in { /* TODO */ }
+.splash-logo { /* TODO */ }
+@keyframes splash-logo { /* TODO */ }
+.splash-bar { /* TODO */ }
+.splash-bar-fill { /* TODO */ }
+@keyframes splash-bar { /* TODO */ }
+#chat-plus-menu .cpm-backdrop { /* TODO */ }
+#chat-plus-menu .cpm-card { /* TODO */ }
+#chat-plus-menu .cpm-card.cpm-in { /* TODO */ }
+#chat-plus-menu .cpm-item { /* TODO */ }
+#chat-plus-menu .cpm-item:hover { /* TODO */ }
+#chat-plus-menu .cpm-item:active { /* TODO */ }
+.dark #chat-plus-menu .cpm-card { /* TODO */ }
+.dark #chat-plus-menu .cpm-item { /* TODO */ }
+.dark #chat-plus-menu .cpm-item:hover { /* TODO */ }
+.poll-block { /* TODO */ }
+.poll-opt { /* TODO */ }
+.poll-opt:not(:disabled):hover { /* TODO */ }
+.poll-opt:not(:disabled):active { /* TODO */ }
+.poll-opt-fill { /* TODO */ }
+.poll-opt--mine { /* TODO */ }
+.poll-opt--mine .poll-opt-fill { /* TODO */ }
+.poll-opt-label { /* TODO */ }
+.poll-opt-count { /* TODO */ }
+.dark .poll-opt { /* TODO */ }
+.dark .poll-opt-label { /* TODO */ }
+.dark .poll-opt-count { /* TODO */ }
+.dark .poll-opt--mine { /* TODO */ }
+.dark .splash-bar { /* TODO */ }
+.ticket-divider { /* TODO */ }
+.dark .ticket-divider { /* TODO */ }
+.ticket-card { /* TODO */ }
+.ticket-card .ticket-notch { /* TODO */ }
+.ticket-card .ticket-notch--l { /* TODO */ }
+.ticket-card .ticket-notch--r { /* TODO */ }
+.dark .ticket-card .ticket-notch { /* TODO */ }
+#ticket-detail-overlay .pass-card { /* TODO */ }
+.match-anim { /* TODO */ }
+.match-anim-frame { /* TODO */ }
+.bookmark-item { /* TODO */ }
+.dark .bookmark-item { /* TODO */ }
+@keyframes cl-pulse { /* TODO */ }
+.cl-pulse { /* TODO */ }

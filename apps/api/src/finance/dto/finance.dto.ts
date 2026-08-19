@@ -1,0 +1,75 @@
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+  MaxLength,
+  NotEquals,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * 财务 DTO（docs/ADMIN-REDESIGN.md §4 finance）。
+ * 金额一律以分（cents, Int）为单位。
+ */
+
+// 发放赞助额度（SPONSOR_GRANT，正数入账）
+export class CreateGrantDto {
+  @ApiProperty({ description: '学校 ID（School.id）' })
+  @IsString()
+  @IsNotEmpty({ message: '学校 ID 不能为空' })
+  schoolId: string;
+
+  @ApiProperty({ description: '发放金额（分，正整数）', example: 100000 })
+  @IsInt()
+  @Min(1, { message: '发放金额须为正整数（分）' })
+  amountCents: number;
+
+  @ApiPropertyOptional({ description: '备注' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
+}
+
+// 手工调整（ADJUSTMENT，正负均可但不能为 0；备注必填以留痕）
+export class CreateAdjustmentDto {
+  @ApiProperty({ description: '学校 ID（School.id）' })
+  @IsString()
+  @IsNotEmpty({ message: '学校 ID 不能为空' })
+  schoolId: string;
+
+  @ApiProperty({ description: '调整金额（分，有符号，不能为 0）', example: -5000 })
+  @IsInt()
+  @NotEquals(0, { message: '调整金额不能为 0' })
+  amountCents: number;
+
+  @ApiProperty({ description: '调整原因（必填留痕）' })
+  @IsString()
+  @IsNotEmpty({ message: '调整原因不能为空' })
+  @MaxLength(200)
+  note: string;
+}
+
+// 学生会发起提现（学校取自当前账号绑定的 schoolId）
+export class CreateWithdrawalDto {
+  @ApiProperty({ description: '提现金额（分，正整数，≤ 可用余额）', example: 50000 })
+  @IsInt()
+  @Min(1, { message: '提现金额须为正整数（分）' })
+  amountCents: number;
+}
+
+// 团队审核提现（PENDING → APPROVED / REJECTED）
+export class ReviewWithdrawalDto {
+  @ApiProperty({ description: 'true=通过 / false=驳回' })
+  @IsBoolean()
+  approve: boolean;
+
+  @ApiPropertyOptional({ description: '审核备注' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
+}
