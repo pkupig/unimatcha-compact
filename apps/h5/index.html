@@ -773,22 +773,25 @@
            头像加白边并提亮底色（原来在暗封面上几乎糊成一团） -->
       <!-- Hero：头像居左 + 右侧信息栈（不再居中对称、不再用卡片框住信息）。
            封面多为深色照片，故整体白字 + 阴影保证可读。 -->
-      <section class="profile-hero-text px-6 mb-10">
+      <!-- mb 决定白色功能区从哪里开始：白色区跟文档流走，若只加高 #profile-hero
+           而不推开它，背景下半截会被白色盖住（加高等于白做）。取 86px 使
+           白色区顶 ≈ 背景底缘上方 24px，背景高度才真正被用满。 -->
+      <section class="profile-hero-text px-6 mb-[86px]">
         <div class="flex items-end gap-4">
-          <div id="profile-avatar" class="w-[84px] h-[84px] shrink-0 bg-white overflow-hidden rounded-full ring-[3px] ring-white/90 shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
+          <div id="profile-avatar" class="w-[92px] h-[92px] shrink-0 bg-white overflow-hidden rounded-full ring-[3px] ring-white/90 shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
             <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23e8e8e8'/%3E%3C/svg%3E"/>
           </div>
-          <div class="min-w-0 flex-1 pb-1">
+          <div class="min-w-0 flex-1 pb-1.5">
             <!-- 认证徽章跟在名字后（原为浮在右上角，现纳入排版） -->
             <div class="flex items-center gap-2 min-w-0">
-              <h2 id="profile-name" class="font-headline text-[26px] font-extrabold tracking-tight leading-tight truncate">Elara Vance</h2>
+              <h2 id="profile-name" class="font-headline text-[28px] font-extrabold tracking-tight leading-tight truncate">Elara Vance</h2>
               <button id="verify-btn" type="button" class="shrink-0"></button>
             </div>
-            <div id="profile-meta" class="mt-1"></div>
+            <div id="profile-meta" class="mt-1.5"></div>
           </div>
         </div>
         <!-- 姓名 · 年龄 · 学业阶段 / 学号 · 加入天数 / 个性签名（renderProfileFacts 填充） -->
-        <div id="profile-facts" class="mt-4"></div>
+        <div id="profile-facts" class="mt-6"></div>
         <div id="profile-photos-strip" class="hidden"></div>
       </section>
       <!-- 圆角衔接（用户反馈：背景与功能区衔接太僵硬）：上移 24px 盖住背景底边，

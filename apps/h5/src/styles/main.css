@@ -268,32 +268,35 @@
     .pf-school {
       color: #CCFF00; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
     }
+    /* 行距整体放开（用户反馈：文字挤），让信息栈把背景高度用起来 */
     .pf-primary {
-      color: rgba(255, 255, 255, 0.95); font-size: 13.5px; font-weight: 600;
-      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.95); font-size: 14px; font-weight: 600;
+      line-height: 1.75;
     }
     .pf-secondary {
-      color: rgba(255, 255, 255, 0.72); font-size: 11.5px; font-weight: 500;
-      line-height: 1.5; margin-top: 2px;
+      color: rgba(255, 255, 255, 0.72); font-size: 12px; font-weight: 500;
+      line-height: 1.75; margin-top: 5px;
     }
-    .pf-sep { margin: 0 7px; opacity: 0.45; font-weight: 400; }
+    .pf-sep { margin: 0 8px; opacity: 0.45; font-weight: 400; }
     /* 个性签名：单独一行，最多两行截断，避免长签名把 hero 撑开 */
     .pf-signature {
-      margin-top: 9px; color: rgba(255, 255, 255, 0.88);
-      font-size: 12.5px; line-height: 1.55;
+      margin-top: 14px; color: rgba(255, 255, 255, 0.88);
+      font-size: 13px; line-height: 1.65;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden;
     }
     /* 基准高度含状态栏：封面自屏幕最顶铺开，视觉比例与之前一致
        （JS 下拉延展时按 --hero-base 计算，见 profile.js 的 HERO_H） */
     #profile-hero {
-      --hero-base: calc(360px + env(safe-area-inset-top));
+      --hero-base: calc(400px + env(safe-area-inset-top));
       height: var(--hero-base);
       transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: height;
     }
-    /* 内容起始占位同步下移，避免头像被状态栏压住 */
-    #profile-menu-inner > .profile-top-spacer { height: calc(150px + env(safe-area-inset-top)); }
+    /* 占位取 88px：信息块高约 202px，白色区上移 24px 压住背景底缘，
+       故 上留白 88 ≈ 下留白 400-24-(88+202)=86，内容在背景里居中而不再坠底。
+       安全区单独叠加，保证头像不被状态栏压住。 */
+    #profile-menu-inner > .profile-top-spacer { height: calc(88px + env(safe-area-inset-top)); }
     /* 背景图不做额外 scale：放大完全由 hero 容器变高 + object-cover 填充产生，
        与手指严格同步（叠 scale 会让图片内容跑得比手指快，产生「差距感」）。 */
     .profile-blur-mask {
