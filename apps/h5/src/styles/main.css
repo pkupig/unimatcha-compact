@@ -362,6 +362,12 @@
     .overlay > * > header.shrink-0, .overlay > header.shrink-0 {
       padding-top: env(safe-area-inset-top);
     }
+    /* fixed 顶栏脱离文档流，其后的内容区靠固定 pt-* 让位；顶栏因安全区变高后，
+       那些写死的 pt 不够用，首屏内容会被压在顶栏下（广场首帖被盖住）。
+       这里统一把内容区整体下移一个安全区，保留各自原有的 pt 数值不动。
+       只匹配 fixed 兄弟——sticky 顶栏在文档流内，其后内容不需要补偿。 */
+    /* nav 也算顶栏（milestone 用的是 <nav>），~ 可跨过中间的背景层等兄弟节点 */
+    .fixed.top-0 ~ main { margin-top: env(safe-area-inset-top); }
     /* 关键：自身带固定高度类的顶栏，padding 会被 border-box 的高度吃掉，
        内容被挤压上移（分段控件只露半截）。故把安全区叠加到高度上。 */
     .fixed.top-0.h-14, .sticky.top-0.h-14,
@@ -500,8 +506,10 @@
     .session-row:last-child::after { display: none; }
     .dark .session-row::after { background: rgba(255, 255, 255, 0.09); }
     /* 临时会话：淡荧光绿底（与退款横幅 bg-neon/15 同色），替代原「TEMPORARY」分组标题 */
-    /* 列表首行距顶栏 6px：顶栏 h-14(56px) + 6px + 状态栏安全区 */
-    #home-chat-view { padding-top: calc(62px + env(safe-area-inset-top)); }
+    /* 列表首行距顶栏 6px：顶栏 h-14(56px) + 6px。
+       安全区不在这里加——上面的 `.fixed.top-0 ~ main` 已统一补偿，
+       两处都加会双倍下移。 */
+    #home-chat-view { padding-top: 62px; }
     .session-row--temp { background: rgba(204, 255, 0, 0.15); }
     .session-row--temp:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
     .session-row--temp:last-of-type { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
