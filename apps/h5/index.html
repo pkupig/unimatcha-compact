@@ -713,23 +713,13 @@
         <span id="square-tab-ink"></span>
       </div>
       <!-- 搜索入口：右上角图标，点开展开搜索条（用户反馈） -->
-      <button id="square-search-btn" onclick="toggleSquareSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform" title="Search">
+      <button id="square-search-btn" onclick="openSquareSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform" title="Search">
         <span class="material-symbols-outlined text-on-surface" style="font-size:21px">search</span>
       </button>
 
     </div>
     <!-- 展开式搜索条：默认隐藏，含显式搜索按钮 -->
-    <div id="square-search-bar" class="hidden px-4 pb-3">
-      <div class="flex items-center gap-2">
-        <div class="flex-1 flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2.5">
-          <span class="material-symbols-outlined text-outline" style="font-size:19px">search</span>
-          <input id="square-search" type="search" enterkeyhint="search" placeholder="Search posts" onkeydown="if(event.key===&#39;Enter&#39;){event.preventDefault();runSquareSearch();}" class="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" />
-          <button id="square-search-clear" onclick="clearSquareSearch()" class="hidden text-outline active:scale-90"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
-        </div>
-        <button onclick="runSquareSearch()" class="shrink-0 px-4 py-2.5 rounded-full bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform">Search</button>
-      </div>
-    </div>
-
+    <!-- 搜索改为独立全屏页（#square-search-overlay），顶栏不再内嵌搜索条 -->
   </header>
   <main class="pt-[50px] pb-24 px-1.5 max-w-2xl mx-auto">
     <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
@@ -1019,6 +1009,29 @@
         </div>
       </section>
     </div>
+  </main>
+</div>
+
+<!-- 广场搜索：全屏页（原为顶栏内嵌搜索条） -->
+<div id="square-search-overlay" class="overlay fixed inset-0 z-50 bg-surface flex flex-col">
+  <header class="shrink-0 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+    <div class="flex items-center gap-3 px-4 h-16 w-full">
+      <button class="shrink-0 active:scale-95 transition-transform" onclick="closeSquareSearch()" aria-label="Back">
+        <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+      </button>
+      <div class="flex-1 min-w-0 flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2.5">
+        <span class="material-symbols-outlined text-outline" style="font-size:19px">search</span>
+        <input id="square-search" type="search" enterkeyhint="search" placeholder="Search posts"
+          onkeydown="if(event.key===&#39;Enter&#39;){event.preventDefault();runSquareSearch();}"
+          oninput="onSquareSearch(this.value)"
+          class="flex-1 min-w-0 bg-transparent border-0 p-0 text-sm text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" />
+        <button id="square-search-clear" onclick="clearSquareSearch()" class="hidden text-outline active:scale-90"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+      </div>
+      <button onclick="runSquareSearch()" class="shrink-0 px-4 py-2.5 rounded-full bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform">Search</button>
+    </div>
+  </header>
+  <main id="square-search-results" class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-16 w-full max-w-2xl mx-auto">
+    <section id="square-feed-search" class="square-feed-grid w-full grid grid-cols-2 grid-flow-row-dense items-start"></section>
   </main>
 </div>
 
@@ -1367,9 +1380,10 @@
           <div id="addfriend-reader" class="w-full aspect-square bg-black/80 rounded-[10px] overflow-hidden mb-2"></div>
           <p id="addfriend-cam-error" class="hidden text-[10px] text-neon-pink mb-2">Camera unavailable — enter the code manually below.</p>
           <p class="text-[10px] text-outline mb-2 text-center">Point at your friend's QR — or enter their code:</p>
-          <div class="flex gap-2 items-end">
+          <div class="flex gap-2 items-stretch">
             <input id="addfriend-code-input" type="text" placeholder="CLXXXXXXXX" class="flex-1 min-w-0 bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none text-sm uppercase tracking-widest" onkeydown="if(event.key==='Enter'){event.preventDefault();submitConnectCode();}"/>
-            <button type="button" class="btn-cta px-4 py-2 text-xs shrink-0" onclick="submitConnectCode()">Add</button>
+            <!-- 不用 .btn-cta：它是 width:100% 的整行按钮，放进 flex 行会把输入框挤没、自身溢出屏幕 -->
+            <button type="button" class="shrink-0 px-5 rounded-[10px] bg-neon text-black font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform" onclick="submitConnectCode()">Add</button>
           </div>
         </div>
       </div>
@@ -1830,15 +1844,18 @@
 </div>
 
 <!-- 能量充值购买 overlay（§6.10 行2116 + §10.5(2)）：三档卡片 + 支付方式（本期 mock） -->
-<div id="modal-energy-purchase" class="overlay fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm items-center justify-center px-6" onclick="if(event.target===this)closeEnergyModal()">
-  <div class="w-full max-w-sm bg-white shadow-2xl rounded-[10px] overflow-hidden">
-    <header class="flex items-center justify-between px-6 pt-6 pb-4">
-      <h2 class="font-headline text-xl font-extrabold tracking-tight text-black">Get Energy</h2>
-      <button class="text-stone-400 hover:text-black transition-colors active:scale-95" onclick="closeEnergyModal()">
-        <span class="material-symbols-outlined">close</span>
-      </button>
+<!-- 能量购买：由居中弹窗改为全屏页面（用户要求），页眉与其它全屏页一致 -->
+<div id="modal-energy-purchase" class="overlay fixed inset-0 z-[100] bg-surface">
+  <div class="relative h-full w-full bg-surface overflow-y-auto flex flex-col">
+    <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeEnergyModal()">
+          <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Get Energy</h1>
+      </div>
     </header>
-    <div class="px-6 pb-2">
+    <div class="px-6 pt-6 pb-2 w-full max-w-lg mx-auto">
       <!-- 三档卡片：cells / priceCny 由 JS 用 /energy/packages 回填，data-pkg 兜底默认档 -->
       <div id="energy-packages" class="grid grid-cols-3 gap-3">
         <button class="energy-package flex flex-col items-center justify-center gap-1 py-5 border border-outline-variant rounded-[10px] transition-all active:scale-[0.98] hover:border-black" data-pkg="pkg_30" data-cells="30" data-price="30" onclick="selectEnergyPackage('pkg_30', this)">
@@ -1859,7 +1876,7 @@
       </div>
     </div>
     <!-- 支付方式改为可选项（单选行），最后统一「去支付」确认（本轮反馈8） -->
-    <div class="px-6 pt-5 pb-7">
+    <div class="px-6 pt-5 pb-10 w-full max-w-lg mx-auto">
       <p class="font-label text-[10px] tracking-widest text-outline mb-2">Payment Method</p>
       <div id="payment-methods" class="space-y-2 mb-5">
         <button class="pay-method w-full py-3 px-4 rounded-[10px] border border-outline-variant flex items-center gap-3 transition-all active:scale-[0.98]" data-method="wechat" onclick="selectPaymentMethod('wechat', this)">

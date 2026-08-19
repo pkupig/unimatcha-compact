@@ -33,6 +33,7 @@ const ZH = {
   'Search failed. Try again.': '搜索失败，请重试。',
   'No conversations matched.': '没有匹配的会话。', 'No conversations yet.': '还没有会话。',
   'No posts found': '没有找到帖子', 'Try a different keyword': '换个关键词试试',
+  'Search the square': '搜索广场', 'Find posts, topics and people': '搜索帖子、话题和同学',
   'Turn on discovery to see classmates you may know. Others only see you if you turn it on too.':
     '打开发现开关，才能看到可能认识的同学；同样，只有你打开后别人才会看到你。',
   'Open settings': '前往设置', 'Not interested': '不感兴趣',

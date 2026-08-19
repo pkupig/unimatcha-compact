@@ -523,6 +523,9 @@ const SWIPE_BACK_CLOSE = {
   'notifications-overlay': () => window.closeNotifications?.(),
   'post-detail-overlay': () => window.closePostDetail?.(),
   'milestone-overlay': () => window.closeOverlay?.('milestone-overlay'),
+  // 由弹窗改为全屏页后，也要支持左滑返回
+  'modal-energy-purchase': () => window.closeEnergyModal?.(),
+  'square-search-overlay': () => window.closeSquareSearch?.(),
 };
 function topOpenOverlay() {
   const act = [...document.querySelectorAll('.overlay.active')].filter((el) => el.id);

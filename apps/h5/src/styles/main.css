@@ -11,6 +11,8 @@
     /* 评论页脚：安全区 + 8px（0 太贴边、14px 太远，两轮反馈后取中）。
        id + 元素选择器，优先级高于工具类，不受构建后规则顺序影响。 */
     #post-detail-overlay > footer { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }
+    /* 广场搜索页同为「页眉 + 内部滚动区」：overlay 自身不滚，否则页眉会被滚出视口 */
+    #square-search-overlay { overflow: hidden; }
     /* Bottom-sheet overlays (filter-overlay etc.) slide up from bottom; full-screen overlays just fade */
     .overlay .bottom-sheet-transition { transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
     .overlay.active .bottom-sheet-transition { transform: translateY(0); }

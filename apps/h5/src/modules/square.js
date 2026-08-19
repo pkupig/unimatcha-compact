@@ -16,6 +16,7 @@ function isOfficial(p) {
 
 // 双页翻页器辅助：按 tab 取 feed 容器 / 轨道定位
 function feedEl(tab) {
+  if (tab === 'search') return document.getElementById('square-feed-search'); // 搜索页有自己的网格
   const t = (tab || S.squareTab) === 'campus_wall' ? 'campus_wall' : 'recommend';
   return document.getElementById('square-feed-' + t);
 }
@@ -74,20 +75,7 @@ function switchSquareTab(el, tab) {
     S.squareScrollPos[prev] = scroller.scrollTop;
   }
   S.squareTab = tab;
-  // The search box (#square-search) is shared by both tabs. Clear the query and
-  // the input when switching so the new tab opens unfiltered instead of being
-  // silently filtered by the previous tab's leftover search term. Also drop any
-  // pending debounced search so it can't fire a stale query after the switch.
-  clearTimeout(S._squareSearchTimer);
-  S.squareSearchQuery = '';
-  S.squareSearchUsers = []; // 同时清掉「同学」结果，否则切页后它会残留在新页顶部
-  const searchEl = document.getElementById('square-search');
-  if (searchEl) searchEl.value = '';
-  // 关键词清空后右上角的「筛选中」高亮也要跟着灭
-  const sBtn = document.getElementById('square-search-btn');
-  if (sBtn) sBtn.style.color = '';
-  const sClear = document.getElementById('square-search-clear');
-  if (sClear) sClear.classList.add('hidden');
+  // 搜索已独立成页：两个 tab 永远是未过滤信息流，切页不再需要清关键词/清结果。
   // Toggle .active on the header segments (CSS .square-seg.active = neon underline).
   const container = el?.parentElement || document.getElementById('square-tabs');
   if (container) {
@@ -103,9 +91,7 @@ function switchSquareTab(el, tab) {
   // 或上次渲染是搜索结果（切页语义 = 清搜索）时才刷新
   const targetEl = feedEl(tab);
   const hasContent = !!targetEl?.querySelector('[data-post-id],[data-ad-id]');
-  if (!hasContent || (S.squareRenderedSearch && S.squareRenderedSearch[tab])) {
-    window.loadSquareTab2(tab);
-  }
+  if (!hasContent) window.loadSquareTab2(tab);
   // 恢复目标页自己的位置（进入页即时恢复，视觉焦点跟随新页）
   if (prev !== tab) scroller.scrollTop = (S.squareScrollPos && S.squareScrollPos[tab]) || 0;
 }
@@ -171,41 +157,35 @@ function unwrap(data) {
   return (data && (data.data || data)) || {};
 }
 
-// Debounced search input handler: store the query and reload the feed.
+// Debounced search input handler: store the query and reload the search page.
 function onSquareSearch(text) {
   S.squareSearchQuery = (text || '').trim();
+  document.getElementById('square-search-clear')?.classList.toggle('hidden', !S.squareSearchQuery);
   clearTimeout(S._squareSearchTimer);
-  S._squareSearchTimer = setTimeout(() => {
-    window.loadSquareTab2();
-  }, 300);
+  S._squareSearchTimer = setTimeout(loadSquareSearch, 300);
 }
 window.onSquareSearch = onSquareSearch;
 
-// ── 搜索：右上角图标展开搜索条，输入后点「Search」或回车执行（用户反馈：需要搜索按钮）──
-function toggleSquareSearch(force) {
-  const bar = document.getElementById('square-search-bar');
-  if (!bar) return;
-  const show = force != null ? force : bar.classList.contains('hidden');
-  bar.classList.toggle('hidden', !show);
+// ── 搜索：独立全屏页（用户要求，原为顶栏内嵌搜索条）──
+// 结果不再写进推荐/校园墙的信息流，而是渲染在搜索页自己的网格里，
+// 因此两个 tab 永远保持未过滤状态，切页也不必再为「清搜索」重拉。
+// 搜索范围跨两个板块（不传 board），可见性由后端各自把关。
+function openSquareSearch() {
+  window.openOverlay?.('square-search-overlay');
+  const c = feedEl('search');
+  if (c && !c.children.length) renderSquareSearchIdle(); // 首次打开：引导态
   const input = document.getElementById('square-search');
-  if (show) setTimeout(() => input?.focus(), 50);
-  // 收起只隐藏：保留关键词与结果（审计 #4/#5/#15——此前收起即清空，
-  // 点搜索结果进详情返回后结果全没了）。清空只由 X 按钮触发。
-  syncSearchPadding();
-  window.positionSquareInk?.();
+  setTimeout(() => input?.focus(), 60);
 }
+window.openSquareSearch = openSquareSearch;
 
-// 搜索条展开会撑高顶栏：同步内容区上边距，避免首行结果被压在顶栏下（审计 #6/#8/#13/#17）
-function syncSearchPadding() {
-  const header = document.querySelector('#tab-square header');
-  const main = document.querySelector('#tab-square main');
-  if (!header || !main) return;
-  requestAnimationFrame(() => {
-    main.style.paddingTop = (header.offsetHeight + 6) + 'px';
-  });
+function closeSquareSearch() {
+  document.getElementById('square-search')?.blur();
+  window.closeOverlay?.('square-search-overlay');
+  // 指针交还给当前信息流（搜索页打开期间它指向搜索结果）
+  S.squarePosts = (S.squarePostsByTab && S.squarePostsByTab[S.squareTab]) || [];
 }
-window.syncSearchPadding = syncSearchPadding;
-window.toggleSquareSearch = toggleSquareSearch;
+window.closeSquareSearch = closeSquareSearch;
 
 function runSquareSearch() {
   const input = document.getElementById('square-search');
@@ -213,34 +193,68 @@ function runSquareSearch() {
   clearTimeout(S._squareSearchTimer);
   S.squareSearchQuery = q;
   document.getElementById('square-search-clear')?.classList.toggle('hidden', !q);
-  // 搜索条收起后信息流仍是过滤结果：右上角图标变荧光绿提示「当前有筛选」
-  const btn = document.getElementById('square-search-btn');
-  if (btn) btn.style.color = q ? '#CCFF00' : '';
   input?.blur();
-  window.loadSquareTab2(S.squareTab);
+  loadSquareSearch();
 }
 window.runSquareSearch = runSquareSearch;
 
 function clearSquareSearch() {
   const input = document.getElementById('square-search');
   if (input) input.value = '';
-  runSquareSearch();
+  clearTimeout(S._squareSearchTimer);
+  S.squareSearchQuery = '';
+  S.squareSearchUsers = [];
+  document.getElementById('square-search-clear')?.classList.add('hidden');
+  renderSquareSearchIdle();
   input?.focus();
 }
 window.clearSquareSearch = clearSquareSearch;
 
-// 点搜索区域以外 → 收起搜索条（用户反馈）
-if (!window.__squareSearchOutsideBound) {
-  window.__squareSearchOutsideBound = true;
-  document.addEventListener('click', (e) => {
-    const bar = document.getElementById('square-search-bar');
-    if (!bar || bar.classList.contains('hidden')) return;
-    if (bar.contains(e.target)) return;
-    if (document.getElementById('square-search-btn')?.contains(e.target)) return;
-    if (document.getElementById('square-pager')?.contains(e.target)) return; // 点信息流不收起
-    window.toggleSquareSearch(false);
-  }, true);
+// 空关键词时的引导态（也是搜索页首次打开的样子）
+function renderSquareSearchIdle() {
+  const c = feedEl('search');
+  if (!c) return;
+  c.innerHTML = `<div class="col-span-2 text-center py-24">
+    ${window.flatEmptyIcon('search')}
+    <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Search the square</p>
+    <p class="text-sm text-on-surface-variant mt-2">Find posts, topics and people</p>
+  </div>`;
+  layoutSquareMasonry(); // 1px 行网格：不排一次的话整块只占 1 行、内容看不见
 }
+
+async function loadSquareSearch() {
+  const container = feedEl('search');
+  if (!container) return;
+  const q = (S.squareSearchQuery || '').trim();
+  if (!q) { S.squareSearchUsers = []; renderSquareSearchIdle(); return; }
+  const seq = (S._squareSearchSeq = (S._squareSearchSeq || 0) + 1);
+  container.innerHTML = `<div class="col-span-2 text-center py-24 text-sm text-on-surface-variant">Loading...</div>`;
+  layoutSquareMasonry();
+  try {
+    const data = await window.api(`/square/v2/search?q=${encodeURIComponent(q)}&page=1&limit=20`);
+    if (seq !== S._squareSearchSeq) return; // 被更新的一次搜索取代
+    const raw = unwrap(data);
+    const env = unwrap(raw.posts);
+    S.squareSearchUsers = raw.users || [];
+    const posts = Array.isArray(env) ? env : (env.items || env.posts || []);
+    S.squarePostsByTab = S.squarePostsByTab || {};
+    S.squarePostsByTab.search = posts;
+    // 点赞/详情同步用的指针指向搜索结果，关闭搜索页时指回当前信息流
+    S.squarePosts = posts;
+    renderSquareFeed(posts, [], 'search');
+  } catch (e) {
+    if (seq !== S._squareSearchSeq) return;
+    console.error('loadSquareSearch error:', e);
+    container.innerHTML = `<div class="col-span-2 text-center py-24">
+      ${window.flatEmptyIcon('cloud_off')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Failed to load posts</p>
+      <p class="text-sm text-on-surface-variant mt-2">Check your connection and try again</p>
+      <button onclick="runSquareSearch()" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1">Retry</button>
+    </div>`;
+    layoutSquareMasonry();
+  }
+}
+window.loadSquareSearch = loadSquareSearch;
 
 // ── 发帖按钮可拖动（用户反馈：不要固定死）──
 // 拖动后位置记住（localStorage），点击仍是发帖；边缘吸附并夹在安全区内。
@@ -321,29 +335,19 @@ async function loadSquareTab2(tabArg) {
   // 竞态守卫按 tab 分桶：两页并行加载互不覆盖
   if (!S.squareReqSeqs) S.squareReqSeqs = { recommend: 0, campus_wall: 0 };
   const seq = ++S.squareReqSeqs[tab];
-  const search = (S.squareSearchQuery || '').trim();
   const endpoint = tab === 'campus_wall' ? '/square/v2/campus-wall' : '/square/v2/recommend';
   try {
-    // 搜索态走统一搜索端点：一次返回「帖子 + 同学」两组结果。
-    // 非搜索态仍走原信息流端点，混排/广告逻辑完全不变。
-    const url = search
-      ? `/square/v2/search?q=${encodeURIComponent(search)}&board=${tab}&page=1&limit=20`
-      : `${endpoint}?page=1&limit=20`;
-    // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，搜索态不插，
+    // 搜索已独立成页（loadSquareSearch）：这里永远是未过滤信息流
+    const url = `${endpoint}?page=1&limit=20`;
+    // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
-    const wantAds = tab === 'recommend' && !search;
+    const wantAds = tab === 'recommend';
     const [data, ads] = await Promise.all([
       window.api(url),
       wantAds ? fetchSquareAds() : Promise.resolve([]),
     ]);
     if (seq !== S.squareReqSeqs[tab]) return; // superseded by a newer load
-    const raw = unwrap(data);
-    // 统一搜索的外层是 { query, posts: {...}, users: [...] }，信息流是 { items: [...] }
-    const env = search ? unwrap(raw.posts) : raw;
-    S.squareSearchUsers = search ? (raw.users || []) : [];
-    // 记录本次渲染是否为搜索结果（切页时据此决定是否重拉为未过滤流）
-    S.squareRenderedSearch = S.squareRenderedSearch || {};
-    S.squareRenderedSearch[tab] = !!search;
+    const env = unwrap(data);
     S.squarePostsByTab = S.squarePostsByTab || {};
     // Campus wall asks the user to complete their school first.
     if (tab === 'campus_wall' && env.needProfileSchool) {
@@ -393,18 +397,18 @@ function renderSquareNeedSchool(tab) {
 function renderSquareFeed(posts, ads = [], tab) {
   const container = feedEl(tab);
   if (!container) return;
-  // 搜索到的同学：整行卡片置于结果最上方（非搜索态为空串，信息流完全不受影响）
-  const peopleBlock = renderSearchPeople();
+  // 搜索到的同学：整行卡片置于结果最上方。只在搜索页出现——信息流里
+  // 挂 people 会把上一次搜索的人残留在推荐/校园墙顶部。
+  const isSearch = tab === 'search';
+  const peopleBlock = isSearch ? renderSearchPeople() : '';
   if (!posts.length) {
     container.innerHTML = peopleBlock + `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('grid_view')}
       <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">${
-        (S.squareSearchQuery || '').trim() ? 'No posts found' : 'No posts yet'
+        isSearch ? 'No posts found' : 'No posts yet'
       }</p>
       <p class="text-sm text-on-surface-variant mt-2">${
-        (S.squareSearchQuery || '').trim()
-          ? 'Try a different keyword'
-          : 'Be the first to share a moment'
+        isSearch ? 'Try a different keyword' : 'Be the first to share a moment'
       }</p>
     </div>`;
     layoutSquareMasonry();
@@ -488,7 +492,7 @@ function scheduleMasonry() {
 }
 function layoutSquareMasonry() {
   const SP = 6; // 卡片垂直间距（1px auto-row / row-gap 0，与 main.css .square-feed-grid 绑定）
-  ['recommend', 'campus_wall'].forEach((t) => {
+  ['recommend', 'campus_wall', 'search'].forEach((t) => {
     const c = feedEl(t);
     if (!c) return;
     const items = Array.from(c.children);
@@ -1001,11 +1005,15 @@ async function likePost(postId, btn) {
 // Update the cached list entry (S.squarePosts) and, if the detail overlay is
 // showing this post, its in-memory data so list/detail never disagree.
 function syncPostLikeState(postId, liked, likeCount) {
-  const p = (S.squarePosts || []).find(x => x && x.id === postId);
-  if (p) {
+  // 同一帖可能同时存在于推荐/校园墙/搜索三份缓存里：全部同步，
+  // 否则从搜索页点赞后返回信息流会看到旧状态。
+  const lists = [S.squarePosts, ...Object.values(S.squarePostsByTab || {})];
+  lists.forEach((list) => {
+    const p = (list || []).find(x => x && x.id === postId);
+    if (!p) return;
     p.myLiked = liked;
     if (likeCount != null) p.likeCount = likeCount;
-  }
+  });
   if (S.pdPostData && S.pdPostData.id === postId) {
     S.pdPostData.myLiked = liked;
     if (likeCount != null) S.pdPostData.likeCount = likeCount;
@@ -1015,7 +1023,10 @@ function syncPostLikeState(postId, liked, likeCount) {
 // Patch the rendered list card for a post in place (avoids full list reload).
 // Used when the detail page changes a post's like/comment counts (A12/A14).
 function patchSquareCard(postId, { liked, likeCount, commentCount } = {}) {
-  const cards = [...document.querySelectorAll('#square-track [data-post-id="' + postId + '"]')];
+  // 搜索结果卡在搜索页的网格里（不在 #square-track 内），一并纳入
+  const cards = [...document.querySelectorAll(
+    '#square-track [data-post-id="' + postId + '"], #square-feed-search [data-post-id="' + postId + '"]'
+  )];
   if (!cards.length) return;
   cards.forEach((card) => {
   if (liked != null || likeCount != null) {
