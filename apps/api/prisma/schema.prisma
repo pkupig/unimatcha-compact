@@ -242,6 +242,7 @@ model Profile {
   major       String?
   mbti        String?
   nationality String?
+  studentId   String? // 学生卡号；仅本人可见（不进 STRANGER_SAFE_FIELDS）
   realPhotos  String[]
   zodiac      String?
   wishGifts   String[] // 礼物罐子（本轮反馈2-5）：最多5个想要的礼物，仅伴侣可见

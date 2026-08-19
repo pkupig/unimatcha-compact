@@ -8,7 +8,16 @@ const NEON = '#CCFF00';
 // ========================================
 // 统一年级词表：Profile Setup 的分段按钮（data-year）与 Edit Profile 下拉必须使用
 // 完全相同的值，否则 setup 存的 grade 在 Edit Profile 里无法正确回填/对齐。
-const GRADE_OPTIONS = ['Freshman', 'Undergraduate', 'Postgraduate', 'Doctorate'];
+// 学业阶段细化到每一学年并含预科（用户反馈）。值存英文规范写法，中文由
+// i18n 的 META_ZH 映射显示；与后端 profile.dto.ts 的 GRADE_VALUES 保持一致。
+// 历史值（Freshman/Undergraduate/… 及旧中文值）不迁移——fillMetaSelect 会把
+// 库里已有但不在本列表的值原样插到最前作为可选项，回填不会丢。
+const GRADE_OPTIONS = [
+  'Foundation',
+  'Year 1', 'Year 2', 'Year 3', 'Year 4',
+  "Master's",
+  'PhD Year 1', 'PhD Year 2', 'PhD Year 3', 'PhD Year 4+',
+];
 
 // 把任意历史/大小写不一致的 grade 值规整到 GRADE_OPTIONS 中的标准写法，
 // 保证 setup → edit 的回填能精确命中下拉项（fillMetaSelect 用精确匹配选中）。
@@ -167,12 +176,8 @@ async function initProfileSetupPage() {
     const gpEl = document.querySelector(`.genderpref-btn[data-genderpref="${p.genderPref}"]`);
     if (gpEl) selectSetupGenderPref(gpEl);
   }
-  // Restore Academic Year segment (grade) — 统一词表后可精确命中按钮。
-  const g = normalizeGrade(p.grade);
-  if (g) {
-    const yEl = document.querySelector(`.segment-btn[data-year="${g.toLowerCase()}"]`);
-    if (yEl) selectYear(yEl);
-  }
+  // 年级：注册页已改下拉，与编辑页共用 GRADE_OPTIONS（含预科的 10 档）
+  fillMetaSelect('setup-grade', GRADE_OPTIONS, normalizeGrade(p.grade), 'Select Grade');
   const currentOf = (id, fallback) => document.getElementById(id)?.value || fallback || '';
   try {
     const [unis, cities, majors, mbtiTypes, nationalities] = await Promise.all([
@@ -296,7 +301,10 @@ async function saveProfile() {
   const nickname = document.getElementById('setup-nickname')?.value?.trim();
   const school = document.getElementById('setup-school')?.value;
   const bio = document.getElementById('setup-bio')?.value?.trim();
-  const year = document.querySelector('.segment-btn[data-selected="true"]')?.dataset?.year || document.querySelector('.segment-btn.bg-neon')?.dataset?.year;
+  // 注册页年级已改为与编辑页同款下拉（10 档含预科）；旧分段按钮作兜底
+  const year = document.getElementById('setup-grade')?.value
+    || document.querySelector('.segment-btn[data-selected="true"]')?.dataset?.year
+    || document.querySelector('.segment-btn.bg-neon')?.dataset?.year;
   const gender = document.querySelector('.gender-btn[data-selected="true"]')?.dataset?.gender || document.querySelector('.gender-btn.bg-neon')?.dataset?.gender;
   const genderPref = document.querySelector('.genderpref-btn[data-selected="true"]')?.dataset?.genderpref || document.querySelector('.genderpref-btn.bg-neon')?.dataset?.genderpref;
   const birthday = document.getElementById('setup-birthday')?.value || '';
@@ -399,6 +407,37 @@ window.handleAvatarFile = handleAvatarFile;
 // ========================================
 // PROFILE TAB
 // ========================================
+// Hero 信息行（用户反馈）：学生卡号 / 年龄 / 真实姓名 / 加入天数 / 学业阶段。
+// 只渲染有值的项，避免留空格子；每行三格，不足一行自动收窄。
+function renderProfileFacts(profile) {
+  const box = document.getElementById('profile-facts');
+  if (!box) return;
+  const zh = (window.getLang?.() === 'zh');
+  const joinedAt = profile.joinedAt || profile.createdAt;
+  let days = null;
+  if (joinedAt) {
+    const t = new Date(joinedAt).getTime();
+    // 当天注册显示第 1 天，不显示 0
+    if (!isNaN(t)) days = Math.max(1, Math.floor((Date.now() - t) / 86400000) + 1);
+  }
+  const realName = profile.realName
+    || [profile.givenName, profile.familyName].filter(Boolean).join(' ');
+  const facts = [
+    [zh ? '学生卡号' : 'STUDENT ID', profile.studentId],
+    [zh ? '年龄' : 'AGE', profile.age],
+    [zh ? '姓名' : 'REAL NAME', realName],
+    [zh ? '学业阶段' : 'YEAR', profile.grade ? window.metaLabel(profile.grade) : ''],
+    [zh ? '加入天数' : 'DAYS HERE', days],
+  ].filter(([, v]) => v !== null && v !== undefined && v !== '');
+  if (!facts.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="profile-facts-row">${facts.map(([k, v]) => `
+    <div class="profile-fact">
+      <span class="pf-v" data-no-i18n>${window.escapeHtml(String(v))}</span>
+      <span class="pf-k" data-no-i18n>${window.escapeHtml(k)}</span>
+    </div>`).join('')}</div>`;
+}
+window.renderProfileFacts = renderProfileFacts;
+
 async function loadProfileTab() {
   // §6.10 / §10.5(1): refresh the top energy bar every time Profile opens.
   // Fire-and-forget — a balance fetch failure must not block the rest of the
@@ -414,6 +453,7 @@ async function loadProfileTab() {
   if (nameEl) nameEl.textContent = (profile.nickname || 'Your Name');
   const metaEl = document.getElementById('profile-meta');
   if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
+  renderProfileFacts(profile);
   // 学生认证按钮（右上角）状态
   window.renderVerifyButton();
   // （匹配状态条已按用户要求从 profile 移除，随之取消两路 /matching/status 查询）
@@ -610,6 +650,8 @@ async function openEditProfile() {
   const p = S.currentUser?.profile || {};
   const nicknameEl = document.getElementById('edit-nickname');
   if (nicknameEl) nicknameEl.value = p.nickname || '';
+  const studentIdEl = document.getElementById('edit-studentid');
+  if (studentIdEl) studentIdEl.value = p.studentId || '';
   const givenNameEl = document.getElementById('edit-givenname');
   if (givenNameEl) givenNameEl.value = p.givenName || '';
   const familyNameEl = document.getElementById('edit-familyname');
@@ -733,7 +775,8 @@ async function saveEditProfile() {
       ['city', 'edit-city'],
       ['major', 'edit-major'],
       ['mbti', 'edit-mbti'],
-      ['nationality', 'edit-nationality']
+      ['nationality', 'edit-nationality'],
+      ['studentId', 'edit-studentid']
     ].forEach(([key, id]) => {
       const el = document.getElementById(id);
       if (el) payload[key] = el.value || '';

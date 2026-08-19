@@ -260,6 +260,34 @@
        高度增量 = 下拉距离（1:1），使背景底边与同样下移 dist 的白色内容区保持
        原有的 6px 衔接关系，渐变过渡始终自然。
        跟手期间 JS 关掉过渡逐帧写 height，松手清空 inline 值走这里的过渡弹回。 */
+    /* Hero 文字：封面通常是深色照片，黑字读不出来 —— 统一白字 + 阴影。
+       .profile-facts-row 的小卡用半透明白玻璃，保证任何封面下都能看清。 */
+    .profile-hero-text { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); }
+    .profile-hero-text #profile-name { color: #fff; }
+    .profile-facts-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+    .profile-fact {
+      background: rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      padding: 7px 4px 8px;
+      text-align: center;
+      min-width: 0;
+    }
+    .profile-fact .pf-v {
+      display: block; font-weight: 800; font-size: 14px; line-height: 1.15;
+      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .profile-fact .pf-k {
+      display: block; margin-top: 3px; font-size: 8px; letter-spacing: 0.14em;
+      font-weight: 700; color: rgba(255, 255, 255, 0.75); text-shadow: none;
+    }
     #profile-hero {
       height: 340px;
       transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);

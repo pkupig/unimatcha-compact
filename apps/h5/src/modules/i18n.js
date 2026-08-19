@@ -112,7 +112,7 @@ const ZH = {
   'Non-binary': '非二元', 'Select Gender': '选择性别',
   'Select School': '选择学校', 'Select Institution': '选择学校', 'Select Grade': '选择年级',
   'Select City': '选择城市', 'Select Major': '选择专业', 'Select MBTI': '选择 MBTI',
-  'Select Nationality': '选择国籍',
+  'Select Nationality': '选择国籍', 'Student ID': '学生卡号',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
   // ── 中文态补漏（本轮反馈）──
   'Enter your academic credentials': '输入你的账号信息',
@@ -289,6 +289,13 @@ const META_ZH = {
   Mexican: '墨西哥', Colombian: '哥伦比亚', Argentinian: '阿根廷', Egyptian: '埃及',
   'Saudi Arabian': '沙特阿拉伯', Iranian: '伊朗', Iraqi: '伊拉克', Israeli: '以色列',
   // 年级（H5 GRADE_OPTIONS，英文为库内规范值）
+  // 学业阶段（GRADE_OPTIONS，含预科的 10 档）
+  Foundation: '预科',
+  'Year 1': '大一', 'Year 2': '大二', 'Year 3': '大三', 'Year 4': '大四',
+  "Master's": '硕士',
+  'PhD Year 1': '博士一年级', 'PhD Year 2': '博士二年级',
+  'PhD Year 3': '博士三年级', 'PhD Year 4+': '博士四年级及以上',
+  // 历史值（库里可能仍有，下拉会原样保留为可选项）
   Freshman: '大一新生', Postgraduate: '硕士', Doctorate: '博士',
   // Undergraduate/Other/Nationality 的 zh 显示与全局词典一致，这里不重复
 };
