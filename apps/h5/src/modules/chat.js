@@ -524,8 +524,14 @@ async function openChat(opts = {}) {
   if (nameEl) nameEl.textContent = S.chatPartnerName || 'Partner';
   const locEl = document.getElementById('chat-partner-location');
   if (locEl) locEl.textContent = window.metaLabel ? window.metaLabel(S.chatPartnerSchool || '') : (S.chatPartnerSchool || '');
+  // 头部头像：复用会话行的渲染（无头像走首字母兜底，不再出现空的破图框）
   const avEl = document.getElementById('chat-partner-avatar');
-  if (avEl) avEl.src = S.chatPartnerAvatar || '';
+  if (avEl) {
+    avEl.innerHTML = sessionAvatarHtml(
+      { avatarUrl: S.chatPartnerAvatar, nickname: S.chatPartnerName },
+      'w-9 h-9 rounded-full object-cover',
+    );
+  }
   // In-chat confirm / dissolve controls (§6.6 D rule).
   renderChatHeaderActions();
   // Switching conversations: stop any in-flight polling from the previous

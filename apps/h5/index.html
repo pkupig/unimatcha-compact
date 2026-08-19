@@ -1046,7 +1046,9 @@
       <div class="flex items-center">
         <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity" onclick="closeChat()">arrow_back</span>
         <div class="flex items-center gap-3">
-          <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-9 h-9 rounded-full object-cover cursor-pointer" src=""/>
+          <!-- 容器而非裸 img：对方没有头像时 src="" 会渲染成空的破图框，
+               改由 JS 渲染（有图出图、无图出首字母，与会话列表一致） -->
+          <div id="chat-partner-avatar" onclick="openChatPartnerProfile()" class="w-9 h-9 shrink-0 cursor-pointer"></div>
           <div>
             <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white" data-no-i18n>Chat Partner</h1>
             <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400" data-no-i18n>Location</p>
@@ -1057,7 +1059,10 @@
       <div id="chat-header-actions" class="flex items-center gap-2"></div>
     </div>
   </header>
-  <main id="chat-messages" class="relative z-10 pt-20 pb-28 px-4 max-w-2xl mx-auto flex-1 overflow-y-auto">
+  <!-- w-full 不能省：本元素是 .overlay(flex column) 的 flex item，只写 mx-auto
+       时 auto 边距会覆盖默认的 stretch，容器收缩成内容宽度并居中 —— 自己发的
+       消息因此看起来居左而非贴右（justify-content 生效但容器已包住内容）。 -->
+  <main id="chat-messages" class="relative z-10 pt-20 pb-28 px-4 w-full max-w-2xl mx-auto flex-1 overflow-y-auto">
   </main>
   <!-- 输入条收紧（用户反馈：整体留白大）：py-6→py-3、发送键改圆形箭头 -->
   <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-3 px-4 pb-safe z-50">
