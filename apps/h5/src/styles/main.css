@@ -381,16 +381,9 @@
     /* profile 的 hero 是 absolute top-0，要铺满到状态栏下，不加内边距；
        改为整体加高，内容占位同步下移，保持原有视觉比例 */
     .pt-safe { padding-top: env(safe-area-inset-top); }
-    /* 状态栏挡板：补回除 profile 外各页顶部的白条（profile 需要封面铺满）。
-       z-index 高于全部弹层、低于启动页；不吃事件。 */
-    #statusbar-scrim {
-      position: fixed; top: 0; left: 0; right: 0;
-      height: env(safe-area-inset-top);
-      background: #f9f9f9; z-index: 9998; pointer-events: none;
-    }
-    .dark #statusbar-scrim { background: #15151a; }
-    /* profile 页：撤掉挡板，让封面自屏幕最顶铺开 */
-    body.profile-active #statusbar-scrim { display: none; }
+    /* 状态栏挡板已移除（用户要求）：它是 fixed 定位、不占文档流，删除不影响
+       任何排版距离；状态栏区域改为透出各页顶栏自身的半透明背景，
+       profile 页则透出封面。 */
     .pb-safe {
       padding-bottom: env(safe-area-inset-bottom);
     }
