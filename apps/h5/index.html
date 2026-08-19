@@ -677,19 +677,18 @@
   </div>
 
   <!-- (b1) Chat 列表视图（所有对话：临时 + 永久，§6.6） -->
-  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-6 pt-28 pb-28">
+  <!-- 左右留白 px-6→px-3（用户反馈太宽）；顶距 pt-28→pt-24 让列表更贴近顶栏 -->
+  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-3 pt-24 pb-28">
     <!-- 退款 / 系统通知条挂载点（§6.6 J 规则 energy_refunded） -->
-    <div id="chat-banner" class="hidden mb-4"></div>
+    <div id="chat-banner" class="hidden mb-2"></div>
     <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
-    <!-- 微信式列表（用户反馈）：行不作卡片，行间细线分隔 -->
-    <section id="chat-sessions-temp-section" class="mb-6">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">TEMPORARY</h2>
-      <div id="chat-sessions-temp" class="divide-y divide-outline-variant/15"></div>
+    <!-- 单列表（用户反馈：不分组、不要分组标题）：临时会话恒排在最前且带
+         淡荧光绿底与已连接区分；分隔线由行内元素画，不延伸到头像下方 -->
+    <section id="chat-sessions-temp-section">
+      <div id="chat-sessions-temp"></div>
     </section>
-    <!-- 永久对话组（sessionType==='confirmed'） -->
     <section id="chat-sessions-confirmed-section">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">CONNECTIONS</h2>
-      <div id="chat-sessions-confirmed" class="divide-y divide-outline-variant/15"></div>
+      <div id="chat-sessions-confirmed"></div>
     </section>
     <!-- 空状态挂载点 -->
     <div id="chat-sessions-empty" class="hidden"></div>

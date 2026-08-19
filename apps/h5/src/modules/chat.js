@@ -83,9 +83,11 @@ function sessionRowHtml(s) {
   const dot = unread > 0
     ? `<span class="w-2 h-2 rounded-full bg-neon-pink flex-shrink-0"></span>`
     : '';
-  // 微信式行（用户反馈）：去卡片底/描边/圆角，行间靠容器 divide-y 细线分隔；头像加大
+  // 微信式行（用户反馈）：去卡片底/描边/圆角；分隔线画在文字列上（.session-row 的
+  // ::after 从头像右侧起笔），不再延伸到头像下方；临时会话带淡荧光绿底，
+  // 与退款横幅同色，一眼区分且不需要分组标题。
   return `<button type="button"
-      class="session-row w-full flex items-center gap-3 px-1 py-3 text-left active:opacity-70 transition-opacity ${expired ? 'opacity-50' : ''}"
+      class="session-row${temp ? ' session-row--temp' : ''} w-full flex items-center gap-3 px-3 py-3 text-left active:opacity-70 transition-opacity ${expired ? 'opacity-50' : ''}"
       data-matchid="${attrEscape(s.matchId)}" onclick="openSessionById('${attrEscape(s.matchId)}')">
       ${sessionAvatarHtml(partner, 'chat-avatar chat-avatar--lg')}
       <div class="flex-grow min-w-0">
@@ -122,6 +124,8 @@ function renderSessions() {
   confirmed.sort((a, b) => (b.mode === 'romantic' ? 1 : 0) - (a.mode === 'romantic' ? 1 : 0));
   if (tempBox) tempBox.innerHTML = temp.map(sessionRowHtml).join('');
   if (confirmedBox) confirmedBox.innerHTML = confirmed.map(sessionRowHtml).join('');
+  // 两组已合并为一条连续列表（无分组标题），临时组恒在上；空组整段隐藏，
+  // 避免留下空白间隙
   if (tempSection) tempSection.classList.toggle('hidden', temp.length === 0);
   if (confirmedSection) confirmedSection.classList.toggle('hidden', confirmed.length === 0);
   if (emptyBox) {
@@ -193,15 +197,31 @@ window.loadSessions = loadSessions;
 // 拉取首页通知，命中 energy_refunded 则调用既有 showRefundBanner 展示退款横幅。
 // 用 lastShownRefundId 去重，避免每次 loadSessions（确认/解除/关闭对话后都会触发）
 // 反复弹同一条退款。失败静默——退款横幅是增强提示，不应阻塞会话列表。
-let lastShownRefundId = null;
+// 去重键持久化到 localStorage：原来只存在内存变量里，页面一刷新就清零，
+// 同一条退款通知每次打开 App 都会重新弹（用户反馈）。按 userId 分桶，
+// 换账号不会互相影响。
+const REFUND_SEEN_KEY = 'cl_refund_seen';
+function refundSeenId() {
+  try {
+    const all = JSON.parse(localStorage.getItem(REFUND_SEEN_KEY) || '{}');
+    return all[S.currentUser?.id || 'anon'] || null;
+  } catch (e) { return null; }
+}
+function markRefundSeen(id) {
+  try {
+    const all = JSON.parse(localStorage.getItem(REFUND_SEEN_KEY) || '{}');
+    all[S.currentUser?.id || 'anon'] = id;
+    localStorage.setItem(REFUND_SEEN_KEY, JSON.stringify(all));
+  } catch (e) { /* 隐私模式下写不进：退化为每次都提示，不阻断流程 */ }
+}
 async function checkRefundOnSessions() {
   try {
     const data = await window.api('/notifications?page=1&limit=20');
     const env = data?.data || data || {};
     const notifs = Array.isArray(env) ? env : env.items || [];
     const refund = notifs.find(n => (n.type || '') === 'energy_refunded');
-    if (!refund || refund.id === lastShownRefundId) return;
-    lastShownRefundId = refund.id;
+    if (!refund || refund.id === refundSeenId()) return;
+    markRefundSeen(refund.id);
     window.showRefundBanner?.(refund);
   } catch (e) {
     console.warn('checkRefundOnSessions failed:', e);

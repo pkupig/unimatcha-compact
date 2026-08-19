@@ -356,7 +356,12 @@
        profile 封面铺到屏幕最顶的前提）。代价是所有贴顶的固定栏会被状态栏压住，
        故按类批量补内边距——覆盖全部 fixed/sticky 顶栏，避免逐个改漏。
        注意：全屏弹层用的是 inset-0（不含 top-0），不会被误伤。 */
-    .fixed.top-0, .sticky.top-0 { padding-top: env(safe-area-inset-top); }
+    .fixed.top-0, .sticky.top-0,
+    /* 全屏弹层的三段式页眉是 flex 子项（shrink-0，非 fixed/sticky），
+       同样贴在屏幕最上沿，必须一并补——否则标题/返回键会被状态栏压住 */
+    .overlay > * > header.shrink-0, .overlay > header.shrink-0 {
+      padding-top: env(safe-area-inset-top);
+    }
     /* profile 的 hero 是 absolute top-0，要铺满到状态栏下，不加内边距；
        改为整体加高，内容占位同步下移，保持原有视觉比例 */
     .pt-safe { padding-top: env(safe-area-inset-top); }
@@ -462,6 +467,21 @@
     .chat-row.mine { justify-content: flex-end; }
     .chat-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
     .chat-avatar--lg { width: 48px; height: 48px; }
+    /* ---- 会话行（用户反馈）----
+       分隔线用 ::after 画在文字列起点之后（左缩进 = 内边距 + 头像 + 间距 = 12+48+12），
+       不再延伸到头像下方；最后一行不画线。 */
+    .session-row { position: relative; }
+    .session-row::after {
+      content: ''; position: absolute; left: 72px; right: 12px; bottom: 0;
+      height: 1px; background: rgba(0, 0, 0, 0.07);
+    }
+    .session-row:last-child::after { display: none; }
+    .dark .session-row::after { background: rgba(255, 255, 255, 0.09); }
+    /* 临时会话：淡荧光绿底（与退款横幅 bg-neon/15 同色），替代原「TEMPORARY」分组标题 */
+    .session-row--temp { background: rgba(204, 255, 0, 0.15); }
+    .session-row--temp:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+    .session-row--temp:last-of-type { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+    .dark .session-row--temp { background: rgba(204, 255, 0, 0.12); }
     .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-weight: 700; font-size: 14px; text-transform: uppercase; }
     .chat-col { max-width: 72%; display: flex; flex-direction: column; align-items: flex-start; }
     .chat-row.mine .chat-col { align-items: flex-end; }
