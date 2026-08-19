@@ -57,7 +57,7 @@ export class UsersService {
             relationshipScore: true, profileCompleteness: true,
             signature: true, coverUrl: true, tags: true,
             major: true, mbti: true, nationality: true, realPhotos: true, zodiac: true,
-            wishGifts: true,
+            wishGifts: true, studentId: true, birthday: true,
           },
         },
       },

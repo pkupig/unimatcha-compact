@@ -407,13 +407,15 @@ window.handleAvatarFile = handleAvatarFile;
 // ========================================
 // PROFILE TAB
 // ========================================
-// Hero 信息行（用户反馈）：学生卡号 / 年龄 / 真实姓名 / 加入天数 / 学业阶段。
-// 只渲染有值的项，避免留空格子；每行三格，不足一行自动收窄。
+// Hero 信息（用户反馈：不要把信息框起来、要有排版）：
+// 采用主流个人主页的左对齐信息栈——姓名 · 年龄 · 学业阶段 排一行，
+// 学号与加入天数作为更淡的副行，靠字号/透明度分层次，不用卡片框。
 function renderProfileFacts(profile) {
   const box = document.getElementById('profile-facts');
   if (!box) return;
   const zh = (window.getLang?.() === 'zh');
-  const joinedAt = profile.joinedAt || profile.createdAt;
+  const esc = window.escapeHtml;
+  const joinedAt = profile.joinedAt || S.currentUser?.createdAt || profile.createdAt;
   let days = null;
   if (joinedAt) {
     const t = new Date(joinedAt).getTime();
@@ -422,19 +424,21 @@ function renderProfileFacts(profile) {
   }
   const realName = profile.realName
     || [profile.givenName, profile.familyName].filter(Boolean).join(' ');
-  const facts = [
-    [zh ? '学生卡号' : 'STUDENT ID', profile.studentId],
-    [zh ? '年龄' : 'AGE', profile.age],
-    [zh ? '姓名' : 'REAL NAME', realName],
-    [zh ? '学业阶段' : 'YEAR', profile.grade ? window.metaLabel(profile.grade) : ''],
-    [zh ? '加入天数' : 'DAYS HERE', days],
-  ].filter(([, v]) => v !== null && v !== undefined && v !== '');
-  if (!facts.length) { box.innerHTML = ''; return; }
-  box.innerHTML = `<div class="profile-facts-row">${facts.map(([k, v]) => `
-    <div class="profile-fact">
-      <span class="pf-v" data-no-i18n>${window.escapeHtml(String(v))}</span>
-      <span class="pf-k" data-no-i18n>${window.escapeHtml(k)}</span>
-    </div>`).join('')}</div>`;
+  // 主行：姓名 · 年龄 · 学业阶段
+  const primary = [
+    realName,
+    profile.age ? (zh ? `${profile.age} 岁` : `${profile.age}`) : '',
+    profile.grade ? window.metaLabel(profile.grade) : '',
+  ].filter(Boolean);
+  // 副行：学号 · 加入天数
+  const secondary = [
+    profile.studentId ? (zh ? `学号 ${profile.studentId}` : `ID ${profile.studentId}`) : '',
+    days ? (zh ? `已加入 ${days} 天` : `Day ${days}`) : '',
+  ].filter(Boolean);
+  const sep = '<span class="pf-sep">·</span>';
+  box.innerHTML = `
+    ${primary.length ? `<p class="pf-primary" data-no-i18n>${primary.map(esc).join(sep)}</p>` : ''}
+    ${secondary.length ? `<p class="pf-secondary" data-no-i18n>${secondary.map(esc).join(sep)}</p>` : ''}`;
 }
 window.renderProfileFacts = renderProfileFacts;
 
@@ -452,7 +456,9 @@ async function loadProfileTab() {
   const nameEl = document.getElementById('profile-name');
   if (nameEl) nameEl.textContent = (profile.nickname || 'Your Name');
   const metaEl = document.getElementById('profile-meta');
-  if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
+  // 学校改荧光绿文字（不再是胶囊块）——用户要求不把信息框起来，
+  // 品牌色仍保留在这一行上作为视觉锚点
+  if (metaEl) metaEl.innerHTML = `<span class="pf-school" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
   renderProfileFacts(profile);
   // 学生认证按钮（右上角）状态
   window.renderVerifyButton();
