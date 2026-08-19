@@ -139,6 +139,38 @@
           if (window.__appBooted) { done = true; try { sessionStorage.removeItem(KEY); } catch (e) {} }
         }, 1500);
       });
+
+      // ── 版本漂移自愈 ──
+      // 盲区：旧 index.html + 一年期强缓存里的旧 JS——资源命中缓存不会 404，
+      // 上面的看门狗不触发，手机会永远跑旧代码（Safari/PWA 对 no-cache 的
+      // index.html 也可能长期不回源）。主动比对服务器最新 index.html 引用的
+      // 资源哈希，不一致则带参重载一次（查询串穿透文档缓存）。
+      var VKEY = "cl_ver_retry";
+      var lastVerCheck = 0;
+      function checkVersionDrift() {
+        lastVerCheck = Date.now();
+        var s = document.querySelector('script[src*="/assets/index-"]');
+        var mine = s ? (s.getAttribute("src").match(/index-[^.]+\.js/) || [null])[0] : null;
+        if (!mine || !window.fetch) return; // dev 构建前或异常环境：跳过
+        fetch(location.pathname + "?vchk=" + Date.now(), { cache: "no-store" })
+          .then(function (r) { return r.ok ? r.text() : ""; })
+          .then(function (html) {
+            var m = html.match(/assets\/(index-[^."']+\.js)/);
+            if (!m) return;
+            if (m[1] === mine) { try { sessionStorage.removeItem(VKEY); } catch (e) {} return; }
+            try {
+              if (sessionStorage.getItem(VKEY) === "1") return; // 一会话只试一次，防循环
+              sessionStorage.setItem(VKEY, "1");
+            } catch (e) { return; }
+            location.replace(location.pathname + "?r=" + Date.now());
+          })
+          .catch(function () {});
+      }
+      // 启动后闲时检查（不抢首屏带宽）；长驻标签页回前台且距上次检查 >30min 时复查
+      setTimeout(checkVersionDrift, 2500);
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && Date.now() - lastVerCheck > 1800000) checkVersionDrift();
+      });
     })();
   </script>
 </head>
@@ -467,11 +499,13 @@
           <!-- Grade Selection -->
           <div>
             <label class="block text-[10px] font-bold tracking-[0.2em] text-on-surface-variant mb-4">Academic Year</label>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="freshman" type="button" onclick="selectYear(this)">Freshman</button>
-              <button class="segment-btn py-3 px-4 rounded-[10px] bg-neon text-black text-sm font-label tracking-wider active:scale-95" data-year="undergraduate" type="button" onclick="selectYear(this)">Undergraduate</button>
-              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="postgraduate" type="button" onclick="selectYear(this)">Postgraduate</button>
-              <button class="segment-btn py-3 px-4 rounded-[10px] border border-outline-variant text-sm font-label tracking-wider hover:bg-neon hover:text-black transition-all active:scale-95" data-year="doctorate" type="button" onclick="selectYear(this)">Doctorate</button>
+            <!-- 细化到每学年 + 预科后共 10 档，按钮组放不下，改与编辑页同款下拉
+                 （选项由 fillMetaSelect 按 GRADE_OPTIONS 注入，值与编辑页一致） -->
+            <div class="relative cursor-pointer group">
+              <select id="setup-grade" class="w-full appearance-none text-sm font-medium bg-surface-container-low border-0 rounded-[10px] py-2.5 px-3 pr-8 focus:ring-1 focus:ring-neon focus:outline-none cursor-pointer truncate">
+                <option value="">Select Grade</option>
+              </select>
+              <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
             </div>
           </div>
         </div>
@@ -635,7 +669,7 @@
     </div>
     <button class="shrink-0 relative w-10 h-10 rounded-full flex items-center justify-center active:scale-95 duration-200 hover:bg-surface-container-low transition-colors" onclick="openNotifications()" title="Notifications">
       <span class="material-symbols-outlined text-black" style="font-size:22px">notifications_none</span>
-      <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-neon-pink text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
+      <span id="notif-badge" class="hidden absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-neon text-black text-[10px] font-bold leading-4 text-center rounded-full"></span>
     </button>
   </div>
 
@@ -644,14 +678,15 @@
     <!-- 退款 / 系统通知条挂载点（§6.6 J 规则 energy_refunded） -->
     <div id="chat-banner" class="hidden mb-4"></div>
     <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
-    <section id="chat-sessions-temp-section" class="mb-8">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">TEMPORARY</h2>
-      <div id="chat-sessions-temp" class="space-y-3"></div>
+    <!-- 微信式列表（用户反馈）：行不作卡片，行间细线分隔 -->
+    <section id="chat-sessions-temp-section" class="mb-6">
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">TEMPORARY</h2>
+      <div id="chat-sessions-temp" class="divide-y divide-outline-variant/15"></div>
     </section>
     <!-- 永久对话组（sessionType==='confirmed'） -->
     <section id="chat-sessions-confirmed-section">
-      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-3">CONNECTIONS</h2>
-      <div id="chat-sessions-confirmed" class="space-y-3"></div>
+      <h2 class="font-headline font-extrabold text-[10px] tracking-[0.2em] text-outline mb-1">CONNECTIONS</h2>
+      <div id="chat-sessions-confirmed" class="divide-y divide-outline-variant/15"></div>
     </section>
     <!-- 空状态挂载点 -->
     <div id="chat-sessions-empty" class="hidden"></div>
@@ -697,8 +732,11 @@
     <!-- 双页翻页器：推荐/校园墙并排渲染，拖动时另一页真实内容跟着进来 -->
     <div id="square-pager" class="overflow-hidden">
       <div id="square-track" class="flex w-full" style="gap:12px">
-        <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
-        <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 gap-1.5 grid-flow-row-dense items-start"></section>
+        <!-- 间距全部由 .square-feed-grid 自定义规则声明（不挂 gap-1.5：构建后
+             Tailwind 工具类排在自定义规则之后，会把 row-gap:0 覆盖回 6px，
+             1px 行网格的 span 间距被放大数百倍——8/10 生产实测根因） -->
+        <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
+        <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
       </div>
     </div>
   </main>
@@ -712,26 +750,42 @@
 <div id="tab-profile" class="tab-content" style="display: none;">
   <button id="verify-btn" type="button" class="absolute top-6 right-6 z-30"></button>
   <!-- 固定背景层（滚动/下拉都不动） -->
-  <div id="profile-hero" class="absolute top-0 left-0 w-full z-0 overflow-hidden pointer-events-none" style="height:340px">
+  <!-- 高度移到 main.css（#profile-hero）：下拉时 JS 写 inline height 跟手延展，
+       松手清空 inline 值即可回落到基准高度并走 CSS 过渡 -->
+  <div id="profile-hero" class="absolute top-0 left-0 w-full z-0 overflow-hidden pointer-events-none">
     <img id="profile-bg" alt="Campus Background" class="absolute inset-0 w-full h-full object-cover object-[center_30%]" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23e5e5e5'/%3E%3C/svg%3E"/>
-    <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(249,249,249,0) 40%, rgba(249,249,249,0.5) 72%, #f9f9f9 98%)"></div>
+    <!-- 白色渐变过渡层已按用户要求移除：背景底边与白色内容区直接硬衔接 -->
     <div class="profile-blur-mask"></div>
   </div>
   <!-- 滚动内容：头像 + 功能列表（一体滚动；头像在功能区上方，永不被盖住） -->
-  <main id="profile-scroll" class="absolute inset-0 overflow-y-auto z-10" style="overscroll-behavior-y: contain;">
+  <!-- overscroll-behavior-y 必须是 none 而非 contain：contain 只挡住滚动链
+       传播，仍保留容器自身的原生橡皮筋——手机上下拉时原生弹性会把内容再额外
+       下移一份，而背景只长 JS 计算的那一份，背景因此永远「跟不上」内容
+       （桌面 Chrome 无触摸橡皮筋，所以只在真机上暴露）。none 让 JS 独占下拉。 -->
+  <main id="profile-scroll" class="absolute inset-0 overflow-y-auto z-10" style="overscroll-behavior-y: none;">
     <div id="profile-menu-inner">
       <div style="height:120px"></div>
-      <section class="flex flex-col items-center px-6 mb-16">
-        <div id="profile-avatar" class="w-24 h-24 bg-surface-container-highest overflow-hidden rounded-full border border-outline-variant/50 mb-3">
-          <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23d4d4d4'/%3E%3C/svg%3E"/>
+      <!-- Hero 文字区：封面多为深色照片，故整体改白字 + 文字阴影保证可读；
+           头像加白边并提亮底色（原来在暗封面上几乎糊成一团） -->
+      <!-- Hero：头像居左 + 右侧信息栈（不再居中对称、不再用卡片框住信息）。
+           封面多为深色照片，故整体白字 + 阴影保证可读。 -->
+      <section class="profile-hero-text px-6 mb-10">
+        <div class="flex items-end gap-4">
+          <div id="profile-avatar" class="w-[84px] h-[84px] shrink-0 bg-white overflow-hidden rounded-full ring-[3px] ring-white/90 shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
+            <img alt="User Avatar" class="w-full h-full object-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23e8e8e8'/%3E%3C/svg%3E"/>
+          </div>
+          <div class="min-w-0 flex-1 pb-0.5">
+            <h2 id="profile-name" class="font-headline text-[26px] font-extrabold tracking-tight leading-tight truncate">Elara Vance</h2>
+            <div id="profile-meta" class="mt-0.5"></div>
+          </div>
         </div>
-        <h2 id="profile-name" class="font-headline text-xl font-bold tracking-tight mb-1 text-on-surface">Elara Vance</h2>
-        <div id="profile-meta" class="flex gap-2">
-          <span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest">St. Jude's</span>
-        </div>
+        <!-- 姓名 · 年龄 · 学业阶段 / 学号 · 加入天数（renderProfileFacts 填充） -->
+        <div id="profile-facts" class="mt-3"></div>
         <div id="profile-photos-strip" class="hidden"></div>
       </section>
-      <div class="bg-background px-6 pt-4 pb-32 max-w-lg mx-auto">
+      <!-- 圆角衔接（用户反馈：背景与功能区衔接太僵硬）：上移 24px 盖住背景底边，
+           顶部两角切圆——圆角缺口处透出背景图，形成卡片式柔和过渡 -->
+      <div class="bg-background rounded-t-[24px] -mt-6 px-6 pt-7 pb-32 max-w-lg mx-auto relative">
         <section class="space-y-2">
           <div class="flex flex-col">
             <button id="profile-energy-section" onclick="openEnergyModal()" class="w-full flex items-center justify-between py-4 border-b border-outline-variant/20 gap-3 group text-left">
@@ -958,33 +1012,39 @@
 </div>
 
 <!-- Post Detail Overlay -->
-<div id="post-detail-overlay" class="overlay fixed inset-0 z-50 bg-surface overflow-y-auto">
-  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center px-6 h-16 w-full max-w-none">
-    <div class="flex items-center">
-      <button class="flex items-center gap-3 group" onclick="closePostDetail()">
-        <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
-        <h1 class="font-headline font-bold tracking-[0.15em] text-on-surface text-[10px] mt-0.5">Post</h1>
+<!-- 三段式（页眉 / 滚动区 / 页脚）：页眉不再 fixed——滑动返回给 overlay 加
+     transform 后，fixed 子元素改为相对 overlay 定位，已滚动的距离会把页眉
+     顶到视口外（表现为「页眉直接消失」）。改由 flex 固定，与内容同步位移。 -->
+<div id="post-detail-overlay" class="overlay fixed inset-0 z-50 bg-surface">
+  <header class="shrink-0 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between gap-3 px-6 h-16">
+    <button class="flex items-center gap-3 group min-w-0" onclick="closePostDetail()">
+      <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
+      <h1 class="font-headline font-bold tracking-[0.15em] text-on-surface text-[10px] mt-0.5">Post</h1>
+    </button>
+    <!-- 更多：弹操作卡（分享 / 举报），与评论长按卡形式统一；举报仍两步确认防误触 -->
+    <button id="pd-report-btn" onclick="event.stopPropagation();openPdPostMenu(event)" aria-label="More" title="More"
+      class="shrink-0 w-9 h-9 -mr-2 rounded-full flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+      <span class="material-symbols-outlined text-[22px]">more_horiz</span>
+    </button>
+  </header>
+  <main id="pd-scroll" class="flex-1 min-h-0 overflow-y-auto w-full max-w-screen-md mx-auto">
+    <div id="pd-content"></div>
+  </main>
+  <!-- 评论输入固定为页脚（不再跟着内容滚到最下面才可见）；底部内边距见 main.css 的
+       #post-detail-overlay > footer（safe-area + 8px） -->
+  <footer class="shrink-0 border-t border-outline-variant/20 bg-surface px-3 pt-3">
+    <div id="pd-reply-bar" class="hidden items-center justify-between mb-2">
+      <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
+      <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
+    </div>
+    <!-- 软填充胶囊输入 + 圆形发送键（对齐全站去下划线改软填充的输入样式） -->
+    <div class="flex items-center gap-2">
+      <input id="comment-input" class="flex-1 min-w-0 bg-surface-container-low rounded-full border-0 px-4 py-2.5 text-sm font-body placeholder:text-outline-variant focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Add an observation..." type="text"/>
+      <button class="w-10 h-10 shrink-0 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform" onclick="submitPdComment()" aria-label="Send">
+        <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
       </button>
     </div>
-  </header>
-  <main class="pt-16 w-full max-w-screen-md mx-auto">
-    <div id="pd-content"></div>
-    <section class="px-6 pb-16 bg-surface">
-      <div class="mt-8 pt-5 border-t border-outline-variant/20">
-        <div id="pd-reply-bar" class="hidden items-center justify-between mb-3">
-          <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
-          <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
-        </div>
-        <!-- 软填充胶囊输入 + 圆形发送键（对齐全站去下划线改软填充的输入样式） -->
-        <div class="flex items-center gap-2">
-          <input id="comment-input" class="flex-1 min-w-0 bg-surface-container-low rounded-full border-0 px-4 py-2.5 text-sm font-body placeholder:text-outline-variant focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Add an observation..." type="text"/>
-          <button class="w-10 h-10 shrink-0 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform" onclick="submitPdComment()" aria-label="Send">
-            <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
-          </button>
-        </div>
-      </div>
-    </section>
-  </main>
+  </footer>
 </div>
 
 <!-- Chat Overlay -->
@@ -996,10 +1056,12 @@
       <div class="flex items-center">
         <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity" onclick="closeChat()">arrow_back</span>
         <div class="flex items-center gap-3">
-          <img id="chat-partner-avatar" alt="Partner" onclick="openChatPartnerProfile()" class="w-8 h-8 rounded-full object-cover cursor-pointer" src=""/>
+          <!-- 容器而非裸 img：对方没有头像时 src="" 会渲染成空的破图框，
+               改由 JS 渲染（有图出图、无图出首字母，与会话列表一致） -->
+          <div id="chat-partner-avatar" onclick="openChatPartnerProfile()" class="w-9 h-9 shrink-0 cursor-pointer"></div>
           <div>
-            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white">Chat Partner</h1>
-            <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400">Location</p>
+            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white" data-no-i18n>Chat Partner</h1>
+            <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400" data-no-i18n>Location</p>
           </div>
         </div>
       </div>
@@ -1007,26 +1069,28 @@
       <div id="chat-header-actions" class="flex items-center gap-2"></div>
     </div>
   </header>
-  <main id="chat-messages" class="relative z-10 pt-24 pb-36 px-5 max-w-2xl mx-auto flex-1 overflow-y-auto">
+  <!-- w-full 不能省：本元素是 .overlay(flex column) 的 flex item，只写 mx-auto
+       时 auto 边距会覆盖默认的 stretch，容器收缩成内容宽度并居中 —— 自己发的
+       消息因此看起来居左而非贴右（justify-content 生效但容器已包住内容）。 -->
+  <main id="chat-messages" class="relative z-10 pt-20 pb-28 px-4 w-full max-w-2xl mx-auto flex-1 overflow-y-auto">
   </main>
-  <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-6 px-6 pb-safe z-50">
-    <p id="chat-dissolved-notice" class="hidden max-w-2xl mx-auto mb-3 text-center text-[10px] tracking-widest text-neutral-400 font-headline">This connection has ended. You can no longer send messages.</p>
+  <!-- 输入条收紧（用户反馈：整体留白大）：py-6→py-3、发送键改圆形箭头 -->
+  <div class="fixed bottom-0 w-full bg-surface-container-low border-t border-outline-variant/20 py-3 px-4 pb-safe z-50">
+    <p id="chat-dissolved-notice" class="hidden max-w-2xl mx-auto mb-2 text-center text-[10px] tracking-widest text-neutral-400 font-headline">This connection has ended. You can no longer send messages.</p>
     <div id="chat-pending-image" class="hidden max-w-2xl mx-auto mb-2 flex justify-start">
       <div class="relative w-20 h-20">
         <img id="chat-pending-thumb" alt="" class="w-full h-full object-cover rounded-[10px] border border-outline-variant/40" src=""/>
         <button type="button" onclick="clearChatPendingImage()" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neon-pink text-white flex items-center justify-center active:scale-90"><span class="material-symbols-outlined" style="font-size:14px">close</span></button>
       </div>
     </div>
-    <div class="max-w-2xl mx-auto flex items-end gap-4">
-      <div class="flex-grow flex items-center">
-        <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
-        <button class="mr-2 p-1 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">
-          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">add</span>
-        </button>
-        <textarea id="chat-input" class="w-full text-sm placeholder:text-neutral-400 resize-none overflow-hidden font-body focus:outline-none focus: focus: bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Type your response..." rows="1"></textarea>
-      </div>
-      <button class="bg-neon text-black px-8 py-3 rounded-[10px] font-headline text-xs font-bold tracking-widest active:scale-95 transition-transform" onclick="sendChatMessage()">
-        Send
+    <div class="max-w-2xl mx-auto flex items-end gap-2">
+      <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
+      <button class="shrink-0 w-10 h-10 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;">add</span>
+      </button>
+      <textarea id="chat-input" class="flex-1 min-w-0 text-sm placeholder:text-neutral-400 resize-none overflow-hidden font-body bg-surface-container-lowest rounded-[18px] border-0 px-4 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Type your response..." rows="1"></textarea>
+      <button class="shrink-0 w-10 h-10 rounded-full bg-neon text-black flex items-center justify-center active:scale-95 transition-transform" onclick="sendChatMessage()" aria-label="Send">
+        <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
       </button>
     </div>
   </div>
@@ -1172,6 +1236,10 @@
               <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-outline group-hover:text-on-surface transition-colors" data-icon="expand_more">expand_more</span>
             </div>
           </div>
+          <div class="space-y-2">
+            <label class="block text-[10px] font-bold tracking-widest text-on-surface-variant">Student ID</label>
+            <input id="edit-studentid" maxlength="32" class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none font-medium text-sm" type="text" placeholder="e.g. 2312345"/>
+          </div>
         </div>
       </section>
       <section class="space-y-6">
@@ -1268,7 +1336,7 @@
       <div id="friend-hub-panel-search" class="hidden space-y-4">
         <div class="flex items-center gap-2 bg-surface-container-low rounded-full px-4 py-2.5">
           <span class="material-symbols-outlined text-outline" style="font-size:20px">search</span>
-          <input id="friend-search-input" type="text" placeholder="Search your chats" class="flex-1 bg-transparent border-0 p-0 text-sm text-on-surface focus:ring-0 focus:outline-none placeholder:text-outline" oninput="onFriendSearchInput()"/>
+          <input id="friend-search-input" type="text" placeholder="Search chats, people, schools" class="flex-1 bg-transparent border-0 p-0 text-sm text-on-surface focus:ring-0 focus:outline-none placeholder:text-outline" oninput="onFriendSearchInput()"/>
         </div>
         <div id="friend-search-results" class="space-y-2"></div>
       </div>
@@ -1299,18 +1367,15 @@
 </div>
 
 <!-- Notifications Overlay -->
-<div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)closeNotifications()">
-  <div class="slide-right relative z-50 h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
+<!-- 通知：全屏展示（原为右侧滑出卡片），页眉返回键+标题靠左 -->
+<div id="notifications-overlay" class="overlay fixed inset-0 z-50 bg-surface" onclick="if(event.target===this)closeNotifications()">
+  <div class="relative z-50 h-full w-full bg-surface overflow-y-auto flex flex-col">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
-      <div class="flex justify-between items-center px-6 h-16 w-full">
-        <div></div>
-        <div class="flex items-center gap-6">
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
-          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
-            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
-          </button>
-        </div>
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="closeNotifications()">
+          <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notifications</h1>
       </div>
     </header>
     <main id="notifications-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-6 pb-16">
@@ -1319,18 +1384,15 @@
 </div>
 
 <!-- Notification Detail Overlay -->
-<div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] items-end justify-end" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
-  <div class="slide-right relative z-[60] h-screen w-[86%] max-w-sm ml-auto bg-surface overflow-y-auto shadow-2xl flex flex-col rounded-l-2xl">
+<!-- 通知详情：全屏展示，页眉返回键+标题靠左 -->
+<div id="notif-detail-overlay" class="overlay fixed inset-0 z-[60] bg-surface" onclick="if(event.target===this)hideOverlay('notif-detail-overlay')">
+  <div class="relative z-[60] h-full w-full bg-surface overflow-y-auto flex flex-col">
     <header class="sticky top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-      <!-- 右滑面板：标题+返回键靠右，箭头指向关闭方向（右） -->
-      <div class="flex justify-between items-center px-6 h-16 w-full">
-        <div></div>
-        <div class="flex items-center gap-6">
-          <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
-          <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
-            <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_forward">arrow_forward</span>
-          </button>
-        </div>
+      <div class="flex items-center gap-4 px-6 h-16 w-full">
+        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('notif-detail-overlay')">
+          <span class="material-symbols-outlined text-on-surface !text-2xl" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="font-headline text-xl font-bold tracking-tight text-on-surface">Notification</h1>
       </div>
     </header>
     <main id="notif-detail-content" class="flex-1 w-full max-w-3xl mx-auto px-6 pt-8 pb-16">
@@ -1446,6 +1508,29 @@
             <span class="text-on-surface text-sm font-medium tracking-wide">Show my moments</span>
                       </div>
           <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.showMoments" onclick="toggleSetting('privacy.showMoments')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <!-- 可被搜到：别人按昵称/学校找人时是否出现在结果里（默认开） -->
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col pr-6">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Let others find me by name</span>
+            <span class="text-outline text-[11px] mt-0.5 leading-snug">Appear in search results for nickname, school or major</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.searchable" onclick="toggleSetting('privacy.searchable')">
+            <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+        <div class="h-[1px] bg-outline-variant/20"></div>
+        <!-- 猜你认识：默认关。文案必须讲清楚"打开才会被推给同校同学"，
+             这是本功能唯一会让熟人发现你的入口。 -->
+        <div class="group flex items-center justify-between py-4">
+          <div class="flex flex-col pr-6">
+            <span class="text-on-surface text-sm font-medium tracking-wide">Suggest me to people I may know</span>
+            <span class="text-outline text-[11px] mt-0.5 leading-snug">Off by default. Turn it on to see and be seen in “People you may know”. Classmates may recognise you.</span>
+          </div>
+          <div class="setting-toggle w-10 h-5 bg-neon relative cursor-pointer transition-colors rounded-full" data-key="privacy.discoverable" onclick="toggleSetting('privacy.discoverable')">
             <div class="absolute top-0.5 w-4 h-4 transition-all right-0.5 bg-white rounded-full"></div>
           </div>
         </div>
@@ -1621,6 +1706,18 @@
     <div class="bg-outline-variant/20 h-[1px]"></div>
   </header>
   <main id="tickets-content" class="pt-24 pb-20 px-5 max-w-lg mx-auto w-full"></main>
+</div>
+
+<!-- Ticket Detail Overlay（点票根打开：大二维码票券 + 加入 Apple Wallet） -->
+<div id="ticket-detail-overlay" class="overlay fixed inset-0 z-[70] bg-surface overflow-y-auto">
+  <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl">
+    <div class="flex items-center gap-4 px-6 h-16 w-full">
+      <span class="material-symbols-outlined text-on-surface cursor-pointer hover:opacity-70 transition-opacity active:scale-95 duration-200" onclick="closeTicketDetail()">arrow_back</span>
+      <h1 class="text-on-surface font-headline text-xl font-bold tracking-tight">Ticket</h1>
+    </div>
+    <div class="bg-outline-variant/20 h-[1px]"></div>
+  </header>
+  <main id="ticket-detail-content" class="pt-24 pb-20 px-5 w-full"></main>
 </div>
 
 <!-- Contact Us Overlay -->

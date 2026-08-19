@@ -33,12 +33,12 @@ function formatRemainingShort(ms) {
 
 // Small round avatar for a session row, with an initial-letter fallback (reuses
 // the existing .chat-avatar styling).
-function sessionAvatarHtml(partner) {
+function sessionAvatarHtml(partner, cls = 'chat-avatar') {
   const url = partner?.avatarUrl || partner?.avatar || '';
-  if (url) return `<img src="${window.safeUrl(url)}" alt="" loading="lazy" class="chat-avatar"/>`;
+  if (url) return `<img src="${window.safeUrl(url)}" alt="" loading="lazy" class="${cls}"/>`;
   const name = partner?.nickname || partner?.name || 'P';
   const initial = String(name).trim().charAt(0).toUpperCase() || '·';
-  return `<div class="chat-avatar chat-avatar--fallback" aria-hidden="true">${window.escapeHtml(initial)}</div>`;
+  return `<div class="${cls} chat-avatar--fallback" aria-hidden="true" data-no-i18n>${window.escapeHtml(initial)}</div>`;
 }
 
 // A single session row. data-matchid lets the local countdown tick update just
@@ -57,8 +57,13 @@ function sessionRowHtml(s) {
   const partner = s.partner || {};
   // 昵称为主名；备注作为名字后的小标签（本轮反馈5）
   const name = partner.nickname || partner.name || 'Partner';
-  const last = lastMsgText(s.lastMessage);
+  const zh = (window.getLang?.() === 'zh');
+  // 用户内容（昵称/备注/消息预览）标 data-no-i18n 防全局词典误翻；
+  // 预览里的 UI 词（[Photo]/开场提示）改为按语言直出
+  const lastRaw = lastMsgText(s.lastMessage);
+  const last = lastRaw === '[Photo]' ? (zh ? '[图片]' : '[Photo]') : lastRaw;
   const lastTrunc = last.length > 28 ? last.slice(0, 28) + '…' : last;
+  const lastAt = s.lastMessage?.createdAt ? window.formatPostTime(s.lastMessage.createdAt) : '';
   const unread = Number(s.unreadCount) || 0;
   const temp = s.sessionType === 'temp';
   const expired = temp && Number(s.remainingMs) <= 0;
@@ -78,18 +83,20 @@ function sessionRowHtml(s) {
   const dot = unread > 0
     ? `<span class="w-2 h-2 rounded-full bg-neon-pink flex-shrink-0"></span>`
     : '';
+  // 微信式行（用户反馈）：去卡片底/描边/圆角，行间靠容器 divide-y 细线分隔；头像加大
   return `<button type="button"
-      class="session-row w-full flex items-center gap-3 px-3 py-3 rounded-[10px] bg-surface-container-lowest border border-outline-variant/15 text-left active:scale-[0.99] transition-transform ${expired ? 'opacity-50' : ''}"
+      class="session-row w-full flex items-center gap-3 px-1 py-3 text-left active:opacity-70 transition-opacity ${expired ? 'opacity-50' : ''}"
       data-matchid="${attrEscape(s.matchId)}" onclick="openSessionById('${attrEscape(s.matchId)}')">
-      ${sessionAvatarHtml(partner)}
+      ${sessionAvatarHtml(partner, 'chat-avatar chat-avatar--lg')}
       <div class="flex-grow min-w-0">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="font-headline font-bold text-sm text-on-surface truncate">${window.escapeHtml(name)}</span>
-          ${partner.note ? `<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-surface-container text-[10px] font-medium text-on-surface-variant truncate max-w-[45%]">${window.escapeHtml(partner.note)}</span>` : ''}
+          <span class="font-headline font-bold text-[15px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(name)}</span>
+          ${partner.note ? `<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-surface-container text-[10px] font-medium text-on-surface-variant truncate max-w-[45%]" data-no-i18n>${window.escapeHtml(partner.note)}</span>` : ''}
         </div>
-        <p class="text-[11px] text-on-surface-variant truncate mt-0.5">${window.escapeHtml(lastTrunc) || '<span class="opacity-50">Start the conversation…</span>'}</p>
+        <p class="text-xs text-on-surface-variant truncate mt-1" data-no-i18n>${window.escapeHtml(lastTrunc) || `<span class="opacity-50">${zh ? '开始聊天吧…' : 'Start the conversation…'}</span>`}</p>
       </div>
-      <div class="flex flex-col items-end gap-1 flex-shrink-0">
+      <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+        ${lastAt ? `<span class="text-[10px] text-outline" data-no-i18n>${window.escapeHtml(lastAt)}</span>` : ''}
         ${badge}
         ${dot}
       </div>
@@ -516,9 +523,15 @@ async function openChat(opts = {}) {
   const nameEl = document.getElementById('chat-partner-name');
   if (nameEl) nameEl.textContent = S.chatPartnerName || 'Partner';
   const locEl = document.getElementById('chat-partner-location');
-  if (locEl) locEl.textContent = S.chatPartnerSchool || '';
+  if (locEl) locEl.textContent = window.metaLabel ? window.metaLabel(S.chatPartnerSchool || '') : (S.chatPartnerSchool || '');
+  // 头部头像：复用会话行的渲染（无头像走首字母兜底，不再出现空的破图框）
   const avEl = document.getElementById('chat-partner-avatar');
-  if (avEl) avEl.src = S.chatPartnerAvatar || '';
+  if (avEl) {
+    avEl.innerHTML = sessionAvatarHtml(
+      { avatarUrl: S.chatPartnerAvatar, nickname: S.chatPartnerName },
+      'w-9 h-9 rounded-full object-cover',
+    );
+  }
   // In-chat confirm / dissolve controls (§6.6 D rule).
   renderChatHeaderActions();
   // Switching conversations: stop any in-flight polling from the previous
@@ -555,6 +568,10 @@ window.openChatPartnerProfile = openChatPartnerProfile;
 
 function closeChat() {
   window.stopChatPolling();
+  // 清掉会话指针：openChat 的历史加载还在途时用户关掉聊天，await 后的
+  // 「S.chatMatchId !== matchId」守卫得以生效——不再重启轮询、不再把
+  // 来信静默标记已读；发送路径的 matchId 守卫同理。
+  S.chatMatchId = null;
   window.closeOverlay('chat-overlay');
   // Returning to the list: refresh so unread counts / lastMessage / countdowns
   // reflect what happened in the conversation (§6.6). Only when the Chat home
@@ -576,8 +593,11 @@ function applyChatComposerState() {
   const notice = document.getElementById('chat-dissolved-notice');
   if (input) {
     input.disabled = dissolved;
-    if (dissolved) input.placeholder = 'Relationship ended — you can no longer send messages';
-    else input.placeholder = 'Type your response...';
+    // 按语言直写占位符：i18n 观察器只翻文本节点不监听属性变更，
+    // 这里写英文串会把中文态占位符永久打回英文（bug 修复）
+    const zh = (window.getLang?.() === 'zh');
+    if (dissolved) input.placeholder = zh ? '关系已解除，无法再发送消息' : 'Relationship ended — you can no longer send messages';
+    else input.placeholder = zh ? '输入消息…' : 'Type your response...';
   }
   if (sendBtn) sendBtn.disabled = dissolved;
   if (imgBtn) imgBtn.disabled = dissolved;
@@ -679,6 +699,27 @@ async function chatNudge() {
 }
 window.chatNudge = chatNudge;
 
+// 微信式时间戳：不再每条消息下挂时间，间隔 ≥10 分钟时在流里插一条居中时间条。
+// 同日显示 HH:MM，昨天带「昨天」，更早带日期（跟随语言）。
+function formatChatStamp(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const zh = (window.getLang?.() === 'zh');
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const now = new Date();
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const dayDiff = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (dayDiff <= 0) return hm;
+  if (dayDiff === 1) return (zh ? '昨天 ' : 'Yesterday ') + hm;
+  const md = zh ? `${d.getMonth() + 1}月${d.getDate()}日` : `${d.getMonth() + 1}/${d.getDate()}`;
+  return `${md} ${hm}`;
+}
+
+const CHAT_STAMP_GAP_MS = 10 * 60000;
+function timeSepHtml(iso) {
+  return `<div class="chat-time-sep" data-no-i18n>${window.escapeHtml(formatChatStamp(iso))}</div>`;
+}
+
 function messageHtml(m, myId) {
   const mine = m.senderId === myId;
   const text = m.content || '';
@@ -697,29 +738,51 @@ function messageHtml(m, myId) {
   if (text) {
     body += `<div class="chat-bubble ${mine ? 'mine' : ''}" data-no-i18n>${window.escapeHtml(text)}</div>`;
   }
-  const readMark = mine && m.isRead ? ' · Read' : '';
+  // 微信式：头像贴每条气泡旁（对方在左、自己在右）；已读回执改为气泡下小字
+  // （.chat-read 为回执逻辑依赖，markRowRead/refreshReadReceipts 按它定位）
+  const zh = (window.getLang?.() === 'zh');
+  const read = mine
+    ? `<div class="chat-read"${m.isRead ? ' data-read="1"' : ' style="display:none"'} data-no-i18n>${zh ? '已读' : 'Read'}</div>`
+    : '';
+  const av = avatarHtml(mine);
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
+    ${mine ? '' : av}
     <div class="chat-col">
       ${body}
-      <div class="chat-time ${mine ? 'mine' : ''}" ${mine && m.isRead ? 'data-read="1"' : ''}>${window.formatPostTime(m.createdAt)}${readMark}</div>
+      ${read}
     </div>
+    ${mine ? av : ''}
   </div>`;
+}
+
+// 把消息数组渲染为「时间条 + 气泡」流；prevIso 为上一条已渲染消息的时间（无则视图首条前必插时间条）
+function chatStreamHtml(msgs, myId, prevIso) {
+  let html = '';
+  let prev = prevIso ? new Date(prevIso).getTime() : null;
+  for (const m of msgs) {
+    const t = new Date(m.createdAt).getTime();
+    if (!isNaN(t) && (prev === null || t - prev >= CHAT_STAMP_GAP_MS)) html += timeSepHtml(m.createdAt);
+    if (!isNaN(t)) prev = t;
+    html += messageHtml(m, myId);
+  }
+  return html;
 }
 
 function renderChatMessages(stickToBottom = true) {
   const c = document.getElementById('chat-messages');
   if (!c) return;
   const myId = S.currentUser?.id;
-  c.innerHTML = S.chatMessages.slice(S.chatRenderFrom).map(m => messageHtml(m, myId)).join('');
+  c.innerHTML = chatStreamHtml(S.chatMessages.slice(S.chatRenderFrom), myId, null);
   if (stickToBottom) c.scrollTop = c.scrollHeight;
 }
 window.renderChatMessages = renderChatMessages;
 
-function appendChatMessages(msgs) {
+// prevMsg：追加批次之前最后一条已渲染消息（时间条按与它的间隔决定是否插入）
+function appendChatMessages(msgs, prevMsg) {
   const c = document.getElementById('chat-messages');
   if (!c) return;
   const myId = S.currentUser?.id;
-  c.insertAdjacentHTML('beforeend', msgs.map(m => messageHtml(m, myId)).join(''));
+  c.insertAdjacentHTML('beforeend', chatStreamHtml(msgs, myId, prevMsg?.createdAt || null));
 }
 
 // Prepend an earlier chunk when scrolled to top, keeping scroll position.
@@ -747,9 +810,12 @@ function bindChatScrollHandler() {
 }
 
 function appendOwnMessage(msg) {
+  const prevMsg = S.chatMessages[S.chatMessages.length - 1] || null;
   S.chatMessages.push(msg);
-  S.chatLastId = msg.id;
-  appendChatMessages([msg]);
+  // 刻意不把轮询游标推进到自己这条（它是全会话最新消息）：否则对方在上次轮询
+  // 之后、我发送之前发来的消息会被游标永久跳过。游标留在原地，下次轮询会带回
+  // 对方的消息 + 自己这条（已在 S.chatMessages，靠 id 去重不会重复渲染）。
+  appendChatMessages([msg], prevMsg);
   const c = document.getElementById('chat-messages');
   if (c) c.scrollTop = c.scrollHeight;
 }
@@ -771,35 +837,54 @@ function handleChatSendError(e, fallback) {
   }
 }
 
+// 发送并发守卫：慢网下重复点击/回车不再把同一条消息发两遍（确认/解除早有
+// chatActionInFlight 守卫，发送路径此前漏了）
+let chatSendInFlight = false;
+
 async function sendChatMessage() {
+  if (chatSendInFlight) return;
   const input = document.getElementById('chat-input');
   const text = input?.value?.trim();
   const pending = S.chatPendingFile;
-  if ((!text && !pending) || !S.chatMatchId) return;
+  // A9：入口快照会话 id——图片上传可达数秒，期间切换会话不能把消息发给错误的人；
+  // 后续所有请求与渲染都用这个快照，不再重读 S.chatMatchId
+  const matchId = S.chatMatchId;
+  if ((!text && !pending) || !matchId) return;
   // A10: block sending when the relationship is already known to be dissolved.
   if (isChatDissolved()) {
     window.toast('Relationship ended — you can no longer send messages');
     applyChatComposerState();
     return;
   }
+  chatSendInFlight = true;
+  // 乐观清空：立即清输入框/图片预览，网络往返期间用户新打的字不会被事后覆盖清掉；
+  // 失败时在 catch 里恢复草稿
+  if (input) input.value = '';
+  if (pending) clearChatPendingImage();
+  const stillHere = () => S.chatMatchId === matchId;
   try {
     // #5：先发图片（若有预览），再把文字作为附带说明发出
     if (pending) {
       window.toast('Uploading image…');
       const url = await window.uploadImageFile(pending);
-      const d = await window.api(`/chat/${S.chatMatchId}/messages`, 'POST', { imageUrl: url });
+      const d = await window.api(`/chat/${matchId}/messages`, 'POST', { imageUrl: url });
       const m = d?.data || d;
-      if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory();
-      clearChatPendingImage();
+      if (stillHere()) { if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory(); }
     }
     if (text) {
-      const d = await window.api(`/chat/${S.chatMatchId}/messages`, 'POST', { content: text });
+      const d = await window.api(`/chat/${matchId}/messages`, 'POST', { content: text });
       const m = d?.data || d;
-      if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory();
+      if (stillHere()) { if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory(); }
     }
-    if (input) input.value = '';
   } catch (e) {
+    // 恢复草稿：仅当用户还在同一会话且没开始打新内容
+    if (stillHere()) {
+      if (input && !input.value && text) input.value = text;
+      if (pending && !S.chatPendingFile) restoreChatPendingImage(pending);
+    }
     handleChatSendError(e, 'Failed to send');
+  } finally {
+    chatSendInFlight = false;
   }
 }
 window.sendChatMessage = sendChatMessage;
@@ -827,8 +912,19 @@ function clearChatPendingImage() {
 }
 window.clearChatPendingImage = clearChatPendingImage;
 
+// 发送失败时把待发图片还原回预览（乐观清空的逆操作）
+function restoreChatPendingImage(file) {
+  if (!file) return;
+  S.chatPendingFile = file;
+  const prev = document.getElementById('chat-pending-image');
+  const thumb = document.getElementById('chat-pending-thumb');
+  if (thumb) thumb.src = URL.createObjectURL(file);
+  if (prev) prev.classList.remove('hidden');
+}
+
 async function sendChatImage(file) {
-  if (!file || !S.chatMatchId) return;
+  const matchId = S.chatMatchId; // A9 快照：上传期间切会话不得发错人
+  if (!file || !matchId) return;
   // A10: block sending when the relationship is already known to be dissolved.
   if (isChatDissolved()) {
     window.toast('Relationship ended — you can no longer send messages');
@@ -838,8 +934,9 @@ async function sendChatImage(file) {
   try {
     window.toast('Uploading image...');
     const url = await window.uploadImageFile(file);
-    const data = await window.api(`/chat/${S.chatMatchId}/messages`, 'POST', { imageUrl: url });
+    const data = await window.api(`/chat/${matchId}/messages`, 'POST', { imageUrl: url });
     const msg = data?.data || data;
+    if (S.chatMatchId !== matchId) return;
     if (msg && msg.id) appendOwnMessage(msg);
     else window.loadChatHistory();
   } catch (e) {
@@ -875,10 +972,10 @@ async function markChatRead() {
 window.markChatRead = markChatRead;
 
 function markRowRead(id) {
-  const el = document.querySelector(`#chat-messages .chat-row[data-id="${id}"] .chat-time`);
+  const el = document.querySelector(`#chat-messages .chat-row[data-id="${id}"] .chat-read`);
   if (el && !el.dataset.read) {
     el.dataset.read = '1';
-    el.textContent += ' · Read';
+    el.style.display = '';
   }
 }
 
@@ -935,8 +1032,9 @@ async function pollChatMessages() {
       if (fresh.length) {
         const c = document.getElementById('chat-messages');
         const nearBottom = c ? c.scrollHeight - c.scrollTop - c.clientHeight < 120 : true;
+        const prevMsg = S.chatMessages[S.chatMessages.length - 1] || null;
         S.chatMessages.push(...fresh);
-        appendChatMessages(fresh);
+        appendChatMessages(fresh, prevMsg);
         if (nearBottom && c) c.scrollTop = c.scrollHeight;
         // B19: only mark read when a genuinely new, unread partner message
         // arrived. markChatRead itself dedupes concurrent calls.

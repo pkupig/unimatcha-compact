@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, SquareBoard, SquareAuthorType, AdminRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { DiscoveryService } from '../discovery/discovery.service';
 import { CreatePostDto, CreateCommentDto } from './dto/square.dto';
 
 /**
@@ -33,9 +34,22 @@ const WALL_PICKS_PER_PAGE = 2;
 // 每隔多少张小卡插一张官方大卡（§8.1.4）
 const OFFICIAL_INTERVAL = 5;
 
+/**
+ * 「猜你喜欢」口味画像：由用户的点赞/评论行为聚合而来的三张权重表，
+ * 值域均为 0..1（按各表最大值归一化）。见 getTasteProfile。
+ */
+interface TasteProfile {
+  tags: Map<string, number>;
+  authors: Map<string, number>;
+  schools: Map<string, number>;
+}
+
 @Injectable()
 export class SquareService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private usersLookup: DiscoveryService,
+  ) {}
 
   // board 字符串 → Prisma 枚举（public：SquareAdminService 复用）
   toBoard(b: 'recommend' | 'campus_wall'): SquareBoard {
@@ -157,14 +171,207 @@ export class SquareService {
     return items;
   }
 
-  // ─── 推荐流（加权混排，§8.1.4）───────────────────────────────
-  async listRecommend(
+  // ═══════════ 广场搜索（§8.1.4 扩展）═══════════════════════════
+  //
+  // 检索：pg_trgm。中英混排内容不能用 Postgres 内置全文检索（对中文不分词），
+  // trgm 的 ILIKE '%q%' 对中英文一视同仁，且有 GIN 索引兜底
+  // （见 prisma/ensure-search-indexes.ts；缺扩展时功能不变、只是走全表扫）。
+  //
+  // 排序：相关性为主，热度/新鲜度只做小幅加成——搜索场景用户找的是"这条"，
+  // 不是"最热的一条"，热度权重过大会把精确命中压到长热帖后面。
+
+  // 查询串长度上限：trgm 相似度对超长串无意义，且防止构造巨串拖垮 ILIKE
+  private static readonly SEARCH_MAX_LEN = 64;
+
+  /** 归一化查询串；返回 null 表示不是一次有效搜索（调用方应回退到普通信息流） */
+  private normalizeQuery(raw?: string): string | null {
+    const q = (raw || '').trim().replace(/\s+/g, ' ');
+    if (!q) return null;
+    return q.slice(0, SquareService.SEARCH_MAX_LEN);
+  }
+
+  /**
+   * 帖子搜索。board 为空表示跨两个板块搜。
+   * 可见性与信息流严格一致：
+   *  - 一律 isHidden=false
+   *  - 推荐板：reviewStatus=approved
+   *  - 校园墙：仅本校，且 approved（本人的待审/被驳回帖对本人仍可见）
+   * 未填学校的用户搜不到任何校园墙内容（与 listCampusWall 的 needProfileSchool 同口径）。
+   */
+  async searchPosts(
     userId: string,
-    opts: { page?: number; limit?: number; cursor?: string } = {},
+    opts: { q: string; board?: SquareBoard; page?: number; limit?: number } = {} as any,
   ) {
     const page = opts.page && opts.page > 0 ? opts.page : 1;
     const limit = opts.limit && opts.limit > 0 ? opts.limit : 20;
+    const q = this.normalizeQuery(opts.q);
     const mySchool = await this.getUserSchool(userId);
+
+    if (!q) {
+      return { items: [], page, limit, total: 0, hasMore: false, query: '', isSearch: true };
+    }
+
+    const like = `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
+
+    // 可见性分支：按板块拼 SQL 片段。跨板搜索时两个分支 OR 起来，
+    // 各自带各自的约束（校园墙的同校硬过滤绝不能被 OR 掉）。
+    const wallVisible = mySchool
+      ? Prisma.sql`(p.board = 'CAMPUS_WALL' AND p.school = ${mySchool}
+                    AND (p."reviewStatus" = 'approved' OR p."authorUserId" = ${userId}))`
+      : Prisma.sql`(false)`;
+    const recommendVisible = Prisma.sql`(p.board = 'RECOMMEND' AND p."reviewStatus" = 'approved')`;
+
+    let scope: Prisma.Sql;
+    if (opts.board === SquareBoard.CAMPUS_WALL) scope = wallVisible;
+    else if (opts.board === SquareBoard.RECOMMEND) scope = recommendVisible;
+    else scope = Prisma.sql`(${recommendVisible} OR ${wallVisible})`;
+
+    // 相关性：标题命中 > 标签精确命中 > 正文命中；模糊相似度兜底错别字/词形差异。
+    // similarity() 只对已被 WHERE 过滤出的行计算，不影响索引使用。
+    // 正文只取前 500 字算相似度——长文整篇算 trgm 相似度既慢又会被长度稀释。
+    // 无 pg_trgm 时去掉这两项模糊分量（函数不存在会直接报错），只保留精确/子串命中，
+    // 搜索仍然可用，只是没有容错匹配。
+    const fuzzy = (await this.prisma.hasTrgm())
+      ? Prisma.sql`,
+               similarity(COALESCE(p.title, ''), ${q}) * 2.0,
+               similarity(LEFT(p.content, 500), ${q}) * 1.2`
+      : Prisma.empty;
+
+    // 评论命中（P1-9）：LEFT JOIN LATERAL 每帖只取一条最早的命中评论——
+    // 这既给出展示用的片段，又天然按帖去重（一帖 10 条评论命中也只出一张卡，
+    // 否则热帖会用自己的评论把整页搜索结果刷满）。
+    // 片段截断到 120 字：卡片放不下更多，也避免把整篇长评论塞进列表响应。
+    // 只取正文、不带评论作者——匿名帖的评论在详情页本就脱敏，
+    // 搜索结果更不该成为反推身份的旁路。
+    const rows = await this.prisma.$queryRaw<
+      { id: string; rel: number; commentSnippet: string | null }[]
+    >(Prisma.sql`
+      SELECT p.id,
+             GREATEST(
+               CASE WHEN p.title ILIKE ${like} THEN 3.0 ELSE 0 END,
+               CASE WHEN ${q} = ANY(p.tags) THEN 2.6 ELSE 0 END,
+               CASE WHEN p.content ILIKE ${like} THEN 1.8 ELSE 0 END,
+               -- 评论命中弱于正文命中：讨论区提到 ≠ 帖子本身讲这个
+               CASE WHEN cm.snippet IS NOT NULL THEN 1.2 ELSE 0 END${fuzzy}
+             )::float8 AS rel,
+             cm.snippet AS "commentSnippet"
+        FROM square_posts p
+        LEFT JOIN LATERAL (
+          SELECT LEFT(c.content, 120) AS snippet
+            FROM square_post_comments c
+           WHERE c."postId" = p.id
+             AND c.content ILIKE ${like}
+           ORDER BY c."createdAt" ASC
+           LIMIT 1
+        ) cm ON true
+       WHERE p."isHidden" = false
+         AND ${scope}
+         AND (
+              p.title ILIKE ${like}
+           OR p.content ILIKE ${like}
+           OR p.tags @> ARRAY[${q}]::text[]
+           OR cm.snippet IS NOT NULL
+         )
+       ORDER BY rel DESC, p."createdAt" DESC
+       LIMIT 300
+    `);
+
+    if (!rows.length) {
+      return { items: [], page, limit, total: 0, hasMore: false, query: q, isSearch: true };
+    }
+
+    const relById = new Map(rows.map((r) => [r.id, Number(r.rel) || 0]));
+    // 命中片段：仅当帖子本身没命中时才展示，否则卡片上会同时出现标题高亮与
+    // 一句无关的评论，反而看不懂是为什么搜到的
+    const snippetById = new Map(
+      rows.filter((r) => r.commentSnippet).map((r) => [r.id, r.commentSnippet as string]),
+    );
+    const posts = await this.prisma.squarePost.findMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+      include: this.postInclude(),
+    });
+
+    // 判定帖子本身是否命中（与上面 SQL 的 ILIKE 同语义：大小写不敏感子串）
+    const needle = q.toLowerCase();
+    const matches = (s: string | null | undefined) => !!s && s.toLowerCase().includes(needle);
+
+    // 终排：相关性 × (热度加成) × (新鲜度加成)。两个加成都是 ≤1.3 的乘子，
+    // 保证「标题精确命中的冷帖」永远排在「只是正文擦边的热帖」前面。
+    const now = Date.now();
+    const ranked = posts
+      .map((p) => {
+        const rel = relById.get(p.id) ?? 0;
+        const hotness = Math.log10(1 + p.likeCount + 2 * p.commentCount); // 0..~2
+        const ageDays = (now - new Date(p.createdAt).getTime()) / 86400000;
+        const freshness = Math.max(0, 1 - ageDays / 30);
+        return { post: p, score: rel * (1 + 0.12 * hotness) * (1 + 0.1 * freshness) };
+      })
+      .sort((a, b) => b.score - a.score || +new Date(b.post.createdAt) - +new Date(a.post.createdAt));
+
+    const total = ranked.length;
+    const start = (page - 1) * limit;
+    const items = ranked.slice(start, start + limit).map((x) => {
+      const card = this.shapeCard(x.post, userId, mySchool);
+      const snippet = snippetById.get(x.post.id);
+      // 帖子本身命中（标题/正文/标签）时不挂片段——那时用户已经看得出为什么搜到它
+      const postItselfHit =
+        (x.post.title && matches(x.post.title)) ||
+        matches(x.post.content) ||
+        (x.post.tags || []).some((t) => t.toLowerCase() === q.toLowerCase());
+      if (snippet && !postItselfHit) card.commentSnippet = snippet;
+      return card;
+    });
+    await this.annotateMyVotes(items, userId);
+
+    return {
+      items,
+      page,
+      limit,
+      total,
+      hasMore: start + limit < total,
+      query: q,
+      isSearch: true,
+      // 未填学校时搜索结果里没有任何校园墙内容，前端可据此引导补资料
+      needProfileSchool: !mySchool && opts.board === SquareBoard.CAMPUS_WALL,
+    };
+  }
+
+  /** 统一搜索：一次拿到帖子 + 用户两组结果，供搜索页分段展示 */
+  async searchAll(
+    userId: string,
+    opts: { q: string; board?: SquareBoard; page?: number; limit?: number; userLimit?: number } = {} as any,
+  ) {
+    const q = this.normalizeQuery(opts.q);
+    if (!q) return { query: '', posts: { items: [], page: 1, limit: 20, total: 0, hasMore: false }, users: [] };
+    const posts = await this.searchPosts(userId, { ...opts, q });
+    // 只有第一页带用户结果：翻页翻的是帖子，用户区固定在顶部不该跟着变
+    const users =
+      (opts.page ?? 1) <= 1
+        ? await this.usersLookup.searchUsers(userId, q, { limit: opts.userLimit ?? 6 })
+        : { users: [] };
+    return { query: q, posts, users: users.users };
+  }
+
+  // ─── 推荐流（加权混排，§8.1.4）───────────────────────────────
+  async listRecommend(
+    userId: string,
+    opts: { page?: number; limit?: number; cursor?: string; search?: string } = {},
+  ) {
+    const page = opts.page && opts.page > 0 ? opts.page : 1;
+    const limit = opts.limit && opts.limit > 0 ? opts.limit : 20;
+
+    // 带关键词 → 走搜索。此前该参数被静默忽略：H5 早就在发 &search=，
+    // 后端只读 page/limit/cursor，于是搜索框亮起「筛选中」高亮却返回未过滤的信息流。
+    const q = this.normalizeQuery(opts.search);
+    if (q) {
+      return this.searchPosts(userId, { q, board: SquareBoard.RECOMMEND, page, limit });
+    }
+
+    // 口味画像与学校并行取：画像走缓存，多数情况下是内存命中
+    const [mySchool, taste] = await Promise.all([
+      this.getUserSchool(userId),
+      this.getTasteProfile(userId),
+    ]);
 
     // 1) 个人小卡候选：board=RECOMMEND && authorType=USER && !isHidden
     const personalRaw = await this.prisma.squarePost.findMany({
@@ -180,7 +387,8 @@ export class SquareService {
     });
     const now = Date.now();
     const personal = personalRaw
-      .map((p) => ({ post: p, score: this.scorePersonalCard(p, mySchool, now) }))
+      // 自己的帖子不参与个性化打分之外的特殊处理，但要排除"作者亲和"自举——已在画像里剔除
+      .map((p) => ({ post: p, score: this.scorePersonalCard(p, mySchool, now, taste) }))
       .sort((a, b) => b.score - a.score)
       .map((x) => x.post);
 
@@ -253,10 +461,17 @@ export class SquareService {
   // ─── 校园墙流（同校硬过滤，§8.1.4）───────────────────────────
   async listCampusWall(
     userId: string,
-    opts: { page?: number; limit?: number; cursor?: string } = {},
+    opts: { page?: number; limit?: number; cursor?: string; search?: string } = {},
   ) {
     const page = opts.page && opts.page > 0 ? opts.page : 1;
     const limit = opts.limit && opts.limit > 0 ? opts.limit : 20;
+
+    // 同上：带关键词走搜索（校园墙作用域，同校硬过滤在 searchPosts 内保持）
+    const q = this.normalizeQuery(opts.search);
+    if (q) {
+      return this.searchPosts(userId, { q, board: SquareBoard.CAMPUS_WALL, page, limit });
+    }
+
     const mySchool = await this.getUserSchool(userId);
 
     // 无 school → 返回空 + 引导补全资料（§8.1.4）
@@ -318,6 +533,10 @@ export class SquareService {
                 profile: { select: { nickname: true, avatarUrl: true } },
               },
             },
+            // 评论点赞：_count 出总数；likes 只取当前用户自己的行判定 myLiked
+            // （未登录时 userId 为空串，匹配不到任何行）
+            _count: { select: { likes: true } },
+            likes: { where: { userId: userId ?? '' }, select: { id: true } },
             replies: {
               orderBy: { createdAt: 'asc' },
               include: {
@@ -327,6 +546,8 @@ export class SquareService {
                     profile: { select: { nickname: true, avatarUrl: true } },
                   },
                 },
+                _count: { select: { likes: true } },
+                likes: { where: { userId: userId ?? '' }, select: { id: true } },
               },
             },
           },
@@ -356,9 +577,26 @@ export class SquareService {
     if (post.anonymous && post.authorType === SquareAuthorType.USER && Array.isArray(post.comments) && post.comments.length) {
       await this.anonymizeComments(post);
     }
-    const shaped = { ...this.shapePost(post, userId), comments: post.comments, myLiked };
+    const shaped = { ...this.shapePost(post, userId), comments: this.shapeComments(post.comments), myLiked };
     if (userId) await this.annotateMyVotes([shaped], userId);
     return shaped;
+  }
+
+  // 评论出参整形：把 _count.likes 折成 likeCount、当前用户的 likes 行折成
+  // myLiked，并剥掉原始 likes 数组（否则会把点赞者 id 泄露给所有人）。
+  private shapeComments(comments: any[]): any[] {
+    if (!Array.isArray(comments)) return [];
+    const one = (c: any) => {
+      if (!c) return c;
+      const { _count, likes, ...rest } = c;
+      return {
+        ...rest,
+        likeCount: _count?.likes ?? 0,
+        myLiked: Array.isArray(likes) && likes.length > 0,
+        replies: Array.isArray(rest.replies) ? rest.replies.map(one) : [],
+      };
+    };
+    return comments.map(one);
   }
 
   // ─── 评论（楼中楼，§8.1.5）──────────────────────────────────
@@ -413,6 +651,9 @@ export class SquareService {
       }),
     ]);
 
+    // 评论是画像里权重最高的信号，同样立即失效缓存
+    this.invalidateTaste(userId);
+
     // 通知作者 + 被回复者（去重、不通知自己、官方帖无 authorUserId 跳过）
     // 匿名帖：评论者对楼主与其他评论者都保持匿名（帖内 anonymizeComments 已脱敏），
     // 通知 body 也须用化名而非真实昵称，否则楼主凭「XX 评论了」+ 帖内匿名评论即可反解身份。
@@ -449,6 +690,34 @@ export class SquareService {
   }
 
   // ─── 点赞（切换）────────────────────────────────────────────
+  // 评论点赞（切换）。计数不落字段，改后按 _count 聚合返回最新值；
+  // 唯一约束 (commentId,userId) 保证并发重复点赞不会重复入行。
+  async likeComment(commentId: string, userId: string) {
+    const comment = await this.prisma.squarePostComment.findUnique({
+      where: { id: commentId },
+      select: { id: true, post: { select: { isHidden: true, authorUserId: true } } },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.post?.isHidden && comment.post.authorUserId !== userId) {
+      throw new NotFoundException('Comment not found');
+    }
+    const liked = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.squareCommentLike.findUnique({
+        where: { commentId_userId: { commentId, userId } },
+      });
+      if (existing) {
+        await tx.squareCommentLike.delete({
+          where: { commentId_userId: { commentId, userId } },
+        });
+        return false;
+      }
+      await tx.squareCommentLike.create({ data: { commentId, userId } });
+      return true;
+    });
+    const likeCount = await this.prisma.squareCommentLike.count({ where: { commentId } });
+    return { liked, likeCount };
+  }
+
   async likePost(postId: string, userId: string) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
@@ -481,6 +750,10 @@ export class SquareService {
       });
       return true;
     });
+
+    // 点赞是「猜你喜欢」画像的主要输入，行为一变就让缓存失效，
+    // 用户下拉刷新即可看到偏好生效，而不用等 5 分钟 TTL 到期
+    this.invalidateTaste(userId);
 
     if (!liked) {
       return { liked: false, message: 'Like removed' };
@@ -621,16 +894,138 @@ export class SquareService {
   }
 
   // 个人小卡打分（§8.1.4）：score = 0.5*hotness + 0.3*sameSchool + 0.2*freshness
+  //                        + 0.45*affinity（「猜你喜欢」个性化分量）
+  // 个性化权重刻意压在热度之下：画像来自点赞/评论这类稀疏信号，
+  // 新用户几乎没有画像，权重过高会让冷启动用户看到一堆低质长尾帖。
   private scorePersonalCard(
-    post: { likeCount: number; commentCount: number; school: string | null; createdAt: Date },
+    post: {
+      likeCount: number; commentCount: number; school: string | null;
+      createdAt: Date; tags?: string[]; authorUserId?: string | null;
+    },
     mySchool: string | null,
     now: number,
+    taste?: TasteProfile | null,
   ): number {
     const hotness = Math.log10(1 + post.likeCount + 2 * post.commentCount);
     const sameSchool = mySchool && post.school === mySchool ? 1 : 0;
     const ageHours = (now - new Date(post.createdAt).getTime()) / 3600000;
     const freshness = Math.max(0, Math.min(1, 1 - ageHours / 168));
-    return 0.5 * hotness + 0.3 * sameSchool + 0.2 * freshness;
+    const affinity = taste ? this.affinityOf(post, taste) : 0;
+    return 0.5 * hotness + 0.3 * sameSchool + 0.2 * freshness + 0.45 * affinity;
+  }
+
+  /**
+   * 帖子与用户口味画像的契合度，归一化到 0..1。
+   * 三个分量：标签命中（最强）、作者亲和（读过这个人的东西）、学校亲和。
+   */
+  private affinityOf(
+    post: { tags?: string[]; authorUserId?: string | null; school?: string | null },
+    taste: TasteProfile,
+  ): number {
+    let tagScore = 0;
+    for (const t of post.tags ?? []) {
+      const w = taste.tags.get(t.trim().toLowerCase());
+      if (w) tagScore += w;
+    }
+    // 多标签命中收益递减：3 个弱标签不该压过 1 个强标签
+    tagScore = tagScore > 0 ? Math.min(1, Math.sqrt(tagScore)) : 0;
+
+    const authorScore = post.authorUserId ? (taste.authors.get(post.authorUserId) ?? 0) : 0;
+    const schoolScore = post.school ? (taste.schools.get(post.school) ?? 0) : 0;
+
+    return Math.min(1, 0.6 * tagScore + 0.3 * authorScore + 0.1 * schoolScore);
+  }
+
+  /**
+   * 口味画像：由最近的点赞/评论行为聚合出 tag / 作者 / 学校三张权重表（各自归一化到 0..1）。
+   *
+   * 缓存：进程内 TTL 5 分钟。画像变化很慢（要攒够行为才会漂移），
+   * 而推荐流是高频接口——每次翻页都重算两张行为表是纯浪费。
+   * 单进程缓存对多实例部署会有最多 5 分钟的不一致，这对"排序偏好"来说完全无害。
+   */
+  private tasteCache = new Map<string, { at: number; taste: TasteProfile }>();
+  private static readonly TASTE_TTL_MS = 5 * 60 * 1000;
+  private static readonly TASTE_CACHE_MAX = 500;
+
+  private async getTasteProfile(userId: string): Promise<TasteProfile | null> {
+    const hit = this.tasteCache.get(userId);
+    if (hit && Date.now() - hit.at < SquareService.TASTE_TTL_MS) return hit.taste;
+
+    // 评论权重高于点赞：打字比点一下贵得多，是更强的兴趣表达
+    const [likes, comments] = await Promise.all([
+      this.prisma.squarePostLike.findMany({
+        where: { userId },
+        select: { post: { select: { tags: true, authorUserId: true, school: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 150,
+      }),
+      this.prisma.squarePostComment.findMany({
+        where: { userId },
+        select: { post: { select: { tags: true, authorUserId: true, school: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 80,
+      }),
+    ]);
+
+    const signals: { post: any; w: number }[] = [
+      ...likes.map((l) => ({ post: l.post, w: 1 })),
+      ...comments.map((c) => ({ post: c.post, w: 2.5 })),
+    ].filter((s) => s.post);
+
+    // 行为太少（<3 次）画像不可信，直接不做个性化，走原有混排
+    if (signals.length < 3) {
+      this.rememberTaste(userId, null);
+      return null;
+    }
+
+    const tags = new Map<string, number>();
+    const authors = new Map<string, number>();
+    const schools = new Map<string, number>();
+    const add = (m: Map<string, number>, k: string | null | undefined, w: number) => {
+      if (!k) return;
+      m.set(k, (m.get(k) ?? 0) + w);
+    };
+    for (const s of signals) {
+      for (const t of s.post.tags ?? []) add(tags, String(t).trim().toLowerCase(), s.w);
+      // 不把"自己"算进作者亲和：用户当然会赞自己的帖，那会让自己的帖霸占自己的首页
+      if (s.post.authorUserId && s.post.authorUserId !== userId) {
+        add(authors, s.post.authorUserId, s.w);
+      }
+      add(schools, s.post.school, s.w);
+    }
+
+    const taste: TasteProfile = {
+      tags: this.normalizeWeights(tags, 40),
+      authors: this.normalizeWeights(authors, 40),
+      schools: this.normalizeWeights(schools, 10),
+    };
+    this.rememberTaste(userId, taste);
+    return taste;
+  }
+
+  /** 按最大值归一化到 0..1，只留权重最高的 topN 项 */
+  private normalizeWeights(m: Map<string, number>, topN: number): Map<string, number> {
+    if (!m.size) return new Map();
+    const sorted = [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, topN);
+    const max = sorted[0][1] || 1;
+    return new Map(sorted.map(([k, v]) => [k, v / max]));
+  }
+
+  private rememberTaste(userId: string, taste: TasteProfile | null) {
+    // 粗暴 LRU：超上限时丢掉最旧的一条，防止长跑进程无限增长
+    if (this.tasteCache.size >= SquareService.TASTE_CACHE_MAX) {
+      const oldest = [...this.tasteCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+      if (oldest) this.tasteCache.delete(oldest[0]);
+    }
+    this.tasteCache.set(userId, {
+      at: Date.now(),
+      taste: taste ?? { tags: new Map(), authors: new Map(), schools: new Map() },
+    });
+  }
+
+  /** 用户产生新行为后使画像失效（点赞/评论即时反映到下一次刷新） */
+  private invalidateTaste(userId: string) {
+    this.tasteCache.delete(userId);
   }
 
   private metaPinned(post: { metadata: unknown }): boolean {
@@ -757,6 +1152,7 @@ export class SquareService {
   }
 
   // 帖子脱敏整形：匿名帖不下发作者身份（学校照常显示，§8.1.1）
+  // public：SquareAdminService 复用
   shapePost(post: any, viewerId: string | undefined) {
     const out: any = { ...post };
     // 审核内部字段绝不下发：metadata.reports 含举报人 userId + 理由，

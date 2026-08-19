@@ -21,6 +21,28 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.logger.log('Database disconnected');
   }
 
+  /**
+   * pg_trgm 是否可用。搜索的相关性排序用 similarity()，而建扩展的脚本
+   * （prisma/ensure-search-indexes.ts）刻意「失败不阻断启动」——托管库不开放扩展时
+   * 搜索应当降级为纯 ILIKE，而不是整个搜索端点 500。
+   * 结果只探测一次并缓存：扩展不会在进程生命周期内被装上或卸掉。
+   */
+  private trgmAvailable: boolean | null = null;
+  async hasTrgm(): Promise<boolean> {
+    if (this.trgmAvailable !== null) return this.trgmAvailable;
+    try {
+      const rows = await this.$queryRaw<Array<{ ok: number }>>`
+        SELECT 1 AS ok FROM pg_extension WHERE extname = 'pg_trgm' LIMIT 1`;
+      this.trgmAvailable = rows.length > 0;
+    } catch {
+      this.trgmAvailable = false;
+    }
+    if (!this.trgmAvailable) {
+      this.logger.warn('pg_trgm not installed — search falls back to unranked ILIKE');
+    }
+    return this.trgmAvailable;
+  }
+
   async cleanDatabase() {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('cleanDatabase() is not allowed in production');

@@ -25,7 +25,9 @@ export class EventsAdminController {
   constructor(private eventsService: EventsService) {}
 
   @Post()
-  @ApiOperation({ summary: '发布活动（同时生成广场活动帖；学生会强制本校）' })
+  // 产品规则（2026-08-13）：活动是学生会面向本校的功能，团队不参与发布；SUPER 作为超管保留兜底
+  @Roles(AdminRole.SUPER, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '发布活动（学生会专属；强制本校 + 恒发校园墙；同时生成广场活动帖）' })
   createEvent(@CurrentAdmin() actor: AdminActor, @Body() dto: CreateEventDto) {
     return this.eventsService.createEvent(actor, dto);
   }

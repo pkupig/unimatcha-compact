@@ -242,9 +242,10 @@ function switchTab(tab) {
   else if (tab === 'square') {
     if (reTap) {
       // 重按广场导航 = 刷新（用户反馈）：回到顶部，只刷当前信息流——
-      // 推荐/校园墙各刷各的，另一页内容与位置不动
-      const sc = document.scrollingElement || document.documentElement;
-      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { sc.scrollTop = 0; }
+      // 推荐/校园墙各刷各的，另一页内容与位置不动。
+      // 滚动容器是 #tab-square 本身（body overflow-hidden，window 不滚）
+      const sc = document.getElementById('tab-square');
+      if (sc) { try { sc.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { sc.scrollTop = 0; } }
       if (S.squareScrollPos) S.squareScrollPos[S.squareTab] = 0;
       window.loadSquareTab2?.(S.squareTab);
     } else {
@@ -425,7 +426,8 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
     el.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1)' : 'none';
     el.style.transform = y ? 'translateY(' + y + 'px)' : '';
   });
-  const THRESH = 70; // 触发刷新的下拉距离（下拉距离不设上限，阻尼跟手）
+  const THRESH = 70;    // 触发刷新的下拉距离
+  const PULL_MAX = 180; // 橡皮筋上限：拉再多也不超过这个位移
   let startY = 0, pulling = false, dist = 0, refreshing = false;
   const setPos = (y, animate) => {
     ind.style.transition = animate ? 'transform 0.3s cubic-bezier(0.22,1,0.36,1), opacity 0.3s' : 'none';
@@ -452,7 +454,10 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
     if (container.dataset.horizLock === '1') { dist = 0; ind.classList.remove('ptr-ready'); ind.style.opacity = '0'; return; } // 只藏指示器，内容 transform 归横滑手势管
     const dy = e.touches[0].clientY - startY;
     if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
-    dist = dy * 0.5; // 阻尼，不设上限（用户反馈：拉多少都行）
+    // 橡皮筋阻尼（用户反馈：下拉太多不好看）：越拉越沉，渐进逼近 PULL_MAX 而
+    // 永不超过——手感接近 iOS，也避免 profile 背景被拉伸过头。
+    // dy=90→70(刚够触发)、dy=200→122、dy=400→160、dy→∞ 收敛到 180。
+    dist = PULL_MAX * (1 - Math.exp(-dy / PULL_MAX));
     ind.style.opacity = String(Math.min(1, dist / 40));
     // 跟手下降 + 随进度旋转一圈
     setPos(dist, false);
@@ -578,8 +583,8 @@ function swipePanel(el) {
     if (e.cancelable) e.preventDefault();
     if (dx <= 0) return;
     panel.style.transition = 'none';
+    // 只位移不淡出（用户反馈：左滑退出过程中不要透明）
     panel.style.transform = 'translateX(' + dx + 'px)';
-    panel.style.opacity = String(Math.max(0.4, 1 - dx / (window.innerWidth * 1.2)));
   }, { passive: false });
   const finish = () => {
     const p = panel, tg = target, wasEdge = edge, wasHoriz = horiz, moved = dx;
@@ -590,18 +595,16 @@ function swipePanel(el) {
     if (!wasEdge || !wasHoriz) { resetPanel(p); return; }
     const W = window.innerWidth;
     if (moved >= 80) {
-      p.style.transition = 'transform 0.2s ease-out, opacity 0.2s';
+      p.style.transition = 'transform 0.2s ease-out';
       p.style.transform = 'translateX(' + W + 'px)';
-      p.style.opacity = '0';
       setTimeout(() => {
         resetPanel(p);
         if (tg === 'questionnaire') { window.showPage('page-home'); window.switchTab('match'); }
         else if (tg) (SWIPE_BACK_CLOSE[tg.id] || (() => window.hideOverlay(tg.id)))();
       }, 200);
     } else {
-      p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1), opacity 0.25s';
+      p.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1)';
       p.style.transform = 'translateX(0)';
-      p.style.opacity = '';
       setTimeout(() => resetPanel(p), 280);
     }
   };

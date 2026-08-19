@@ -45,7 +45,18 @@ export class ProfilesService {
   async getMyProfile(userId: string) {
     const profile = await this.prisma.profile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Profile not completed');
-    return profile;
+    // 附带账号级信息：joinedAt 用于「加入 N 天」，connectCode 是本人的加友码。
+    // 两者都只在本人接口下发，不进 getPublicProfile 的白名单。
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { createdAt: true, connectCode: true, verificationStatus: true },
+    });
+    return {
+      ...profile,
+      joinedAt: user?.createdAt ?? profile.createdAt,
+      connectCode: user?.connectCode ?? null,
+      verificationStatus: user?.verificationStatus ?? 'unverified',
+    };
   }
 
   // Return only public fields for matched user display

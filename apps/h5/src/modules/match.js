@@ -58,7 +58,7 @@ function toggleChatPlusMenu() {
   const existing = document.getElementById('chat-plus-menu');
   if (existing) { existing.remove(); return; }
   const items = [
-    { icon: 'search', label: 'Search chats', run: () => window.openFriendHubAt('search') },
+    { icon: 'search', label: 'Search & discover', run: () => window.openFriendHubAt('search') },
     { icon: 'qr_code_2', label: 'Add by QR', run: () => window.openFriendHubAt('qr') },
     { icon: 'hub', label: 'Relationship Network', run: () => window.openFriendHubAt('graph') },
     { icon: 'dark_mode', label: 'Dark mode', run: () => window.toggleDarkMode() },
@@ -218,7 +218,7 @@ async function loadMatchTab() {
     const container = document.getElementById('match-content');
     if (container) {
       container.innerHTML = window.renderIdleMatch();
-      window.startCampusAnim('idle');
+      window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
     }
   }
 }
@@ -232,9 +232,14 @@ function renderIdleMatch() {
   const sub = friend
     ? 'Enter the matching pool to discover up to 5 like-minded companions.'
     : 'Enter the matching pool to discover your intellectual companion.';
+  // 未入池也显示同一套倒计时（用户反馈）：距下一轮公布的时间与是否进池无关
+  const zh = (window.getLang?.() === 'zh');
   return `<div class="w-full text-center px-8 flex flex-col items-center">
-    ${renderMatchWaitAnim(false)}
-    <div class="mt-6 flex flex-col items-center">
+    <div class="w-full max-w-sm mx-auto">
+      <p class="font-headline text-[10px] font-bold tracking-[0.28em] text-outline mb-3">${zh ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
+      ${renderCountdownBoxes()}
+    </div>
+    <div class="mt-7 flex flex-col items-center">
       <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-2">${title}</h2>
       <p class="font-body text-on-surface-variant text-[13px] leading-relaxed max-w-[16rem] mx-auto">${sub}</p>
     </div>
@@ -246,17 +251,9 @@ function renderIdleMatch() {
 }
 window.renderIdleMatch = renderIdleMatch;
 
-// ── 等待动画：直接嵌入设计文件本体（/loaders.html = 原 HTML 原样，iframe 渲染）──
-// 恋人 = #2 呼吸双球融合；朋友 = #20 呼吸集群。active=false 浅灰静止，true 荧光绿播放。
-function renderMatchWaitAnim(active) {
-  const friend = (S.activeMatchMode || 'romantic') === 'friend';
-  const v = friend ? '20' : '2';
-  const color = active ? '%23CCFF00' : (document.documentElement.classList.contains('dark') ? '%233a3a42' : '%23d6d6d6');
-  const run = active ? '1' : '0';
-  return `<div class="match-anim"><iframe class="match-anim-frame" src="/loaders.html?v=${v}&run=${run}&color=${color}" scrolling="no" frameborder="0" aria-hidden="true"></iframe></div>`;
-}
-
-// 兼容旧调用点：iframe 内 CSS 动画自驱动
+// 等待动画（/loaders.html iframe）已按用户要求移除：idle 与 searching 都以
+// 倒计时为视觉主体。startCampusAnim/stopCampusAnim 保留为空函数，兜住可能
+// 残留的旧调用点。
 function startCampusAnim() {}
 window.startCampusAnim = startCampusAnim;
 function stopCampusAnim() {}
@@ -373,7 +370,7 @@ function renderRomanticMatchTab(container, data) {
 
   // idle / 其它：进池入口。
   container.innerHTML = window.renderIdleMatch();
-  window.startCampusAnim('idle');
+  window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
 }
 
 // ─── 朋友分支（最多 5 张候选卡，C 规则 §6.5） ──────────────────
@@ -420,7 +417,7 @@ function renderFriendMatchTab(container, data) {
 
   // idle / 其它：进池入口（荧光绿点缀）。
   container.innerHTML = window.renderIdleMatch();
-  window.startCampusAnim('idle');
+  window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
 }
 
 // 单张朋友候选卡。临时候选显示剩余倒计时；已确认朋友显示 Friends 标记。
@@ -465,10 +462,10 @@ window.renderFriendCandidateCard = renderFriendCandidateCard;
 function renderSearchingSkeleton(container, mode) {
   container.innerHTML = `
     <div class="w-full text-center px-8 flex flex-col items-center">
-      ${renderMatchWaitAnim(true)}
-      <div class="mt-8 flex flex-col items-center">
-        <div class="font-mono text-4xl font-light tracking-widest text-primary leading-none" id="match-countdown">00:00:00</div>
-        ${lastEnhancedRound[mode] ? '<span class="mt-4 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-neon text-black text-[10px] font-bold tracking-widest"><span class="material-symbols-outlined" style="font-size:13px">bolt</span>Enhanced this round</span>' : ''}
+      <!-- 等待动画已移除（用户反馈）：倒计时即视觉主体；「本轮已增强」徽标同样去掉 -->
+      <div class="w-full max-w-sm mx-auto">
+        <p class="font-headline text-[10px] font-bold tracking-[0.28em] text-outline mb-3">${(window.getLang?.() === 'zh') ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
+        ${renderCountdownBoxes()}
       </div>
       <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
         <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
@@ -476,7 +473,7 @@ function renderSearchingSkeleton(container, mode) {
       </div>
     </div>`;
   window.startCountdownTick();
-  window.startCampusAnim('waiting');
+
 }
 
 // 临时对话 48h 剩余倒计时块（恋人卡内）。
@@ -734,6 +731,39 @@ function getNextCronRun(cronExpr) {
 }
 window.getNextCronRun = getNextCronRun;
 
+// 倒计时分格（用户反馈：要有格子分开时间单位的大格子）：天/时/分/秒 各占一格。
+// 只渲染骨架，数字由 startCountdownTick 每秒按 [data-cd] 就地更新——不整块重渲，
+// 避免每秒重建 DOM 打断过渡与无障碍焦点。
+function countdownParts(diff) {
+  if (!(diff > 0)) return { d: 0, h: 0, m: 0, s: 0 };
+  return {
+    d: Math.floor(diff / 86400000),
+    h: Math.floor((diff % 86400000) / 3600000),
+    m: Math.floor((diff % 3600000) / 60000),
+    s: Math.floor((diff % 60000) / 1000),
+  };
+}
+
+function renderCountdownBoxes() {
+  const zh = (window.getLang?.() === 'zh');
+  const units = [
+    ['d', zh ? '天' : 'DAYS'],
+    ['h', zh ? '时' : 'HRS'],
+    ['m', zh ? '分' : 'MIN'],
+    ['s', zh ? '秒' : 'SEC'],
+  ];
+  // 2×2 大格，荧光绿主题（用户反馈）：动画已移除，倒计时是唯一视觉主体，
+  // 故用品牌色块——荧光绿底 + 黑字（白底上直接用荧光绿文字对比度不足）。
+  // 恒为 4 格（天为 0 显示 00）避免布局跳动。
+  return `<div id="match-countdown" class="w-full grid grid-cols-2 gap-2.5">
+    ${units.map(([k, label]) => `
+      <div class="cd-box rounded-[18px] py-5 px-2 flex flex-col items-center">
+        <span data-cd="${k}" class="font-mono text-[46px] font-bold leading-none tracking-tight tabular-nums" data-no-i18n>00</span>
+        <span class="cd-label text-[10px] font-bold tracking-[0.18em] mt-2.5" data-no-i18n>${label}</span>
+      </div>`).join('')}
+  </div>`;
+}
+
 function formatCountdown(diff) {
   if (diff <= 0) return '00:00:00';
   const d = Math.floor(diff / 86400000),
@@ -747,13 +777,27 @@ window.formatCountdown = formatCountdown;
 
 // 优先用后端下发的 nextRunAt；缺失时 fallback 到本地 cron 解析，再退到周五 17:00。
 // 按当前匹配模式从分桶读取状态。
-function getMatchCycleCountdown() {
+// 距下一轮公布的毫秒数：优先后端 nextRunAt → 本地 cron 解析 → 周五 17:00 兜底
+function getMatchCycleMs() {
   const mode = S.activeMatchMode || 'romantic';
   const st = S.matchStatus?.[mode];
   let next = st?.nextRunAt ? new Date(st.nextRunAt) : null;
   if (!next || isNaN(next.getTime())) next = window.getNextCronRun(st?.matchConfig?.cronExpr);
-  if (!next) return window.getNextFriday5pmCountdown();
-  return window.formatCountdown(next - Date.now());
+  if (!next) {
+    const now = new Date();
+    const day = now.getDay();
+    let dd = (5 - day + 7) % 7;
+    if (dd === 0 && now.getHours() >= 17) dd = 7;
+    next = new Date(now);
+    next.setDate(now.getDate() + dd);
+    next.setHours(17, 0, 0, 0);
+  }
+  return next - Date.now();
+}
+window.getMatchCycleMs = getMatchCycleMs;
+
+function getMatchCycleCountdown() {
+  return window.formatCountdown(getMatchCycleMs());
 }
 window.getMatchCycleCountdown = getMatchCycleCountdown;
 
@@ -771,9 +815,18 @@ window.getNextFriday5pmCountdown = getNextFriday5pmCountdown;
 
 function startCountdownTick() {
   window.stopCountdownTick();
-  const el = document.getElementById('match-countdown');
   const tick = () => {
-    if (el) el.textContent = window.getMatchCycleCountdown();
+    // 每次重新查 DOM：分支重渲后旧节点会失联，缓存引用会让倒计时静默停摆
+    const root = document.getElementById('match-countdown');
+    if (!root) return;
+    const p = countdownParts(window.getMatchCycleMs());
+    ['d', 'h', 'm', 's'].forEach((k) => {
+      const cell = root.querySelector(`[data-cd="${k}"]`);
+      if (cell) {
+        const v = String(p[k]).padStart(2, '0');
+        if (cell.textContent !== v) cell.textContent = v;
+      }
+    });
   };
   tick();
   S.countdownInterval = setInterval(tick, 1000);
@@ -1000,6 +1053,53 @@ function currentMode() {
 window.currentMode = currentMode;
 
 // 打开偏好面板：按当前匹配模式拉取偏好并回填对应区（增强字段已移至 Match Settings，此处不含）。
+// ── 匹配中锁定设置（产品规则）──
+// 偏好与增强都只在下一次撮合时生效，进池后再改会与本轮已提交的条件不一致，
+// 因此 searching 状态一律禁止修改，必须先离开匹配池。
+// 只锁 searching：matched/confirming 时改的是下一轮的条件，应当放行。
+function isMatchPoolActive(mode) {
+  const m = (mode === 'friend' || mode === 'romantic') ? mode : (S.activeMatchMode || 'romantic');
+  return S.matchStatus?.[m]?.state === 'searching';
+}
+window.isMatchPoolActive = isMatchPoolActive;
+
+function matchSettingsLockedToast() {
+  const zh = (window.getLang?.() === 'zh');
+  window.toast(zh ? '匹配中无法修改设置，请先离开匹配池' : 'Leave the matching pool before changing settings');
+}
+window.matchSettingsLockedToast = matchSettingsLockedToast;
+
+// 匹配中置为只读（用户反馈：可以查看但不能修改）：禁用面板内全部可交互控件
+// 并置灰保存键，顶部插一条说明；离开匹配池后再打开自动恢复可编辑。
+function applyPanelReadonly(overlayId, locked) {
+  const root = document.getElementById(overlayId);
+  if (!root) return;
+  const zh = (window.getLang?.() === 'zh');
+  root.querySelectorAll('input, select, textarea, button').forEach((el) => {
+    // 关闭/返回键必须始终可用，否则面板会关不掉
+    if (el.dataset.alwaysEnabled === '1' || /close|hide|Overlay\('/.test(el.getAttribute('onclick') || '')) return;
+    el.disabled = locked;
+    el.classList.toggle('opacity-50', locked);
+    el.classList.toggle('pointer-events-none', locked);
+  });
+  let note = root.querySelector('[data-readonly-note]');
+  if (locked && !note) {
+    note = document.createElement('div');
+    note.setAttribute('data-readonly-note', '1');
+    note.className = 'mx-6 mt-4 mb-1 px-4 py-2.5 rounded-[12px] bg-surface-container-low flex items-center gap-2';
+    note.innerHTML = `<span class="material-symbols-outlined text-outline" style="font-size:17px">lock</span>
+      <span class="text-[11px] text-on-surface-variant leading-snug" data-no-i18n>${zh
+        ? '匹配中：设置仅可查看。离开匹配池后可修改。'
+        : 'Matching in progress — view only. Leave the pool to make changes.'}</span>`;
+    const header = root.querySelector('header');
+    if (header && header.parentElement) header.parentElement.insertBefore(note, header.nextSibling);
+    else root.firstElementChild?.prepend(note);
+  } else if (!locked && note) {
+    note.remove();
+  }
+}
+window.applyPanelReadonly = applyPanelReadonly;
+
 async function openFilterSheet(mode) {
   window.openOverlay('filter-overlay');
   const m = (mode === 'friend' || mode === 'romantic') ? mode : (S.activeMatchMode || 'romantic');
@@ -1008,6 +1108,9 @@ async function openFilterSheet(mode) {
   // Do not call loadPrefsForMode again here — the previous double-call fired two
   // identical GET /matching/preferences requests and rendered the form twice.
   switchPrefMode(m);
+  // 回填是异步的，等一拍再置只读，确保覆盖到渲染出来的控件
+  applyPanelReadonly('filter-overlay', isMatchPoolActive(m));
+  setTimeout(() => applyPanelReadonly('filter-overlay', isMatchPoolActive(m)), 350);
 }
 window.openFilterSheet = openFilterSheet;
 
@@ -1098,6 +1201,8 @@ window.closeFilterSheet = closeFilterSheet;
 // 保存偏好：按当前偏好面板模式取字段 PUT（不含增强——增强由 saveMatchSettings 负责）。
 async function saveFilterPrefs(mode) {
   const m = (mode === 'friend' || mode === 'romantic') ? mode : currentMode();
+  // 二次拦截：面板打开期间状态可能变成 searching（轮询/另一端进池）
+  if (isMatchPoolActive(m)) { matchSettingsLockedToast(); window.closeFilterSheet(); return; }
   // 年龄/同校/同城为恋人/朋友共享输入控件（始终在 DOM）。增强字段不在此提交（已移至 Match Settings）。
   const ageAny = document.getElementById('filter-age-any')?.checked || false;
   const rawMin = parseInt(document.getElementById('filter-age-min')?.value, 10) || 18;
@@ -1374,6 +1479,10 @@ window.updateEnhanceUI = updateEnhanceUI;
 // ========================================
 async function openMatchSettings() {
   window.openOverlay('match-settings-overlay');
+  // 匹配中只读（回填后再置一次，覆盖异步渲染出来的控件）
+  const locked = isMatchPoolActive();
+  applyPanelReadonly('match-settings-overlay', locked);
+  setTimeout(() => applyPanelReadonly('match-settings-overlay', isMatchPoolActive()), 400);
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
   // 网络请求前先同步就位：区块显隐 + 开关状态 + 清空文本（修弱网下旧模式残留可交互窗口）
@@ -1414,6 +1523,8 @@ window.closeMatchSettings = closeMatchSettings;
 async function saveMatchSettings() {
   ensureEnhancedShape();
   const mode = S.activeMatchMode || 'romantic';
+  // 二次拦截：面板打开期间状态可能变成 searching
+  if (isMatchPoolActive(mode)) { matchSettingsLockedToast(); return; }
   const extraEl = document.getElementById('match-extra-info');
   const extraMatchInfo = extraEl?.value || '';
   // 偏好没加载成功且用户没动过输入框：这次保存不带 extraMatchInfo，

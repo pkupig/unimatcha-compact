@@ -8,7 +8,16 @@ const NEON = '#CCFF00';
 // ========================================
 // 统一年级词表：Profile Setup 的分段按钮（data-year）与 Edit Profile 下拉必须使用
 // 完全相同的值，否则 setup 存的 grade 在 Edit Profile 里无法正确回填/对齐。
-const GRADE_OPTIONS = ['Freshman', 'Undergraduate', 'Postgraduate', 'Doctorate'];
+// 学业阶段细化到每一学年并含预科（用户反馈）。值存英文规范写法，中文由
+// i18n 的 META_ZH 映射显示；与后端 profile.dto.ts 的 GRADE_VALUES 保持一致。
+// 历史值（Freshman/Undergraduate/… 及旧中文值）不迁移——fillMetaSelect 会把
+// 库里已有但不在本列表的值原样插到最前作为可选项，回填不会丢。
+const GRADE_OPTIONS = [
+  'Foundation',
+  'Year 1', 'Year 2', 'Year 3', 'Year 4',
+  "Master's",
+  'PhD Year 1', 'PhD Year 2', 'PhD Year 3', 'PhD Year 4+',
+];
 
 // 把任意历史/大小写不一致的 grade 值规整到 GRADE_OPTIONS 中的标准写法，
 // 保证 setup → edit 的回填能精确命中下拉项（fillMetaSelect 用精确匹配选中）。
@@ -167,12 +176,8 @@ async function initProfileSetupPage() {
     const gpEl = document.querySelector(`.genderpref-btn[data-genderpref="${p.genderPref}"]`);
     if (gpEl) selectSetupGenderPref(gpEl);
   }
-  // Restore Academic Year segment (grade) — 统一词表后可精确命中按钮。
-  const g = normalizeGrade(p.grade);
-  if (g) {
-    const yEl = document.querySelector(`.segment-btn[data-year="${g.toLowerCase()}"]`);
-    if (yEl) selectYear(yEl);
-  }
+  // 年级：注册页已改下拉，与编辑页共用 GRADE_OPTIONS（含预科的 10 档）
+  fillMetaSelect('setup-grade', GRADE_OPTIONS, normalizeGrade(p.grade), 'Select Grade');
   const currentOf = (id, fallback) => document.getElementById(id)?.value || fallback || '';
   try {
     const [unis, cities, majors, mbtiTypes, nationalities] = await Promise.all([
@@ -296,7 +301,10 @@ async function saveProfile() {
   const nickname = document.getElementById('setup-nickname')?.value?.trim();
   const school = document.getElementById('setup-school')?.value;
   const bio = document.getElementById('setup-bio')?.value?.trim();
-  const year = document.querySelector('.segment-btn[data-selected="true"]')?.dataset?.year || document.querySelector('.segment-btn.bg-neon')?.dataset?.year;
+  // 注册页年级已改为与编辑页同款下拉（10 档含预科）；旧分段按钮作兜底
+  const year = document.getElementById('setup-grade')?.value
+    || document.querySelector('.segment-btn[data-selected="true"]')?.dataset?.year
+    || document.querySelector('.segment-btn.bg-neon')?.dataset?.year;
   const gender = document.querySelector('.gender-btn[data-selected="true"]')?.dataset?.gender || document.querySelector('.gender-btn.bg-neon')?.dataset?.gender;
   const genderPref = document.querySelector('.genderpref-btn[data-selected="true"]')?.dataset?.genderpref || document.querySelector('.genderpref-btn.bg-neon')?.dataset?.genderpref;
   const birthday = document.getElementById('setup-birthday')?.value || '';
@@ -399,6 +407,41 @@ window.handleAvatarFile = handleAvatarFile;
 // ========================================
 // PROFILE TAB
 // ========================================
+// Hero 信息（用户反馈：不要把信息框起来、要有排版）：
+// 采用主流个人主页的左对齐信息栈——姓名 · 年龄 · 学业阶段 排一行，
+// 学号与加入天数作为更淡的副行，靠字号/透明度分层次，不用卡片框。
+function renderProfileFacts(profile) {
+  const box = document.getElementById('profile-facts');
+  if (!box) return;
+  const zh = (window.getLang?.() === 'zh');
+  const esc = window.escapeHtml;
+  const joinedAt = profile.joinedAt || S.currentUser?.createdAt || profile.createdAt;
+  let days = null;
+  if (joinedAt) {
+    const t = new Date(joinedAt).getTime();
+    // 当天注册显示第 1 天，不显示 0
+    if (!isNaN(t)) days = Math.max(1, Math.floor((Date.now() - t) / 86400000) + 1);
+  }
+  const realName = profile.realName
+    || [profile.givenName, profile.familyName].filter(Boolean).join(' ');
+  // 主行：姓名 · 年龄 · 学业阶段
+  const primary = [
+    realName,
+    profile.age ? (zh ? `${profile.age} 岁` : `${profile.age}`) : '',
+    profile.grade ? window.metaLabel(profile.grade) : '',
+  ].filter(Boolean);
+  // 副行：学号 · 加入天数
+  const secondary = [
+    profile.studentId ? (zh ? `学号 ${profile.studentId}` : `ID ${profile.studentId}`) : '',
+    days ? (zh ? `已加入 ${days} 天` : `Day ${days}`) : '',
+  ].filter(Boolean);
+  const sep = '<span class="pf-sep">·</span>';
+  box.innerHTML = `
+    ${primary.length ? `<p class="pf-primary" data-no-i18n>${primary.map(esc).join(sep)}</p>` : ''}
+    ${secondary.length ? `<p class="pf-secondary" data-no-i18n>${secondary.map(esc).join(sep)}</p>` : ''}`;
+}
+window.renderProfileFacts = renderProfileFacts;
+
 async function loadProfileTab() {
   // §6.10 / §10.5(1): refresh the top energy bar every time Profile opens.
   // Fire-and-forget — a balance fetch failure must not block the rest of the
@@ -413,7 +456,10 @@ async function loadProfileTab() {
   const nameEl = document.getElementById('profile-name');
   if (nameEl) nameEl.textContent = (profile.nickname || 'Your Name');
   const metaEl = document.getElementById('profile-meta');
-  if (metaEl) metaEl.innerHTML = `<span class="px-3 py-1 rounded-[10px] bg-neon text-black text-[9px] font-bold tracking-widest" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
+  // 学校改荧光绿文字（不再是胶囊块）——用户要求不把信息框起来，
+  // 品牌色仍保留在这一行上作为视觉锚点
+  if (metaEl) metaEl.innerHTML = `<span class="pf-school" data-no-i18n>${window.escapeHtml(window.metaLabel(profile.school || 'University'))}</span>`;
+  renderProfileFacts(profile);
   // 学生认证按钮（右上角）状态
   window.renderVerifyButton();
   // （匹配状态条已按用户要求从 profile 移除，随之取消两路 /matching/status 查询）
@@ -568,19 +614,35 @@ window.submitVerification = submitVerification;
 // 背景模糊随下拉消散（用户反馈）：拉距 0→140px 内 blur-mask 透明度 1→0，
 // 跟手期间关掉过渡逐帧写值，松手/复位还原空值走 CSS 0.45s 弹回。
 const BLUR_REVEAL_DIST = 140;
+// 小红书式跟手延展：hero 容器高度 1:1 跟手（图片 object-cover 自动填充、模糊层
+// inset-0 跟随），头像与下方功能区一起 1:1 下移、保持一致。
+// HERO_H 与 main.css 的 #profile-hero 基准高度绑定。
+const HERO_H = 340;
 function setupBgPullReveal() {
   const scroller = document.getElementById('profile-scroll');
   if (!scroller || scroller.dataset.pullBound) return;
   window.attachPullToRefresh(scroller, () => window.loadProfileTab(), '#profile-menu-inner', {
     onPull: (dist) => {
       const m = document.querySelector('#tab-profile .profile-blur-mask');
-      if (!m) return;
+      const hero = document.getElementById('profile-hero');
       if (dist > 0) {
-        m.style.transition = 'none';
-        m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
+        // 模糊随拉距消散
+        if (m) {
+          m.style.transition = 'none';
+          m.style.opacity = String(Math.max(0, 1 - dist / BLUR_REVEAL_DIST));
+        }
+        // 背景区高度 1:1 跟手 —— 底边与下方功能区锁死（始终差 6px），
+        // 图片由 object-cover 填充新高度，放大速度因此与手指严格同步。
+        // 刻意不叠额外 scale：那会让图片内容的移动快于手指，正是「放大与
+        // 下拉有差距」的来源（用户反馈）。
+        if (hero) {
+          hero.style.transition = 'none';
+          hero.style.height = (HERO_H + dist) + 'px';
+        }
       } else {
-        m.style.transition = '';
-        m.style.opacity = '';
+        // 清空 inline 值 → 恢复 CSS 过渡，平滑弹回
+        if (m) { m.style.transition = ''; m.style.opacity = ''; }
+        if (hero) { hero.style.transition = ''; hero.style.height = ''; }
       }
     }
   });
@@ -594,6 +656,8 @@ async function openEditProfile() {
   const p = S.currentUser?.profile || {};
   const nicknameEl = document.getElementById('edit-nickname');
   if (nicknameEl) nicknameEl.value = p.nickname || '';
+  const studentIdEl = document.getElementById('edit-studentid');
+  if (studentIdEl) studentIdEl.value = p.studentId || '';
   const givenNameEl = document.getElementById('edit-givenname');
   if (givenNameEl) givenNameEl.value = p.givenName || '';
   const familyNameEl = document.getElementById('edit-familyname');
@@ -717,7 +781,8 @@ async function saveEditProfile() {
       ['city', 'edit-city'],
       ['major', 'edit-major'],
       ['mbti', 'edit-mbti'],
-      ['nationality', 'edit-nationality']
+      ['nationality', 'edit-nationality'],
+      ['studentId', 'edit-studentid']
     ].forEach(([key, id]) => {
       const el = document.getElementById(id);
       if (el) payload[key] = el.value || '';
@@ -1348,8 +1413,12 @@ async function loadMyTickets() {
     const cells = Math.ceil(t.pricePaidCents / 100);
     return `<p class="text-xs text-on-surface-variant mt-0.5" data-no-i18n>${zh ? `${cells} 格能量` : `${cells} ${cells === 1 ? 'cell' : 'cells'}`}</p>`;
   };
+  // 票根样式：上半联（活动信息）+ 骑缝虚线 + 撕票口 + 下半联（票码/二维码缩略）。
+  // 整张可点开全屏票券（大二维码，便于核销时出示）。
+  S.myTickets = tickets;
   c.innerHTML = tickets.map((t, i) => `
-    <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 overflow-hidden ${t.status !== 'valid' ? 'opacity-60' : ''}">
+    <article class="ticket-card mb-5 rounded-[14px] bg-surface-container-lowest border border-outline-variant/20 cursor-pointer active:scale-[0.99] transition-transform ${t.status !== 'valid' ? 'opacity-60' : ''}"
+      onclick="openTicketDetail(${i})">
       <div class="p-5 pb-4">
         <div class="flex items-start justify-between gap-3 mb-1.5">
           <h3 class="font-headline font-extrabold text-base tracking-tight" data-no-i18n>${window.escapeHtml(t.event?.title || 'Event')}</h3>
@@ -1357,15 +1426,19 @@ async function loadMyTickets() {
         </div>
         <p class="text-xs text-on-surface-variant" data-no-i18n>${fmtTime(t.event?.startAt)}${t.event?.venue ? ' · ' + window.escapeHtml(t.event.venue) : ''}</p>
         ${paidLine(t)}
-        ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(t.event.school)}</p>` : ''}
+        ${t.event?.school ? `<p class="text-[10px] text-outline tracking-widest mt-1" data-no-i18n>${window.escapeHtml(window.metaLabel(t.event.school))}</p>` : ''}
       </div>
-      <div class="ticket-divider"></div>
+      <div class="relative">
+        <span class="ticket-notch ticket-notch--l"></span>
+        <span class="ticket-notch ticket-notch--r"></span>
+        <div class="ticket-divider"></div>
+      </div>
       <div class="p-5 pt-4 flex items-center gap-5">
-        <div id="ticket-qr-${i}" class="w-[104px] h-[104px] bg-white p-1.5 rounded-[10px] border border-outline-variant/30 shrink-0"></div>
-        <div class="min-w-0">
+        <div id="ticket-qr-${i}" class="w-[86px] h-[86px] bg-white p-1.5 rounded-[10px] border border-outline-variant/30 shrink-0"></div>
+        <div class="min-w-0 flex-1">
           <p class="text-[10px] tracking-[0.2em] text-outline mb-1">TICKET CODE</p>
-          <p class="font-mono text-sm font-bold tracking-wider select-all" data-no-i18n>${window.escapeHtml(t.code)}</p>
-          <p class="text-[10px] text-outline mt-2 leading-relaxed">Show this QR at the entrance</p>
+          <p class="font-mono text-sm font-bold tracking-wider" data-no-i18n>${window.escapeHtml(t.code)}</p>
+          <p class="text-[10px] text-outline mt-2 flex items-center gap-1"><span class="material-symbols-outlined" style="font-size:13px">touch_app</span><span>Tap to open</span></p>
         </div>
       </div>
     </article>`).join('');
@@ -1373,11 +1446,111 @@ async function loadMyTickets() {
   tickets.forEach((t, i) => {
     const box = document.getElementById(`ticket-qr-${i}`);
     if (box && window.QRCode) {
-      new window.QRCode(box, { text: t.code, width: 92, height: 92, correctLevel: window.QRCode.CorrectLevel.M });
+      new window.QRCode(box, { text: t.code, width: 74, height: 74, correctLevel: window.QRCode.CorrectLevel.M });
     }
   });
 }
 window.loadMyTickets = loadMyTickets;
+
+// Apple Wallet 入口开关。签发 .pkpass 必须用 Apple Developer 的 Pass Type ID
+// 证书签名，否则 iPhone 直接拒装——证书到位前隐藏入口，不留点了只报错的死按钮。
+// 启用步骤：①申请 Apple Developer + Pass Type ID 证书（.p12）与 WWDR 中间证书；
+// ②实现后端 GET /events/tickets/:id/pkpass（证书走 env，未配置返回 501）；
+// ③把此常量改为 true。前端 addTicketToWallet 已就绪，无需改动。
+const ENABLE_APPLE_WALLET = false;
+
+// ── 票券详情（点票根打开）：大二维码 + 完整信息 + 加入卡包 ──
+function openTicketDetail(i) {
+  const t = (S.myTickets || [])[i];
+  if (!t) return;
+  const zh = (window.getLang?.() === 'zh');
+  const c = document.getElementById('ticket-detail-content');
+  if (!c) return;
+  const ev = t.event || {};
+  const d = new Date(ev.startAt);
+  const dateStr = isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const timeStr = isNaN(d) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const used = t.status !== 'valid';
+  const row = (label, value) => value
+    ? `<div class="flex-1 min-w-0"><p class="text-[9px] tracking-[0.2em] text-outline mb-1">${label}</p>
+       <p class="text-sm font-bold truncate" data-no-i18n>${window.escapeHtml(value)}</p></div>`
+    : '';
+  c.innerHTML = `
+    <div class="pass-card w-full max-w-sm mx-auto rounded-[20px] bg-surface-container-lowest overflow-hidden ${used ? 'opacity-70' : ''}">
+      <div class="bg-neon text-black px-6 pt-6 pb-5">
+        <p class="text-[10px] font-bold tracking-[0.25em] opacity-70">UNIMATCHA · TICKET</p>
+        <h2 class="font-headline font-extrabold text-xl tracking-tight mt-1.5 leading-snug" data-no-i18n>${window.escapeHtml(ev.title || 'Event')}</h2>
+        ${ev.school ? `<p class="text-[11px] mt-1 opacity-70" data-no-i18n>${window.escapeHtml(window.metaLabel(ev.school))}</p>` : ''}
+      </div>
+      <div class="relative">
+        <span class="ticket-notch ticket-notch--l"></span>
+        <span class="ticket-notch ticket-notch--r"></span>
+        <div class="ticket-divider"></div>
+      </div>
+      <div class="px-6 pt-5 pb-4 flex gap-4">
+        ${row(zh ? '日期' : 'DATE', dateStr)}
+        ${row(zh ? '时间' : 'TIME', timeStr)}
+      </div>
+      ${ev.venue ? `<div class="px-6 pb-4">${row(zh ? '地点' : 'VENUE', ev.venue)}</div>` : ''}
+      <div class="px-6 pb-6 flex flex-col items-center">
+        <div id="ticket-detail-qr" class="w-[200px] h-[200px] bg-white p-2.5 rounded-[14px] border border-outline-variant/30"></div>
+        <p class="font-mono text-base font-bold tracking-[0.15em] mt-4 select-all" data-no-i18n>${window.escapeHtml(t.code)}</p>
+        <p class="text-[11px] text-outline mt-1">${used ? (zh ? '此票已使用' : 'This ticket has been used') : (zh ? '入场时出示此二维码' : 'Show this QR at the entrance')}</p>
+      </div>
+    </div>
+    ${ENABLE_APPLE_WALLET ? `<div class="w-full max-w-sm mx-auto mt-5">
+      <button id="add-to-wallet-btn" onclick="addTicketToWallet('${window.escapeHtml(t.id || t.code)}')"
+        class="w-full flex items-center justify-center gap-2 py-3.5 rounded-[12px] bg-black text-white active:scale-[0.98] transition-transform">
+        <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+        <span class="font-headline text-sm font-bold tracking-wide">${zh ? '添加到 Apple Wallet' : 'Add to Apple Wallet'}</span>
+      </button>
+    </div>` : ''}`;
+  window.openOverlay('ticket-detail-overlay');
+  const box = document.getElementById('ticket-detail-qr');
+  if (box && window.QRCode) {
+    new window.QRCode(box, { text: t.code, width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M });
+  }
+}
+window.openTicketDetail = openTicketDetail;
+
+function closeTicketDetail() {
+  window.closeOverlay('ticket-detail-overlay');
+}
+window.closeTicketDetail = closeTicketDetail;
+
+// 加入 Apple Wallet：后端签发 .pkpass（需配置 Apple Pass 证书）。
+// 未配置时后端返回 501，这里给出可读提示而不是静默失败。
+async function addTicketToWallet(ticketId) {
+  const zh = (window.getLang?.() === 'zh');
+  const btn = document.getElementById('add-to-wallet-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const token = localStorage.getItem('cl_token');
+    const res = await fetch(`${S.API}/events/tickets/${encodeURIComponent(ticketId)}/pkpass`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 501) {
+      window.toast(zh ? 'Apple Wallet 尚未开通，请稍后再试' : 'Apple Wallet is not enabled yet');
+      return;
+    }
+    if (!res.ok) throw new Error(String(res.status));
+    // Safari 会把 application/vnd.apple.pkpass 直接交给 Wallet
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'unimatcha-ticket.pkpass';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    window.toast(zh ? '添加失败，请稍后再试' : 'Could not add to Wallet');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.addTicketToWallet = addTicketToWallet;
 
 // 对方资料渲染器由 match.js 统一负责（renderPartnerProfile 全屏版）；此处仅扩展 showPage。
 setTimeout(() => {

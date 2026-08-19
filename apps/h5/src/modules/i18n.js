@@ -26,6 +26,18 @@ const ZH = {
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
   Send: '发送', 'Match Settings': '匹配设置', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
+  // ── 搜索面板（会话 + 找同学 + 猜你认识）──
+  'Search & discover': '搜索与发现', PEOPLE: '同学', 'FIND PEOPLE': '找同学', COMMENT: '评论',
+  'PEOPLE YOU MAY KNOW': '可能认识的人', 'Searching…': '搜索中…',
+  'No one found. Try a nickname, school or major.': '没有找到。试试昵称、学校或专业。',
+  'Search failed. Try again.': '搜索失败，请重试。',
+  'No conversations matched.': '没有匹配的会话。', 'No conversations yet.': '还没有会话。',
+  'No posts found': '没有找到帖子', 'Try a different keyword': '换个关键词试试',
+  'Turn on discovery to see classmates you may know. Others only see you if you turn it on too.':
+    '打开发现开关，才能看到可能认识的同学；同样，只有你打开后别人才会看到你。',
+  'Open settings': '前往设置', 'Not interested': '不感兴趣',
+  PENDING: '待确认', PARTNER: '恋人', FRIEND: '好友', Added: '已添加',
+  'Failed to add': '添加失败',
   Save: '保存', Cancel: '取消', Delete: '删除', Remove: '移除', Add: '添加', Close: '关闭', Done: '完成',
   Anniversaries: '纪念日', 'Craving today': '今天想吃', 'Gift jar': '礼物罐', 'Plans & checklist': '计划清单',
   "Today's status": '今日状态', 'Find Friends': '查找好友', Verify: '认证', Pending: '审核中',
@@ -39,6 +51,12 @@ const ZH = {
   'Show my profile': '公开我的资料', 'Allow others to view your profile': '允许他人查看你的资料',
   'Show online status': '显示在线状态', 'Let your match see when you are active': '让匹配对象看到你的在线状态',
   'Show my moments': '公开我的动态', 'Display your moments to others': '向他人展示你的动态',
+  // ── 找人 / 猜你认识（隐私开关文案要把后果说清楚，不能只写开关名）──
+  'Let others find me by name': '允许他人搜到我',
+  'Appear in search results for nickname, school or major': '出现在昵称、学校、专业的搜索结果中',
+  'Suggest me to people I may know': '把我推荐给可能认识的人',
+  'Off by default. Turn it on to see and be seen in “People you may know”. Classmates may recognise you.':
+    '默认关闭。打开后你才能看到「可能认识的人」，同时也会被推荐给他们——同校同学可能认出你。',
   'Push Notifications': '推送通知', 'Match results, messages and likes': '匹配结果、消息与点赞',
   Support: '支持', 'Help Center': '帮助中心', 'Safety Tips': '安全提示', 'Report a Problem': '问题反馈',
   Legal: '法律条款', 'Terms of Service': '用户协议', 'Privacy Policy': '隐私政策',
@@ -73,6 +91,7 @@ const ZH = {
   // ── 投票 / 活动 / 票夹 ──
   'Create a poll': '发起投票', 'Goes live after review': '审核通过后展示',
   '+ Add option': '+ 添加选项', 'My Tickets': '我的票夹', 'No tickets yet': '还没有门票',
+  Ticket: '门票', 'Tap to open': '点击查看', 'Add to Apple Wallet': '添加到 Apple Wallet',
   'Tickets you get for campus events appear here.': '购买的校园活动门票会出现在这里。',
   'Show this QR at the entrance': '入场时出示此二维码',
   'Get Ticket': '购票', 'Sold out': '已售罄', 'Sales closed': '停止售票', 'Event ended': '活动已结束',
@@ -94,7 +113,7 @@ const ZH = {
   'Non-binary': '非二元', 'Select Gender': '选择性别',
   'Select School': '选择学校', 'Select Institution': '选择学校', 'Select Grade': '选择年级',
   'Select City': '选择城市', 'Select Major': '选择专业', 'Select MBTI': '选择 MBTI',
-  'Select Nationality': '选择国籍',
+  'Select Nationality': '选择国籍', 'Student ID': '学生卡号',
   Interests: '兴趣', Bio: '个人简介', 'Confirm Profile': '完成资料',
   // ── 中文态补漏（本轮反馈）──
   'Enter your academic credentials': '输入你的账号信息',
@@ -168,6 +187,7 @@ const ZH = {
 const ZH_PLACEHOLDER = {
   'Search posts': '搜索帖子', 'Type your response...': '输入消息…',
   'Add an observation...': '写下你的评论…', 'Search your chats': '搜索会话',
+  'Search chats, people, schools': '搜索会话、同学、学校',
   'Title': '标题', 'Capture the moment...': '记录此刻…',
   'Add new interest...': '添加兴趣…', 'e.g. Photography': '例如：摄影',
   'The Scholar': '你的昵称', 'Given name (名)': '名', 'Family name (姓)': '姓',
@@ -271,6 +291,13 @@ const META_ZH = {
   Mexican: '墨西哥', Colombian: '哥伦比亚', Argentinian: '阿根廷', Egyptian: '埃及',
   'Saudi Arabian': '沙特阿拉伯', Iranian: '伊朗', Iraqi: '伊拉克', Israeli: '以色列',
   // 年级（H5 GRADE_OPTIONS，英文为库内规范值）
+  // 学业阶段（GRADE_OPTIONS，含预科的 10 档）
+  Foundation: '预科',
+  'Year 1': '大一', 'Year 2': '大二', 'Year 3': '大三', 'Year 4': '大四',
+  "Master's": '硕士',
+  'PhD Year 1': '博士一年级', 'PhD Year 2': '博士二年级',
+  'PhD Year 3': '博士三年级', 'PhD Year 4+': '博士四年级及以上',
+  // 历史值（库里可能仍有，下拉会原样保留为可选项）
   Freshman: '大一新生', Postgraduate: '硕士', Doctorate: '博士',
   // Undergraduate/Other/Nationality 的 zh 显示与全局词典一致，这里不重复
 };

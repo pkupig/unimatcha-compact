@@ -41,16 +41,27 @@ window.closeSettings = closeSettings;
 // ========================================
 const DEFAULT_SETTINGS = {
   pushEnabled: true,
-  privacy: { showProfile: true, showOnline: true, showMoments: true },
+  privacy: {
+    showProfile: true, showOnline: true, showMoments: true,
+    searchable: true,
+    // 与后端 DEFAULT_SETTINGS 一致：「猜你认识」必须显式打开，不默认曝光
+    discoverable: false,
+  },
 };
+
+// 缺键时的兜底值。绝大多数开关缺省为 true，但 discoverable 缺省必须是 false——
+// 若沿用通用 true，老用户（settings 里没有该键）打开设置页会看到开关是"开"，
+// 与后端实际行为（关）相反，甚至可能让人以为自己已被曝光。
+const SETTING_FALLBACKS = { 'privacy.discoverable': false };
 
 function getSettingValue(key) {
   const s = S.userSettings || DEFAULT_SETTINGS;
+  const fallback = key in SETTING_FALLBACKS ? SETTING_FALLBACKS[key] : true;
   if (key.startsWith('privacy.')) {
     const v = s.privacy?.[key.split('.')[1]];
-    return typeof v === 'boolean' ? v : true;
+    return typeof v === 'boolean' ? v : fallback;
   }
-  return typeof s[key] === 'boolean' ? s[key] : true;
+  return typeof s[key] === 'boolean' ? s[key] : fallback;
 }
 
 async function loadUserSettings() {

@@ -24,7 +24,15 @@ const MBTI_VALUES = [
   'ISTP','ISFP','ESTP','ESFP',
 ];
 
-const GRADE_VALUES = ['大一','大二','大三','大四','研一','研二','研三','博士一','博士二','博士三','博士四'];
+// 学业阶段：细化到每一学年并含预科（用户反馈）。存英文规范值，中文仅显示层
+// 映射（H5 的 META_ZH）。历史值（Freshman/Undergraduate/Postgraduate/Doctorate
+// 及旧中文值）不做迁移——前端下拉会把库里已有的值原样保留为可选项。
+const GRADE_VALUES = [
+  'Foundation',
+  'Year 1', 'Year 2', 'Year 3', 'Year 4',
+  "Master's",
+  'PhD Year 1', 'PhD Year 2', 'PhD Year 3', 'PhD Year 4+',
+];
 
 export class CreateProfileDto {
   // 资料可分步填写，全部改为可选；upsert 会保留未提交字段
@@ -153,6 +161,12 @@ export class CreateProfileDto {
   @IsOptional()
   @IsString()
   nationality?: string;
+
+  @ApiPropertyOptional({ example: '2312345', description: '学生卡号；仅本人可见' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  studentId?: string;
 
   @ApiPropertyOptional({ example: ['https://example.com/photo1.jpg'] })
   @IsOptional()

@@ -28,6 +28,7 @@ import { PublicModule } from './public/public.module';
 import { SponsorWalletModule } from './sponsor-wallet/sponsor-wallet.module';
 import { SponsorInviteModule } from './sponsor-invite/sponsor-invite.module';
 import { PartnersModule } from './partners/partners.module';
+import { DiscoveryModule } from './discovery/discovery.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PartnersModule } from './partners/partners.module';
     AdminModule,
     LeaderboardModule,
     SquareModule,
+    DiscoveryModule,
     EventsModule,
     MetadataModule,
     UploadsModule,

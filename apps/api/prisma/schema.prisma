@@ -93,6 +93,7 @@ model User {
   squarePosts    SquarePost[]        @relation("SquarePostAuthor")
   squareComments SquarePostComment[] @relation("SquarePostCommentAuthor")
   squareLikes    SquarePostLike[]    @relation("SquarePostLikes")
+  squareCommentLikes SquareCommentLike[] @relation("SquareCommentLikes")
 
   // 匹配偏好（每模式一条）
   matchPreferences UserMatchPreferences[]
@@ -248,6 +249,7 @@ model Profile {
   major       String?
   mbti        String?
   nationality String?
+  studentId   String? // 学生卡号；仅本人可见（不进 STRANGER_SAFE_FIELDS）
   realPhotos  String[]
   zodiac      String?
   wishGifts   String[] // 礼物罐子（本轮反馈2-5）：最多5个想要的礼物，仅伴侣可见
@@ -724,12 +726,28 @@ model SquarePostComment {
   parentCommentId String?
   parent          SquarePostComment?  @relation("SquareCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         SquarePostComment[] @relation("SquareCommentReplies")
+  likes           SquareCommentLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([postId, createdAt])
   @@map("square_post_comments")
+}
+
+// 评论点赞：每人每条评论一次（唯一约束保证幂等）。
+// 计数不落字段、按需 _count 聚合——评论量小，且避免 likeCount 漂移。
+model SquareCommentLike {
+  id        String            @id @default(cuid())
+  commentId String
+  comment   SquarePostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation("SquareCommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@map("square_comment_likes")
 }
 
 model SquarePostLike {
@@ -1274,6 +1292,24 @@ model MatchBehaviorEvent {
   @@index([actorId])
   @@index([matchId])
   @@map("match_behavior_events")
+}
+
+// ─────────────────────────────────────────────
+// 「猜你认识」——用户主动忽略的推荐对象（见 src/users/discovery.service.ts）
+// 忽略是单向的：A 忽略 B 后，A 不再看到 B，但 B 仍可能看到 A。
+// 双向屏蔽属于举报/拉黑范畴，不在推荐层解决。
+// ─────────────────────────────────────────────
+
+model UserSuggestionDismiss {
+  id           String @id @default(cuid())
+  userId       String // 执行忽略的人
+  targetUserId String // 被忽略的人
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetUserId])
+  @@index([userId, createdAt])
+  @@map("user_suggestion_dismisses")
 }
 
 // ─────────────────────────────────────────────

@@ -37,13 +37,16 @@ export default function EventsPage() {
         title="活动管理"
         sub={
           isTeam(admin?.role)
-            ? '发布活动 · 售票 · 入场核销'
+            ? '活动总览 · 售票 · 入场核销'
             : `${admin?.schoolName ?? '本校'} · 发布活动 · 售票 · 入场核销`
         }
         actions={
-          <Button variant="cta" size="sm" onClick={create.openEmpty}>
-            <CalendarDays size={15} /> 发布活动
-          </Button>
+          // 活动学生会专属（SUPER 超管兜底）：TEAM 只看不发（后端 @Roles 同口径）
+          admin?.role !== 'TEAM' ? (
+            <Button variant="cta" size="sm" onClick={create.openEmpty}>
+              <CalendarDays size={15} /> 发布活动
+            </Button>
+          ) : undefined
         }
       />
 

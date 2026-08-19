@@ -4,6 +4,13 @@
     .page.active { display: flex; }
     .overlay { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 50; overflow-y: auto; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s ease, visibility 0.25s; }
     .overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+    /* 帖子详情为三段式（页眉/滚动区/页脚）：滚动交给内部 #pd-scroll，
+       overlay 自身不滚。用 id 选择器声明，不依赖工具类与自定义规则的先后顺序
+       （8/10 生产事故教训：构建后 Tailwind 工具类排在自定义规则之后）。 */
+    #post-detail-overlay { overflow: hidden; }
+    /* 评论页脚：安全区 + 8px（0 太贴边、14px 太远，两轮反馈后取中）。
+       id + 元素选择器，优先级高于工具类，不受构建后规则顺序影响。 */
+    #post-detail-overlay > footer { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }
     /* Bottom-sheet overlays (filter-overlay etc.) slide up from bottom; full-screen overlays just fade */
     .overlay .bottom-sheet-transition { transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
     .overlay.active .bottom-sheet-transition { transform: translateY(0); }
@@ -23,8 +30,10 @@
     .nav-item:hover { color: #000; }
     .nav-item.active { color: #000 !important; font-weight: 700; }
     /* Tab content panels - fill viewport over page-home */
-    /* overscroll-behavior: 阻断 iOS 橡皮筋回弹与页内下拉手势（背景揭示/下拉刷新）叠加打架 */
-    [id^="tab-"] { position: fixed; inset: 0; z-index: 41; background: #f9f9f9; overflow-y: auto; overscroll-behavior-y: contain; }
+    /* overscroll-behavior 用 none 而非 contain：contain 只挡滚动链传播、仍保留
+       容器自身的原生橡皮筋，会与页内下拉手势（下拉刷新/背景延展）叠加成双倍位移。
+       三个 tab 都有自定义下拉刷新，一律交给 JS 独占。 */
+    [id^="tab-"] { position: fixed; inset: 0; z-index: 41; background: #f9f9f9; overflow-y: auto; overscroll-behavior-y: none; }
     body { overscroll-behavior-y: none; }
 
     /* 圆角图标：强制 Rounded 家族 + 默认轴值，避免被各处内联 wght 或 Outlined 回退覆盖。
@@ -244,6 +253,37 @@
     }
 
     /* Profile background blur progression: top clear -> bottom blurred (blur degree transition, not a color gradient) */
+    /* 背景随下拉延展（小红书式，用户反馈）：长的是 hero 容器高度，不是图片
+       transform——图片 object-cover 自动填充新高度，而 inset-0 的白色渐变层与
+       模糊层会跟着一起变高，白色过渡始终贴在背景底边，不会与下移的内容区错位
+       （早先只缩放图片时渐变留在原处，正是「过渡白色很怪异」的成因）。
+       高度增量 = 下拉距离（1:1），使背景底边与同样下移 dist 的白色内容区保持
+       原有的 6px 衔接关系，渐变过渡始终自然。
+       跟手期间 JS 关掉过渡逐帧写 height，松手清空 inline 值走这里的过渡弹回。 */
+    /* Hero 文字：封面通常是深色照片，黑字读不出来 —— 统一白字 + 阴影。
+       .profile-facts-row 的小卡用半透明白玻璃，保证任何封面下都能看清。 */
+    .profile-hero-text { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); }
+    .profile-hero-text #profile-name { color: #fff; }
+    /* 信息不再装进卡片框：靠字号 / 透明度分层的左对齐文字栈 */
+    .pf-school {
+      color: #CCFF00; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
+    }
+    .pf-primary {
+      color: rgba(255, 255, 255, 0.95); font-size: 13.5px; font-weight: 600;
+      line-height: 1.5;
+    }
+    .pf-secondary {
+      color: rgba(255, 255, 255, 0.72); font-size: 11.5px; font-weight: 500;
+      line-height: 1.5; margin-top: 2px;
+    }
+    .pf-sep { margin: 0 7px; opacity: 0.45; font-weight: 400; }
+    #profile-hero {
+      height: 340px;
+      transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: height;
+    }
+    /* 背景图不做额外 scale：放大完全由 hero 容器变高 + object-cover 填充产生，
+       与手指严格同步（叠 scale 会让图片内容跑得比手指快，产生「差距感」）。 */
     .profile-blur-mask {
       position: absolute;
       inset: 0;
@@ -391,19 +431,22 @@
     .notif-item:not(.unread) { opacity: 0.6; }
 
     /* Chat Bubble（简洁版）：无头像无边框，对方浅灰/我方荧光绿，小尾角。
-       .chat-row[data-id] 与 .chat-time 为已读回执逻辑依赖，勿改名。 */
-    .chat-row { display: flex; margin-bottom: 10px; }
+       .chat-row[data-id] 与 .chat-read 为已读回执逻辑依赖，勿改名。
+       微信式（用户反馈）：头像贴每条气泡旁，时间不再挂每条消息下，
+       改为间隔 ≥10min 插入居中 .chat-time-sep 时间条。 */
+    .chat-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
     .chat-row.mine { justify-content: flex-end; }
-    .chat-avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+    .chat-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+    .chat-avatar--lg { width: 48px; height: 48px; }
     .chat-avatar--fallback { display: flex; align-items: center; justify-content: center; background: #e2e2e2; color: #474747; font-weight: 700; font-size: 14px; text-transform: uppercase; }
-    .chat-col { max-width: 78%; display: flex; flex-direction: column; align-items: flex-start; }
+    .chat-col { max-width: 72%; display: flex; flex-direction: column; align-items: flex-start; }
     .chat-row.mine .chat-col { align-items: flex-end; }
-    .chat-bubble { padding: 11px 15px; font-size: 15px; line-height: 1.45; background: #f1f1f1; color: #1b1b1b; border: none; border-radius: 18px 18px 18px 6px; word-break: break-word; }
+    .chat-bubble { padding: 10px 14px; font-size: 15px; line-height: 1.45; background: #f1f1f1; color: #1b1b1b; border: none; border-radius: 18px 18px 18px 6px; word-break: break-word; }
     .chat-bubble.mine { background: #CCFF00; color: #000; border: none; border-radius: 18px 18px 6px 18px; box-shadow: none; }
     .chat-image { max-width: 100%; max-height: 16rem; object-fit: cover; cursor: pointer; border: none; border-radius: 14px; display: block; }
     .chat-image + .chat-bubble { margin-top: 6px; }
-    .chat-time { font-size: 9px; color: #b6b6b6; margin-top: 4px; letter-spacing: 0; display: block; }
-    .chat-time.mine { text-align: right; }
+    .chat-read { font-size: 9px; color: #b6b6b6; margin-top: 3px; text-align: right; }
+    .chat-time-sep { width: 100%; text-align: center; font-size: 10px; color: #b6b6b6; margin: 14px 0 10px; letter-spacing: 0.04em; }
 
     @keyframes slideDown {
       from {
@@ -583,11 +626,13 @@
       pointer-events: none;
     }
 
-    /* ---- §6.11 广场间距：上下恒为 6px，与左右 gap-1.5 一致 ----
+    /* ---- §6.11 广场间距：上下恒为 6px，左右 6px ----
        瀑布流用 1px auto-row + row-gap:0，卡片间 6px 由 JS 精确算进 row-span
        （square.js layoutSquareMasonry，R=1/SP=6 与此处数值绑定）。
-       此前 2px 行 + 6px 行距的组合经向上取整后实际间距在 6–13px 间浮动。 */
-    .square-feed-grid { row-gap: 0; grid-auto-rows: 1px; align-content: start; padding-top: 6px; }
+       列距也在这里声明——绝不在 DOM 挂 gap-* 工具类：构建后 Tailwind 工具类
+       排在本规则之后，row-gap 会被覆盖回 6px，1px 行网格随 span 放大数百倍
+       （8/10 生产事故根因：dev 与 build 的 CSS 规则顺序相反）。 */
+    .square-feed-grid { row-gap: 0; column-gap: 0.375rem; grid-auto-rows: 1px; align-content: start; padding-top: 6px; }
     /* 推荐流图片卡：高度随图片原始比例（h-auto），过长图收敛到 300px 内、过扁图保底 110px */
     .rec-img {
       display: block;
@@ -852,16 +897,44 @@
     .dark .splash-bar { background: #34343c; }
 
     /* ---- 票夹（本轮反馈2）：票卡撕票线 ---- */
+    /* ---- 票券样式：撕票口 + 虚线骑缝 ----
+       .ticket-card 用两个绝对定位的圆形挖出左右撕票口（用页面底色填充，
+       故 overflow 不能裁掉它们）；.ticket-divider 是骑缝虚线。 */
     .ticket-divider {
       height: 0;
       border-top: 2px dashed rgba(0, 0, 0, 0.12);
       position: relative;
-      margin: 0 12px;
+      margin: 0 22px;
     }
     .dark .ticket-divider { border-top-color: rgba(255, 255, 255, 0.12); }
+    .ticket-card { position: relative; }
+    .ticket-card .ticket-notch {
+      position: absolute;
+      width: 22px; height: 22px;
+      border-radius: 9999px;
+      background: #f9f9f9;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .ticket-card .ticket-notch--l { left: -11px; }
+    .ticket-card .ticket-notch--r { right: -11px; }
+    .dark .ticket-card .ticket-notch { background: #17171c; }
+    /* 票券详情（全屏）：大二维码卡片 */
+    #ticket-detail-overlay .pass-card { box-shadow: 0 18px 48px rgba(0,0,0,0.18); }
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
     .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
     .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }
+    /* ---- 倒计时格子：荧光绿品牌色块（等待动画已移除，倒计时是视觉主体）----
+       白底上直接用荧光绿文字对比度不足，故反过来做成绿底黑字。
+       深色模式同样保持绿底黑字——荧光绿在深底上依然是品牌焦点。 */
+    .cd-box {
+      background: #CCFF00;
+      color: #000;
+      box-shadow: 0 6px 18px rgba(204, 255, 0, 0.28);
+    }
+    .cd-box .cd-label { color: rgba(0, 0, 0, 0.55); }
+    .dark .cd-box { background: #CCFF00; color: #000; box-shadow: 0 6px 18px rgba(204, 255, 0, 0.18); }
+    .dark .cd-box .cd-label { color: rgba(0, 0, 0, 0.55); }
 
 
     

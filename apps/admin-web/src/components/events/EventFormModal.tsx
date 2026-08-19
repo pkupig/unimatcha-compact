@@ -2,22 +2,22 @@
 
 /**
  * EVT-4 发布/编辑活动弹窗（创建成功即同时生成广场活动帖）。
- * - 学校字段仅团队显示（空=全网；学生会由服务端自动填本校）；编辑态学校不可改，只读展示
+ * - 活动学生会专属（SUPER 超管兜底）：SUPER 创建须指定学校，学生会由服务端自动填本校；编辑态学校不可改
  * - 票价「能量」输入（priceCents 数值 ≡ 能量数，0=免费；用户按格支付，1 格=100 能量）；名额空=不限（正整数）
- * - 板块默认推荐流：团队未指定学校时发校园墙会被后端 400，前端先拦；编辑态板块不可改（广场帖已生成）
+ * - 活动帖恒发校园墙（产品规则 2026-08-13）：板块选择已移除，dto.board 后端已废弃
  * - 编辑走 PATCH :id/content 且只发生变字段：未动的票价不进 payload，避免误触「已售票禁止改价」的后端 400
  */
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createEvent, updateEventContent } from '@/lib/api/events';
 import { listSchools } from '@/lib/api/schools';
-import type { AdminEvent, CreateEventInput, EventBoard, UpdateEventContentInput } from '@/lib/types';
+import type { AdminEvent, CreateEventInput, UpdateEventContentInput } from '@/lib/types';
 import { isTeam } from '@/lib/auth';
 import { useAdmin } from '@/lib/auth-context';
 import { toastError } from '@/lib/toast';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Field, Input, Select, Textarea } from '@/components/ui/form';
+import { Field, Input, Textarea } from '@/components/ui/form';
 
 /** datetime-local 值 → ISO 串；空/非法返回 null */
 function localToIso(value: string): string | null {
@@ -45,8 +45,6 @@ const EMPTY_FORM = {
   endAt: '',
   priceEnergy: '0',
   capacity: '',
-  // 默认推荐流：团队 + 校园墙 + 未选学校会被后端 400
-  board: 'recommend' as EventBoard,
   images: '',
 };
 
@@ -61,7 +59,6 @@ function formFromEvent(ev: AdminEvent): typeof EMPTY_FORM {
     endAt: isoToLocal(ev.endAt),
     priceEnergy: String(ev.priceCents),
     capacity: ev.capacity == null ? '' : String(ev.capacity),
-    board: ev.post?.board === 'CAMPUS_WALL' ? 'campus_wall' : 'recommend',
     images: ev.images.join('\n'),
   };
 }
@@ -175,8 +172,9 @@ export function EventFormModal({
     }
 
     const school = team ? form.school.trim() : '';
-    if (form.board === 'campus_wall' && team && !school) {
-      toast.error('校园墙活动帖必须指定学校（或改发推荐流）');
+    // 活动帖恒发校园墙且必须带校：学生会由服务端自动填本校，SUPER 必须显式指定
+    if (team && !school) {
+      toast.error('活动必须指定学校（活动帖恒发该校校园墙）');
       return;
     }
 
@@ -185,7 +183,6 @@ export function EventFormModal({
       content,
       startAt,
       priceCents,
-      board: form.board,
       ...(images.length ? { images } : {}),
       ...(school ? { school } : {}),
       ...(form.venue.trim() ? { venue: form.venue.trim() } : {}),
@@ -232,7 +229,7 @@ export function EventFormModal({
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {team && !event && (
-            <Field label="学校" hint="留空 = 全网可见；须为已录入的学校名">
+            <Field label="学校" required hint="活动帖恒发该校校园墙；须为已录入的学校名">
               <Input
                 list="event-school-options"
                 value={form.school}
@@ -276,14 +273,6 @@ export function EventFormModal({
           <Field label="名额" hint={event ? '清空 = 改为不限；已售票后容量只可上调' : '留空 = 不限'}>
             <Input type="number" min={1} step={1} value={form.capacity} onChange={(e) => set('capacity', e.target.value)} placeholder="不限" />
           </Field>
-          {!event && (
-            <Field label="发帖板块" hint="创建成功即同时生成广场活动帖">
-              <Select value={form.board} onChange={(e) => set('board', e.target.value as EventBoard)}>
-                <option value="recommend">推荐流</option>
-                <option value="campus_wall">校园墙</option>
-              </Select>
-            </Field>
-          )}
         </div>
         <Field label="图片 URL" hint="选填，一行一个">
           <Textarea rows={2} value={form.images} onChange={(e) => set('images', e.target.value)} placeholder={'https://…\nhttps://…'} />

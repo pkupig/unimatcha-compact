@@ -209,7 +209,7 @@ function renderNotifications() {
           <div class="notif-icon-plate w-11 h-11 flex items-center justify-center rounded-[12px]">
             <span class="material-symbols-outlined text-[20px]"${filled ? ` style="font-variation-settings: 'FILL' 1;"` : ''}>${icon}</span>
           </div>
-          <div class="notif-dot absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-neon-pink"></div>
+          <div class="notif-dot absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-neon"></div>
         </div>
         <div class="flex-grow space-y-0.5 pt-0.5 min-w-0">
           <div class="flex justify-between items-start gap-3">

@@ -66,8 +66,9 @@ if (!window.__squareInkResizeBound) {
 function switchSquareTab(el, tab) {
   if (tab !== 'recommend' && tab !== 'campus_wall') return;
   const prev = S.squareTab;
-  // 两页滚动位置独立（用户反馈）：竖向滚动在 window 上，切换前记下离开页的位置
-  const scroller = document.scrollingElement || document.documentElement;
+  // 两页滚动位置独立（用户反馈）：真正的滚动容器是 #tab-square 本身
+  // （body overflow-hidden，window 不滚——8/10 生产实测），切换前记下离开页的位置
+  const scroller = document.getElementById('tab-square') || document.scrollingElement || document.documentElement;
   if (prev !== tab) {
     S.squareScrollPos = S.squareScrollPos || {};
     S.squareScrollPos[prev] = scroller.scrollTop;
@@ -79,8 +80,14 @@ function switchSquareTab(el, tab) {
   // pending debounced search so it can't fire a stale query after the switch.
   clearTimeout(S._squareSearchTimer);
   S.squareSearchQuery = '';
+  S.squareSearchUsers = []; // 同时清掉「同学」结果，否则切页后它会残留在新页顶部
   const searchEl = document.getElementById('square-search');
   if (searchEl) searchEl.value = '';
+  // 关键词清空后右上角的「筛选中」高亮也要跟着灭
+  const sBtn = document.getElementById('square-search-btn');
+  if (sBtn) sBtn.style.color = '';
+  const sClear = document.getElementById('square-search-clear');
+  if (sClear) sClear.classList.add('hidden');
   // Toggle .active on the header segments (CSS .square-seg.active = neon underline).
   const container = el?.parentElement || document.getElementById('square-tabs');
   if (container) {
@@ -317,8 +324,11 @@ async function loadSquareTab2(tabArg) {
   const search = (S.squareSearchQuery || '').trim();
   const endpoint = tab === 'campus_wall' ? '/square/v2/campus-wall' : '/square/v2/recommend';
   try {
-    let url = `${endpoint}?page=1&limit=20`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
+    // 搜索态走统一搜索端点：一次返回「帖子 + 同学」两组结果。
+    // 非搜索态仍走原信息流端点，混排/广告逻辑完全不变。
+    const url = search
+      ? `/square/v2/search?q=${encodeURIComponent(search)}&board=${tab}&page=1&limit=20`
+      : `${endpoint}?page=1&limit=20`;
     // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，搜索态不插，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
     const wantAds = tab === 'recommend' && !search;
@@ -327,7 +337,10 @@ async function loadSquareTab2(tabArg) {
       wantAds ? fetchSquareAds() : Promise.resolve([]),
     ]);
     if (seq !== S.squareReqSeqs[tab]) return; // superseded by a newer load
-    const env = unwrap(data);
+    const raw = unwrap(data);
+    // 统一搜索的外层是 { query, posts: {...}, users: [...] }，信息流是 { items: [...] }
+    const env = search ? unwrap(raw.posts) : raw;
+    S.squareSearchUsers = search ? (raw.users || []) : [];
     // 记录本次渲染是否为搜索结果（切页时据此决定是否重拉为未过滤流）
     S.squareRenderedSearch = S.squareRenderedSearch || {};
     S.squareRenderedSearch[tab] = !!search;
@@ -380,11 +393,19 @@ function renderSquareNeedSchool(tab) {
 function renderSquareFeed(posts, ads = [], tab) {
   const container = feedEl(tab);
   if (!container) return;
+  // 搜索到的同学：整行卡片置于结果最上方（非搜索态为空串，信息流完全不受影响）
+  const peopleBlock = renderSearchPeople();
   if (!posts.length) {
-    container.innerHTML = `<div class="col-span-2 text-center py-24">
+    container.innerHTML = peopleBlock + `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('grid_view')}
-      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">No posts yet</p>
-      <p class="text-sm text-on-surface-variant mt-2">Be the first to share a moment</p>
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">${
+        (S.squareSearchQuery || '').trim() ? 'No posts found' : 'No posts yet'
+      }</p>
+      <p class="text-sm text-on-surface-variant mt-2">${
+        (S.squareSearchQuery || '').trim()
+          ? 'Try a different keyword'
+          : 'Be the first to share a moment'
+      }</p>
     </div>`;
     layoutSquareMasonry();
     return;
@@ -400,7 +421,7 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 奇数小卡或被大卡打断都不再留视觉空位。
   // 广告插入规则（ADMIN-REDESIGN §6）：首屏第 3 个卡位后插 1 个，此后每 8 个小卡
   // 插 1 个；按拉取顺序轮换，本次渲染内不重复，用完即止。校园墙调用方传空 ads。
-  let html = '';
+  let html = peopleBlock;
   let adIdx = 0;             // 下一个待插广告下标
   let cardCount = 0;         // 总卡计数（首个广告在第 3 卡之后）
   let smallSinceAd = 0;      // 上个广告以来累计的小卡数（每满 8 再插）
@@ -811,25 +832,58 @@ function postLikeButton(p) {
   </button>`;
 }
 
+// 卡片底部作者行（用户反馈：卡片只留 标题 + 头像/昵称 + 点赞，去掉时间与学校）
+function cardAuthorRow(p) {
+  const d = postAuthorDisplay(p);
+  return `<div class="flex items-center justify-between gap-2 mt-1.5">
+    <div class="flex items-center gap-1.5 min-w-0" data-no-i18n>
+      ${avatarChip(d, d.name, 'w-4 h-4 shrink-0', 'text-[7px]', '')}
+      <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>
+    </div>
+    ${postLikeButton(p)}
+  </div>`;
+}
+
+// ── 搜索结果里的「同学」区（整行，置于帖子结果之上）─────────────────
+// 数据来自 GET /square/v2/search 的 users 字段；非搜索态 S.squareSearchUsers 为空，
+// 返回空串，普通信息流的 DOM 完全不变。
+function renderSearchPeople() {
+  const users = S.squareSearchUsers || [];
+  if (!users.length) return '';
+  const rows = users.map((u) => window.userResultRow(u, { compact: true })).join('');
+  return `<div class="col-span-2 mb-1.5">
+    <div class="bg-surface-container-lowest border border-outline-variant/10 rounded-[6px] overflow-hidden">
+      <div class="px-4 pt-3 pb-1 font-headline text-[10px] font-bold tracking-[0.2em] text-outline">PEOPLE</div>
+      ${rows}
+    </div>
+  </div>`;
+}
+
+// 命中评论时的片段行（P1-9）：只有搜索命中的是评论、而帖子本身没命中时后端才下发
+// commentSnippet，用来回答「我搜的词明明不在这帖里，为什么搜到它」。
+// 片段是用户内容 → data-no-i18n，防被全局词典误翻。
+function commentSnippetLine(p) {
+  if (!p.commentSnippet) return '';
+  // data-no-i18n 只包住评论正文，不能包整行——否则会连带把「COMMENT」标签也挡在
+  // 词典之外，中文态标签漏译成英文（实测踩过）。标签在外层保持可译。
+  return `<p class="text-[11px] text-outline leading-snug mt-1 pl-2 border-l-2 border-neon/60" style="${clampStyle(2)}">
+    <span class="font-headline text-[9px] font-bold tracking-[0.15em] mr-1">COMMENT</span><span data-no-i18n>${window.escapeHtml(p.commentSnippet)}</span>
+  </p>`;
+}
+
 // Full-width text-only fallback card (also the no-image fallback for official
 // posts). Shows official / Sponsored badge + school pill on a top header row.
 function bentoTextCard(p) {
   const badge = officialBadge(p);
   const pinned = pinnedBadge(p);
-  const school = schoolBadge(p);
-  const left = (pinned || badge) ? `<div class="flex items-center gap-1.5">${pinned}${badge}</div>` : '<span></span>';
-  const header = (pinned || badge || school)
-    ? `<div class="flex items-center justify-between gap-2 mb-3">${left}${school}</div>`
-    : '';
+  // 卡片不再显示学校（用户反馈：信息太多）；官方/赞助徽标保留，置顶角标在前
+  const header = (pinned || badge) ? `<div class="flex items-center gap-1.5 mb-3">${pinned}${badge}</div>` : '';
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[6px]" onclick="openPostDetail('${p.id}')">
     ${header}
     ${p.title ? `<h3 class="font-headline font-bold text-lg tracking-tight mb-2">${window.escapeHtml(p.title)}</h3>` : ''}
     ${eventStrip(p)}
-    <p class="text-sm text-on-surface-variant leading-relaxed mb-4" style="${clampStyle(4)}">${window.escapeHtml(p.content || '')}</p>
-    <div class="flex items-center justify-between">
-      <p class="text-neutral-400 text-[10px] tracking-widest">${window.formatPostTime(p.createdAt)} • ${window.escapeHtml(postAuthorName(p))}</p>
-      ${postLikeButton(p)}
-    </div>
+    <p class="text-sm text-on-surface-variant leading-relaxed mb-2" style="${clampStyle(4)}">${window.escapeHtml(p.content || '')}</p>
+    ${cardAuthorRow(p)}
   </article>`;
 }
 
@@ -840,21 +894,18 @@ function bentoLargeCard(p) {
   if (!img) return bentoTextCard(p);
   const badge = officialBadge(p);
   const pinned = pinnedBadge(p);
-  const school = schoolBadge(p);
-  // 图片贴满卡片上/左/右边缘（卡片 overflow-hidden 裁出圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
+  // 图片贴满卡片上/左/右边缘（卡片 overflow-hidden 裁出圆角）；右上角学校已去掉（用户反馈），
+  // 底部只留 标题 + 头像/昵称 + 点赞；置顶角标与官方徽标同槽左上
   return `<article data-post-id="${p.id}" class="group cursor-pointer bg-surface-container-lowest rounded-[6px] overflow-hidden" onclick="openPostDetail('${p.id}')">
     <div class="relative overflow-hidden aspect-[4/5] bg-surface-container">
       <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="${window.safeUrl(img)}" onerror="this.style.display='none'">
       ${(pinned || badge) ? `<div class="absolute top-4 left-4 flex items-center gap-1.5">${pinned}${badge}</div>` : ''}
-      ${school ? `<div class="absolute top-4 right-4">${school}</div>` : ''}
     </div>
-    <div class="space-y-1 min-w-0 px-3 pt-2">
+    <div class="min-w-0 px-3 pt-2 pb-2">
       ${p.title ? `<h3 class="font-headline font-bold text-lg tracking-tight">${window.escapeHtml(p.title)}</h3>` : ''}
       ${eventStrip(p)}
-      <p class="text-neutral-500 text-sm italic" style="${clampStyle(2)}">${window.escapeHtml(p.content || '')}</p>
-      <p class="text-neutral-400 text-[10px] tracking-widest">${window.formatPostTime(p.createdAt)} • ${window.escapeHtml(postAuthorName(p))}</p>
+      ${cardAuthorRow(p)}
     </div>
-    <div class="flex justify-end px-3 pb-2 mt-1">${postLikeButton(p)}</div>
   </article>`;
 }
 
@@ -870,47 +921,44 @@ function pastelBg(seed) {
 // (gap-3, second one offset). School pill overlaid top-right.
 function bentoSmallCard(p) {
   const img = (p.images || [])[0];
-  const school = schoolBadge(p);
-  const schoolOverlay = school ? `<div class="absolute top-2 right-2">${school}</div>` : '';
   const media = img
     // 图片卡高度随图片原始比例（小红书式瀑布流，本轮反馈5）；过长/过扁由 .rec-img 的 min/max-height 收敛
-    ? `<div class="relative bg-surface-container overflow-hidden"><img class="rec-img" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'">${schoolOverlay}</div>`
+    ? `<div class="relative bg-surface-container overflow-hidden"><img class="rec-img" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>`
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
-    : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}">${schoolOverlay}<p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
-  // 图片/彩色文字块贴满卡片上/左/右边缘（卡片 overflow-hidden 裁圆角）；只有底部文字+点赞留内边距，无边框（本轮反馈）
+    : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}"><p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
+  // 底部只留 标题 + 头像/昵称 + 点赞（用户反馈：学校/时间去掉，信息太多）
+  // 标题放大到 13px 并允许两行，白色文字区留白加大（用户反馈）
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest rounded-[6px] overflow-hidden cursor-pointer" onclick="openPostDetail('${p.id}')">
     ${media}
-    <div class="flex items-start justify-between gap-2 px-2 pb-2 pt-1.5">
-      <div class="min-w-0">
-        <p class="font-headline text-xs font-bold tracking-tighter truncate">${window.escapeHtml(p.title || (p.content || '').substring(0, 40))}</p>
-        <p class="text-neutral-400 text-[10px] tracking-widest">${window.formatPostTime(p.createdAt)} • ${window.escapeHtml(postAuthorName(p))}</p>
-      </div>
-      ${postLikeButton(p)}
+    <div class="px-2.5 pb-2.5 pt-2">
+      <p class="font-headline text-[13px] font-bold tracking-tight leading-snug" style="${clampStyle(2)}" data-no-i18n>${window.escapeHtml(p.title || (p.content || '').substring(0, 60))}</p>
+      ${commentSnippetLine(p)}
+      ${cardAuthorRow(p)}
     </div>
   </article>`;
 }
 
 // Card type 2 (campus_wall + USER): wide single-column card with author header
-// (avatar + name + school on top), big image, content, like + comment counts.
-// Anonymous-aware (匿名同学 + placeholder avatar) and school pill in the header.
+// (avatar + name on top), big image, content, like + comment counts.
+// Anonymous-aware (匿名同学 + placeholder avatar)；学校徽标已按用户反馈移除（详情页仍显示）。
 function bentoWideCard(p) {
   const img = (p.images || [])[0];
   const d = postAuthorDisplay(p);
-  const school = d.school || p.school;
   // 竖排卡片（对齐截图）：作者头像行 + 全宽横图 + 标题/正文 + 点赞/评论
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest p-4 border border-outline-variant/10 shadow-sm cursor-pointer rounded-[6px]" onclick="openPostDetail('${p.id}')">
     <div class="flex items-center gap-3 mb-4">
       ${renderAuthorAvatars(p)}
       <div class="min-w-0 flex-1">
-        <p class="font-headline text-base font-bold truncate">${window.escapeHtml(d.name)}</p>
-        <p class="text-[10px] text-neutral-400 font-medium tracking-widest">${window.formatPostTime(p.createdAt)}</p>
+        <p class="font-headline text-base font-bold truncate" data-no-i18n>${window.escapeHtml(d.name)}</p>
+        <p class="text-[10px] text-neutral-400 font-medium tracking-widest" data-no-i18n>${window.formatPostTime(p.createdAt)}</p>
       </div>
       ${pinnedBadge(p)}
-      ${school ? `<span class="school-badge shrink-0" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
     </div>
     ${img ? `<div class="aspect-video bg-surface-container overflow-hidden mb-2 rounded-[6px]"><img class="w-full h-full object-cover" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>` : ''}
     ${p.title ? `<p class="font-headline font-bold text-base tracking-tight mb-1">${window.escapeHtml(p.title)}</p>` : ''}
-    <p class="text-sm text-on-surface-variant leading-relaxed mb-3" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
+    <p class="text-sm text-on-surface-variant leading-relaxed mb-1" style="${clampStyle(3)}">${window.escapeHtml(p.content || '')}</p>
+    ${commentSnippetLine(p)}
+    <div class="mb-3"></div>
     ${pollBlock(p)}
     <div class="flex items-center justify-between">
       <button class="flex items-center gap-1 text-neutral-400 active:scale-95 transition-transform" onclick="event.stopPropagation();openPostDetail('${p.id}', true)"><span class="material-symbols-outlined text-sm">chat_bubble</span><span class="text-xs font-bold" data-comment-count>${p.commentCount || 0}</span></button>
@@ -1003,14 +1051,267 @@ async function openPostDetail(postId, focusComposer = false) {
 }
 window.openPostDetail = openPostDetail;
 
-// 评论数点击 → 滚动到底部评论输入条并聚焦
+// 评论数点击 → 滚到评论区并聚焦输入框。
+// 输入条现在是固定页脚（恒可见），所以滚的是评论区标题而不是输入条本身。
 function focusPdComposer() {
-  const input = document.getElementById('comment-input');
-  if (!input) return;
-  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  input.focus({ preventScroll: true });
+  const head = document.querySelector('#pd-content [data-pd-comments]');
+  if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('comment-input')?.focus({ preventScroll: true });
 }
 window.focusPdComposer = focusPdComposer;
+
+// ── 举报（帖子 / 评论）──
+// 防误触：两步交互——先确认卡（说明后果），再填原因卡；任一步取消即中止。
+async function askReportReason(titleZh, titleEn) {
+  const zh = (window.getLang?.() === 'zh');
+  const ok = await window.confirmCard({
+    title: zh ? titleZh : titleEn,
+    body: zh
+      ? '举报会交由管理员人工审核。恶意或重复的虚假举报可能影响你的账号。'
+      : 'Reports are reviewed by our moderators. Repeated false reports may limit your account.',
+    confirmLabel: zh ? '继续举报' : 'Continue',
+    cancelLabel: zh ? '取消' : 'Cancel',
+    danger: true,
+  });
+  if (!ok) return null;
+  const reason = await window.promptCard({
+    title: zh ? '举报原因' : 'Report reason',
+    label: zh ? '垃圾广告 / 骚扰辱骂 / 不适内容 / 虚假信息' : 'Spam · Harassment · Explicit · False info',
+    placeholder: zh ? '简单说明原因（可留空）' : 'Briefly describe the issue (optional)',
+    confirmLabel: zh ? '提交举报' : 'Submit report',
+    cancelLabel: zh ? '取消' : 'Cancel',
+    multiline: true,
+  });
+  if (reason === null) return null; // 第二步取消
+  return (reason || '').trim() || (zh ? '未填写原因' : 'No reason given');
+}
+
+function reportDoneToast(err) {
+  const zh = (window.getLang?.() === 'zh');
+  if (err) window.toast(err?.message || (zh ? '举报失败，请重试' : 'Failed to report'));
+  else window.toast(zh ? '举报已提交，我们会尽快处理' : 'Report submitted — thanks for flagging');
+}
+
+// 帖子操作卡（页眉「更多」弹出）：分享 / 举报，与评论长按卡同一形式
+function openPdPostMenu(ev) {
+  document.querySelectorAll('.pd-cm-menu').forEach((e) => e.remove());
+  const zh = (window.getLang?.() === 'zh');
+  const row = (icon, label, attr) =>
+    `<button ${attr} class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 active:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-outline" style="font-size:18px">${icon}</span>
+      <span class="text-sm text-on-surface" data-no-i18n>${label}</span>
+    </button>`;
+  const menu = document.createElement('div');
+  menu.className = 'pd-cm-menu fixed z-[130] min-w-[148px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
+  menu.innerHTML =
+    row('ios_share', zh ? '分享' : 'Share', 'data-share') +
+    row('flag', zh ? '举报帖子' : 'Report post', 'data-report');
+  const btn = document.getElementById('pd-report-btn');
+  const r = btn ? btn.getBoundingClientRect() : { left: (ev?.clientX || 0), bottom: (ev?.clientY || 0) };
+  menu.style.left = Math.max(8, Math.min(r.left - 100, window.innerWidth - 164)) + 'px';
+  menu.style.top = (r.bottom + 6) + 'px';
+  document.body.appendChild(menu);
+  const close = () => menu.remove();
+  menu.querySelector('[data-share]').onclick = () => { close(); sharePdPost(); };
+  menu.querySelector('[data-report]').onclick = () => { close(); reportPdPost(); };
+  setTimeout(() => document.addEventListener('click', function once() {
+    close(); document.removeEventListener('click', once);
+  }), 10);
+}
+window.openPdPostMenu = openPdPostMenu;
+
+async function sharePdPost() {
+  const zh = (window.getLang?.() === 'zh');
+  const p = S.pdPostData || {};
+  const title = p.title || 'Unimatcha';
+  const text = p.content ? String(p.content).slice(0, 140) : title;
+  const url = location.origin || 'https://app.unimatcha.ai';
+  try {
+    if (navigator.share) { await navigator.share({ title, text, url }); return; }
+    await navigator.clipboard.writeText(`${title}\n${text}\n${url}`);
+    window.toast(zh ? '已复制到剪贴板' : 'Copied to clipboard');
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
+    window.toast(zh ? '分享失败' : 'Share failed');
+  }
+}
+window.sharePdPost = sharePdPost;
+
+async function reportPdPost() {
+  const postId = S.currentPostId;
+  if (!postId) return;
+  const reason = await askReportReason('举报这条帖子？', 'Report this post?');
+  if (reason === null) return;
+  try {
+    await window.api(`/square/v2/posts/${postId}/report`, 'POST', { reason });
+    reportDoneToast();
+  } catch (e) { reportDoneToast(e); }
+}
+window.reportPdPost = reportPdPost;
+
+// 取楼层正文（举报内容里带摘要，便于后台定位）
+function pdCommentText(commentId) {
+  for (const cm of (S.pdPostData?.comments || [])) {
+    if (cm.id === commentId) return cm.content || '';
+    const r = (cm.replies || []).find(x => x.id === commentId);
+    if (r) return r.content || '';
+  }
+  return '';
+}
+
+// 评论举报走通用 /reports（category=content）：后端没有评论专用举报接口，
+// 内容里带 commentId/postId + 正文摘要，管理后台「用户反馈」可直接定位。
+async function reportPdComment(commentId) {
+  if (!commentId) return;
+  // 入口快照：确认卡期间用户可能已关掉详情页（S.currentPostId/pdPostData 被清）
+  const postId = S.currentPostId || '';
+  const snippet = pdCommentText(commentId).slice(0, 300);
+  const reason = await askReportReason('举报这条评论？', 'Report this comment?');
+  if (reason === null) return;
+  try {
+    await window.api('/reports', 'POST', {
+      category: 'content',
+      content: `[comment] commentId=${commentId} postId=${postId}\nreason: ${reason}\ntext: ${snippet}`,
+    });
+    reportDoneToast();
+  } catch (e) { reportDoneToast(e); }
+}
+window.reportPdComment = reportPdComment;
+
+// ── 评论点赞 ──
+// 在 S.pdPostData 的楼层树里就地更新点赞态（父楼 + 回复都覆盖）
+function applyPdCommentLike(commentId, liked, likeCount) {
+  const walk = (c) => {
+    if (!c) return false;
+    if (c.id === commentId) { c.myLiked = liked; c.likeCount = likeCount; return true; }
+    return (c.replies || []).some(walk);
+  };
+  (S.pdPostData?.comments || []).some(walk);
+}
+
+function findPdComment(commentId) {
+  for (const cm of (S.pdPostData?.comments || [])) {
+    if (cm.id === commentId) return cm;
+    const r = (cm.replies || []).find(x => x.id === commentId);
+    if (r) return r;
+  }
+  return null;
+}
+
+async function likePdComment(commentId, btn) {
+  if (!commentId) return;
+  try {
+    const data = await window.api(`/square/v2/comments/${commentId}/like`, 'POST');
+    const res = unwrap(data);
+    const liked = !!res.liked;
+    const count = res.likeCount != null ? res.likeCount : 0;
+    applyPdCommentLike(commentId, liked, count);
+    // 就地刷新按钮（不整页重渲染，保住滚动位置）
+    const row = document.querySelector(`[data-comment-id="${commentId}"]`);
+    const icon = (btn || row)?.querySelector?.('[data-cm-like-icon]') || row?.querySelector('[data-cm-like-icon]');
+    const cnt = (btn || row)?.querySelector?.('[data-cm-like-count]') || row?.querySelector('[data-cm-like-count]');
+    if (icon) {
+      icon.style.fontVariationSettings = `'FILL' ${liked ? 1 : 0}`;
+      icon.classList.toggle('text-neon-pink', liked);
+    }
+    if (cnt) cnt.textContent = String(count);
+  } catch (e) {
+    window.toast(e?.message || 'Failed to like');
+  }
+}
+window.likePdComment = likePdComment;
+
+// ── 评论分享 ──
+// 优先系统分享面板（移动端），不支持则复制到剪贴板。
+async function sharePdComment(commentId) {
+  const zh = (window.getLang?.() === 'zh');
+  const text = pdCommentText(commentId);
+  const title = S.pdPostData?.title || 'Unimatcha';
+  const url = location.origin || 'https://app.unimatcha.ai';
+  const payload = `${text}\n— ${title} · Unimatcha\n${url}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
+    }
+    await navigator.clipboard.writeText(payload);
+    window.toast(zh ? '已复制到剪贴板' : 'Copied to clipboard');
+  } catch (e) {
+    if (e?.name === 'AbortError') return; // 用户在系统面板里取消
+    window.toast(zh ? '分享失败' : 'Share failed');
+  }
+}
+window.sharePdComment = sharePdComment;
+
+// ── 评论操作卡（长按弹出）：分享 / 点赞 / 举报 ──
+function openPdCommentMenu(commentId, x, y) {
+  document.querySelectorAll('.pd-cm-menu').forEach((e) => e.remove());
+  const zh = (window.getLang?.() === 'zh');
+  const cm = findPdComment(commentId);
+  const liked = !!cm?.myLiked;
+  const row = (icon, label, attr) =>
+    `<button ${attr} class="w-full text-left px-4 py-2.5 flex items-center gap-2.5 active:bg-surface-container transition-colors">
+      <span class="material-symbols-outlined text-outline" style="font-size:18px">${icon}</span>
+      <span class="text-sm text-on-surface" data-no-i18n>${label}</span>
+    </button>`;
+  const menu = document.createElement('div');
+  menu.className = 'pd-cm-menu fixed z-[130] min-w-[148px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
+  menu.innerHTML =
+    row('ios_share', zh ? '分享' : 'Share', 'data-share') +
+    row(liked ? 'heart_minus' : 'favorite', liked ? (zh ? '取消点赞' : 'Unlike') : (zh ? '点赞' : 'Like'), 'data-like') +
+    row('flag', zh ? '举报' : 'Report', 'data-report');
+  // 贴着长按点弹出，右/下边界内收避免溢出屏幕
+  menu.style.left = Math.max(8, Math.min(x, window.innerWidth - 164)) + 'px';
+  menu.style.top = Math.max(8, Math.min(y + 8, window.innerHeight - 150)) + 'px';
+  document.body.appendChild(menu);
+  const close = () => menu.remove();
+  menu.querySelector('[data-share]').onclick = () => { close(); sharePdComment(commentId); };
+  menu.querySelector('[data-like]').onclick = () => { close(); likePdComment(commentId); };
+  menu.querySelector('[data-report]').onclick = () => { close(); reportPdComment(commentId); };
+  // 下一帧再挂全局关闭，避免本次 touchend/click 立刻把菜单关掉
+  setTimeout(() => document.addEventListener('click', function once() {
+    close(); document.removeEventListener('click', once);
+  }), 10);
+}
+window.openPdCommentMenu = openPdCommentMenu;
+
+// 评论长按 600ms 弹操作卡：事件委托绑在 #pd-content 上（只绑一次，渲染重置不受影响）。
+// 手指移动 >10px 视为滚动，取消长按；桌面右键同样触发。
+function bindPdCommentLongPress() {
+  const root = document.getElementById('pd-content');
+  if (!root || root.dataset.lpBound) return;
+  root.dataset.lpBound = '1';
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  root.addEventListener('touchstart', (e) => {
+    cancel();
+    const el = e.target.closest?.('[data-comment-id]');
+    // 点赞/回复按钮上不触发长按（避免与直接点击冲突）
+    if (!el || e.target.closest?.('button')) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY;
+    const id = el.dataset.commentId;
+    timer = setTimeout(() => {
+      timer = null;
+      try { navigator.vibrate?.(15); } catch (err) { /* 不支持震动：忽略 */ }
+      openPdCommentMenu(id, sx, sy);
+    }, 600);
+  }, { passive: true });
+  root.addEventListener('touchmove', (e) => {
+    if (!timer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel();
+  }, { passive: true });
+  root.addEventListener('touchend', cancel, { passive: true });
+  root.addEventListener('touchcancel', cancel, { passive: true });
+  root.addEventListener('contextmenu', (e) => {
+    const el = e.target.closest?.('[data-comment-id]');
+    if (!el) return;
+    e.preventDefault();
+    openPdCommentMenu(el.dataset.commentId, e.clientX, e.clientY);
+  });
+}
+window.bindPdCommentLongPress = bindPdCommentLongPress;
 
 function closePostDetail() {
   window.closeOverlay('post-detail-overlay');
@@ -1110,17 +1411,30 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
     : (!!authorKey?.value && cm.userId === authorKey.value);
   // 楼层收紧：回复行头像缩小并缩进到父楼内容起点（32px 头像 + 12px 间距）
   const avSize = isReply ? 'w-7 h-7' : 'w-8 h-8';
-  return `<div class="flex gap-3${isReply ? ' pl-11' : ''}">
+  const liked = !!cm.myLiked;
+  const likeCount = cm.likeCount || 0;
+  // 楼主标记改为名字后的小圆点 + 「作者」轻字（原黑底徽标过重）
+  const authorTag = isAuthor
+    ? `<span class="shrink-0 inline-flex items-center gap-1 text-[10px] text-primary/70 font-medium" data-no-i18n><span class="w-1 h-1 rounded-full bg-primary/60"></span><span>${(window.getLang?.() === 'zh') ? '作者' : 'Author'}</span></span>`
+    : '';
+  // data-comment-id：长按弹操作卡的事件委托靠它定位楼层（bindPdCommentLongPress）
+  return `<div class="pd-comment flex gap-3${isReply ? ' pl-11' : ''}" data-comment-id="${cm.id}">
     ${avatar
       ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
       : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between gap-2">
-        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(name)}</span>${isAuthor ? '<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-black text-neon text-[9px] font-bold tracking-widest">AUTHOR</span>' : ''}</span>
-        <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0">${window.formatPostTime(cm.createdAt)}</span>
+        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${authorTag}</span>
+        <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(cm.createdAt)}</span>
       </div>
-      <p class="text-on-surface text-sm leading-relaxed mt-1">${window.escapeHtml(cm.content || '')}</p>
-      <button class="mt-1.5 text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
+      <p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content || '')}</p>
+      <div class="flex items-center gap-4 mt-1.5">
+        <button class="text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
+        <button class="flex items-center gap-1 text-outline active:scale-90 transition-transform" onclick="event.stopPropagation();likePdComment('${cm.id}', this)" aria-label="Like">
+          <span data-cm-like-icon class="material-symbols-outlined text-[15px] ${liked ? 'text-neon-pink' : ''}" style="font-variation-settings:'FILL' ${liked ? 1 : 0};">favorite</span>
+          <span data-cm-like-count class="text-[10px] font-bold" data-no-i18n>${likeCount}</span>
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -1146,21 +1460,20 @@ function renderPostDetail(post) {
   const badge = officialBadge(post);
   const liked = !!post.myLiked;
   c.innerHTML = `
-    ${renderPdImages(images)}
-    <article class="px-6 pt-8 pb-4 bg-surface-container-lowest">
-      <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-3 min-w-0">
-          ${renderAuthorAvatars(post)}
-          <div class="min-w-0">
-            <p class="font-headline font-bold text-base leading-none truncate">${window.escapeHtml(name)}</p>
-            ${badge ? `<div class="mt-1">${badge}</div>` : ''}
-          </div>
+    <!-- 作者行提到图片上方（用户反馈）：头像 + 名字/学校 在左，时间在右 -->
+    <div class="flex items-center justify-between gap-3 px-3 pt-5 pb-4 bg-surface-container-lowest">
+      <div class="flex items-center gap-3 min-w-0">
+        ${renderAuthorAvatars(post)}
+        <div class="min-w-0" data-no-i18n>
+          <p class="font-headline font-bold text-base leading-tight truncate">${window.escapeHtml(name)}</p>
+          ${school ? `<p class="text-[11px] text-on-surface-variant truncate mt-0.5">${window.escapeHtml(window.metaLabel(school))}</p>` : ''}
         </div>
-        <div class="flex flex-col items-end gap-1 shrink-0">
-          ${school ? `<span class="school-badge" data-no-i18n>${window.escapeHtml(window.metaLabel(school))}</span>` : ''}
-          <p class="text-[10px] text-on-surface-variant font-label tracking-widest">${window.formatPostTime(post.createdAt)}</p>
-        </div>
+        ${badge ? `<div class="shrink-0">${badge}</div>` : ''}
       </div>
+      <p class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</p>
+    </div>
+    ${renderPdImages(images)}
+    <article class="px-3 pt-5 pb-4 bg-surface-container-lowest">
       <div class="grid grid-cols-12 gap-6 items-start">
         <div class="col-span-12 min-w-0">
           ${post.title ? `<h2 class="font-headline text-3xl font-bold tracking-tighter mb-4 leading-none">${window.escapeHtml(post.title)}</h2>` : ''}
@@ -1181,8 +1494,8 @@ function renderPostDetail(post) {
         </button>
       </div>
     </article>
-    <div class="px-6 pt-5 bg-surface">
-      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span></h3>
+    <div class="px-3 pt-5 pb-6 bg-surface" data-pd-comments>
+      <h3 class="font-headline text-xs font-bold tracking-[0.2em] mb-6 text-on-surface-variant"><span>Observations</span> <span data-no-i18n>(${commentTotal})</span> <span class="font-normal tracking-normal text-outline normal-case" data-pd-lp-hint data-no-i18n></span></h3>
       <div class="space-y-7">
         ${comments.map(cm => `<div class="space-y-4">${renderPdComment(cm, cm.id, false, authorKey)}${(cm.replies || []).map(r => renderPdComment(r, cm.id, true, authorKey)).join('')}</div>`).join('')
           || `<div class="py-10 text-center">
@@ -1191,6 +1504,12 @@ function renderPostDetail(post) {
               </div>`}
       </div>
     </div>`;
+  // 长按举报提示（有评论时才提示）+ 事件委托绑定（只绑一次）
+  const hint = c.querySelector('[data-pd-lp-hint]');
+  if (hint && comments.length) {
+    hint.textContent = (window.getLang?.() === 'zh') ? '· 长按更多操作' : '· long-press for options';
+  }
+  bindPdCommentLongPress();
 }
 window.renderPostDetail = renderPostDetail;
 

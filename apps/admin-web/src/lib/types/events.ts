@@ -10,8 +10,6 @@ export type EventStatus = 'published' | 'closed' | 'cancelled';
 /** EventTicket.status */
 export type TicketStatus = 'valid' | 'used' | 'cancelled';
 
-/** 活动帖板块（CreateEventDto.board 用小写；帖子实体上是大写 SquareBoard） */
-export type EventBoard = 'recommend' | 'campus_wall';
 
 /** Event 模型标量字段（创建响应 = 本形状 + postId） */
 export interface EventBase {
@@ -52,7 +50,7 @@ export interface CreateEventInput {
   title: string;
   content: string;
   images?: string[];
-  /** 团队可空 = 全网；学生会不传由服务端自动填本校 */
+  /** SUPER 必填（活动帖恒发该校校园墙）；学生会不传由服务端自动填本校 */
   school?: string;
   venue?: string;
   startAt: string;
@@ -61,8 +59,6 @@ export interface CreateEventInput {
   priceCents?: number;
   /** 正整数；缺省 = 不限 */
   capacity?: number;
-  /** 默认 recommend；campus_wall 必须带学校 */
-  board?: EventBoard;
 }
 
 /** POST /admin/events 响应：事务内同建的广场帖 id 一并返回 */

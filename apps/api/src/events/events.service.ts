@@ -31,8 +31,8 @@ export class EventsService {
 
   // ─── 后管：创建活动（事务内同时生成广场活动帖）────────────────
   async createEvent(actor: AdminActor, dto: CreateEventDto) {
-    // @Roles 已拦一道，此处为纵深防御
-    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    // @Roles 已拦一道，此处为纵深防御（活动学生会专属，团队不发布；SUPER 超管兜底）
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.STUDENT_UNION);
     const role = actor.role;
 
     let school: string | null = dto.school ?? null;
@@ -55,9 +55,10 @@ export class EventsService {
       throw new BadRequestException('结束时间必须晚于开始时间');
     }
 
-    // 活动帖板块：校园墙帖必须带学校
-    const board = dto.board === 'campus_wall' ? SquareBoard.CAMPUS_WALL : SquareBoard.RECOMMEND;
-    if (board === SquareBoard.CAMPUS_WALL && !school) {
+    // 活动帖一律发校园墙（产品规则 2026-08-13：活动是学生会面向本校的，不进推荐流）。
+    // dto.board 已废弃、不再读取；校园墙帖必须带学校。
+    const board = SquareBoard.CAMPUS_WALL;
+    if (!school) {
       throw new BadRequestException('校园墙活动帖必须指定学校');
     }
     // SUPER 无对应 SquareAuthorType，按 TEAM 官方帖发布

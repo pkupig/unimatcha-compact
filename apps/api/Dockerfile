@@ -48,4 +48,6 @@ COPY --from=builder /app/scripts ./scripts
 #   不带则在检测到破坏性变更时 db push 失败退出（安全默认，宁可启动失败也不毁数据）。
 # - 演示数据（广场 / 广告）只在 SEED_DEMO=true 时播；否则生产库会被灌入假帖/假广告。
 # - dist/prisma/seed.js 用 upsert，幂等，可每次启动跑（建管理员账号）。
-CMD ["sh", "-c", "npx prisma db push && (node dist/prisma/seed.js || echo 'Seed skipped') && ([ \"$SEED_DEMO\" = \"true\" ] && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') || echo 'Demo seed disabled (set SEED_DEMO=true to enable)') && node dist/src/main"]
+# - ensure-search-indexes 补 pg_trgm 扩展与搜索用 GIN 索引（db push 无法声明），幂等；
+#   自身吞异常不退出，缺扩展权限时搜索退化为无索引 ILIKE 而非阻断启动。
+CMD ["sh", "-c", "npx prisma db push && (node dist/prisma/ensure-search-indexes.js || echo 'Search indexes skipped') && (node dist/prisma/seed.js || echo 'Seed skipped') && ([ \"$SEED_DEMO\" = \"true\" ] && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') || echo 'Demo seed disabled (set SEED_DEMO=true to enable)') && node dist/src/main"]
