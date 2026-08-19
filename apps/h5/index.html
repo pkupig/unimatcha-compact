@@ -180,6 +180,11 @@
 
 <body class="bg-background text-on-surface font-body overflow-hidden">
 
+<!-- 状态栏遮罩：状态栏本身要保持透明，profile 的封面才能铺到屏幕最顶；
+     但其余页面用户希望顶部维持原来的白条，故用这层与页面同色的挡板补回。
+     仅在 profile 标签页隐藏（见 core.js switchTab）。 -->
+<div id="statusbar-scrim" aria-hidden="true"></div>
+
   <!-- Toast Notification -->
   <div id="toast"></div>
 
@@ -677,10 +682,11 @@
   </div>
 
   <!-- (b1) Chat 列表视图（所有对话：临时 + 永久，§6.6） -->
-  <!-- 左右留白 px-6→px-3（用户反馈太宽）；顶距 pt-28→pt-24 让列表更贴近顶栏 -->
-  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-3 pt-24 pb-28">
-    <!-- 退款 / 系统通知条挂载点（§6.6 J 规则 energy_refunded） -->
-    <div id="chat-banner" class="hidden mb-2"></div>
+  <!-- 左右留白交给行内（每行 6px）；顶距见 main.css 的 #home-chat-view，
+       = 顶栏高度 + 6px + 状态栏安全区 -->
+  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-0 pb-28">
+    <!-- 退款横幅挂载点：已改为只在通知中心告知，保留节点以兼容旧调用 -->
+    <div id="chat-banner" class="hidden"></div>
     <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
     <!-- 单列表（用户反馈：不分组、不要分组标题）：临时会话恒排在最前且带
          淡荧光绿底与已连接区分；分隔线由行内元素画，不延伸到头像下方 -->

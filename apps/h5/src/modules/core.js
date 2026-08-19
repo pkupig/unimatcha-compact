@@ -253,6 +253,8 @@ function switchTab(tab) {
     }
   }
   else if (tab === 'profile') window.loadProfileTab();
+  // 只有 profile 需要封面铺到状态栏；其余页面用挡板补回顶部白条
+  document.body.classList.toggle('profile-active', tab === 'profile');
 }
 window.switchTab = switchTab;
 

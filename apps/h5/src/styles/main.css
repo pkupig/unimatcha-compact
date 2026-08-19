@@ -365,6 +365,16 @@
     /* profile 的 hero 是 absolute top-0，要铺满到状态栏下，不加内边距；
        改为整体加高，内容占位同步下移，保持原有视觉比例 */
     .pt-safe { padding-top: env(safe-area-inset-top); }
+    /* 状态栏挡板：补回除 profile 外各页顶部的白条（profile 需要封面铺满）。
+       z-index 高于全部弹层、低于启动页；不吃事件。 */
+    #statusbar-scrim {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: env(safe-area-inset-top);
+      background: #f9f9f9; z-index: 9998; pointer-events: none;
+    }
+    .dark #statusbar-scrim { background: #15151a; }
+    /* profile 页：撤掉挡板，让封面自屏幕最顶铺开 */
+    body.profile-active #statusbar-scrim { display: none; }
     .pb-safe {
       padding-bottom: env(safe-area-inset-bottom);
     }
@@ -466,18 +476,22 @@
     .chat-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
     .chat-row.mine { justify-content: flex-end; }
     .chat-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
-    .chat-avatar--lg { width: 48px; height: 48px; }
+    .chat-avatar--lg { width: 54px; height: 54px; }
     /* ---- 会话行（用户反馈）----
        分隔线用 ::after 画在文字列起点之后（左缩进 = 内边距 + 头像 + 间距 = 12+48+12），
        不再延伸到头像下方；最后一行不画线。 */
-    .session-row { position: relative; }
+    /* 间距按用户给的数值：行内左右各 6px（头像左缘 / 时间右缘到屏幕边框），
+       头像与文字之间 10px；分隔线左起点 = 6 + 54 + 10 = 70px，正好从文字列起笔。 */
+    .session-row { position: relative; padding: 12px 6px; gap: 10px; }
     .session-row::after {
-      content: ''; position: absolute; left: 72px; right: 12px; bottom: 0;
+      content: ''; position: absolute; left: 70px; right: 6px; bottom: 0;
       height: 1px; background: rgba(0, 0, 0, 0.07);
     }
     .session-row:last-child::after { display: none; }
     .dark .session-row::after { background: rgba(255, 255, 255, 0.09); }
     /* 临时会话：淡荧光绿底（与退款横幅 bg-neon/15 同色），替代原「TEMPORARY」分组标题 */
+    /* 列表首行距顶栏 6px：顶栏 h-14(56px) + 6px + 状态栏安全区 */
+    #home-chat-view { padding-top: calc(62px + env(safe-area-inset-top)); }
     .session-row--temp { background: rgba(204, 255, 0, 0.15); }
     .session-row--temp:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
     .session-row--temp:last-of-type { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }

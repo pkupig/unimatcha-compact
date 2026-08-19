@@ -87,7 +87,7 @@ function sessionRowHtml(s) {
   // ::after 从头像右侧起笔），不再延伸到头像下方；临时会话带淡荧光绿底，
   // 与退款横幅同色，一眼区分且不需要分组标题。
   return `<button type="button"
-      class="session-row${temp ? ' session-row--temp' : ''} w-full flex items-center gap-3 px-3 py-3 text-left active:opacity-70 transition-opacity ${expired ? 'opacity-50' : ''}"
+      class="session-row${temp ? ' session-row--temp' : ''} w-full flex items-center text-left active:opacity-70 transition-opacity ${expired ? 'opacity-50' : ''}"
       data-matchid="${attrEscape(s.matchId)}" onclick="openSessionById('${attrEscape(s.matchId)}')">
       ${sessionAvatarHtml(partner, 'chat-avatar chat-avatar--lg')}
       <div class="flex-grow min-w-0">
@@ -194,37 +194,13 @@ async function loadSessions() {
 }
 window.loadSessions = loadSessions;
 
-// 拉取首页通知，命中 energy_refunded 则调用既有 showRefundBanner 展示退款横幅。
-// 用 lastShownRefundId 去重，避免每次 loadSessions（确认/解除/关闭对话后都会触发）
-// 反复弹同一条退款。失败静默——退款横幅是增强提示，不应阻塞会话列表。
-// 去重键持久化到 localStorage：原来只存在内存变量里，页面一刷新就清零，
-// 同一条退款通知每次打开 App 都会重新弹（用户反馈）。按 userId 分桶，
-// 换账号不会互相影响。
-const REFUND_SEEN_KEY = 'cl_refund_seen';
-function refundSeenId() {
-  try {
-    const all = JSON.parse(localStorage.getItem(REFUND_SEEN_KEY) || '{}');
-    return all[S.currentUser?.id || 'anon'] || null;
-  } catch (e) { return null; }
-}
-function markRefundSeen(id) {
-  try {
-    const all = JSON.parse(localStorage.getItem(REFUND_SEEN_KEY) || '{}');
-    all[S.currentUser?.id || 'anon'] = id;
-    localStorage.setItem(REFUND_SEEN_KEY, JSON.stringify(all));
-  } catch (e) { /* 隐私模式下写不进：退化为每次都提示，不阻断流程 */ }
-}
+// 退款不再在会话列表顶部弹横幅（用户反馈：通知里告知即可）——通知中心本就
+// 会收到 energy_refunded，这里只保留一次余额刷新，让能量数字及时对上。
 async function checkRefundOnSessions() {
   try {
-    const data = await window.api('/notifications?page=1&limit=20');
-    const env = data?.data || data || {};
-    const notifs = Array.isArray(env) ? env : env.items || [];
-    const refund = notifs.find(n => (n.type || '') === 'energy_refunded');
-    if (!refund || refund.id === refundSeenId()) return;
-    markRefundSeen(refund.id);
-    window.showRefundBanner?.(refund);
+    window.refreshEnergyBalance?.();
   } catch (e) {
-    console.warn('checkRefundOnSessions failed:', e);
+    console.warn('refreshEnergyBalance failed:', e);
   }
 }
 window.checkRefundOnSessions = checkRefundOnSessions;
