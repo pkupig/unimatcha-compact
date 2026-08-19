@@ -22,6 +22,12 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "prisma/seed.ts", "prisma/backfill-question-en.ts"],
+  "include": [
+    "src/**/*",
+    "prisma/seed.ts",
+    "prisma/backfill-question-en.ts",
+    "prisma/backfill-admin-role.ts",
+    "prisma/ensure-search-indexes.ts"
+  ],
   "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
 }
