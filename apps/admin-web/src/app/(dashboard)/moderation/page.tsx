@@ -13,10 +13,11 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Tabs } from '@/components/ui/Tabs';
 import { PostsPanel } from '@/components/moderation/PostsPanel';
 import { PollsPanel } from '@/components/moderation/PollsPanel';
+import { PinnedOrderPanel } from '@/components/moderation/PinnedOrderPanel';
 import { isTeam } from '@/lib/auth';
 import { useAdmin } from '@/lib/auth-context';
 
-type TabKey = 'posts' | 'reported' | 'polls';
+type TabKey = 'posts' | 'reported' | 'polls' | 'pinned';
 
 function ModerationInner() {
   const { admin } = useAdmin();
@@ -25,7 +26,7 @@ function ModerationInner() {
   const team = isTeam(admin?.role);
 
   const raw = searchParams.get('tab');
-  const tab: TabKey = raw === 'reported' || raw === 'polls' ? raw : 'posts';
+  const tab: TabKey = raw === 'reported' || raw === 'polls' || raw === 'pinned' ? raw : 'posts';
   const setTab = (k: string) => {
     router.replace(k === 'posts' ? '/moderation' : `/moderation?tab=${k}`, { scroll: false });
   };
@@ -52,6 +53,7 @@ function ModerationInner() {
           { key: 'posts', label: '帖子管理' },
           { key: 'reported', label: '举报队列' },
           { key: 'polls', label: '投票审核' },
+          { key: 'pinned', label: '置顶排序' },
         ]}
         value={tab}
         onChange={setTab}
@@ -60,6 +62,7 @@ function ModerationInner() {
       {tab === 'posts' && <PostsPanel key="posts" team={team} />}
       {tab === 'reported' && <PostsPanel key="reported" reported team={team} />}
       {tab === 'polls' && <PollsPanel team={team} />}
+      {tab === 'pinned' && <PinnedOrderPanel team={team} />}
     </>
   );
 }

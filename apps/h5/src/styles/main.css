@@ -47,6 +47,34 @@
       opacity: 0;
       pointer-events: none;
     }
+    /* 「置顶」分段：默认收起（宽度 0），到校园墙/置顶页才滑出来。
+       用 max-width + opacity 而不是 display:none —— display 没有过渡，会硬跳一下；
+       另外 #square-tab-ink 是按 active 段的 offsetLeft/offsetWidth 定位的，
+       段宽从 0 平滑长出来，下划线跟着重算才不会错位。 */
+    #square-seg-pinned {
+      max-width: 0;
+      opacity: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: max-width 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    }
+    #square-tabs.show-pinned #square-seg-pinned {
+      max-width: 6rem;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* 置顶页里整页都是置顶帖，逐张再挂 PINNED 角标没有信息量，反而占地方。
+       墙上现在只剩活动置顶帖，那里的角标要保留（提示它为什么排在最前）。 */
+    .square-pinned-page .pinned-badge { display: none; }
+    /* 置顶页文字比校园墙小一档（用户要求）。
+       卡片模板是三页共用的、标题/正文直接挂 Tailwind 工具类，没有稳定的钩子类，
+       所以这里按「作用域 + 工具类」覆盖：两个类的选择器(0,2,0)恒压单个工具类(0,1,0)，
+       与构建后工具类排在自定义规则之后这一陷阱无关（8/10 生产事故教训）。 */
+    .square-pinned-page .text-lg { font-size: 1rem; }        /* 官方大卡标题 18 → 16 */
+    .square-pinned-page .text-base { font-size: 0.8125rem; } /* 宽卡标题/作者 16 → 13 */
+    .square-pinned-page .text-sm { font-size: 0.75rem; }     /* 宽卡正文 14 → 12 */
+    .square-pinned-page .text-\[13px\] { font-size: 11px; } /* 小卡标题 13 → 11 */
     /* 广场搜索页同为「页眉 + 内部滚动区」：overlay 自身不滚，否则页眉会被滚出视口 */
     #square-search-overlay { overflow: hidden; }
     /* Bottom-sheet overlays (filter-overlay etc.) slide up from bottom; full-screen overlays just fade */

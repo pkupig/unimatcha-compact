@@ -696,6 +696,10 @@ model SquarePost {
   // 校园墙置顶（学生会本校/平台全量；null=未置顶；置顶帖按此倒序排在墙顶。
   // 与推荐流官方大卡的 metadata.pinned 机制无关，勿混用）
   pinnedAt DateTime?
+  // 置顶页的手动排序：小的在前，同值再按 pinnedAt 倒序。
+  // 单独一列而不是改写 pinnedAt——pinnedAt 要保留「何时被置顶」这个事实，
+  // 拿它兼作排序键等于让「调一次序」变成「谎报置顶时间」。
+  pinnedOrder Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -709,6 +713,8 @@ model SquarePost {
   @@index([authorType, createdAt])
   @@index([isHidden, createdAt])
   @@index([reviewStatus, school, createdAt])
+  // 置顶页列表：按校取置顶帖并按手动顺序排
+  @@index([school, pinnedAt, pinnedOrder])
   @@index([coupleMatchId])
   @@map("square_posts")
 }

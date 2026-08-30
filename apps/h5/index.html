@@ -711,6 +711,9 @@
       <div id="square-tabs" class="relative flex gap-8">
         <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
         <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
+        <!-- 置顶段：默认不显示，到了校园墙页才从右边滑出（用户口径）。
+             用 max-width + opacity 过渡，不用 display——display 切换没有过渡、会硬跳。 -->
+        <button id="square-seg-pinned" data-tab="pinned" onclick="switchSquareTab(this, 'pinned')" class="square-seg square-seg-pinned text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors">Pinned</button>
         <span id="square-tab-ink"></span>
       </div>
       <!-- 搜索入口：右上角图标，点开展开搜索条（用户反馈） -->
@@ -731,6 +734,8 @@
              1px 行网格的 span 间距被放大数百倍——8/10 生产实测根因） -->
         <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
         <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
+        <!-- 置顶页：只放学生会置顶的信息，卡片文字比校园墙小一档（.square-pinned-page） -->
+        <section id="square-feed-pinned" class="square-feed-grid square-pinned-page w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
       </div>
     </div>
   </main>

@@ -3,6 +3,7 @@ import {
   IsOptional,
   MaxLength,
   IsArray,
+  ArrayMaxSize,
   IsEnum,
   IsBoolean,
   IsIn,
@@ -85,6 +86,17 @@ export class PinPostDto {
   @ApiProperty({ description: 'true=置顶，false=取消置顶' })
   @IsBoolean()
   pinned: boolean;
+}
+
+// 置顶页排序（PUT /admin/square/pinned/order）
+// 传【完整的有序 id 列表】而不是「把某条上移一格」：整表重排是幂等的，
+// 两个审核员同时调序也只会后到者覆盖，不会像逐条交换那样把顺序搅乱。
+export class ReorderPinnedDto {
+  @ApiProperty({ description: '按期望顺序排列的帖子 id（必须是本校全部置顶帖）', type: [String] })
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  postIds: string[];
 }
 
 // 后管下架帖子（DELETE /admin/square/posts/:id）

@@ -85,6 +85,12 @@ export class SquareController {
     });
   }
 
+  @Get('pinned')
+  @ApiOperation({ summary: '置顶页：学生会置顶的本校信息（不分页，按后台设定的顺序）' })
+  async listPinned(@CurrentUser('id') userId: string) {
+    return this.squareService.listPinned(userId);
+  }
+
   @Get('search')
   @ApiOperation({ summary: '广场搜索：只返回帖子（找人走好友面板的扫码/连接码）' })
   @ApiQuery({ name: 'q', required: true })

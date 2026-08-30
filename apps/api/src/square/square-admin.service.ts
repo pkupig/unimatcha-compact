@@ -16,6 +16,7 @@ import {
   ListPollsQueryDto,
   ListSquarePostsQueryDto,
   PinPostDto,
+  ReorderPinnedDto,
   ReviewPollDto,
   UpdateOfficialPostDto,
 } from './dto/square-admin.dto';
@@ -425,12 +426,64 @@ export class SquareAdminService {
         throw new ForbiddenException('仅可置顶本校校园墙帖');
       }
     }
+    // 新置顶的排最前（取当前最小 order − 1）：刚置顶的多半是最要紧的事，
+    // 默认沉到最底下、还要审核员手动拖上来，等于把功夫推给人。
+    let pinnedOrder = 0;
+    if (dto.pinned) {
+      const top = await this.prisma.squarePost.findFirst({
+        where: { board: SquareBoard.CAMPUS_WALL, pinnedAt: { not: null }, school: post.school },
+        orderBy: { pinnedOrder: 'asc' },
+        select: { pinnedOrder: true },
+      });
+      pinnedOrder = top ? top.pinnedOrder - 1 : 0;
+    }
     const updated = await this.prisma.squarePost.update({
       where: { id: postId },
-      data: { pinnedAt: dto.pinned ? new Date() : null },
+      data: { pinnedAt: dto.pinned ? new Date() : null, pinnedOrder },
       include: this.squareService.postInclude(),
     });
     return this.shapeAdminPost(updated);
+  }
+
+  // ─── 置顶页排序（PUT /admin/square/pinned/order）──────────────
+  // 学生会拖顺序用。只接受本校全部置顶帖的完整 id 列表：
+  // 少一条就说不清剩下那条该排哪儿，多一条（尤其是别校的）就是越权，两种都直接拒。
+  async reorderPinned(actor: AdminActor, dto: ReorderPinnedDto) {
+    this.adminScope.assertRole(actor, AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION);
+    const school =
+      actor.role === AdminRole.STUDENT_UNION
+        ? this.adminScope.requireUnionSchool(actor).name
+        : undefined;
+
+    // 取当前这一批置顶帖作为「合法集合」——学生会只能看到也只能动本校的
+    const current = await this.prisma.squarePost.findMany({
+      where: {
+        board: SquareBoard.CAMPUS_WALL,
+        pinnedAt: { not: null },
+        ...(school ? { school } : {}),
+      },
+      select: { id: true },
+    });
+    const allowed = new Set(current.map((p) => p.id));
+    const incoming = dto.postIds || [];
+    if (new Set(incoming).size !== incoming.length) {
+      throw new BadRequestException('排序列表里有重复的帖子');
+    }
+    for (const id of incoming) {
+      // 别校的帖子 / 已取消置顶的帖子都会落在这里，一律拒绝而不是静默跳过
+      if (!allowed.has(id)) throw new ForbiddenException('列表中包含无权调整或已取消置顶的帖子');
+    }
+    if (incoming.length !== allowed.size) {
+      throw new BadRequestException('排序列表必须包含全部置顶帖（可能有人同时改了置顶）');
+    }
+
+    // 一次事务写完：中途失败不会留下一半新序一半旧序
+    await this.prisma.$transaction(
+      incoming.map((id, idx) =>
+        this.prisma.squarePost.update({ where: { id }, data: { pinnedOrder: idx } }),
+      ),
+    );
+    return { ok: true, count: incoming.length };
   }
 
   // ─── 编辑官方帖（PATCH /admin/square/posts/:id）───────────────

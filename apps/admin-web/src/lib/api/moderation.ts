@@ -2,7 +2,7 @@
  * moderation 域 API：广场后管（/admin/square/*，square-admin.controller.ts）
  * + 用户反馈（/admin/reports，admin.controller.ts）。
  */
-import { del, get, patch, post } from './client';
+import { del, get, patch, post, put } from './client';
 import type {
   AdminPollPost,
   AdminPostComment,
@@ -59,6 +59,13 @@ export function dismissSquarePostReports(id: string): Promise<DismissReportsResu
 /** 置顶/取消置顶（仅校园墙帖；学生会仅本校），响应为更新后的后管帖行 */
 export function pinSquarePost(id: string, pinned: boolean): Promise<AdminSquarePost> {
   return post(`/admin/square/posts/${id}/pin`, { pinned });
+}
+
+/** 调整置顶页顺序：传【完整的有序 id 列表】，后端按下标重写 pinnedOrder。
+ *  与问卷题目排序同一契约——整表重排是幂等的，两人同时调也只是后到者覆盖，
+ *  不会像「上移一格」那样把顺序搅乱。学生会仅可传本校置顶帖，否则后端 403。 */
+export function reorderPinnedPosts(postIds: string[]): Promise<{ ok: boolean; count: number }> {
+  return put('/admin/square/pinned/order', { postIds });
 }
 
 /** 编辑官方帖（仅作者本人或 SUPER，非作者后端 403；活动帖 400） */

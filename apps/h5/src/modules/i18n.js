@@ -71,7 +71,9 @@ const ZH = {
   'Only Same School': '仅限同校', 'Same City': '同城优先', 'University Stage': '学业阶段',
   Undergraduate: '本科', Master: '硕士', PhD: '博士', 'Interest Priority': '兴趣优先级',
   // ── 广场 ──
-  Recommend: '推荐', 'Campus Wall': '校园墙', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
+  Recommend: '推荐', 'Campus Wall': '校园墙', Pinned: '置顶',
+  'Nothing pinned yet': '还没有置顶内容',
+  'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',
   'Post anonymously': '匿名发布', 'Comment anonymously': '匿名评论', 'Posting to': '发布到', 'Failed to load posts': '帖子加载失败',
   'Check your connection and try again': '请检查网络后重试', Retry: '重试',

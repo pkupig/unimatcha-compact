@@ -14,16 +14,25 @@ function isOfficial(p) {
   return !!p && p.authorType && p.authorType !== 'USER';
 }
 
-// 双页翻页器辅助：按 tab 取 feed 容器 / 轨道定位
+// 三页翻页器辅助：按 tab 取 feed 容器 / 轨道定位。
+// 页序固定 推荐 → 校园墙 → 置顶；「置顶」只在校园墙/置顶页时才在顶栏出现（见 syncPinnedSeg）。
+const SQUARE_PAGES = ['recommend', 'campus_wall', 'pinned'];
+function normTab(tab) {
+  const t = tab || S.squareTab;
+  return SQUARE_PAGES.includes(t) ? t : 'recommend';
+}
 function feedEl(tab) {
   if (tab === 'search') return document.getElementById('square-feed-search'); // 搜索页有自己的网格
-  const t = (tab || S.squareTab) === 'campus_wall' ? 'campus_wall' : 'recommend';
-  return document.getElementById('square-feed-' + t);
+  return document.getElementById('square-feed-' + normTab(tab));
 }
 function trackEl() { return document.getElementById('square-track'); }
-function pagerWidth() { return document.getElementById('square-pager')?.clientWidth || window.innerWidth; }
-const PAGE_GAP = 12; // 两页之间留白 = 2× 帖子间距（与 index.html 轨道 gap 保持一致）
-function trackOffset(tab) { return tab === 'campus_wall' ? -(pagerWidth() + PAGE_GAP) : 0; }
+function pagerWidth() {
+  // 元素在但宽度为 0（广场页隐藏时）同样要回退——否则页偏移会退化成只剩页间距，
+  // 轨道停在错误位置。|| 兼顾 null 与 0 两种情况。
+  return document.getElementById('square-pager')?.clientWidth || window.innerWidth || 375;
+}
+const PAGE_GAP = 12; // 页间留白 = 2× 帖子间距（与 index.html 轨道 gap 保持一致）
+function trackOffset(tab) { return -SQUARE_PAGES.indexOf(normTab(tab)) * (pagerWidth() + PAGE_GAP); }
 function setTrack(x, animate) {
   const t = trackEl();
   if (!t) return;
@@ -42,10 +51,13 @@ async function loadSquareTab() {
   setTimeout(positionSquareInk, 300);
   setTrack(trackOffset(S.squareTab), false);
   // 每次进入广场是全新会话：两页各自的滚动位置记忆清零（隐藏期间 window 滚动已复位）
-  S.squareScrollPos = { recommend: 0, campus_wall: 0 };
+  S.squareScrollPos = { recommend: 0, campus_wall: 0, pinned: 0 };
   // 双页都加载：滑动时另一页已是真实内容
+  syncPinnedSeg(S.squareTab); // 「置顶」段按当前页显隐
+  syncSquareFab(S.squareTab);
   window.loadSquareTab2('recommend');
   window.loadSquareTab2('campus_wall');
+  window.loadSquareTab2('pinned');
 }
 window.loadSquareTab = loadSquareTab;
 
@@ -63,9 +75,25 @@ if (!window.__squareInkResizeBound) {
   window.addEventListener('resize', () => requestAnimationFrame(positionSquareInk));
 }
 
-// Switch the square header between [推荐 | 校园墙] (tab ∈ recommend|campus_wall).
+// 「置顶」分段只在校园墙/置顶页显示（用户口径：到了校园墙，置顶才从右边滑出来）。
+// 段宽是从 0 过渡长出来的，下划线按 offsetLeft/offsetWidth 定位，故过渡结束后要再校一次。
+// 置顶页藏发帖按钮：那页放的是学生会置顶信息，用户发不了；
+// 留着它只会把帖子发到推荐流（openNewPost 按 S.squareTab 决定去向），与所在页面对不上。
+function syncSquareFab(tab) {
+  const fab = document.getElementById('square-fab');
+  if (fab) fab.classList.toggle('hidden', tab === 'pinned');
+}
+
+function syncPinnedSeg(tab) {
+  const tabs = document.getElementById('square-tabs');
+  if (!tabs) return;
+  tabs.classList.toggle('show-pinned', tab === 'campus_wall' || tab === 'pinned');
+  setTimeout(positionSquareInk, 300);
+}
+
+// Switch the square header between [推荐 | 校园墙 | 置顶].
 function switchSquareTab(el, tab) {
-  if (tab !== 'recommend' && tab !== 'campus_wall') return;
+  if (!SQUARE_PAGES.includes(tab)) return;
   const prev = S.squareTab;
   // 两页滚动位置独立（用户反馈）：真正的滚动容器是 #tab-square 本身
   // （body overflow-hidden，window 不滚——8/10 生产实测），切换前记下离开页的位置
@@ -83,6 +111,8 @@ function switchSquareTab(el, tab) {
       btn.classList.toggle('active', btn.dataset.tab === tab || btn === el);
     });
   }
+  syncPinnedSeg(tab); // 「置顶」段随页显隐（必须在定位下划线之前，段宽会变）
+  syncSquareFab(tab);
   positionSquareInk(); // 下划线滑到新选中项
   setTrack(trackOffset(tab), true); // 轨道滑到目标页
   // 点赞/详情同步的缓存指针跟着当前页走（loadSquareTab2 维护 by-tab 存储）
@@ -100,6 +130,15 @@ window.switchSquareTab = switchSquareTab;
 // 左右滑动切换 [推荐 | 校园墙]：双页轨道跟手拖动——拖动过程中另一页的
 // 真实内容随之进入视口（ViewPager 式），松手过阈值滑到该页，否则弹回。
 // 方向锁与竖向滚动/下拉刷新互不干扰。
+// 横滑目标 = 当前页的相邻页（左滑下一页 / 右滑上一页），在两端夹住。
+// 原来写死「dx<0 就是校园墙、否则推荐」，三页之后会滑错方向甚至跨两页。
+// 另外：置顶页只从校园墙进——推荐页左滑一次只到校园墙，不会一路穿到置顶。
+function swipeTarget(dx) {
+  const i = SQUARE_PAGES.indexOf(normTab(S.squareTab));
+  const next = Math.max(0, Math.min(SQUARE_PAGES.length - 1, i + (dx < 0 ? 1 : -1)));
+  return SQUARE_PAGES[next];
+}
+
 function bindSquareSwipe() {
   const el = document.getElementById('tab-square');
   if (!el || el.dataset.swipeBound) return;
@@ -123,8 +162,8 @@ function bindSquareSwipe() {
     }
     if (!horiz) return;
     if (e.cancelable) e.preventDefault();
-    const target = dx < 0 ? 'campus_wall' : 'recommend';
-    const damp = target === S.squareTab ? 0.3 : 1; // 越界方向橡皮筋
+    const target = swipeTarget(dx);
+    const damp = target === S.squareTab ? 0.3 : 1; // 已在两端、没有下一页 → 橡皮筋
     setTrack(trackOffset(S.squareTab) + dx * damp, false);
   }, { passive: false });
   const settle = () => {
@@ -134,7 +173,7 @@ function bindSquareSwipe() {
     el.dataset.horizLock = '0';
     el.style.touchAction = '';
     if (!horiz) { setTrack(trackOffset(S.squareTab), true); return; }
-    const target = dx < 0 ? 'campus_wall' : 'recommend';
+    const target = swipeTarget(dx);
     if (Math.abs(dx) >= 70 && target !== S.squareTab) {
       const btn = document.querySelector('#square-tabs .square-seg[data-tab="' + target + '"]');
       window.switchSquareTab(btn, target); // 内部会把轨道动画滑到目标页
@@ -336,16 +375,22 @@ else bindFabDrag();
 // Load the current tab's feed: GET /square/v2/recommend or /campus-wall.
 // Campus wall with no profile.school → empty state prompting to complete it.
 async function loadSquareTab2(tabArg) {
-  const tab = (tabArg || S.squareTab) === 'campus_wall' ? 'campus_wall' : 'recommend';
+  const tab = normTab(tabArg);
   const container = feedEl(tab);
   if (!container) return;
-  // 竞态守卫按 tab 分桶：两页并行加载互不覆盖
-  if (!S.squareReqSeqs) S.squareReqSeqs = { recommend: 0, campus_wall: 0 };
+  // 竞态守卫按 tab 分桶：三页并行加载互不覆盖
+  // 按页分桶。**不能写死键名**：缺键时 ++undefined = NaN，而 NaN !== NaN 恒真，
+  // 竞态守卫会把每一次加载都判成「已被更新的请求取代」而静默早退——页面永远空白且零报错。
+  if (!S.squareReqSeqs) S.squareReqSeqs = {};
+  if (typeof S.squareReqSeqs[tab] !== 'number') S.squareReqSeqs[tab] = 0;
   const seq = ++S.squareReqSeqs[tab];
-  const endpoint = tab === 'campus_wall' ? '/square/v2/campus-wall' : '/square/v2/recommend';
+  const endpoint = tab === 'pinned' ? '/square/v2/pinned'
+    : tab === 'campus_wall' ? '/square/v2/campus-wall'
+    : '/square/v2/recommend';
   try {
     // 搜索已独立成页（loadSquareSearch）：这里永远是未过滤信息流
-    const url = `${endpoint}?page=1&limit=20`;
+    // 置顶页不分页（后台人工维护的少量信息，翻页反而看不全）
+    const url = tab === 'pinned' ? endpoint : `${endpoint}?page=1&limit=20`;
     // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
     const wantAds = tab === 'recommend';
@@ -357,7 +402,8 @@ async function loadSquareTab2(tabArg) {
     const env = unwrap(data);
     S.squarePostsByTab = S.squarePostsByTab || {};
     // Campus wall asks the user to complete their school first.
-    if (tab === 'campus_wall' && env.needProfileSchool) {
+    // 置顶页与校园墙同样要求先填学校（同校可见性口径一致）
+    if ((tab === 'campus_wall' || tab === 'pinned') && env.needProfileSchool) {
       S.squarePostsByTab[tab] = [];
       if (tab === S.squareTab) S.squarePosts = [];
       renderSquareNeedSchool(tab);
@@ -406,6 +452,16 @@ function renderSquareFeed(posts, ads = [], tab) {
   if (!container) return;
   // 广场搜索只出帖子（用户要求）：结果里不再混入「同学」，找人走好友面板/扫码
   const isSearch = tab === 'search';
+  if (!posts.length && tab === 'pinned') {
+    // 置顶页空态：说清楚这页是干什么的，避免用户以为加载失败
+    container.innerHTML = `<div class="col-span-2 text-center py-24">
+      ${window.flatEmptyIcon('push_pin')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Nothing pinned yet</p>
+      <p class="text-sm text-on-surface-variant mt-2">Your student union pins important notices here</p>
+    </div>`;
+    layoutSquareMasonry();
+    return;
+  }
   if (!posts.length) {
     container.innerHTML = `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('grid_view')}
@@ -497,7 +553,7 @@ function scheduleMasonry() {
 }
 function layoutSquareMasonry() {
   const SP = 6; // 卡片垂直间距（1px auto-row / row-gap 0，与 main.css .square-feed-grid 绑定）
-  ['recommend', 'campus_wall', 'search'].forEach((t) => {
+  [...SQUARE_PAGES, 'search'].forEach((t) => {
     const c = feedEl(t);
     if (!c) return;
     const items = Array.from(c.children);
@@ -560,7 +616,7 @@ function observeMasonryItems() {
   if (!masonryRO) masonryRO = new ResizeObserver(() => scheduleMasonry());
   // 每次渲染整体重挂：旧卡已被 innerHTML 替换（RO 对失联节点持强引用，先断开防泄漏）
   masonryRO.disconnect();
-  ['recommend', 'campus_wall'].forEach((t) => {
+  SQUARE_PAGES.forEach((t) => {
     const c = feedEl(t);
     if (c) Array.from(c.children).forEach((el) => masonryRO.observe(el));
   });

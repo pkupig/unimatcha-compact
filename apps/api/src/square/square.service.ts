@@ -486,12 +486,15 @@ export class SquareService {
       isHidden: false,
       // 投票帖须审核通过；本人的待审/被驳回投票帖仍对本人可见（OR 分支）
       OR: [{ reviewStatus: 'approved' }, { authorUserId: userId }],
+      // 置顶帖已单独成页（listPinned），不再混在墙上——**活动帖除外**：
+      // 活动有时效、错过就没了，仍留在墙顶（产品口径）。
+      NOT: { AND: [{ pinnedAt: { not: null } }, { postType: { not: 'event' } }] },
     };
 
     const [posts, total] = await Promise.all([
       this.prisma.squarePost.findMany({
         where,
-        // 置顶帖恒在墙顶（后置顶的在前），其余按时间倒序
+        // 墙上只剩活动置顶帖会排在最前，其余按时间倒序
         orderBy: [{ pinnedAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
@@ -590,6 +593,33 @@ export class SquareService {
       };
     };
     return comments.map(one);
+  }
+
+  // ─── 置顶页（学生会置顶的信息，单独一页）──────────────────────
+  // 与校园墙同一套可见性口径（同校 + 未隐藏 + 审核通过），区别只在「必须是置顶帖」。
+  // 排序完全由学生会在后台定：pinnedOrder 小的在前，同值再按置顶时间倒序。
+  // 不做分页：置顶是人工维护的少量信息，翻页反而让人看不全（上限兜底 50 条）。
+  async listPinned(userId: string) {
+    const mySchool = await this.getUserSchool(userId);
+    if (!mySchool) {
+      return { items: [], total: 0, needProfileSchool: true };
+    }
+    const where: Prisma.SquarePostWhereInput = {
+      board: SquareBoard.CAMPUS_WALL,
+      school: mySchool,
+      isHidden: false,
+      pinnedAt: { not: null },
+      reviewStatus: 'approved',
+    };
+    const posts = await this.prisma.squarePost.findMany({
+      where,
+      orderBy: [{ pinnedOrder: 'asc' }, { pinnedAt: 'desc' }],
+      take: 50,
+      include: this.postInclude(),
+    });
+    const items = posts.map((p) => this.shapeCard(p, userId, mySchool));
+    await this.annotateMyVotes(items, userId);
+    return { items, total: items.length };
   }
 
   // ─── 评论（楼中楼，§8.1.5）──────────────────────────────────

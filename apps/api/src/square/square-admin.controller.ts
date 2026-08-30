@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -25,6 +26,7 @@ import {
   PinPostDto,
   ReviewPollDto,
   UpdateOfficialPostDto,
+  ReorderPinnedDto,
 } from './dto/square-admin.dto';
 import { ListQueryDto } from '../common/dto/list-query.dto';
 
@@ -85,6 +87,15 @@ export class SquareAdminController {
     @Body() dto: PinPostDto,
   ) {
     return this.squareAdminService.pinPost(actor, id, dto);
+  }
+
+  // 注意路由顺序：放在 @Patch('posts/:id') 之前无所谓（方法与路径都不同），
+  // 但必须不与 posts/:id 冲突——这里用独立的 pinned/order 前缀。
+  @Put('pinned/order')
+  @Roles(AdminRole.SUPER, AdminRole.TEAM, AdminRole.STUDENT_UNION)
+  @ApiOperation({ summary: '调整置顶页顺序（传完整有序 id 列表；学生会仅本校）' })
+  reorderPinned(@CurrentAdmin() actor: AdminActor, @Body() dto: ReorderPinnedDto) {
+    return this.squareAdminService.reorderPinned(actor, dto);
   }
 
   @Patch('posts/:id')
