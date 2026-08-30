@@ -74,6 +74,18 @@ def _normalize_multichoice(value: Any) -> list[str] | None:
     return items or None
 
 
+# v2 complement 相似度查表：|差值| 0..4 → 得分。峰值在差 2（适度互补最好），
+# 完全相同 0.5（不冲突但没有互补火花）、极端相反 0.3。与 TS 侧 COMPLEMENT_TABLE 一致。
+COMPLEMENT_TABLE = [0.5, 0.8, 1.0, 0.7, 0.3]
+
+
+def _answer_by_code(answers: list[AnswerData], code: str) -> Any:
+    for ans in answers:
+        if ans.questionCode == code:
+            return ans.value
+    return None
+
+
 def passes_hard_gate(a: CandidateProfile, b: CandidateProfile, mode: str) -> bool:
     """True iff the pair survives every hard constraint (calculatePairScore != 0)."""
     ap, bp = a.prefs, b.prefs
@@ -117,6 +129,25 @@ def passes_hard_gate(a: CandidateProfile, b: CandidateProfile, mode: str) -> boo
         sa = infer_stage_from_grade(a.grade)
         if stages and sa and sa not in stages:
             return False
+
+    # ── 问卷 v2 过滤题（matchSemantics=filter；与 TS ScoringMatchModelProvider
+    #    的 passesV2Filters 保持双实现一致——改一边必须同步另一边）──
+    # 距离：任一方「必须同城」→ 双方城市都已知且不同则淘汰。
+    # 与偏好里 requireSameCity 的「保守拒绝」不同：问卷答案不是显式开关，
+    # 有一方城市未知时不淘汰（宁可放过，不误杀资料不全的用户）。
+    dist_a = _answer_by_code(a.answers, "db_distance")
+    dist_b = _answer_by_code(b.answers, "db_distance")
+    if a.city and b.city and _norm(a.city) != _norm(b.city):
+        if dist_a == "must_same_city" or dist_b == "must_same_city":
+            return False
+    # 吸烟（恋人）：一方「绝对不能接受」而另一方自述偶尔/经常吸 → 淘汰。
+    if mode == "romantic":
+        def _smokes(v: Any) -> bool:
+            return v in ("occasionally", "regularly")
+        if _answer_by_code(a.answers, "life_smoking") == "never" and _smokes(_answer_by_code(b.answers, "life_smoking_self")):
+            return False
+        if _answer_by_code(b.answers, "life_smoking") == "never" and _smokes(_answer_by_code(a.answers, "life_smoking_self")):
+            return False
     return True
 
 
@@ -131,6 +162,9 @@ def questionnaire_score(answers_a: list[AnswerData], answers_b: list[AnswerData]
         ad_b = map_b.get(qid)
         if not ad_b or ad_a.questionType == "TEXT":
             continue
+        # v2：filter 语义的题只进硬门，不做相似度打分；freeform 已被 TEXT 跳过
+        if ad_a.semantics == "filter":
+            continue
         sim: float
         if ad_a.questionType == "SCALE":
             try:
@@ -139,7 +173,11 @@ def questionnaire_score(answers_a: list[AnswerData], answers_b: list[AnswerData]
                 continue
             if not (1 <= va <= 5 and 1 <= vb <= 5):
                 continue
-            sim = 1 - abs(va - vb) / 4
+            # v2 complement：适度差异得分更高（查表，与 TS 侧一致）
+            if ad_a.semantics == "complement":
+                sim = COMPLEMENT_TABLE[round(abs(va - vb))]
+            else:
+                sim = 1 - abs(va - vb) / 4
         elif ad_a.questionType == "SINGLE_CHOICE":
             if ad_a.value is None or ad_b.value is None:
                 continue
@@ -159,9 +197,11 @@ def questionnaire_score(answers_a: list[AnswerData], answers_b: list[AnswerData]
         group = ad_a.questionGroup or infer_group_by_order(ad_a.questionOrder or 0, mode)
         if group not in weights:
             group = GENERAL_GROUP
+        # v2 题内权重：组内加权平均（v1 老题 weight 为 None → 1，行为不变）
+        w = ad_a.weight if (ad_a.weight and ad_a.weight > 0) else 1.0
         g = group_sims.setdefault(group, {"sum": 0.0, "count": 0.0})
-        g["sum"] += sim
-        g["count"] += 1
+        g["sum"] += sim * w
+        g["count"] += w
 
     weighted = list(weights.items()) + [(GENERAL_GROUP, GENERAL_WEIGHT)]
     present = [(grp, w) for grp, w in weighted if group_sims.get(grp, {}).get("count", 0) > 0]

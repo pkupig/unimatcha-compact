@@ -180,6 +180,98 @@ def test_dealbreaker_guardrail_overrides_soft_llm():
     print("✓ dealbreaker guardrail: flex<=1 forced hard, score capped; flex=2 left soft")
 
 
+# ── 问卷 v2：过滤题硬门 / complement / 题内权重 / hard 自由题升格 ─────────
+
+def _v2ans(code, qtype, value, semantics="similar", hardness="soft",
+           group=None, weight=None):
+    return AnswerData(questionId=code, questionType=qtype, value=value,
+                      questionGroup=group, questionCode=code,
+                      semantics=semantics, hardness=hardness, weight=weight)
+
+
+def test_v2_filter_gate_distance_and_smoking():
+    from app.pipeline.rules import passes_hard_gate
+    base = dict(gender="female", pref="male", age=22)
+    a = _cand("a", "female", "male", 22)
+    b = _cand("b", "male", "female", 23)
+    # 同城（都 London）：必须同城不拦
+    a.answers.append(_v2ans("db_distance", "SINGLE_CHOICE", "must_same_city", semantics="filter", hardness="hard"))
+    assert passes_hard_gate(a, b, "romantic")
+    # 异地：必须同城 → 拦
+    b.city = "Manchester"
+    assert not passes_hard_gate(a, b, "romantic")
+    # 对方城市未知：不拦（宁可放过）
+    b.city = ""
+    assert passes_hard_gate(a, b, "romantic")
+    # 吸烟：绝对不能接受 vs 经常吸 → 拦；vs 不吸 → 放行
+    b.city = "London"
+    a.answers.append(_v2ans("life_smoking", "SINGLE_CHOICE", "never", semantics="filter", hardness="hard"))
+    b.answers.append(_v2ans("life_smoking_self", "SINGLE_CHOICE", "regularly", semantics="filter"))
+    assert not passes_hard_gate(a, b, "romantic")
+    b.answers[-1] = _v2ans("life_smoking_self", "SINGLE_CHOICE", "no", semantics="filter")
+    assert passes_hard_gate(a, b, "romantic")
+    print("✓ v2 filter gate: distance + smoking")
+
+
+def test_v2_scoring_semantics():
+    from app.pipeline.rules import questionnaire_score, COMPLEMENT_TABLE
+    # complement：一动一静（1 vs 5 差 4）得 0.3；适度差 2 得 1.0；similar 同题差 4 得 0
+    comp_far = [_v2ans("soc_energy", "SCALE", 1, semantics="complement", group="社交风格")]
+    comp_far_b = [_v2ans("soc_energy", "SCALE", 5, semantics="complement", group="社交风格")]
+    sim_far = [_v2ans("x", "SCALE", 1, group="社交风格")]
+    sim_far_b = [_v2ans("x", "SCALE", 5, group="社交风格")]
+    s_comp = questionnaire_score(comp_far, comp_far_b, "friend")
+    s_sim = questionnaire_score(sim_far, sim_far_b, "friend")
+    assert abs(s_comp - COMPLEMENT_TABLE[4] * 70) < 1e-6
+    assert s_sim == 0.0
+    comp_mid_b = [_v2ans("soc_energy", "SCALE", 3, semantics="complement", group="社交风格")]
+    assert abs(questionnaire_score(comp_far, comp_mid_b, "friend") - 70.0) < 1e-6
+    # filter 题不计分：只有 filter 题时回退 0.5*70 的无数据基线
+    f = [_v2ans("db_distance", "SINGLE_CHOICE", "any", semantics="filter", hardness="hard")]
+    assert questionnaire_score(f, f, "friend") == 0.5 * 70
+    # 题内权重：同组一题满分(w=1.5)一题零分(w=1) → 加权 0.6，高于等权 0.5
+    wa = [_v2ans("q1", "SCALE", 5, group="价值观", weight=1.5), _v2ans("q2", "SCALE", 1, group="价值观")]
+    wb = [_v2ans("q1", "SCALE", 5, group="价值观", weight=1.5), _v2ans("q2", "SCALE", 5, group="价值观")]
+    got = questionnaire_score(wa, wb, "friend")
+    assert abs(got - (1.5 / 2.5) * 70) < 1e-6
+    print("✓ v2 scoring: complement table, filter skip, per-item weight")
+
+
+def test_v2_hard_freeform_becomes_absolute_dealbreaker():
+    ext = RuleBasedExtractor()
+    a = _cand("a", "female", "male", 22)
+    # db_other（hard TEXT）：写「不能接受吸烟」→ 必须升格为 flexibility=1 的绝对底线
+    a.answers.append(AnswerData(questionId="db_other", questionType="TEXT",
+                                value="不能接受吸烟", questionCode="db_other",
+                                semantics="freeform", hardness="hard"))
+    pa = ext.extract(a, "romantic")
+    hard = [p for p in pa.dealbreakers if p.topicGroup == "smoking"]
+    assert hard and hard[0].flexibility == 1 and hard[0].polarity == "reject"
+    # 同样的话写在普通 extraMatchInfo 里只是 flex=2（不升格）——两者必须有区别
+    b = _cand("b", "female", "male", 22, extra="不能接受吸烟")
+    pb = RuleBasedExtractor().extract(b, "romantic")
+    soft = [p for p in pb.dealbreakers if p.topicGroup == "smoking"]
+    assert soft and soft[0].flexibility == 2
+    # 裸名词回答（「还有什么完全无法接受？」→「吸烟」）：语境自带否定，
+    # 词典给 neutral 也必须升格为绝对底线；「爱抽烟的」同理不能被记成正向偏好
+    c = _cand("c", "female", "male", 22)
+    c.answers.append(AnswerData(questionId="db_other", questionType="TEXT",
+                                value="吸烟", questionCode="db_other",
+                                semantics="freeform", hardness="hard"))
+    pcx = RuleBasedExtractor().extract(c, "romantic")
+    bare = [p for p in pcx.dealbreakers if p.topicGroup == "smoking"]
+    assert bare and bare[0].flexibility == 1 and bare[0].polarity == "reject", "bare noun must escalate"
+    d = _cand("d", "female", "male", 22)
+    d.answers.append(AnswerData(questionId="db_other", questionType="TEXT",
+                                value="爱抽烟的", questionCode="db_other",
+                                semantics="freeform", hardness="hard"))
+    pdx = RuleBasedExtractor().extract(d, "romantic")
+    lovers = [p for p in pdx.preferences if p.topicGroup == "smoking" and p.polarity == "like"]
+    assert not lovers, "hard text must never yield a positive preference"
+    assert any(p.topicGroup == "smoking" and p.flexibility == 1 for p in pdx.dealbreakers)
+    print("✓ v2 hard freeform -> flexibility=1 absolute dealbreaker (incl. bare nouns)")
+
+
 if __name__ == "__main__":
     test_cilantro_hard_conflict()
     test_cat_vs_dog_not_conflict()
@@ -187,4 +279,7 @@ if __name__ == "__main__":
     test_stable_beats_greedy_on_blocking_pairs()
     test_feedback_ranker_learns_signal()
     test_dealbreaker_guardrail_overrides_soft_llm()
+    test_v2_filter_gate_distance_and_smoking()
+    test_v2_scoring_semantics()
+    test_v2_hard_freeform_becomes_absolute_dealbreaker()
     print("\nAll smoke tests passed.")

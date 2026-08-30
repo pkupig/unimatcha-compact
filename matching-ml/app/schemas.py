@@ -31,6 +31,12 @@ class AnswerData(BaseModel):
     value: Any
     questionOrder: Optional[int] = None
     questionGroup: Optional[str] = None
+    # ── 问卷 v2 元数据（v1 老题不带这些字段，全部可选保持兼容）──
+    questionCode: Optional[str] = None   # 稳定题目标识，硬门按它找题（db_distance/life_smoking…）
+    semantics: Optional[str] = None      # filter | similar | complement | freeform
+    hardness: Optional[str] = None       # hard | soft
+    weight: Optional[float] = None       # 题内权重（组内加权平均）
+    target: Optional[str] = None         # self | partner | both
 
 
 class MatchPreferences(BaseModel):

@@ -29,14 +29,20 @@ _CASUAL_CUES = ["随便", "玩玩", "先聊聊", "不着急", "看缘分"]
 
 
 def _free_texts(c: CandidateProfile) -> list[str]:
-    texts: list[str] = []
+    return [t for t, _ in _free_texts_tagged(c)]
+
+
+def _free_texts_tagged(c: CandidateProfile) -> list[tuple[str, bool]]:
+    """(text, is_hard)：is_hard=True 的文本来自 hardness=hard 的问卷题（db_other
+    「完全无法接受」）——从这类文本里抽出的负面偏好必须落成绝对底线。"""
+    texts: list[tuple[str, bool]] = []
     if c.bio:
-        texts.append(c.bio)
+        texts.append((c.bio, False))
     if c.prefs and c.prefs.extraMatchInfo:
-        texts.append(c.prefs.extraMatchInfo)
+        texts.append((c.prefs.extraMatchInfo, False))
     for a in c.answers:
         if a.questionType == "TEXT" and isinstance(a.value, str) and a.value.strip():
-            texts.append(a.value)
+            texts.append((a.value, a.hardness == "hard"))
     return texts
 
 
@@ -74,7 +80,7 @@ class RuleBasedExtractor:
             )
 
         # Free-text clauses -> polarity-aware preferences / dealbreakers.
-        for text in _free_texts(c):
+        for text, is_hard in _free_texts_tagged(c):
             for clause in lexicon.clauses(text):
                 hit = lexicon.find_topic(clause)
                 if not hit:
@@ -82,6 +88,14 @@ class RuleBasedExtractor:
                 topic, group = hit
                 polarity, strength, flexibility = lexicon.polarity_and_strength(clause)
                 target = lexicon.infer_target(clause)
+                # v2：hard 题（db_other「还有什么是你完全无法接受的？」）的语境本身就带否定——
+                # 最自然的回答是裸名词（「吸烟」「酗酒」），词典对裸名词返回 neutral、
+                # 对「爱抽烟的」还会命中 like 把方向整个反转。所以对 hard 文本反转默认极性：
+                # 除非明确命中接受语（能接受/无所谓…），一律升格为 flexibility=1 的绝对底线
+                # （词典 mock 的 reject 恒为 flex=2、永远够不到一票否决档，这里是唯一通道）。
+                if is_hard and polarity != "accept":
+                    polarity, strength, flexibility = "reject", 4, 1
+                    target = target if target in ("partner", "both") else "partner"
                 pref = Preference(topic=topic, topicGroup=group, polarity=polarity,
                                   target=target, strength=strength,
                                   flexibility=flexibility, evidence=clause)

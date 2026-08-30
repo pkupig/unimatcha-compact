@@ -106,10 +106,40 @@ async function ensureQuestionnaireThenMatch(mode) {
   // 视图可能在等待期间被切走：仅当仍停留在该匹配模式时才继续渲染
   if (S.homeView !== mode) return;
   if (!completed) {
-    promptFillQuestionnaire(mode);
-    return;
+    // 问卷墙只拦「还没进任何状态」的用户。已在池中/已匹配/已在关系中的人必须能进
+    // 匹配页——否则改版激活新问卷的瞬间（所有人完成度归零），在池的人连「离开匹配池」
+    // 都点不到、情侣看不到伴侣卡。这些人改出顶部横幅引导重填，页面照常渲染。
+    let state = S.matchStatus?.[mode]?.state;
+    if (state === undefined) {
+      try {
+        const st = await window.api('/matching/status?mode=' + mode);
+        state = (st?.data ?? st ?? {}).state;
+      } catch (e) { state = undefined; }
+      if (S.homeView !== mode) return;
+    }
+    if (!state || state === 'idle') {
+      promptFillQuestionnaire(mode);
+      return;
+    }
+    S.pendingQuestionnaireBanner = mode; // renderMatchTab 后追加横幅
   }
-  window.loadMatchTab();
+  await window.loadMatchTab();
+  if (S.pendingQuestionnaireBanner === mode) {
+    S.pendingQuestionnaireBanner = null;
+    injectQuestionnaireBanner(mode);
+  }
+}
+
+// 非 idle 用户的重填引导横幅：插在匹配内容顶部，不挡任何既有操作
+function injectQuestionnaireBanner(mode) {
+  const container = document.getElementById('match-content');
+  if (!container || document.getElementById('q-refill-banner')) return;
+  const bar = document.createElement('div');
+  bar.id = 'q-refill-banner';
+  bar.className = 'w-full max-w-xs mx-auto mb-4 px-4 py-3 rounded-[10px] bg-neon/15 flex items-center justify-between gap-3';
+  bar.innerHTML = `<span class="text-xs text-on-surface">Questionnaire updated — refill for better matches</span>
+    <button class="shrink-0 px-3 py-1.5 rounded-full bg-neon text-black font-headline text-[10px] font-bold tracking-widest active:scale-95 transition-transform" onclick="goFillQuestionnaire('${mode === 'friend' ? 'friend' : 'romantic'}')">Refill</button>`;
+  container.prepend(bar);
 }
 
 // 未填问卷引导：在 #match-content 渲染一张引导卡，按钮跳问卷页填写对应模式问卷。

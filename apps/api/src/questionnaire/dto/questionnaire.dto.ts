@@ -1,6 +1,6 @@
 import {
   IsString, IsOptional, IsBoolean, IsInt, IsEnum, IsArray,
-  ValidateNested, Min, Max,
+  ValidateNested, Min, Max, IsNumber, IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -15,6 +15,8 @@ export class ToggleQuestionDto {
 
 export class CreateOptionDto {
   @ApiProperty() @IsString() label: string;
+  @ApiPropertyOptional({ description: '英文选项文案（英文态显示，缺省回退中文）' })
+  @IsOptional() @IsString() labelEn?: string;
   @ApiProperty() @IsString() value: string;
   @ApiProperty() @IsInt() order: number;
 }
@@ -27,6 +29,16 @@ export class CreateQuestionDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isEnabled?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsInt() order?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() group?: string;
+
+  // ── 问卷 v2 元数据（见 schema.prisma Question 注释；不传取列默认值）──
+  @ApiPropertyOptional() @IsOptional() @IsString() code?: string;
+  @ApiPropertyOptional({ enum: ['filter', 'similar', 'complement', 'freeform'] })
+  @IsOptional() @IsIn(['filter', 'similar', 'complement', 'freeform']) semantics?: string;
+  @ApiPropertyOptional({ enum: ['hard', 'soft'] })
+  @IsOptional() @IsIn(['hard', 'soft']) hardness?: string;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0.1) weight?: number;
+  @ApiPropertyOptional({ enum: ['self', 'partner', 'both'] })
+  @IsOptional() @IsIn(['self', 'partner', 'both']) target?: string;
 
   @ApiPropertyOptional({ type: [CreateOptionDto] })
   @IsOptional()

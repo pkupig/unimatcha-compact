@@ -31,6 +31,8 @@ const ZH = {
   'No conversations matched.': '没有匹配的会话。', 'No conversations yet.': '还没有会话。',
   'No posts found': '没有找到帖子', 'Try a different keyword': '换个关键词试试',
   'Search the square': '搜索广场', 'Find posts by title, content or tag': '按标题、正文或标签搜索帖子',
+  'Optional — leave blank to skip': '选填，可留空跳过', 'Select all that apply': '可多选',
+  'Questionnaire updated — refill for better matches': '问卷已更新，重新填写让匹配更准', Refill: '去填写',
   'Up to 6 options': '最多 6 个选项', 'At least 2 options': '至少保留 2 个选项',
   'A poll needs at least 2 options': '投票至少需要 2 个选项',
   PENDING: '待确认', PARTNER: '恋人', FRIEND: '好友',
@@ -214,7 +216,8 @@ window.aliasAvatarHtml = aliasAvatarHtml;
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）
 const ZH_PLACEHOLDER = {
   'Search posts': '搜索帖子', 'Type your response...': '输入消息…',
-  'Add an observation...': '写下你的评论…', 'Commenting anonymously...': '正在匿名评论…', 'Search your chats': '搜索会话',
+  'Add an observation...': '写下你的评论…', 'Commenting anonymously...': '正在匿名评论…',
+  'Your answer...': '写下你的回答…', 'Search your chats': '搜索会话',
   'Search your contacts': '搜索联系人',
   'Title': '标题', 'Capture the moment...': '记录此刻…',
   'Option 1': '选项 1', 'Option 2': '选项 2', 'Option 3': '选项 3',

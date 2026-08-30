@@ -743,9 +743,9 @@ export class MatchingService {
         answers: activeVersionId
           ? {
               where: { questionnaireVersionId: activeVersionId },
-              include: { question: { select: { type: true, order: true, group: true } } },
+              include: { question: { select: { type: true, order: true, group: true, code: true, semantics: true, hardness: true, weight: true, target: true } } },
             }
-          : { include: { question: { select: { type: true, order: true, group: true } } } },
+          : { include: { question: { select: { type: true, order: true, group: true, code: true, semantics: true, hardness: true, weight: true, target: true } } } },
       },
     });
 
@@ -773,6 +773,9 @@ export class MatchingService {
         school: u.profile!.school || '',
         grade: u.profile!.grade || '',
         interests: u.profile!.interests || [],
+        // v2 契约的 S8：签名/自我介绍走 profile 而不落问卷题——那就必须真的送过去。
+        // ML 的 extractor 一直声明了 bio 字段，此前 NestJS 从未发送（审计发现的死路）。
+        bio: [u.profile!.bio, u.profile!.signature].filter(Boolean).join(' ') || undefined,
         activities: (prefs?.preferredActivities as string[]) || [],
         answers: u.answers.map((a) => ({
           questionId: a.questionId,
@@ -780,6 +783,13 @@ export class MatchingService {
           value: a.value,
           questionOrder: a.question.order,
           questionGroup: a.question.group ?? undefined,
+          // 问卷 v2 元数据：打分器按 semantics/weight 定权，硬门按 code 找题。
+          // v1 老题这些字段是缺省值（code=null / similar / soft / 1），行为不变。
+          questionCode: a.question.code ?? undefined,
+          semantics: a.question.semantics,
+          hardness: a.question.hardness,
+          weight: a.question.weight,
+          target: a.question.target,
         })),
         _prefs: prefs,
         enhanced,

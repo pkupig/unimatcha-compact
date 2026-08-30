@@ -18,6 +18,8 @@ export interface CandidateProfile {
   school: string;
   grade?: string;
   interests: string[];
+  // 自由文本（签名+自我介绍拼接）：ML 的 Profile Extractor 吃它抽偏好（v2 契约 S8）
+  bio?: string;
   // 朋友模式：偏好活动（软约束加分用），由 buildCandidates 注入（§3.6）
   activities?: string[];
   answers: AnswerData[];
@@ -34,6 +36,12 @@ export interface AnswerData {
   value: any;
   questionOrder?: number;   // 题目 order 字段，用于分类推断
   questionGroup?: string;   // 题目 group 字段（生活习惯/价值观/恋爱观/沟通/财务观 或朋友 group）
+  // ── 问卷 v2 元数据（v1 老题为缺省值，可选以保持向后兼容）──
+  questionCode?: string;    // 稳定题目标识（db_distance/life_smoking…），硬门按它找题
+  semantics?: string;       // filter | similar | complement | freeform
+  hardness?: string;        // hard | soft
+  weight?: number;          // 题内权重（组内加权平均）
+  target?: string;          // self | partner | both
 }
 
 export interface MatchConstraints {

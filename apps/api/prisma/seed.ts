@@ -1,4 +1,5 @@
 import { PrismaClient, QuestionType, QuestionnaireType } from '@prisma/client';
+import { ROMANTIC_V2, FRIEND_V2, V2Question } from './questionnaire-v2';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -300,6 +301,83 @@ async function main() {
   } else {
     console.log('ℹ️  Friend questionnaire already exists, skipping');
   }
+
+  // ─── 问卷 v2（uspark 契约落地：恋爱 18 题 / 朋友 14 题）──────────
+  // 幂等按【type 各自】判定（恋爱押 ser_intent、朋友押 soc_energy 的 code），
+  // 且每个 type 的「下线旧版 + 建新版」包成一个事务——顺序写库若在中途崩掉，
+  // 会留下「恋爱 v2 朋友 v1」或「朋友零 active」的永久坏状态，而 Dockerfile 又用
+  // `|| echo` 吞掉 seed 失败，坏了没人知道。分侧幂等还能自愈半完成状态。
+  // 激活 v2 会让老用户的「问卷完成」变为未完成（完成度锚定 active 版本），属预期改版语义。
+  const mkQuestions = (qs: V2Question[]) =>
+    qs.map((q, idx) => ({
+      type: q.type as QuestionType,
+      title: q.title,
+      titleEn: q.titleEn,
+      isRequired: q.required !== false,
+      isEnabled: true,
+      order: idx + 1,
+      group: q.group ?? null,
+      code: q.code,
+      semantics: q.semantics,
+      hardness: q.hardness,
+      weight: q.weight ?? 1,
+      target: q.target ?? 'self',
+      options: q.options
+        ? { create: q.options.map((o, oi) => ({ label: o.label, labelEn: o.labelEn, value: o.value, order: oi + 1 })) }
+        : undefined,
+    }));
+
+  const seedV2 = async (
+    qType: QuestionnaireType,
+    guardCode: string,
+    title: string,
+    description: string,
+    bank: V2Question[],
+  ) => {
+    const exists = await prisma.question.findFirst({
+      where: { code: guardCode, questionnaire: { type: qType } },
+    });
+    if (exists) {
+      console.log(`ℹ️  Questionnaire v2 (${qType}) already exists, skipping`);
+      return;
+    }
+    await prisma.$transaction(async (tx) => {
+      const maxV = await tx.questionnaireVersion.findFirst({ orderBy: { version: 'desc' } });
+      await tx.questionnaireVersion.updateMany({
+        where: { type: qType, isActive: true },
+        data: { isActive: false },
+      });
+      const v = await tx.questionnaireVersion.create({
+        data: {
+          version: (maxV?.version ?? 0) + 1,
+          type: qType,
+          title,
+          description,
+          isActive: true,
+          publishedAt: new Date(),
+          questions: { create: mkQuestions(bank) },
+        },
+      });
+      console.log(`✅ Questionnaire v2 (${qType}) created as version ${v.version}, ${bank.length} questions`);
+    });
+  };
+
+  await seedV2(
+    QuestionnaireType.ROMANTIC,
+    'ser_intent',
+    '恋爱匹配问卷 v2',
+    '18 道题：底线直说、期望尽力。选择题按真实情况选；量表题 1=完全不同意，5=完全同意；' +
+      '自由题可留空，但写了会让匹配更懂你。',
+    ROMANTIC_V2,
+  );
+  await seedV2(
+    QuestionnaireType.FRIEND,
+    'soc_energy',
+    '朋友匹配问卷 v2',
+    '14 道题：底线直说、期望尽力。选择题按真实情况选；量表题 1=完全不同意，5=完全同意；' +
+      '自由题可留空。',
+    FRIEND_V2,
+  );
 
   console.log('🎉 Seeding completed!');
 }

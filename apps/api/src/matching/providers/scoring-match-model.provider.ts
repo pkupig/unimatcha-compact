@@ -165,6 +165,12 @@ function calculatePairScore(a: CandidateProfile, b: CandidateProfile, mode: Mode
     if (stagesB.length > 0 && stageA && !stagesB.includes(stageA)) return 0;
   }
 
+  // ── 1.5 问卷 v2 过滤题硬门（与 matching-ml rules.hard_gate 保持双实现一致）──
+  // 距离：任一方选了「必须同城」→ 双方城市都已知且不同则淘汰（有一方未知不淘汰：
+  // 问卷答案不是 requireSameCity 那种显式开关，宁可放过不误杀）。
+  // 吸烟（恋人）：一方「绝对不能接受」而另一方自述偶尔/经常吸 → 淘汰。
+  if (!passesV2Filters(a, b, mode)) return 0;
+
   // ── 2. 问卷兼容性评分（0–70分，按 mode 选权重表） ────────────────────────
   const questionnaireScore = calcQuestionnaireScore(a.answers, b.answers, mode);
 
@@ -190,6 +196,34 @@ function calculatePairScore(a: CandidateProfile, b: CandidateProfile, mode: Mode
   return Math.round(Math.min(100, Math.max(0, total)) * 10) / 10;
 }
 
+// v2 complement 相似度查表：|差值| 0..4 → 得分。峰值在差 2（适度互补最好），
+// 完全相同 0.5（不冲突但没有互补火花）、极端相反 0.3（差太多难相处）。
+const COMPLEMENT_TABLE = [0.5, 0.8, 1.0, 0.7, 0.3];
+
+// 按 code 取某人的答案值（v2 硬门用；answers 少、线性扫无所谓）
+function answerByCode(answers: AnswerData[], code: string): any {
+  return answers.find((a) => a.questionCode === code)?.value;
+}
+
+// 问卷 v2 过滤题硬门。语义与 matching-ml rules.hard_gate 的 v2 段保持一致——
+// 双实现（TS 兜底 / Python 主力）改任何一边都必须同步另一边。
+function passesV2Filters(a: CandidateProfile, b: CandidateProfile, mode: ModeStr): boolean {
+  const distA = answerByCode(a.answers, 'db_distance');
+  const distB = answerByCode(b.answers, 'db_distance');
+  const eq = (x?: string | null, y?: string | null) =>
+    (x ?? '').trim().toLowerCase() === (y ?? '').trim().toLowerCase();
+  const sameCity = a.city && b.city && eq(a.city, b.city);
+  if (distA === 'must_same_city' && a.city && b.city && !sameCity) return false;
+  if (distB === 'must_same_city' && a.city && b.city && !sameCity) return false;
+
+  if (mode === 'romantic') {
+    const smokes = (v: any) => v === 'occasionally' || v === 'regularly';
+    if (answerByCode(a.answers, 'life_smoking') === 'never' && smokes(answerByCode(b.answers, 'life_smoking_self'))) return false;
+    if (answerByCode(b.answers, 'life_smoking') === 'never' && smokes(answerByCode(a.answers, 'life_smoking_self'))) return false;
+  }
+  return true;
+}
+
 // 问卷兼容性评分（满分70，按 mode 选权重表）
 function calcQuestionnaireScore(
   answersA: AnswerData[],
@@ -208,6 +242,9 @@ function calcQuestionnaireScore(
     if (!adB) continue;
 
     if (adA.questionType === 'TEXT') continue;
+    // v2：filter 语义的题不做相似度打分（它们只进硬门）；freeform 已被 TEXT 跳过
+    if (adA.semantics === 'filter') continue;
+
 
     let similarity: number;
 
@@ -216,7 +253,11 @@ function calcQuestionnaireScore(
       const valB = Number(adB.value);
       if (isNaN(valA) || isNaN(valB)) continue;
       if (valA < 1 || valA > 5 || valB < 1 || valB > 5) continue;
-      similarity = 1 - Math.abs(valA - valB) / 4;
+      // v2 complement：适度差异得分更高（一动一静/一说一听可互补）。
+      // 离散五档查表而不是拟合曲线——更好测也更好调。
+      similarity = adA.semantics === 'complement'
+        ? COMPLEMENT_TABLE[Math.round(Math.abs(valA - valB))]
+        : 1 - Math.abs(valA - valB) / 4;
     } else if (adA.questionType === 'SINGLE_CHOICE') {
       if (adA.value == null || adB.value == null) continue;
       similarity = String(adA.value) === String(adB.value) ? 1 : 0;
@@ -246,9 +287,11 @@ function calcQuestionnaireScore(
     let group = adA.questionGroup || inferGroupByOrder(adA.questionOrder || 0, mode);
     if (!(group in CATEGORY_WEIGHTS)) group = GENERAL_GROUP;
 
+    // v2 题内权重：组内加权平均（v1 老题 weight 恒 1，行为不变）
+    const w = adA.weight && adA.weight > 0 ? adA.weight : 1;
     if (!groupSimilarities[group]) groupSimilarities[group] = { sum: 0, count: 0 };
-    groupSimilarities[group].sum += similarity;
-    groupSimilarities[group].count += 1;
+    groupSimilarities[group].sum += similarity * w;
+    groupSimilarities[group].count += w;
   }
 
   const weightedGroups: [string, number][] = [

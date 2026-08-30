@@ -420,6 +420,15 @@ model Question {
   order       Int          @default(0)
   group       String?
 
+  // ── 问卷 v2（uspark_questionnaire.json 契约）────────────────
+  // code：稳定题目标识（如 db_distance/life_smoking），打分器与硬门按它找题，
+  //       与数据库随机 id 解耦；null = v1 老题（不参与 v2 语义）。
+  code      String? // 稳定标识，硬门/打分按它定位
+  semantics String  @default("similar") // filter | similar | complement | freeform
+  hardness  String  @default("soft")    // hard=底线（不满足即排除）| soft=期望（只影响分数）
+  weight    Float   @default(1)          // 题内权重（组内加权平均）
+  target    String  @default("self")    // self=自述 | partner=对对方的要求 | both
+
   options QuestionOption[]
   answers Answer[]
 
@@ -441,9 +450,10 @@ model QuestionOption {
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  label String
-  value String
-  order Int    @default(0)
+  label   String  // 中文选项文案
+  labelEn String? // 英文选项文案（英文态显示，缺省回退中文——与 Question.titleEn 同一模式）
+  value   String  // 稳定值（snake_case），答案与打分/硬门都比对它
+  order   Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -188,7 +188,8 @@ function renderQuestion() {
   const optC = document.getElementById('q-options');
   if (!optC) return;
   if (q.type === 'SCALE') {
-    const labels = ['Strongly Agree', 'Agree', 'Neutral', 'Disagree', 'Strongly Disagree'];
+    // 1=非常不同意 … 5=非常同意（与问卷描述、iOS 同向；v2 上线时翻转，见提交说明）
+    const labels = ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'];
     optC.innerHTML = Array.from({
       length: 5
     }, (_, i) => {
@@ -200,16 +201,25 @@ function renderQuestion() {
       </label>`;
     }).join('');
   } else if (q.type === 'TEXT') {
-    optC.innerHTML = `<textarea class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" rows="4" placeholder="Your answer..." oninput="answerText('${q.id}', this.value)">${window.escapeHtml(answers[q.id] || '')}</textarea>`;
+    // v2 自由题多为选填（isRequired=false）：给出「可留空」提示，别让人卡在这题
+    const optional = q.isRequired === false
+      ? `<p class="text-[11px] text-outline mb-2">Optional — leave blank to skip</p>` : '';
+    optC.innerHTML = `${optional}<textarea class="w-full bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" rows="4" placeholder="Your answer..." oninput="answerText('${q.id}', this.value)">${window.escapeHtml(answers[q.id] || '')}</textarea>`;
   } else {
     const options = q.options || [];
-    optC.innerHTML = options.map(o => {
-      const val = o.value || o.id;
-      const sel = q.type === 'MULTIPLE_CHOICE' ? (answers[q.id] || []).includes(val) : answers[q.id] === val;
-      const fn = q.type === 'MULTIPLE_CHOICE' ? `answerMultiple('${q.id}','${val}')` : `answerSingle('${q.id}','${val}')`;
-      return `<label class="group flex items-center justify-between px-4 py-3 border-b ${sel ? 'border-neon bg-neon/10' : 'border-outline-variant/30'} hover:bg-surface-container-low cursor-pointer transition-all duration-200 active:scale-[0.99]" onclick="${fn}">
-        <span class="font-body text-base font-medium">${window.escapeHtml(o.label || o.text || o)}</span>
-        <div class="w-6 h-6 rounded-full border-2 ${sel ? 'border-outline bg-neon' : 'border-outline'} flex items-center justify-center"></div>
+    const multi = q.type === 'MULTIPLE_CHOICE';
+    const hint = multi ? `<p class="text-[11px] text-outline mb-2">Select all that apply</p>` : '';
+    optC.innerHTML = hint + options.map(o => {
+      const val = String(o.value || o.id || '');
+      const sel = multi ? (answers[q.id] || []).includes(val) : answers[q.id] === val;
+      // value 不拼进 inline onclick 的 JS 串（escapeHtml 不转义引号，含 ' 的值会逃逸）；
+      // 存 data-value、点击时从 this.dataset 读——与评论图 onclick 的既定做法一致。
+      // 选项文案按语言取 labelEn/label（与题面 titleEn 同一模式），data-no-i18n 防词典误翻。
+      const text = zh ? (o.label || o.text || val) : (o.labelEn || o.label || o.text || val);
+      const shape = multi ? 'rounded-[6px]' : 'rounded-full';
+      return `<label class="group flex items-center justify-between px-4 py-3 border-b ${sel ? 'border-neon bg-neon/10' : 'border-outline-variant/30'} hover:bg-surface-container-low cursor-pointer transition-all duration-200 active:scale-[0.99]" data-value="${window.escapeHtml(val).replace(/"/g, '&quot;')}" onclick="answerChoiceEl(this)">
+        <span class="font-body text-base font-medium" data-no-i18n>${window.escapeHtml(text)}</span>
+        <div class="w-6 h-6 ${shape} border-2 ${sel ? 'border-outline bg-neon text-black' : 'border-outline'} flex items-center justify-center">${sel ? '<span class="material-symbols-outlined" style="font-size:16px">check</span>' : ''}</div>
       </label>`;
     }).join('');
   }
@@ -253,6 +263,17 @@ function jumpToQuestion(i) {
   window.renderQuestion();
 }
 window.jumpToQuestion = jumpToQuestion;
+
+// 选择题点击入口：值从 data-value 读，不经过 inline JS 字符串。
+// 当前题从 S 里取——渲染和点击之间题目不会变（renderQuestion 整块重写 #q-options）。
+function answerChoiceEl(el) {
+  const q = S.questionnaire?.questions?.[S.currentQuestion];
+  if (!q) return;
+  const val = el?.dataset?.value ?? '';
+  if (q.type === 'MULTIPLE_CHOICE') answerMultiple(q.id, val);
+  else answerSingle(q.id, val);
+}
+window.answerChoiceEl = answerChoiceEl;
 
 function answerSingle(qId, val) {
   currentAnswers()[qId] = val;
