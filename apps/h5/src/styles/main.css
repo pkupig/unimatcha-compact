@@ -155,7 +155,7 @@
       transition: box-shadow 0.2s ease;
     }
     .academic-input:focus { outline: none; box-shadow: 0 0 0 1px #CCFF00; }
-    .dark .academic-input { background: #24242c; }
+    .dark .academic-input { background: #23211f; }
 
     /* 可爱手写体（纯文字小卡，本轮反馈5b）。中文回退系统趣味字体；不加粗，中文不发糊（反馈4）。 */
     .font-cute {
@@ -187,36 +187,37 @@
     *::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
     * { scrollbar-width: none; -ms-overflow-style: none; }
 
-    /* ===== 深色模式（本轮反馈6 重做：统一、克制；html.dark 生效，荧光色保留） ===== */
-    html.dark { background-color: #15151a; color-scheme: dark; }
-    .dark body { background-color: #15151a !important; color: #ececf0; }
+    /* ===== 深色模式（暖黑基调，参照微信/OKX：更黑 + R≥G≥B 的轻微暖调；html.dark 生效，荧光色保留）
+       原 #15151a 系偏蓝（B 通道 +5），用户反馈发冷——整套 token 已转暖并压暗。 ===== */
+    html.dark { background-color: #121110; color-scheme: dark; }
+    .dark body { background-color: #121110 !important; color: #eceae6; }
     /* 基础底 */
     .dark .bg-background, .dark .bg-surface, .dark .bg-surface-bright, .dark .bg-surface-dim,
-    .dark .bg-neutral-50, .dark .bg-stone-50, .dark .bg-gray-50 { background-color: #15151a !important; }
+    .dark .bg-neutral-50, .dark .bg-stone-50, .dark .bg-gray-50 { background-color: #121110 !important; }
     /* 卡片/容器分层 */
-    .dark .bg-surface-container-lowest, .dark .bg-white, .dark .bg-neutral-100, .dark .bg-stone-100 { background-color: #1f1f26 !important; }
-    .dark .bg-surface-container-low { background-color: #24242c !important; }
-    .dark .bg-surface-container { background-color: #2a2a32 !important; }
-    .dark .bg-surface-container-high { background-color: #30303a !important; }
-    .dark .bg-surface-container-highest { background-color: #363641 !important; }
-    .dark .bg-surface\/80, .dark .bg-surface\/95 { background-color: rgba(21, 21, 26, 0.82) !important; }
+    .dark .bg-surface-container-lowest, .dark .bg-white, .dark .bg-neutral-100, .dark .bg-stone-100 { background-color: #1c1b19 !important; }
+    .dark .bg-surface-container-low { background-color: #23211f !important; }
+    .dark .bg-surface-container { background-color: #292724 !important; }
+    .dark .bg-surface-container-high { background-color: #2f2d2a !important; }
+    .dark .bg-surface-container-highest { background-color: #363431 !important; }
+    .dark .bg-surface\/80, .dark .bg-surface\/95 { background-color: rgba(18, 17, 16, 0.85) !important; }
     /* 文本分级 */
     .dark .text-on-surface, .dark .text-black,
-    .dark .text-neutral-900, .dark .text-neutral-800, .dark .text-neutral-700 { color: #ececf0 !important; }
-    .dark .text-on-surface-variant, .dark .text-neutral-600, .dark .text-neutral-500 { color: #a8a8b2 !important; }
-    .dark .text-outline, .dark .text-outline-variant, .dark .text-neutral-400, .dark .text-stone-400 { color: #8a8a93 !important; }
+    .dark .text-neutral-900, .dark .text-neutral-800, .dark .text-neutral-700 { color: #eceae6 !important; }
+    .dark .text-on-surface-variant, .dark .text-neutral-600, .dark .text-neutral-500 { color: #aaa8a3 !important; }
+    .dark .text-outline, .dark .text-outline-variant, .dark .text-neutral-400, .dark .text-stone-400 { color: #8c8a85 !important; }
     /* 边框 */
     .dark .border-outline-variant, .dark .border-outline, .dark .border-stone-100,
-    .dark .border-neutral-100, .dark .border-neutral-200 { border-color: #34343c !important; }
-    .dark .border-black { border-color: #4a4a54 !important; }
+    .dark .border-neutral-100, .dark .border-neutral-200 { border-color: #343230 !important; }
+    .dark .border-black { border-color: #4b4945 !important; }
     /* 输入 */
-    .dark input, .dark textarea, .dark select { color: #ececf0 !important; }
+    .dark input, .dark textarea, .dark select { color: #eceae6 !important; }
     /* 荧光绿按钮保持黑字（必须排在 .text-black 覆盖之后） */
     .dark .bg-neon { color: #000 !important; }
     /* 聊天气泡 / 头像 */
-    .dark .chat-bubble { background: #2a2a32 !important; color: #ececf0 !important; }
+    .dark .chat-bubble { background: #292724 !important; color: #eceae6 !important; }
     .dark .chat-bubble.mine { background: #CCFF00 !important; color: #000 !important; }
-    .dark .chat-avatar--fallback { background: #34343c !important; color: #ddd !important; }
+    .dark .chat-avatar--fallback { background: #343230 !important; color: #ddd !important; }
 
     /* ====== Ivory & Ink button tiers ====== */
     /* Primary CTA: black block, white text, full width */
@@ -516,7 +517,7 @@
       transform: translateX(-50%) translateY(calc(100% + 24px));
       opacity: 0;
     }
-    .dark #bottom-nav { background: rgba(31, 31, 38, 0.92); border-color: rgba(255, 255, 255, 0.08); }
+    .dark #bottom-nav { background: rgba(28, 27, 25, 0.92); border-color: rgba(255, 255, 255, 0.08); }
 
     .auth-container {
       max-width: 420px;
@@ -946,7 +947,7 @@
       background: #f1f1f1;
       color: #1b1b1b;
     }
-    .dark .notif-icon-plate { background: #2a2a32 !important; color: #ececf0; }
+    .dark .notif-icon-plate { background: #292724 !important; color: #eceae6; }
 
     /* ---- 下拉刷新指示器（core.js attachPullToRefresh）----
        白色圆片悬浮在容器顶部之外（translateY 由 JS 驱动跟手下降），
@@ -984,8 +985,8 @@
       animation: ptr-spin 0.7s linear infinite;
     }
     @keyframes ptr-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .dark .ptr-indicator { background: #24242c; box-shadow: none; }
-    .dark .ptr-indicator .material-symbols-outlined { color: #ececf0; }
+    .dark .ptr-indicator { background: #23211f; box-shadow: none; }
+    .dark .ptr-indicator .material-symbols-outlined { color: #eceae6; }
 
     /* ---- 启动页重设计（平面简约）：logo 缓入 + 底部进度线 ---- */
     .splash-in { animation: splash-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -1031,9 +1032,9 @@
     }
     #chat-plus-menu .cpm-item:hover { background: #f3f3f3; }
     #chat-plus-menu .cpm-item:active { transform: scale(0.98); }
-    .dark #chat-plus-menu .cpm-card { background: #1f1f26; border-color: rgba(255, 255, 255, 0.07); }
-    .dark #chat-plus-menu .cpm-item { color: #ececf0; }
-    .dark #chat-plus-menu .cpm-item:hover { background: #2a2a32; }
+    .dark #chat-plus-menu .cpm-card { background: #1c1b19; border-color: rgba(255, 255, 255, 0.07); }
+    .dark #chat-plus-menu .cpm-item { color: #eceae6; }
+    .dark #chat-plus-menu .cpm-item:hover { background: #292724; }
 
     /* ---- 校园墙投票（本轮反馈1）：选项行 + 占比条 ---- */
     .poll-block { display: flex; flex-direction: column; gap: 6px; }
@@ -1058,11 +1059,11 @@
     .poll-opt--mine .poll-opt-fill { background: rgba(204, 255, 0, 0.5); }
     .poll-opt-label { position: relative; font-size: 13px; font-weight: 600; color: #1b1b1b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .poll-opt-count { position: relative; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #474747; flex-shrink: 0; }
-    .dark .poll-opt { background: #1f1f26; border-color: #34343c; }
-    .dark .poll-opt-label { color: #ececf0; }
-    .dark .poll-opt-count { color: #a8a8b2; }
-    .dark .poll-opt--mine { border-color: #ececf0; }
-    .dark .splash-bar { background: #34343c; }
+    .dark .poll-opt { background: #1c1b19; border-color: #343230; }
+    .dark .poll-opt-label { color: #eceae6; }
+    .dark .poll-opt-count { color: #aaa8a3; }
+    .dark .poll-opt--mine { border-color: #eceae6; }
+    .dark .splash-bar { background: #343230; }
 
     /* ---- 票夹（本轮反馈2）：票卡撕票线 ---- */
     /* ---- 票券样式：撕票口 + 虚线骑缝 ----
@@ -1108,7 +1109,7 @@
     
     /* 情侣空间清单：书签样式（左侧荧光绿色条 + 轻卡片） */
     .bookmark-item { border-left: 4px solid #CCFF00; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-    .dark .bookmark-item { background: #1f1f26; }
+    .dark .bookmark-item { background: #1c1b19; }
 
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
     @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
@@ -1118,12 +1119,12 @@
        放在文件末尾：这些规则要压过前面同权重的浅色规则（同特异度看先后顺序）。 */
     /* tab 容器与 .page 的底色是自定义规则写死的 #f9f9f9，.dark 的 bg-* 类覆盖够不着它们——
        聊天列表因此在深色态仍是浅底，而名字被 .dark .text-on-surface 刷成了白色，白底白字。 */
-    .dark [id^="tab-"], .dark .page, .dark #splash { background: #15151a; }
+    .dark [id^="tab-"], .dark .page, .dark #splash { background: #121110; }
     /* 顶栏分段胶囊：白底写死在 .home-mode-switch 里 */
-    .dark .home-mode-switch { background: #1f1f26; border-color: rgba(255, 255, 255, 0.08); }
-    .dark .home-mode-seg { color: #ececf0; }
-    .dark .home-mode-seg:hover { background: #2a2a32; }
+    .dark .home-mode-switch { background: #1c1b19; border-color: rgba(255, 255, 255, 0.08); }
+    .dark .home-mode-seg { color: #eceae6; }
+    .dark .home-mode-seg:hover { background: #292724; }
     /* 必须补：上一条(0,2,0)在源码序里排在 .home-mode-seg.active 之后，会把选中态黑字刷白 */
     .dark .home-mode-seg.active { background: #CCFF00; color: #000; }
     /* 广场分段选中态写死黑字 */
-    .dark .square-seg.active { color: #ececf0 !important; }
+    .dark .square-seg.active { color: #eceae6 !important; }
