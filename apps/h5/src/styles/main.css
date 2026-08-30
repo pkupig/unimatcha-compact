@@ -1113,3 +1113,17 @@
     /* "搜索中"脉冲动画（profile.js 状态点 + match.js 头像呼吸） */
     @keyframes cl-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
     .cl-pulse { animation: cl-pulse 1.8s ease-in-out infinite; }
+
+    /* ===== 深色模式补漏（用户截图：聊天列表白底白字不可读）=====
+       放在文件末尾：这些规则要压过前面同权重的浅色规则（同特异度看先后顺序）。 */
+    /* tab 容器与 .page 的底色是自定义规则写死的 #f9f9f9，.dark 的 bg-* 类覆盖够不着它们——
+       聊天列表因此在深色态仍是浅底，而名字被 .dark .text-on-surface 刷成了白色，白底白字。 */
+    .dark [id^="tab-"], .dark .page, .dark #splash { background: #15151a; }
+    /* 顶栏分段胶囊：白底写死在 .home-mode-switch 里 */
+    .dark .home-mode-switch { background: #1f1f26; border-color: rgba(255, 255, 255, 0.08); }
+    .dark .home-mode-seg { color: #ececf0; }
+    .dark .home-mode-seg:hover { background: #2a2a32; }
+    /* 必须补：上一条(0,2,0)在源码序里排在 .home-mode-seg.active 之后，会把选中态黑字刷白 */
+    .dark .home-mode-seg.active { background: #CCFF00; color: #000; }
+    /* 广场分段选中态写死黑字 */
+    .dark .square-seg.active { color: #ececf0 !important; }
