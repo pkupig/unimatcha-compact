@@ -43,16 +43,15 @@ const DEFAULT_SETTINGS = {
   pushEnabled: true,
   privacy: {
     showProfile: true, showOnline: true, showMoments: true,
-    searchable: true,
-    // 与后端 DEFAULT_SETTINGS 一致：「猜你认识」必须显式打开，不默认曝光
-    discoverable: false,
+    // 注：privacy.searchable / privacy.discoverable 两个键仍存在于**后端**并继续生效，
+    // 只是 App 内已无对应功能（找人/猜你认识两个入口已按产品要求移除），
+    // 故设置页不再出这两个开关。这里也不再镜像——客户端一处都不读了。
+    // 用户已存的值不受影响：toggleSetting 只 PUT 被点的那一个键，从不整体覆盖。
   },
 };
 
-// 缺键时的兜底值。绝大多数开关缺省为 true，但 discoverable 缺省必须是 false——
-// 若沿用通用 true，老用户（settings 里没有该键）打开设置页会看到开关是"开"，
-// 与后端实际行为（关）相反，甚至可能让人以为自己已被曝光。
-const SETTING_FALLBACKS = { 'privacy.discoverable': false };
+// 缺键时的兜底值（当前无特例；此前 discoverable 需兜底 false 的那条随开关一并移除）
+const SETTING_FALLBACKS = {};
 
 function getSettingValue(key) {
   const s = S.userSettings || DEFAULT_SETTINGS;

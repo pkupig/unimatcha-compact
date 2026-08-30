@@ -47,12 +47,6 @@ const ZH = {
   'Show my profile': '公开我的资料', 'Allow others to view your profile': '允许他人查看你的资料',
   'Show online status': '显示在线状态', 'Let your match see when you are active': '让匹配对象看到你的在线状态',
   'Show my moments': '公开我的动态', 'Display your moments to others': '向他人展示你的动态',
-  // ── 找人 / 猜你认识（隐私开关文案要把后果说清楚，不能只写开关名）──
-  'Let others find me by name': '允许他人搜到我',
-  'Appear in search results for nickname, school or major': '出现在昵称、学校、专业的搜索结果中',
-  'Suggest me to people I may know': '把我推荐给可能认识的人',
-  'Off by default. Turn it on to see and be seen in “People you may know”. Classmates may recognise you.':
-    '默认关闭。打开后你才能看到「可能认识的人」，同时也会被推荐给他们——同校同学可能认出你。',
   'Push Notifications': '推送通知', 'Match results, messages and likes': '匹配结果、消息与点赞',
   Support: '支持', 'Help Center': '帮助中心', 'Safety Tips': '安全提示', 'Report a Problem': '问题反馈',
   Legal: '法律条款', 'Terms of Service': '用户协议', 'Privacy Policy': '隐私政策',
