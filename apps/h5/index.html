@@ -711,8 +711,9 @@
       <div id="square-tabs" class="relative flex gap-8">
         <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
         <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
-        <!-- 置顶段：默认不显示，到了校园墙页才从右边滑出（用户口径）。
-             用 max-width + opacity 过渡，不用 display——display 切换没有过渡、会硬跳。 -->
+        <!-- 置顶段：绝对定位挂在 #square-tabs 右外侧，**不参与 flex 布局**——
+             否则它一出现就会把「推荐/校园墙」整体往左推（用户反馈：这两个不能动）。
+             位置/字号/底部对齐见 main.css 的 #square-seg-pinned。 -->
         <button id="square-seg-pinned" data-tab="pinned" onclick="switchSquareTab(this, 'pinned')" class="square-seg square-seg-pinned text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors">Pinned</button>
         <span id="square-tab-ink"></span>
       </div>

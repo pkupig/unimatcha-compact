@@ -47,21 +47,27 @@
       opacity: 0;
       pointer-events: none;
     }
-    /* 「置顶」分段：默认收起（宽度 0），到校园墙/置顶页才滑出来。
-       用 max-width + opacity 而不是 display:none —— display 没有过渡，会硬跳一下；
-       另外 #square-tab-ink 是按 active 段的 offsetLeft/offsetWidth 定位的，
-       段宽从 0 平滑长出来，下划线跟着重算才不会错位。 */
+    /* 「置顶」分段：绝对定位挂在 #square-tabs 的右外侧，**不占 flex 槽位**——
+       它若参与布局，一出现就会把居中的「推荐/校园墙」整体往左推（用户反馈：那两个不许动）。
+       left:100% 贴着分段组右缘，再留 12px（比组内 gap-8=32px 近，视觉上「靠着校园墙」）。
+       字号比另两段小一档，并按【文字底部】与校园墙对齐——所以用 bottom 定位而不是垂直居中。 */
     #square-seg-pinned {
-      max-width: 0;
+      position: absolute;
+      left: 100%;
+      margin-left: 12px;
+      bottom: 0;
+      font-size: 10px;
+      line-height: 1;
+      padding-bottom: 9px; /* 基线与另两段 12px 字对齐：3px 时实测低 6px，故补到 9px */
       opacity: 0;
-      overflow: hidden;
-      white-space: nowrap;
+      transform: translateX(-6px);
       pointer-events: none;
-      transition: max-width 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+      white-space: nowrap;
+      transition: opacity 0.24s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     }
     #square-tabs.show-pinned #square-seg-pinned {
-      max-width: 6rem;
       opacity: 1;
+      transform: translateX(0);
       pointer-events: auto;
     }
     /* 置顶页里整页都是置顶帖，逐张再挂 PINNED 角标没有信息量，反而占地方。
