@@ -15,12 +15,27 @@
        id + 元素选择器，优先级高于工具类，不受构建后规则顺序影响。 */
     #post-detail-overlay > footer { padding-bottom: calc(env(safe-area-inset-bottom) + 8px); }
     /* 帖子详情：下滑看内容时页眉/页脚收起，上滑或回顶恢复（沿用底导的做法）。
-       两者都是 flex 子项，收起用 transform 平移出去而不是 display:none——
-       display 会让 flex 重新布局、内容跳一下。 */
+       关键——页眉/页脚必须【脱离文档流】(absolute)。它们原本是 flex 子项，
+       只用 transform 平移的话位置腾走了、槽位还占着，顶部会留下一条空白带
+       （还能透出下层页面），内容压根没往上补，等于白收起。
+       脱流后由 #pd-scroll 的内边距补出它们的高度：显示时视觉与原来一致，
+       收起时内容真正铺满整屏。 */
     #post-detail-overlay > header,
     #post-detail-overlay > footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 2;
       transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
       will-change: transform;
+    }
+    #post-detail-overlay > header { top: 0; }
+    #post-detail-overlay > footer { bottom: 0; }
+    /* 上边距 = 页眉高度（h-16 + 安全区，与上面那条高度规则同源）；
+       下边距 = 页脚实测高度（回复条/图片预览会让它变高，JS 用 ResizeObserver 写入变量） */
+    #pd-scroll {
+      padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+      padding-bottom: var(--pd-footer-h, 76px);
     }
     #post-detail-overlay.pd-chrome-hidden > header {
       transform: translateY(-100%);

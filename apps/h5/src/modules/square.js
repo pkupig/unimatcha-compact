@@ -1474,6 +1474,19 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
 // 匿名帖走同一套 postAuthorDisplay，所以页眉显示的也是化名与匿名头像，不会漏真身。
 // 下滑看内容时收起页眉/页脚，上滑或接近顶部恢复（与底导同一套手感）。
 // 阈值取 6px：小于它的抖动（惯性回弹、软键盘微调）不该触发收起/展开来回跳。
+// 页脚已脱离文档流，滚动区靠 --pd-footer-h 补出等高的下内边距。
+// 高度会随回复条/图片预览开合而变，所以在这些时点显式同步一次。
+// 刻意不用 ResizeObserver 兜底：它的回调挂在渲染步骤上，页面不合成帧时根本不触发
+// （本机预览窗格实测 0 次回调），把布局正确性押在它上面不可靠。
+function syncPdFooterHeight() {
+  const overlay = document.getElementById('post-detail-overlay');
+  const footer = overlay?.querySelector('footer');
+  if (!overlay || !footer) return;
+  const h = Math.round(footer.getBoundingClientRect().height);
+  if (h > 0) overlay.style.setProperty('--pd-footer-h', h + 'px');
+}
+window.syncPdFooterHeight = syncPdFooterHeight;
+
 function bindPdChromeAutoHide() {
   const scroller = document.getElementById('pd-scroll');
   const overlay = document.getElementById('post-detail-overlay');
@@ -1493,6 +1506,7 @@ function bindPdChromeAutoHide() {
   document.getElementById('comment-input')?.addEventListener('focus', () => {
     overlay.classList.remove('pd-chrome-hidden');
   });
+  syncPdFooterHeight();
 }
 window.bindPdChromeAutoHide = bindPdChromeAutoHide;
 
@@ -1602,6 +1616,7 @@ function setPdReply(commentId, replyTargetId) {
     bar.classList.remove('hidden');
     bar.classList.add('flex');
   }
+  syncPdFooterHeight(); // 回复条出现→页脚变高
   document.getElementById('comment-input')?.focus();
 }
 window.setPdReply = setPdReply;
@@ -1613,6 +1628,7 @@ function cancelPdReply() {
     bar.classList.add('hidden');
     bar.classList.remove('flex');
   }
+  syncPdFooterHeight(); // 回复条收起→页脚变矮
   // Drop focus so the user gets a clear visual cue the reply target is gone;
   // the typed draft is preserved and will post as a top-level comment (B21).
   document.getElementById('comment-input')?.blur();
@@ -1660,6 +1676,7 @@ function handlePdImage(e) {
     const thumb = document.getElementById('pd-image-thumb');
     if (thumb) thumb.src = url;
     box?.classList.remove('hidden');
+    syncPdFooterHeight(); // 预览出现→页脚变高
   });
 }
 window.handlePdImage = handlePdImage;
@@ -1669,6 +1686,7 @@ function clearPdImage() {
   const thumb = document.getElementById('pd-image-thumb');
   if (thumb) thumb.removeAttribute('src');
   document.getElementById('pd-image-preview')?.classList.add('hidden');
+  syncPdFooterHeight(); // 预览收起→页脚变矮
 }
 window.clearPdImage = clearPdImage;
 
