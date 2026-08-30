@@ -1003,12 +1003,18 @@ function bentoLargeCard(p) {
   </article>`;
 }
 
-// 随机低饱和浅色底（按 post id 确定，纯文字小卡用，本轮反馈5b）
-function pastelBg(seed) {
-  let h = 0;
-  const s = String(seed || '');
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return `hsl(${h % 360}, 42%, 90%)`;
+// 纯文字卡的「荧光笔标题」：第一小段铺荧光绿底（模仿手帐划重点；按用户给的
+// 截图风格，引号装饰不要）。CJK 最多取 6 字，拉丁最多 12 字符，碰到标点/空格截断。
+// 必须先切分原文、再逐段 escapeHtml——先拼 HTML 再切会把标签切坏。
+function highlightMarkHtml(text) {
+  const t = String(text || '');
+  let n = t.search(/[。，！？…、,.!?:;\s]/);
+  const cap = t.charCodeAt(0) < 128 ? 12 : 6;
+  if (n <= 0) n = t.length;
+  n = Math.min(n, cap);
+  const head = t.slice(0, n), rest = t.slice(n);
+  // 荧光条盖住字形下部约 1/3，露出上部——linear-gradient 铺底、不引入额外元素
+  return `<span style="background:linear-gradient(to top, rgba(204,255,0,.95) 32%, transparent 32%)">${window.escapeHtml(head)}</span>${window.escapeHtml(rest)}`;
 }
 
 // Card type 3 (recommend + USER): small square cards in a 2-col grid
@@ -1019,7 +1025,9 @@ function bentoSmallCard(p) {
     // 图片卡高度随图片原始比例（小红书式瀑布流，本轮反馈5）；过长/过扁由 .rec-img 的 min/max-height 收敛
     ? `<div class="relative bg-surface-container overflow-hidden"><img class="rec-img" src="${window.safeUrl(img)}" onerror="this.parentElement.style.display='none'"></div>`
     // 纯文字小卡（本轮反馈5b）：文字居中、可爱字体、放大、随机低饱和浅色底；点开详情仍照旧。
-    : `<div class="relative aspect-[3/4] overflow-hidden flex items-center justify-center text-center p-4" style="background:${pastelBg(p.id)}"><p class="font-cute" style="font-size:clamp(1.3rem,7vw,2rem);line-height:1.3;color:#3a3a3a;${clampStyle(5)}">${window.escapeHtml(p.title || p.content || '')}</p></div>`;
+    // 纯文字小卡（用户截图风格）：米白底、左对齐粗体、首段荧光绿划重点；
+    // 原来的随机浅色底 + 可爱字体 + 居中排版一并退役。
+    : `<div class="relative aspect-[3/4] overflow-hidden flex items-center p-5" style="background:#f6f1e7"><p class="font-headline font-extrabold tracking-tight" style="font-size:clamp(1.05rem,5.5vw,1.45rem);line-height:1.6;color:#3f3f3f;${clampStyle(5)}" data-no-i18n>${highlightMarkHtml(p.title || p.content || '')}</p></div>`;
   // 底部只留 标题 + 头像/昵称 + 点赞（用户反馈：学校/时间去掉，信息太多）
   // 标题放大到 13px 并允许两行，白色文字区留白加大（用户反馈）
   return `<article data-post-id="${p.id}" class="bg-surface-container-lowest rounded-[6px] overflow-hidden cursor-pointer" onclick="openPostDetail('${p.id}')">
