@@ -1046,14 +1046,19 @@
      transform 后，fixed 子元素改为相对 overlay 定位，已滚动的距离会把页眉
      顶到视口外（表现为「页眉直接消失」）。改由 flex 固定，与内容同步位移。 -->
 <div id="post-detail-overlay" class="overlay fixed inset-0 z-50 bg-surface">
-  <header class="shrink-0 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between gap-3 px-6 h-16">
-    <button class="flex items-center gap-3 group min-w-0" onclick="closePostDetail()">
-      <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
-      <h1 class="font-headline font-bold tracking-[0.15em] text-on-surface text-[10px] mt-0.5">Post</h1>
-    </button>
+  <!-- 页眉：返回 + 发帖人（头像/名字），标题「Post」去掉。
+       px-3 与正文同一条左边线（正文也是 px-3），两侧内容因此贴得更靠边。 -->
+  <header id="pd-header" class="shrink-0 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between gap-2 px-3 h-16">
+    <div class="flex items-center gap-2 min-w-0">
+      <button class="shrink-0 -ml-1.5 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform" onclick="closePostDetail()" aria-label="Back">
+        <span class="material-symbols-outlined text-2xl text-on-surface">arrow_back</span>
+      </button>
+      <!-- 发帖人搬到页眉（正文里那行同名信息已移除，避免重复） -->
+      <div id="pd-header-author" class="flex items-center gap-2 min-w-0" data-no-i18n></div>
+    </div>
     <!-- 更多：弹操作卡（分享 / 举报），与评论长按卡形式统一；举报仍两步确认防误触 -->
     <button id="pd-report-btn" onclick="event.stopPropagation();openPdPostMenu(event)" aria-label="More" title="More"
-      class="shrink-0 w-9 h-9 -mr-2 rounded-full flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+      class="shrink-0 -mr-1.5 w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
       <span class="material-symbols-outlined text-[22px]">more_horiz</span>
     </button>
   </header>

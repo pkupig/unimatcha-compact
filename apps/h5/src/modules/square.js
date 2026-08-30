@@ -622,11 +622,20 @@ function pinnedBadge(p) {
 // Render a single avatar (image / initials / anonymous placeholder) at a size.
 // `profile` is a {nickname,avatarUrl,anonymous?} shape (from postAuthorDisplay).
 // sizeClass controls the box; extra applies ring/border classes.
+// 从 Tailwind 的 w-N 反推容器像素（w-4 = 1rem = 16px），emoji 取其 62%——
+// 太大就会顶到圆边被裁掉（用户反馈：信息流里的头像看着不完整）。
+function emojiSizeFor(sizeClass) {
+  const m = /(?:^|\s)w-(\d+(?:\.\d+)?)(?:\s|$)/.exec(sizeClass || '');
+  const px = m ? parseFloat(m[1]) * 4 : 32;
+  return Math.max(9, Math.round(px * 0.62));
+}
+
 function avatarChip(profile, fallbackName, sizeClass, textSize, extra) {
   // Anonymous → neutral person icon placeholder (no initials that could leak a name).
   if (profile?.anonymous) {
-    // 匿名头像由 aliasSeed 决定（同一个人恒定，不是每次渲染都换）；绝不用首字母，那会泄露名字
-    if (profile.aliasSeed != null) return window.aliasAvatarHtml(profile.aliasSeed, `${sizeClass} ${extra}`, 16);
+    // 匿名头像由 aliasSeed 决定（同一个人恒定，不是每次渲染都换）；绝不用首字母，那会泄露名字。
+    // emoji 字号必须跟着容器走：信息流卡片上的头像只有 w-4(16px)，写死 16px 会把 emoji 挤爆、看起来缺一块。
+    if (profile.aliasSeed != null) return window.aliasAvatarHtml(profile.aliasSeed, `${sizeClass} ${extra}`, emojiSizeFor(sizeClass));
     return `<div class="${sizeClass} rounded-full bg-surface-container flex items-center justify-center ${extra}"><span class="material-symbols-outlined text-outline ${textSize}">person</span></div>`;
   }
   const url = profile?.avatarUrl;
@@ -1050,6 +1059,10 @@ window.likePost = likePost;
 async function openPostDetail(postId, focusComposer = false) {
   S.currentPostId = postId;
   S.pdAnon = false; // 换一帖不继承上一帖的匿名选择
+  document.getElementById('post-detail-overlay')?.classList.remove('pd-chrome-hidden'); // 每次打开都从展开态开始
+  bindPdChromeAutoHide();
+  const hdrAuthor = document.getElementById('pd-header-author');
+  if (hdrAuthor) hdrAuthor.innerHTML = ''; // 清掉上一帖的人，避免加载期闪现错误作者
   window.clearPdImage?.(); // 待发的图同理，不能跟到下一帖
   window.syncPdAnonUI?.();
   window.openOverlay('post-detail-overlay');
@@ -1433,7 +1446,7 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
   // data-comment-id：长按弹操作卡的事件委托靠它定位楼层（bindPdCommentLongPress）
   return `<div class="pd-comment flex gap-3${isReply ? ' pl-11' : ''}" data-comment-id="${cm.id}">
     ${aliasSeed != null
-      ? window.aliasAvatarHtml(aliasSeed, avSize, isReply ? 14 : 16)
+      ? window.aliasAvatarHtml(aliasSeed, avSize, emojiSizeFor(avSize))
       : (avatar
         ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
         : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`)}
@@ -1457,6 +1470,44 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
   </div>`;
 }
 
+// 页眉里的发帖人：头像 + 名字（+ 学校/官方徽标）。
+// 匿名帖走同一套 postAuthorDisplay，所以页眉显示的也是化名与匿名头像，不会漏真身。
+// 下滑看内容时收起页眉/页脚，上滑或接近顶部恢复（与底导同一套手感）。
+// 阈值取 6px：小于它的抖动（惯性回弹、软键盘微调）不该触发收起/展开来回跳。
+function bindPdChromeAutoHide() {
+  const scroller = document.getElementById('pd-scroll');
+  const overlay = document.getElementById('post-detail-overlay');
+  if (!scroller || !overlay || scroller.dataset.chromeHideBound) return;
+  scroller.dataset.chromeHideBound = '1';
+  let lastY = 0;
+  scroller.addEventListener('scroll', () => {
+    const y = scroller.scrollTop;
+    const dy = y - lastY;
+    lastY = y;
+    // 顶部区域恒显示：刚进页面就把页眉藏了会让人找不到返回键
+    if (y < 40) { overlay.classList.remove('pd-chrome-hidden'); return; }
+    if (dy > 6) overlay.classList.add('pd-chrome-hidden');
+    else if (dy < -6) overlay.classList.remove('pd-chrome-hidden');
+  }, { passive: true });
+  // 点输入框写评论时必须把页脚放回来（此时手指可能正停在下滑后的收起态）
+  document.getElementById('comment-input')?.addEventListener('focus', () => {
+    overlay.classList.remove('pd-chrome-hidden');
+  });
+}
+window.bindPdChromeAutoHide = bindPdChromeAutoHide;
+
+function renderPdHeaderAuthor(post, d, school, badge) {
+  const box = document.getElementById('pd-header-author');
+  if (!box) return;
+  box.innerHTML = `
+    ${avatarChip(d, d.name, 'w-8 h-8 shrink-0', 'text-[10px]', '')}
+    <div class="min-w-0 leading-tight">
+      <p class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(d.name)}</p>
+      ${school ? `<p class="text-[10px] text-on-surface-variant truncate">${window.escapeHtml(window.metaLabel(school))}</p>` : ''}
+    </div>
+    ${badge ? `<div class="shrink-0">${badge}</div>` : ''}`;
+}
+
 function renderPostDetail(post) {
   const c = document.getElementById('pd-content');
   if (!c || !post) return;
@@ -1473,23 +1524,12 @@ function renderPostDetail(post) {
   // Anonymous-aware author + school (§6.11 行2145). Official posts also show
   // their official / Sponsored badge next to the name.
   const d = postAuthorDisplay(post);
-  const name = d.name;
   const school = d.school || post.school;
   const badge = officialBadge(post);
   const liked = !!post.myLiked;
+  // 发帖人信息渲染到页眉（正文里不再重复一遍）
+  renderPdHeaderAuthor(post, d, school, badge);
   c.innerHTML = `
-    <!-- 作者行提到图片上方（用户反馈）：头像 + 名字/学校 在左，时间在右 -->
-    <div class="flex items-center justify-between gap-3 px-3 pt-5 pb-4 bg-surface-container-lowest">
-      <div class="flex items-center gap-3 min-w-0">
-        ${renderAuthorAvatars(post)}
-        <div class="min-w-0" data-no-i18n>
-          <p class="font-headline font-bold text-base leading-tight truncate">${window.escapeHtml(name)}</p>
-          ${school ? `<p class="text-[11px] text-on-surface-variant truncate mt-0.5">${window.escapeHtml(window.metaLabel(school))}</p>` : ''}
-        </div>
-        ${badge ? `<div class="shrink-0">${badge}</div>` : ''}
-      </div>
-      <p class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</p>
-    </div>
     ${renderPdImages(images)}
     <article class="px-3 pt-5 pb-4 bg-surface-container-lowest">
       <div class="grid grid-cols-12 gap-6 items-start">
@@ -1501,7 +1541,9 @@ function renderPostDetail(post) {
         </div>
       </div>
       <!-- 去掉行下横线、留白收紧；评论数可点击 → 跳到评论输入条 -->
-      <div class="flex items-center gap-8 py-3 border-t border-outline-variant/20 mt-6">
+      <!-- 日期与点赞/评论同一行，靠最右（用户反馈） -->
+      <div class="flex items-center justify-between gap-4 py-3 border-t border-outline-variant/20 mt-6">
+        <div class="flex items-center gap-8">
         <button id="pd-like-btn" class="flex items-center gap-2 group transition-all active:scale-90" onclick="likePdPost()">
           <span data-like-icon class="material-symbols-outlined text-xl ${liked ? 'text-neon-pink' : ''}" style="font-variation-settings:'FILL' ${liked ? 1 : 0};">favorite</span>
           <span data-like-count class="text-xs font-bold font-label tracking-tighter">${post.likeCount || 0}</span>
@@ -1510,6 +1552,8 @@ function renderPostDetail(post) {
           <span class="material-symbols-outlined text-xl">chat_bubble</span>
           <span class="text-xs font-bold font-label tracking-tighter">${commentTotal}</span>
         </button>
+        </div>
+        <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(post.createdAt)}</span>
       </div>
     </article>
     <div class="px-3 pt-5 pb-6 bg-surface" data-pd-comments>
