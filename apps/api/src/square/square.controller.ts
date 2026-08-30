@@ -86,7 +86,7 @@ export class SquareController {
   }
 
   @Get('search')
-  @ApiOperation({ summary: '统一搜索：帖子 + 用户两组结果（用户组仅第 1 页返回）' })
+  @ApiOperation({ summary: '广场搜索：只返回帖子（找人走好友面板的扫码/连接码）' })
   @ApiQuery({ name: 'q', required: true })
   @ApiQuery({ name: 'board', required: false, enum: ['recommend', 'campus_wall'], description: '不传则跨两个板块搜' })
   @ApiQuery({ name: 'page', required: false, example: 1 })

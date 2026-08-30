@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { Prisma, SquareBoard, SquareAuthorType, AdminRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { DiscoveryService } from '../discovery/discovery.service';
 import { CreatePostDto, CreateCommentDto } from './dto/square.dto';
 
 /**
@@ -46,10 +45,7 @@ interface TasteProfile {
 
 @Injectable()
 export class SquareService {
-  constructor(
-    private prisma: PrismaService,
-    private usersLookup: DiscoveryService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   // board 字符串 → Prisma 枚举（public：SquareAdminService 复用）
   toBoard(b: 'recommend' | 'campus_wall'): SquareBoard {
@@ -336,20 +332,17 @@ export class SquareService {
     };
   }
 
-  /** 统一搜索：一次拿到帖子 + 用户两组结果，供搜索页分段展示 */
+  /** 广场搜索：只返回帖子。
+   *  原来还会带一组「用户」结果（搜索页顶部的 PEOPLE 区），按产品要求去掉——
+   *  广场搜索只搜内容，找人走好友面板的扫码/连接码。 */
   async searchAll(
     userId: string,
-    opts: { q: string; board?: SquareBoard; page?: number; limit?: number; userLimit?: number } = {} as any,
+    opts: { q: string; board?: SquareBoard; page?: number; limit?: number } = {} as any,
   ) {
     const q = this.normalizeQuery(opts.q);
-    if (!q) return { query: '', posts: { items: [], page: 1, limit: 20, total: 0, hasMore: false }, users: [] };
+    if (!q) return { query: '', posts: { items: [], page: 1, limit: 20, total: 0, hasMore: false } };
     const posts = await this.searchPosts(userId, { ...opts, q });
-    // 只有第一页带用户结果：翻页翻的是帖子，用户区固定在顶部不该跟着变
-    const users =
-      (opts.page ?? 1) <= 1
-        ? await this.usersLookup.searchUsers(userId, q, { limit: opts.userLimit ?? 6 })
-        : { users: [] };
-    return { query: q, posts, users: users.users };
+    return { query: q, posts };
   }
 
   // ─── 推荐流（加权混排，§8.1.4）───────────────────────────────

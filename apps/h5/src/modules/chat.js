@@ -179,7 +179,9 @@ window.stopSessionCountdown = stopSessionCountdown;
 // Called on switchHomeView('chat') and after confirm / dissolve / expiry.
 async function loadSessions() {
   try {
-    const data = await window.api('/chat/sessions?mode=all');
+    // limit=100（后端上限）而非默认 50：搜索已收窄成「只搜已有联系人」，
+    // 联系人如果没进这个列表就彻底搜不到了——不能让第 51 个联系人凭空消失。
+    const data = await window.api('/chat/sessions?mode=all&limit=100');
     const env = data?.data || data || {};
     S.sessions = Array.isArray(env) ? env : env.sessions || [];
   } catch (e) {

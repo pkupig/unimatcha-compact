@@ -249,8 +249,6 @@ window.openConnectionChatFromGraph = openConnectionChatFromGraph;
 // ── 搜索现有会话（本轮反馈5a）：在已有好友/对话里搜，点了直接打开对话，不再加新好友。
 //    加新好友只留在「Add by QR」面板。
 let friendSearchTimer = null;
-// 全局搜人的竞态令牌：慢的旧请求回来时不能覆盖新结果
-let peopleSearchSeq = 0;
 
 function onFriendSearchInput() {
   clearTimeout(friendSearchTimer);
@@ -270,178 +268,16 @@ function runFriendSearch(q) {
     const hay = [p.nickname, p.name, p.note, p.school, window.lastMsgText(s.lastMessage)].filter(Boolean).join(' ').toLowerCase();
     return hay.includes(term);
   });
-
-  // 空关键词 = 进入面板的默认态：上面列全部会话，下面挂「可能认识的人」。
-  // 有关键词 = 上面是命中的会话，下面异步补全平台内搜到的同学。
-  box.innerHTML = `
-    <div id="friend-search-local">${renderChatSearchResults(sessions, !!term)}</div>
-    <div id="friend-search-remote" class="mt-4"></div>`;
-
-  const seq = ++peopleSearchSeq;
-  if (!term) {
-    loadSuggestions(seq);
-  } else {
-    searchPeople(term, seq);
-  }
+  // 只搜【已有联系人】（用户要求）：不再调 /discovery/users 搜全平台的人，
+  // 也不再挂「可能认识的人」。加新朋友只走「Add by QR」面板（扫码 / 连接码）。
+  // 空关键词 = 列出全部会话；有关键词 = 命中的会话。
+  box.innerHTML = renderChatSearchResults(sessions, !!term);
 }
 window.runFriendSearch = runFriendSearch;
 
-// ── 找同学：GET /discovery/users ──────────────────────────────────
-async function searchPeople(term, seq) {
-  const box = document.getElementById('friend-search-remote');
-  if (!box) return;
-  box.innerHTML = sectionShell('FIND PEOPLE', `<p class="text-[11px] text-outline italic px-1 py-2">Searching…</p>`);
-  try {
-    const res = unwrapEnv(await window.api(`/discovery/users?q=${encodeURIComponent(term)}&limit=15`));
-    if (seq !== peopleSearchSeq) return; // 已有更新的一次搜索
-    const users = res.users || [];
-    box.innerHTML = sectionShell(
-      'FIND PEOPLE',
-      users.length
-        ? users.map((u) => window.userResultRow(u)).join('')
-        : `<p class="text-[11px] text-outline italic px-1 py-2">No one found. Try a nickname, school or major.</p>`,
-    );
-  } catch (e) {
-    if (seq !== peopleSearchSeq) return;
-    box.innerHTML = sectionShell('FIND PEOPLE', `<p class="text-[11px] text-outline italic px-1 py-2">Search failed. Try again.</p>`);
-  }
-}
-
-// ── 猜你认识：GET /discovery/suggestions ─────────────────────────
-// 未开启 discoverable 时后端返回 enabled:false，这里出引导而不是空列表——
-// 否则用户只会看到"没有推荐"，永远不知道功能是被自己的隐私开关关着的。
-async function loadSuggestions(seq) {
-  const box = document.getElementById('friend-search-remote');
-  if (!box) return;
-  try {
-    const res = unwrapEnv(await window.api('/discovery/suggestions?limit=8'));
-    if (seq !== peopleSearchSeq) return;
-    if (res.enabled === false) {
-      box.innerHTML = sectionShell(
-        'PEOPLE YOU MAY KNOW',
-        `<div class="px-1 py-2">
-           <p class="text-[11px] text-outline leading-relaxed">Turn on discovery to see classmates you may know. Others only see you if you turn it on too.</p>
-           <button onclick="window.closeFriendHub();window.openSettings&&window.openSettings();" class="mt-2 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-neon pb-0.5">Open settings</button>
-         </div>`,
-      );
-      return;
-    }
-    const items = res.items || [];
-    if (!items.length) { box.innerHTML = ''; return; }
-    box.innerHTML = sectionShell(
-      'PEOPLE YOU MAY KNOW',
-      items.map((u) => window.userResultRow(u, { dismissible: true })).join(''),
-    );
-  } catch (e) {
-    if (seq !== peopleSearchSeq) return;
-    box.innerHTML = ''; // 推荐失败静默：它是锦上添花，不该在搜索面板里报错
-  }
-}
-
-function sectionShell(label, inner) {
-  return `<div class="font-headline text-[10px] font-bold tracking-[0.2em] text-outline mb-1">${label}</div>${inner}`;
-}
-
-function unwrapEnv(d) { return (d && (d.data || d)) || {}; }
-
-// ── 加为好友 / 忽略推荐 ──────────────────────────────────────────
-async function connectToUser(userId, btn) {
-  if (!userId) return;
-  if (btn) { btn.disabled = true; btn.textContent = '…'; }
-  try {
-    const res = unwrapEnv(await window.api('/matching/connect-user', 'POST', { userId }));
-    const matchId = res.matchId || res.match?.id;
-    window.toast?.('Added');
-    if (matchId) {
-      closeFriendHub();
-      if (window.openConnectionChat) window.openConnectionChat(matchId);
-    } else {
-      // 没拿到 matchId 也别把按钮留在 loading 态
-      if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
-    }
-  } catch (e) {
-    window.toast?.(e?.message || 'Failed to add');
-    if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
-  }
-}
-window.connectToUser = connectToUser;
-
-async function dismissSuggestion(userId, el) {
-  if (!userId) return;
-  // 就地移除：忽略是明确的负反馈，等接口回来再消失会让人觉得"没点上"
-  const row = el?.closest?.('[data-user-row]');
-  if (row) row.remove();
-  try {
-    await window.api(`/discovery/suggestions/${encodeURIComponent(userId)}/dismiss`, 'POST');
-  } catch (e) { /* 忽略失败不回滚：下次刷新自然会再出现 */ }
-}
-window.dismissSuggestion = dismissSuggestion;
-
-/**
- * 一行"人"的通用组件：搜索结果与「猜你认识」共用。
- * opts.dismissible → 右侧带 ✕ 忽略；opts.compact → 广场搜索里的紧凑版。
- * 用户内容（昵称/学校/专业）一律标 data-no-i18n，否则会被全局词典观察器误翻。
- */
-function userResultRow(u, opts = {}) {
-  const esc = window.escapeHtml;
-  const id = esc(String(u.id || ''));
-  const name = u.nickname || 'Student';
-  const av = u.avatarUrl || '';
-  // 副行：优先展示推荐原因（更有说服力），没有原因时退回学校/专业
-  const reasonText = (u.reasons || []).map(reasonLabel).filter(Boolean).join(' · ');
-  const meta = [u.school, u.major].filter(Boolean).map((x) => window.metaLabel(x)).join(' · ');
-  const sub = reasonText || meta || u.tagline || '';
-
-  // 已经是好友/恋人的人不出「Add」按钮，出「Chat」——对已认识的人还显示"添加"很怪
-  const rel = u.relationship || 'none';
-  const action = rel === 'none'
-    ? `<button onclick="event.stopPropagation();connectToUser('${id}', this)" class="shrink-0 px-3 py-1.5 rounded-full bg-neon text-black font-headline text-[10px] font-bold tracking-widest active:scale-95 transition-transform">Add</button>`
-    : `<span class="shrink-0 text-[10px] font-headline font-bold tracking-widest text-outline">${
-        rel === 'pending' ? 'PENDING' : rel === 'romantic' ? 'PARTNER' : 'FRIEND'
-      }</span>`;
-
-  const dismiss = opts.dismissible
-    ? `<button onclick="event.stopPropagation();dismissSuggestion('${id}', this)" title="Not interested" class="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-outline active:scale-90"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>`
-    : '';
-
-  const avatar = av
-    ? `<img src="${window.safeUrl(av)}" class="w-full h-full object-cover">`
-    : '<span class="material-symbols-outlined text-outline" style="font-size:18px">person</span>';
-
-  return `<div data-user-row class="w-full flex items-center gap-3 ${opts.compact ? 'px-4 py-2.5' : 'py-2'} text-left">
-    <button onclick="window.viewPartnerProfile&&window.viewPartnerProfile('${id}')" class="flex items-center gap-3 min-w-0 flex-1 text-left active:opacity-70">
-      <div class="w-9 h-9 rounded-full overflow-hidden bg-surface-container shrink-0 flex items-center justify-center">${avatar}</div>
-      <div class="min-w-0 flex-1" data-no-i18n>
-        <p class="text-sm font-bold text-on-surface truncate">${esc(name)}</p>
-        ${sub ? `<p class="text-[10px] text-outline truncate">${esc(sub)}</p>` : ''}
-      </div>
-    </button>
-    ${action}
-    ${dismiss}
-  </div>`;
-}
-window.userResultRow = userResultRow;
-
-// 推荐原因码 → 展示文案。后端只下发 { code, count, value }，
-// 文案在前端出，这样中英切换不需要后端参与。
-function reasonLabel(r) {
-  if (!r || !r.code) return '';
-  // 语言取 i18n 的 getLang（读 localStorage.cl_lang）——不能看 documentElement.lang，
-  // 本项目切换语言时并不写 html[lang]，那样判断恒为 false，中文态会漏译成英文。
-  const zh = (window.getLang ? window.getLang() : localStorage.getItem('cl_lang')) === 'zh';
-  const n = r.count || 0;
-  const v = r.value ? window.metaLabel(r.value) : '';
-  switch (r.code) {
-    case 'mutualFriends': return zh ? `${n} 位共同好友` : `${n} mutual friend${n === 1 ? '' : 's'}`;
-    case 'sameMajor':     return zh ? `同为${v}` : `Also studies ${v}`;
-    case 'sameGrade':     return zh ? `同${v}` : `Same year · ${v}`;
-    case 'sameSchool':    return zh ? `同校` : `Same school`;
-    case 'sharedInterests': return zh ? `${n} 个共同兴趣` : `${n} shared interest${n === 1 ? '' : 's'}`;
-    case 'coEngagement':  return zh ? `喜欢相似的帖子` : `Likes similar posts`;
-    default: return '';
-  }
-}
-
+// 说明：搜索收窄到「已有联系人」后，userResultRow / connectToUser / dismissSuggestion /
+// reasonLabel 这一簇（约 100 行）失去全部调用点，已随本次改动删除。
+// 后端 /matching/connect-user 与 /discovery/* 端点保留未动（iOS 仍在用 connect-user）。
 function renderChatSearchResults(sessions, isSearching) {
   const esc = window.escapeHtml;
   if (!sessions.length) {

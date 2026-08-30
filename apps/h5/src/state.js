@@ -92,7 +92,6 @@ export const S = {
   squareSection: 'recommended',
   squareSearchQuery: '',
   // 广场搜索命中的「同学」结果；非搜索态恒为空数组（信息流不渲染 people 区）
-  squareSearchUsers: [],
   // Square v2 (dual-mode redesign §6.11)
   squareTab: 'recommend',                    // 'recommend' | 'campus_wall'
   newPostBoard: 'recommend',                 // new-post destination (modal radio)

@@ -203,7 +203,6 @@ function clearSquareSearch() {
   if (input) input.value = '';
   clearTimeout(S._squareSearchTimer);
   S.squareSearchQuery = '';
-  S.squareSearchUsers = [];
   document.getElementById('square-search-clear')?.classList.add('hidden');
   renderSquareSearchIdle();
   input?.focus();
@@ -217,7 +216,7 @@ function renderSquareSearchIdle() {
   c.innerHTML = `<div class="col-span-2 text-center py-24">
     ${window.flatEmptyIcon('search')}
     <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">Search the square</p>
-    <p class="text-sm text-on-surface-variant mt-2">Find posts, topics and people</p>
+    <p class="text-sm text-on-surface-variant mt-2">Find posts by title, content or tag</p>
   </div>`;
   layoutSquareMasonry(); // 1px 行网格：不排一次的话整块只占 1 行、内容看不见
 }
@@ -226,7 +225,7 @@ async function loadSquareSearch() {
   const container = feedEl('search');
   if (!container) return;
   const q = (S.squareSearchQuery || '').trim();
-  if (!q) { S.squareSearchUsers = []; renderSquareSearchIdle(); return; }
+  if (!q) { renderSquareSearchIdle(); return; }
   const seq = (S._squareSearchSeq = (S._squareSearchSeq || 0) + 1);
   container.innerHTML = `<div class="col-span-2 text-center py-24 text-sm text-on-surface-variant">Loading...</div>`;
   layoutSquareMasonry();
@@ -235,7 +234,6 @@ async function loadSquareSearch() {
     if (seq !== S._squareSearchSeq) return; // 被更新的一次搜索取代
     const raw = unwrap(data);
     const env = unwrap(raw.posts);
-    S.squareSearchUsers = raw.users || [];
     const posts = Array.isArray(env) ? env : (env.items || env.posts || []);
     S.squarePostsByTab = S.squarePostsByTab || {};
     S.squarePostsByTab.search = posts;
@@ -406,12 +404,10 @@ function renderSquareNeedSchool(tab) {
 function renderSquareFeed(posts, ads = [], tab) {
   const container = feedEl(tab);
   if (!container) return;
-  // 搜索到的同学：整行卡片置于结果最上方。只在搜索页出现——信息流里
-  // 挂 people 会把上一次搜索的人残留在推荐/校园墙顶部。
+  // 广场搜索只出帖子（用户要求）：结果里不再混入「同学」，找人走好友面板/扫码
   const isSearch = tab === 'search';
-  const peopleBlock = isSearch ? renderSearchPeople() : '';
   if (!posts.length) {
-    container.innerHTML = peopleBlock + `<div class="col-span-2 text-center py-24">
+    container.innerHTML = `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('grid_view')}
       <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">${
         isSearch ? 'No posts found' : 'No posts yet'
@@ -434,7 +430,7 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 奇数小卡或被大卡打断都不再留视觉空位。
   // 广告插入规则（ADMIN-REDESIGN §6）：首屏第 3 个卡位后插 1 个，此后每 8 个小卡
   // 插 1 个；按拉取顺序轮换，本次渲染内不重复，用完即止。校园墙调用方传空 ads。
-  let html = peopleBlock;
+  let html = '';
   let adIdx = 0;             // 下一个待插广告下标
   let cardCount = 0;         // 总卡计数（首个广告在第 3 卡之后）
   let smallSinceAd = 0;      // 上个广告以来累计的小卡数（每满 8 再插）
@@ -854,21 +850,6 @@ function cardAuthorRow(p) {
       <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>
     </div>
     ${postLikeButton(p)}
-  </div>`;
-}
-
-// ── 搜索结果里的「同学」区（整行，置于帖子结果之上）─────────────────
-// 数据来自 GET /square/v2/search 的 users 字段；非搜索态 S.squareSearchUsers 为空，
-// 返回空串，普通信息流的 DOM 完全不变。
-function renderSearchPeople() {
-  const users = S.squareSearchUsers || [];
-  if (!users.length) return '';
-  const rows = users.map((u) => window.userResultRow(u, { compact: true })).join('');
-  return `<div class="col-span-2 mb-1.5">
-    <div class="bg-surface-container-lowest border border-outline-variant/10 rounded-[6px] overflow-hidden">
-      <div class="px-4 pt-3 pb-1 font-headline text-[10px] font-bold tracking-[0.2em] text-outline">PEOPLE</div>
-      ${rows}
-    </div>
   </div>`;
 }
 
