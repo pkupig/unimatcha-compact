@@ -1067,6 +1067,12 @@
       <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
       <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>
     </div>
+    <!-- 匿名开关：每条评论各自决定，与帖子是否匿名无关（用户口径） -->
+    <button type="button" id="pd-anon-toggle" onclick="togglePdAnon()"
+      class="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full bg-surface-container-low text-outline active:scale-95 transition-transform">
+      <span class="material-symbols-outlined" style="font-size:15px">visibility_off</span>
+      <span class="text-[11px] font-bold tracking-wide">Comment anonymously</span>
+    </button>
     <!-- 软填充胶囊输入 + 圆形发送键（对齐全站去下划线改软填充的输入样式） -->
     <div class="flex items-center gap-2">
       <input id="comment-input" class="flex-1 min-w-0 bg-surface-container-low rounded-full border-0 px-4 py-2.5 text-sm font-body placeholder:text-outline-variant focus:ring-1 focus:ring-neon focus:outline-none" placeholder="Add an observation..." type="text"/>

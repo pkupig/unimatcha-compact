@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import {
   Injectable,
   NotFoundException,
@@ -566,10 +567,9 @@ export class SquareService {
       myLiked = !!like;
     }
 
-    // #4b：匿名帖的评论脱敏（化名 + 好友备注规则）
-    if (post.anonymous && post.authorType === SquareAuthorType.USER && Array.isArray(post.comments) && post.comments.length) {
-      await this.anonymizeComments(post);
-    }
+    // 匿名按【每条评论】自己的 anonymous 处理——不再因为帖子匿名就把全楼一律脱敏
+    // （用户口径：发帖可选匿名，发评论也各自可选）
+    this.anonymizeComments(post);
     const shaped = { ...this.shapePost(post, userId), comments: this.shapeComments(post.comments), myLiked };
     if (userId) await this.annotateMyVotes([shaped], userId);
     return shaped;
@@ -620,6 +620,13 @@ export class SquareService {
       parentComment = { id: topLevelId, userId: parent.userId };
     }
 
+    // 本条评论的**最终**匿名值：先取评论者自己的选择；
+    // 匿名帖楼主在自己帖下评论则强制匿名——他实名说话会被 AUTHOR 标记指认，
+    // 等于把发帖时选的匿名当场作废。下面通知文案也必须用这个值，不能用 dto 原值。
+    const isAnonUserPost = post.anonymous && post.authorType === SquareAuthorType.USER;
+    const isPostAuthor = !!post.authorUserId && post.authorUserId === userId;
+    const anonymous = (dto.anonymous ?? false) || (isAnonUserPost && isPostAuthor);
+
     const [comment] = await this.prisma.$transaction([
       this.prisma.squarePostComment.create({
         data: {
@@ -627,6 +634,7 @@ export class SquareService {
           userId,
           content: dto.content,
           imageUrl: dto.imageUrl || null,
+          anonymous,
           parentCommentId: parentComment?.id || null,
         },
         include: {
@@ -648,10 +656,12 @@ export class SquareService {
     this.invalidateTaste(userId);
 
     // 通知作者 + 被回复者（去重、不通知自己、官方帖无 authorUserId 跳过）
-    // 匿名帖：评论者对楼主与其他评论者都保持匿名（帖内 anonymizeComments 已脱敏），
-    // 通知 body 也须用化名而非真实昵称，否则楼主凭「XX 评论了」+ 帖内匿名评论即可反解身份。
-    const isAnonUserPost = post.anonymous && post.authorType === SquareAuthorType.USER;
-    const actorName = isAnonUserPost ? this.funAlias(userId) : await this.getNickname(userId);
+    // 名字按【这条评论】的匿名值出，与帖子是否匿名无关：匿名评论若在通知里写真名，
+    // 收件人拿「XX 评论了」一对帖内的匿名楼层就还原了身份，匿名当场作废。
+    // 化名用与帖内同一个 per-post 种子，否则通知里的名字对不上楼里的任何人。
+    const actorName = anonymous
+      ? this.anonIdentity(postId, userId).nickname
+      : await this.getNickname(userId);
     if (post.authorUserId && post.authorUserId !== userId) {
       await this.prisma.notification.create({
         data: {
@@ -679,7 +689,11 @@ export class SquareService {
       });
     }
 
-    return comment;
+    // 出参也要脱敏：前端可能把 POST 的返回直接插进楼层，
+    // 不脱敏会闪出真实昵称/头像，与用户刚勾的匿名自相矛盾（iOS 还可能缓存）。
+    const shapedPost: any = { id: postId, authorUserId: post.authorUserId, anonymous: post.anonymous, comments: [comment] };
+    this.anonymizeComments(shapedPost);
+    return shapedPost.comments[0];
   }
 
   // ─── 点赞（切换）────────────────────────────────────────────
@@ -773,7 +787,7 @@ export class SquareService {
         select: { id: true },
       });
       if (!existingNotif) {
-        const actorName = isAnonUserPost ? this.funAlias(userId) : await this.getNickname(userId);
+        const actorName = isAnonUserPost ? this.anonIdentity(postId, userId).nickname : await this.getNickname(userId);
         await this.prisma.notification.create({
           data: {
             userId: post.authorUserId,
@@ -1160,7 +1174,7 @@ export class SquareService {
     if (post.anonymous && post.authorType === SquareAuthorType.USER) {
       // 从源头防泄露：作者位置空，前端渲染"匿名同学"
       out.authorUser = null;
-      out.anonymousAuthor = { nickname: this.funAlias(post.authorUserId), avatarUrl: null };
+      out.anonymousAuthor = this.anonIdentity(post.id, post.authorUserId);
       // 彻底剔除真实作者标识（authorUserId / adminId），避免匿名被前端反解
       delete out.authorUserId;
       delete out.adminId;
@@ -1172,49 +1186,69 @@ export class SquareService {
     return out;
   }
 
-  // 匿名帖楼主的 per-post 稳定不透明 token：按 postId+userId 哈希，
-  // 仅在同一帖内稳定、跨帖不可关联，且无法反推真实 userId（§8.1.1 匿名）
-  private authorToken(postId: string, userId: string): string {
-    let h = 2166136261;
-    const s = `${postId}:${userId || ''}`;
-    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-    return `a_${h.toString(36)}`;
+  // ─── 匿名身份（§8.1.1）────────────────────────────────────
+  // 化名与 token 一律走**带密钥**的 HMAC，且以 postId 加盐。
+  //
+  // 为什么必须带密钥：原实现是无密钥 FNV-1a 哈希，输入（postId、userId）又都是公开值——
+  // 真实 userId 在别处照常下发（非匿名帖的 authorUserId、非匿名评论的 user.id），
+  // 任何人拿一批 userId 离线重算就能精确反解出匿名者是谁（已实测复现，唯一命中）。
+  // 逐条匿名评论上线后，这个洞会从「只暴露楼主」扩大到「每个匿名评论者」，故先修它。
+  //
+  // 为什么以 postId 加盐：同一个人在不同帖子里得到不同化名，跨帖不可关联——
+  // 否则一次自我暴露就会把此人所有匿名发言一并连坐。
+  private get anonKey(): string {
+    // 复用部署时已有的密钥，避免新增一个必配项（缺失时退回常量：本地开发可用，
+    // 生产 .env 一定有 JWT_SECRET，见 DEPLOY.md）
+    return process.env.ANON_ALIAS_SECRET || process.env.JWT_SECRET || 'unimatcha-anon-dev';
   }
 
-  // #4a：匿名身份的稳定有趣化名（按 userId 哈希，同一人始终同名）
-  private funAlias(userId: string): string {
+  /** per-post 稳定的匿名种子：同帖同人恒等，跨帖不可关联，且不可反推 userId */
+  private anonSeed(postId: string, userId: string): number {
+    const mac = createHmac('sha256', this.anonKey).update(`${postId}:${userId || ''}`).digest();
+    return mac.readUInt32BE(0);
+  }
+
+  // 前端按 seed 自行渲染中/英化名与头像（切语言不必回后端）。
+  // 仍下发英文 nickname：iOS 直接读它，去掉会破功。
+  private anonIdentity(postId: string, userId: string) {
+    const seed = this.anonSeed(postId, userId);
+    return { aliasSeed: seed, nickname: this.aliasFromSeed(seed), avatarUrl: null };
+  }
+
+  // 楼主标记用的 per-post 不透明 token（前端据此给楼主评论打「作者」标）
+  private authorToken(postId: string, userId: string): string {
+    return `a_${(this.anonSeed(postId, userId) >>> 0).toString(36)}`;
+  }
+
+  // 英文化名（形容词 + 动物）。中文化名由前端按同一 seed 取词，
+  // 两边词表下标一一对应，保证「同一个人」在中英两态是同一只动物。
+  private aliasFromSeed(seed: number): string {
     const ADJ = ['Curious', 'Quiet', 'Brave', 'Gentle', 'Witty', 'Clever', 'Mellow', 'Swift', 'Cozy', 'Bold', 'Sunny', 'Lucky', 'Calm', 'Eager', 'Noble', 'Jolly'];
     const ANI = ['Otter', 'Fox', 'Sparrow', 'Koala', 'Panda', 'Lynx', 'Heron', 'Robin', 'Wren', 'Bear', 'Finch', 'Hare', 'Seal', 'Crane', 'Marten', 'Quokka'];
-    let h = 2166136261;
-    const s = userId || '';
-    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-    return `${ADJ[h % ADJ.length]} ${ANI[(h >>> 8) % ANI.length]}`;
+    return `${ADJ[seed % ADJ.length]} ${ANI[(seed >>> 8) % ANI.length]}`;
   }
 
-  // #4b：匿名帖的评论脱敏。作者 X 的好友 Y（且 X 给 Y 设过备注）显示「X化名 的 备注」，
-  // 其余评论者显示各自化名；头像一律隐藏。回复同样处理。
-  private async anonymizeComments(post: any) {
-    const X = post.authorUserId;
-    const authorAlias = this.funAlias(X);
-    const me = await this.prisma.user.findUnique({ where: { id: X }, select: { settings: true } });
-    const notes = ((me?.settings as any)?.notes) || {};
-    const friends = await this.prisma.match.findMany({
-      where: { mode: 'FRIEND' as any, status: 'FRIEND_CONFIRMED' as any, dissolvedAt: null, OR: [{ userAId: X }, { userBId: X }] },
-      select: { userAId: true, userBId: true },
-    });
-    const friendSet = new Set<string>();
-    for (const f of friends) friendSet.add(f.userAId === X ? f.userBId : f.userAId);
-    const labelFor = (yId: string) =>
-      (friendSet.has(yId) && notes[yId]) ? `${authorAlias}'s ${notes[yId]}` : this.funAlias(yId);
-    const authorToken = this.authorToken(post.id, X);
+  // 逐条评论脱敏：只看这条评论自己的 anonymous，不看帖子。
+  // 匿名评论必须做到「除了化名什么都不剩」——真实 userId / user.id / 头像全部剔除，
+  // 否则前端拿 id 一比对就还原了身份（审计实测：shapeComments 原本会把它们原样带出去）。
+  private anonymizeComments(post: any) {
+    const postId = post.id;
+    const authorId = post.authorUserId;
+    // 匿名帖楼主的 token：用来给他自己的评论打「作者」标，同时不暴露真实 id
+    const authorTok = post.anonymous && authorId ? this.authorToken(postId, authorId) : null;
     const shape = (c: any) => {
-      if (c?.user) {
-        const yId = c.user.id;
-        // 剔除评论者真实 id / userId，仅下发化名 + 匿名头像；
-        // 楼主本人的评论改用 per-post 稳定不透明 token（与 shapePost 一致）供前端打 AUTHOR 徽标
-        c.user = { profile: { nickname: labelFor(yId), avatarUrl: null } };
+      if (!c) return;
+      if (c.anonymous) {
+        const uid = c.userId || c.user?.id;
+        const ident = this.anonIdentity(postId, uid || '');
+        c.user = { profile: { nickname: ident.nickname, avatarUrl: null } };
+        c.anonymousAuthor = ident; // 前端按 aliasSeed 出中/英化名与头像
         delete c.userId;
-        if (yId === X) c.anonymousAuthorToken = authorToken;
+        // 楼主本人的匿名评论才打「作者」标；别人的匿名评论不能带这个 token
+        if (authorTok && uid === authorId) c.anonymousAuthorToken = authorTok;
+      } else if (c.user) {
+        // 实名评论：只留展示所需，不下发 user.id（它是反解匿名者的原料之一）
+        c.user = { profile: c.user.profile || null };
       }
       if (Array.isArray(c.replies)) c.replies.forEach(shape);
     };

@@ -73,7 +73,7 @@ const ZH = {
   // ── 广场 ──
   Recommend: '推荐', 'Campus Wall': '校园墙', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',
-  'Post anonymously': '匿名发布', 'Posting to': '发布到', 'Failed to load posts': '帖子加载失败',
+  'Post anonymously': '匿名发布', 'Comment anonymously': '匿名评论', 'Posting to': '发布到', 'Failed to load posts': '帖子加载失败',
   'Check your connection and try again': '请检查网络后重试', Retry: '重试',
   // ── 能量购买 ──
   cells: '格', 'Select a package': '请选择套餐', 'Select a payment method': '请选择支付方式',
@@ -174,6 +174,40 @@ const ZH = {
   'View all': '查看全部',
   'Add anniversary': '添加纪念日', 'Add plan': '添加计划',
 };
+
+// ── 匿名化名（广场匿名帖/匿名评论）──
+// 后端只下发一个不可反推的 aliasSeed，名字在前端按当前语言渲染——
+// 化名不可能走全局词典：观察器是「整段文本精确匹配」，而用户内容一律带 data-no-i18n。
+// 中英两张词表下标一一对应，所以同一个人在两种语言下是同一只动物，头像也不变。
+const ALIAS_ADJ_EN = ['Curious', 'Quiet', 'Brave', 'Gentle', 'Witty', 'Clever', 'Mellow', 'Swift', 'Cozy', 'Bold', 'Sunny', 'Lucky', 'Calm', 'Eager', 'Noble', 'Jolly'];
+const ALIAS_ANI_EN = ['Otter', 'Fox', 'Sparrow', 'Koala', 'Panda', 'Lynx', 'Heron', 'Robin', 'Wren', 'Bear', 'Finch', 'Hare', 'Seal', 'Crane', 'Marten', 'Quokka'];
+const ALIAS_ADJ_ZH = ['好奇的', '安静的', '勇敢的', '温柔的', '机灵的', '聪明的', '慵懒的', '敏捷的', '暖心的', '大胆的', '开朗的', '幸运的', '淡定的', '热心的', '优雅的', '欢快的'];
+const ALIAS_ANI_ZH = ['水獭', '狐狸', '麻雀', '考拉', '熊猫', '山猫', '白鹭', '知更鸟', '云雀', '小熊', '金翅雀', '野兔', '海豹', '仙鹤', '松貂', '小袋鼠'];
+// 头像 emoji 与动物下标对齐：中英文看到的是同一只
+const ALIAS_EMOJI = ['🦦', '🦊', '🐦', '🐨', '🐼', '🐆', '🦩', '🐤', '🕊️', '🐻', '🦜', '🐰', '🦭', '🦢', '🦡', '🦘'];
+// 头像底色：柔和且彼此可分（同 seed 恒定，不是每次渲染都换）
+const ALIAS_BG = ['#FDE68A', '#BFDBFE', '#FBCFE8', '#BBF7D0', '#DDD6FE', '#FED7AA', '#A5F3FC', '#E9D5FF', '#FEF08A', '#C7D2FE', '#FECACA', '#D9F99D', '#99F6E4', '#F5D0FE', '#BAE6FD', '#FDBA74'];
+
+// seed → 化名（跟随当前语言）
+function aliasName(seed) {
+  const n = Number(seed) >>> 0;
+  const zh = getLang() === 'zh';
+  const adj = zh ? ALIAS_ADJ_ZH : ALIAS_ADJ_EN;
+  const ani = zh ? ALIAS_ANI_ZH : ALIAS_ANI_EN;
+  const a = adj[n % adj.length];
+  const b = ani[(n >>> 8) % ani.length];
+  return zh ? `${a}${b}` : `${a} ${b}`;
+}
+window.aliasName = aliasName;
+
+// seed → 头像（emoji + 底色，同 seed 恒等；零网络请求、零静态资源）
+function aliasAvatarHtml(seed, sizeClass, fontSize) {
+  const n = Number(seed) >>> 0;
+  const emoji = ALIAS_EMOJI[(n >>> 8) % ALIAS_EMOJI.length];
+  const bg = ALIAS_BG[(n >>> 16) % ALIAS_BG.length];
+  return `<div class="${sizeClass || 'w-8 h-8'} rounded-full flex items-center justify-center shrink-0" style="background:${bg}" data-no-i18n><span style="font-size:${fontSize || 16}px;line-height:1">${emoji}</span></div>`;
+}
+window.aliasAvatarHtml = aliasAvatarHtml;
 
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）
 const ZH_PLACEHOLDER = {

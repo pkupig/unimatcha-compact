@@ -571,9 +571,11 @@ function observeMasonryItems() {
 // this is the front-end fallback. Otherwise use authorUser.profile.
 function postAuthorDisplay(p) {
   if (p?.anonymous) {
-    // #4a：用后端下发的稳定有趣化名（Curious Otter 风），没有则兜底
-    const alias = p.anonymousAuthor?.nickname || 'Anonymous';
-    return { name: alias, nickname: alias, avatarUrl: p.anonymousAuthor?.avatarUrl || null, anonymous: true, school: p.school };
+    // 化名由后端下发的 aliasSeed 在前端按当前语言渲染（中文态出中文名）；
+    // 没有 seed 时退回后端那串英文，再没有才兜底。
+    const seed = p.anonymousAuthor?.aliasSeed;
+    const alias = seed != null ? window.aliasName(seed) : (p.anonymousAuthor?.nickname || 'Anonymous');
+    return { name: alias, nickname: alias, avatarUrl: null, anonymous: true, aliasSeed: seed, school: p.school };
   }
   const prof = p?.authorUser?.profile || {};
   return {
@@ -623,6 +625,8 @@ function pinnedBadge(p) {
 function avatarChip(profile, fallbackName, sizeClass, textSize, extra) {
   // Anonymous → neutral person icon placeholder (no initials that could leak a name).
   if (profile?.anonymous) {
+    // 匿名头像由 aliasSeed 决定（同一个人恒定，不是每次渲染都换）；绝不用首字母，那会泄露名字
+    if (profile.aliasSeed != null) return window.aliasAvatarHtml(profile.aliasSeed, `${sizeClass} ${extra}`, 16);
     return `<div class="${sizeClass} rounded-full bg-surface-container flex items-center justify-center ${extra}"><span class="material-symbols-outlined text-outline ${textSize}">person</span></div>`;
   }
   const url = profile?.avatarUrl;
@@ -1045,6 +1049,8 @@ window.likePost = likePost;
 // ========================================
 async function openPostDetail(postId, focusComposer = false) {
   S.currentPostId = postId;
+  S.pdAnon = false; // 换一帖不继承上一帖的匿名选择
+  window.syncPdAnonUI?.();
   window.openOverlay('post-detail-overlay');
   await window.loadPostDetail(postId);
   // 从卡片评论数点进来：内容渲染完后直接跳到评论输入条
@@ -1403,8 +1409,13 @@ window.pdCarouselScrolled = pdCarouselScrolled;
 // backend strips authorUserId/userId and instead stamps the author's comments with a
 // per-post opaque token (anonymousAuthorToken); for normal posts it's the authorUserId.
 function renderPdComment(cm, replyTargetId, isReply, authorKey) {
-  const name = cm.user?.profile?.nickname || cm.user?.nickname || 'User';
-  const avatar = cm.user?.profile?.avatarUrl;
+  // 匿名评论：名字与头像都由后端下发的 aliasSeed 决定——名字跟随当前语言，
+  // 头像是同 seed 恒定的动物头像。真实昵称/头像后端根本不下发。
+  const aliasSeed = cm.anonymous ? cm.anonymousAuthor?.aliasSeed : null;
+  const name = aliasSeed != null
+    ? window.aliasName(aliasSeed)
+    : (cm.user?.profile?.nickname || cm.user?.nickname || 'User');
+  const avatar = cm.anonymous ? null : cm.user?.profile?.avatarUrl;
   // #1 作者在自己帖子下的评论显示 Author 标签。匿名帖用不透明 token 比对（真实 userId 已被后端剔除），
   // 普通帖沿用 authorUserId；缺少凭据时不显示徽标（绝不回退到匿名帖的真实作者 id）。
   const isAuthor = authorKey?.type === 'token'
@@ -1420,9 +1431,11 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
     : '';
   // data-comment-id：长按弹操作卡的事件委托靠它定位楼层（bindPdCommentLongPress）
   return `<div class="pd-comment flex gap-3${isReply ? ' pl-11' : ''}" data-comment-id="${cm.id}">
-    ${avatar
-      ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
-      : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`}
+    ${aliasSeed != null
+      ? window.aliasAvatarHtml(aliasSeed, avSize, isReply ? 14 : 16)
+      : (avatar
+        ? `<img src="${window.safeUrl(avatar)}" class="${avSize} rounded-full object-cover shrink-0">`
+        : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`)}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between gap-2">
         <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${authorTag}</span>
@@ -1558,17 +1571,41 @@ function cancelPdReply() {
 }
 window.cancelPdReply = cancelPdReply;
 
+// 评论匿名开关：每条评论各自决定（与帖子是否匿名无关）。
+// 发完一条即复位——匿名是每次都要主动选的动作，不该被上一条的选择悄悄延续。
+function togglePdAnon() {
+  S.pdAnon = !S.pdAnon;
+  syncPdAnonUI();
+}
+window.togglePdAnon = togglePdAnon;
+
+function syncPdAnonUI() {
+  const btn = document.getElementById('pd-anon-toggle');
+  if (!btn) return;
+  const on = !!S.pdAnon;
+  btn.classList.toggle('bg-neon', on);
+  btn.classList.toggle('text-black', on);
+  btn.classList.toggle('bg-surface-container-low', !on);
+  btn.classList.toggle('text-outline', !on);
+  const icon = btn.querySelector('.material-symbols-outlined');
+  if (icon) icon.textContent = on ? 'visibility_off' : 'visibility';
+}
+window.syncPdAnonUI = syncPdAnonUI;
+
 async function submitPdComment() {
   const input = document.getElementById('comment-input');
   const content = input?.value?.trim();
   if (!content || !S.currentPostId) return;
   try {
     const body = {
-      content
+      content,
+      anonymous: !!S.pdAnon
     };
     if (S.pdReplyTo?.id) body.parentCommentId = S.pdReplyTo.id;
     await window.api(`/square/v2/posts/${S.currentPostId}/comments`, 'POST', body);
     if (input) input.value = '';
+    S.pdAnon = false; // 每条评论各自选择，发完复位
+    syncPdAnonUI();
     window.cancelPdReply();
     window.loadPostDetail(S.currentPostId);
   } catch (e) {

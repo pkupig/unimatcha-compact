@@ -524,6 +524,10 @@ export class SquareAdminService {
           imageUrl: true,
           parentCommentId: true,
           createdAt: true,
+          // 匿名评论对审核员仍露真实身份（要处置就必须知道是谁），但要带上标记，
+          // 否则审核员不知道这条在用户侧其实是匿名显示的——与帖子侧口径一致
+          // （shapeAdminPost：匿名帖对管理员显示真名 + anonymous 标记随行）
+          anonymous: true,
           user: {
             select: { id: true, email: true, profile: { select: { nickname: true } } },
           },

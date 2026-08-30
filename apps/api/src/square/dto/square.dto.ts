@@ -89,6 +89,11 @@ export class CreateCommentDto {
   @IsOptional()
   @IsString()
   parentCommentId?: string;
+
+  @ApiPropertyOptional({ description: '本条评论是否匿名（与帖子是否匿名无关，由评论者自己决定）' })
+  @IsOptional()
+  @IsBoolean()
+  anonymous?: boolean;
 }
 
 // 举报（POST /square/v2/posts/:id/report）

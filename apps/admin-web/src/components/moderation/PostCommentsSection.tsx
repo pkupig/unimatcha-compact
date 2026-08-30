@@ -58,6 +58,8 @@ export function PostCommentsSection({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {c.parentCommentId && <Badge variant="outline">回复</Badge>}
+                  {/* 用户侧这条是匿名显示的；审核员看到真名是为了能处置，标记提示这层差异 */}
+                  {c.anonymous && <Badge variant="outline">匿名</Badge>}
                   <span className="text-sm font-medium text-on-surface">
                     {c.user.profile?.nickname || '-'}
                   </span>

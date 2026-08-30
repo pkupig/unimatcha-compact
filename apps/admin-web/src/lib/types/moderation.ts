@@ -147,6 +147,8 @@ export interface AdminPostComment {
   /** 非空 = 楼中楼回复 */
   parentCommentId: string | null;
   createdAt: string;
+  /** 该条评论在用户侧是否匿名显示（审核员仍能看到真实身份，但需要知道这层差异） */
+  anonymous: boolean;
   // email 学生会视角为 null（评论者可能来自外校，后端脱敏）
   user: { id: string; email: string | null; profile: { nickname: string | null } | null };
 }

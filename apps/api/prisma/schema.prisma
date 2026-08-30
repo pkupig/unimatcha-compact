@@ -723,6 +723,11 @@ model SquarePostComment {
   content  String  @db.Text
   imageUrl String?
 
+  // 逐条匿名：由评论者自己决定，与帖子是否匿名无关。
+  // 唯一例外见 createComment——匿名帖楼主在自己帖下的评论强制为 true，
+  // 否则实名评论配上 AUTHOR 徽标等于当场自曝，把发帖时选的匿名一笔勾销。
+  anonymous Boolean @default(false)
+
   parentCommentId String?
   parent          SquarePostComment?  @relation("SquareCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         SquarePostComment[] @relation("SquareCommentReplies")

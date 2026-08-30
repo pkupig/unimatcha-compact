@@ -81,7 +81,9 @@ export class RelationshipsService {
         }),
         this.prisma.squarePostComment.groupBy({
           by: ['userId'],
-          where: { postId: { in: myPostIds }, userId: { in: friendIds } },
+          // 匿名评论不计入亲密度：否则好友在我帖子下匿名评论后，
+          // 我的关系网里对他那条连线照样变粗，等于旁路泄露了他的匿名发言
+          where: { postId: { in: myPostIds }, userId: { in: friendIds }, anonymous: false },
           _count: { _all: true },
         }),
       ]);
