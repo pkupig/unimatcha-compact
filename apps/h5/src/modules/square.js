@@ -1050,6 +1050,7 @@ window.likePost = likePost;
 async function openPostDetail(postId, focusComposer = false) {
   S.currentPostId = postId;
   S.pdAnon = false; // 换一帖不继承上一帖的匿名选择
+  window.clearPdImage?.(); // 待发的图同理，不能跟到下一帖
   window.syncPdAnonUI?.();
   window.openOverlay('post-detail-overlay');
   await window.loadPostDetail(postId);
@@ -1441,7 +1442,10 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
         <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${authorTag}</span>
         <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(cm.createdAt)}</span>
       </div>
-      <p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content || '')}</p>
+      ${cm.content ? `<p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content)}</p>` : ''}
+      ${cm.imageUrl ? `<button type="button" onclick="event.stopPropagation();window.openChatImage(this.querySelector('img').src)" class="block mt-2 active:opacity-80">
+        <img src="${window.safeUrl(cm.imageUrl)}" class="max-w-[160px] max-h-[160px] rounded-[10px] object-cover" alt="">
+      </button>` : ''}
       <div class="flex items-center gap-4 mt-1.5">
         <button class="text-[10px] font-bold tracking-widest text-outline hover:text-primary" onclick="setPdReply('${cm.id}', '${replyTargetId}')">Reply</button>
         <button class="flex items-center gap-1 text-outline active:scale-90 transition-transform" onclick="event.stopPropagation();likePdComment('${cm.id}', this)" aria-label="Like">
@@ -1589,27 +1593,77 @@ function syncPdAnonUI() {
   btn.classList.toggle('text-outline', !on);
   const icon = btn.querySelector('.material-symbols-outlined');
   if (icon) icon.textContent = on ? 'visibility_off' : 'visibility';
+  // 图标变色之外再改占位符：匿名与否是隐私状态，必须一眼看得出来，
+  // 不能只靠一个小图标的颜色（发出去才发现没匿名就晚了）
+  const input = document.getElementById('comment-input');
+  if (input) {
+    input.setAttribute('placeholder', on ? 'Commenting anonymously...' : 'Add an observation...');
+    window.translatePlaceholders?.(input);
+  }
 }
 window.syncPdAnonUI = syncPdAnonUI;
+
+// 评论配图：选图后先本地预览，真正上传推迟到发送时（选了又不发不该占用服务器）
+function handlePdImage(e) {
+  const file = (e.target.files || [])[0];
+  e.target.value = ''; // 允许连续选同一张
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { window.toast('Only images are allowed'); return; }
+  if (file.size > 8 * 1024 * 1024) { window.toast('Image too large (max 8MB)'); return; }
+  S.pdImageFile = file;
+  window.readFileAsDataUrl(file, (url) => {
+    const box = document.getElementById('pd-image-preview');
+    const thumb = document.getElementById('pd-image-thumb');
+    if (thumb) thumb.src = url;
+    box?.classList.remove('hidden');
+  });
+}
+window.handlePdImage = handlePdImage;
+
+function clearPdImage() {
+  S.pdImageFile = null;
+  const thumb = document.getElementById('pd-image-thumb');
+  if (thumb) thumb.removeAttribute('src');
+  document.getElementById('pd-image-preview')?.classList.add('hidden');
+}
+window.clearPdImage = clearPdImage;
 
 async function submitPdComment() {
   const input = document.getElementById('comment-input');
   const content = input?.value?.trim();
-  if (!content || !S.currentPostId) return;
+  // 只有图没有字也允许发（配图本身就是内容）；两样都没有才拦
+  if ((!content && !S.pdImageFile) || !S.currentPostId) return;
+  if (S.pdSending) return; // 上传可能要几秒，防连点发出多条
+  S.pdSending = true;
+  const sendBtn = document.getElementById('pd-send-btn');
+  if (sendBtn) sendBtn.disabled = true;
+  // 乐观清空前先留快照：失败要能把用户打的字和选的图原样还回去
+  const snapshot = { content, file: S.pdImageFile, anon: !!S.pdAnon, reply: S.pdReplyTo };
   try {
     const body = {
-      content,
+      content: content || '',
       anonymous: !!S.pdAnon
     };
+    // 上传推迟到这一刻：选了图又不发，不该在服务器上留垃圾
+    if (S.pdImageFile) body.imageUrl = await window.uploadImageFile(S.pdImageFile);
     if (S.pdReplyTo?.id) body.parentCommentId = S.pdReplyTo.id;
     await window.api(`/square/v2/posts/${S.currentPostId}/comments`, 'POST', body);
     if (input) input.value = '';
     S.pdAnon = false; // 每条评论各自选择，发完复位
+    clearPdImage();
     syncPdAnonUI();
     window.cancelPdReply();
     window.loadPostDetail(S.currentPostId);
   } catch (e) {
-    window.toast('Failed: ' + e.message);
+    // 还原草稿：内容/图/匿名选择都回来，否则失败一次就白打了
+    if (input && !input.value) input.value = snapshot.content || '';
+    S.pdImageFile = snapshot.file;
+    S.pdAnon = snapshot.anon;
+    syncPdAnonUI();
+    window.toast('Failed: ' + (e?.message || 'try again'));
+  } finally {
+    S.pdSending = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 window.submitPdComment = submitPdComment;

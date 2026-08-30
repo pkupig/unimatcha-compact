@@ -212,7 +212,7 @@ window.aliasAvatarHtml = aliasAvatarHtml;
 // placeholder 翻译表（输入框占位符走属性，文本节点机制覆盖不到）
 const ZH_PLACEHOLDER = {
   'Search posts': '搜索帖子', 'Type your response...': '输入消息…',
-  'Add an observation...': '写下你的评论…', 'Search your chats': '搜索会话',
+  'Add an observation...': '写下你的评论…', 'Commenting anonymously...': '正在匿名评论…', 'Search your chats': '搜索会话',
   'Search your contacts': '搜索联系人',
   'Title': '标题', 'Capture the moment...': '记录此刻…',
   'Option 1': '选项 1', 'Option 2': '选项 2', 'Option 3': '选项 3',
@@ -385,6 +385,9 @@ function translatePlaceholders(root) {
     if (p && ZH_PLACEHOLDER[p]) el.setAttribute('placeholder', ZH_PLACEHOLDER[p]);
   });
 }
+// 动态改写占位符后需要重新翻一次（观察器只看新增节点，改属性不触发）
+window.translatePlaceholders = (root) => { if (getLang() === 'zh') translatePlaceholders(root || document.body); };
+
 function startI18n() {
   if (getLang() !== 'zh') return;
   translateTree(document.body);
