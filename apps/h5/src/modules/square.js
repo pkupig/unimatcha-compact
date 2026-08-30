@@ -54,6 +54,8 @@ async function loadSquareTab() {
   S.squareScrollPos = { recommend: 0, campus_wall: 0, pinned: 0 };
   // 双页都加载：滑动时另一页已是真实内容
   syncPinnedSeg(S.squareTab); // 「置顶」段按当前页显隐
+  // web 字体晚到会改变文字度量，字体就绪后再校一次基线（与下划线定位同理）
+  if (document.fonts?.ready) document.fonts.ready.then(alignPinnedSegBaseline);
   syncSquareFab(S.squareTab);
   window.loadSquareTab2('recommend');
   window.loadSquareTab2('campus_wall');
@@ -84,11 +86,40 @@ function syncSquareFab(tab) {
   if (fab) fab.classList.toggle('hidden', tab === 'pinned');
 }
 
+// 「置顶」段的字比另两段小，要让**文字底部**与校园墙齐，就得把两者的基线对上。
+// 不能在 CSS 里写死偏移量：对齐量取决于字体的实际度量，而中文在本机与 iOS(PingFang SC)
+// 落到的根本不是同一个字体，写死只会在一边准、另一边偏（用户在真机上看到的就是偏的）。
+// 这里改为运行时实测：拿零尺寸 inline-block 探针取两段基线，把差值补进 padding-bottom。
+// 幂等——校正到位后再调，delta≈0，加 0 无副作用。
+function alignPinnedSegBaseline() {
+  const wall = document.querySelector('#square-tabs .square-seg[data-tab="campus_wall"]');
+  const pin = document.getElementById('square-seg-pinned');
+  if (!wall || !pin) return;
+  const baselineOf = (el) => {
+    const probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+    el.appendChild(probe);
+    const b = probe.getBoundingClientRect().bottom;
+    probe.remove();
+    return b;
+  };
+  const wb = baselineOf(wall);
+  const pb = baselineOf(pin);
+  // 广场页隐藏时 rect 全 0，两个基线都是 0、delta 为 0：不会误改，等可见时再校
+  if (!wb || !pb) return;
+  const delta = pb - wb; // 正 = 置顶偏低，要往上抬
+  if (Math.abs(delta) < 0.5) return;
+  const cur = parseFloat(getComputedStyle(pin).paddingBottom) || 0;
+  pin.style.paddingBottom = Math.max(0, cur + delta) + 'px';
+}
+window.alignPinnedSegBaseline = alignPinnedSegBaseline;
+
 function syncPinnedSeg(tab) {
   const tabs = document.getElementById('square-tabs');
   if (!tabs) return;
   tabs.classList.toggle('show-pinned', tab === 'campus_wall' || tab === 'pinned');
-  setTimeout(positionSquareInk, 300);
+  alignPinnedSegBaseline();
+  setTimeout(() => { alignPinnedSegBaseline(); positionSquareInk(); }, 300);
 }
 
 // Switch the square header between [推荐 | 校园墙 | 置顶].
