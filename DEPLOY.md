@@ -179,6 +179,56 @@ docker compose ps api && docker compose logs api | grep -i migrate
 
 **注意**：pg_trgm 扩展与搜索 GIN 索引有意留在 schema 之外，由 `ensure-search-indexes` 启动脚本幂等维护，别写进迁移。
 
+## 6.8 备份与恢复（2026-08-31 起）
+
+**备份内容**（三样，缺一不可恢复出完整站点）：
+- Postgres 逻辑备份（`pg_dump -Fc`，MVCC 快照，运行中备份一致）
+- `uploads` 卷（头像/帖子图片，只存在这台机上）
+- `/opt/unimatcha/.env`（密钥/SMTP 凭据；同时**在密码管理器里留一份**）
+
+**定时任务**（服务器已装，脚本随仓库分发在 `/opt/unimatcha/scripts/`）：
+
+```bash
+# /etc/cron.d/unimatcha-backup —— 每日 04:00 UTC
+0 4 * * * root /opt/unimatcha/scripts/db-backup.sh >> /var/log/unimatcha-backup.log 2>&1
+```
+
+本地存 `/opt/backups/unimatcha/`（600 权限，轮转 14 天）。**未配异地时每次运行都会在日志里
+大声警告**——本地备份挡得住误删库，挡不住服务器整机没了。
+
+**异地上传（一次性配置）**：装 rclone 并配一个名为 `offsite` 的 remote（任意 S3 兼容服务：
+DigitalOcean Spaces / Backblaze B2 / Cloudflare R2），脚本即自动双写异地并同步轮转：
+
+```bash
+apt install -y rclone
+rclone config          # 新建 remote，名字必须叫 offsite，类型 s3，填服务商 endpoint + key
+rclone mkdir offsite:unimatcha-backups
+/opt/unimatcha/scripts/db-backup.sh   # 跑一次确认输出 "(local + offsite)"
+```
+
+dump 与 .env 属最高敏感级（全量用户数据+密钥）：bucket 必须私有；更稳妥可再套一层
+`rclone crypt` remote 做端侧加密。另建议在 DO 面板给 droplet 开 **Snapshots/Backups**
+（整机快照，约 20% 机器月费）作为最后兜底。
+
+**恢复演练**（建议每月一次——没验证过的备份等于没有备份）：
+
+```bash
+/opt/unimatcha/scripts/db-restore-drill.sh
+# 恢复最新 dump 到一次性容器，打印 tables/users/migration/square_posts 计数，与生产对照后自清
+```
+
+**灾难恢复 runbook**（服务器整机没了）：
+
+1. 新 droplet（Ubuntu + Docker），把 DNS 五条 A 记录指到新 IP（DO 面板）
+2. `git clone https://github.com/pkupig/unimatcha-compact /opt/unimatcha`
+3. 从异地取回最新备份：`rclone copy offsite:unimatcha-backups/... /opt/backups/unimatcha/`
+4. 还原 `.env`（备份里的 `env-*` 或密码管理器）到 `/opt/unimatcha/.env`
+5. `docker compose up -d postgres` → 等 healthy →
+   `docker exec -i unimatcha_postgres pg_restore -U campuslove -d campuslove --no-owner < db-最新.dump`
+6. 还原 uploads：`docker run --rm -v unimatcha_uploads_data:/data -v /opt/backups/unimatcha:/b postgres:16-alpine tar xzf /b/uploads-最新.tar.gz -C /data`
+7. `docker compose up -d --build` 起全部服务；重建 server 裸仓库与 post-receive（见第 2 节）；跑第 5 节验证清单
+8. 数据丢失窗口 = 距上次备份的时间（当前每日一备 ≤24h；用户量上来后加密频次）
+
 ## 7. 每周匹配调度
 
 上线后把公布 cron 配置到正式时间（见 SCHEDULING.md / scripts/set-weekly-schedule.sh，
