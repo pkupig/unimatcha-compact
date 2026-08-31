@@ -1,7 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { DiscoveryService } from '../discovery/discovery.service';
+import { MailService } from '../mail/mail.service';
 import { CreateProfileDto } from '../profiles/dto/profile.dto';
 
 // searchable：他人按昵称/学校搜索时能否搜到我
@@ -35,6 +42,7 @@ export class UsersService {
     private prisma: PrismaService,
     private profilesService: ProfilesService,
     private discovery: DiscoveryService,
+    private mail: MailService,
   ) {}
 
   async findById(id: string) {
@@ -280,12 +288,12 @@ export class UsersService {
   // 四个 admin 专用方法已迁至 users-admin.service.ts（Step6）
 
   // ─── 学生认证：发送学校邮箱验证码 ───────────────────────────
-  // 无 SMTP/邮件服务 → 开发模式：生成验证码，写日志并随响应返回 devCode 供测试。
-  // 接入邮件服务后改为真实发送，并移除返回的 devCode（见下方 TODO）。
+  // 配置了 SMTP（MAIL_*）→ 真实发送，验证码不出现在响应里；
+  // 未配置 → 开发回退：写日志并随响应返回 devCode 供测试。
   async sendVerificationCode(userId: string, schoolEmail: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { verificationStatus: true },
+      select: { verificationStatus: true, verifyCodeExpiresAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
     if (user.verificationStatus === 'verified') {
@@ -298,16 +306,48 @@ export class UsersService {
     if (!/(\.edu|\.ac\.)/.test(email)) {
       throw new BadRequestException('Please use a school email (must contain .edu or .ac.)');
     }
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // 60s 重发冷却；签发时刻由 expiresAt 反推（expiresAt - 10min），不必新增列
+    if (
+      user.verifyCodeExpiresAt &&
+      user.verifyCodeExpiresAt.getTime() - 10 * 60 * 1000 + 60 * 1000 > Date.now()
+    ) {
+      throw new BadRequestException('Please wait a moment before requesting another code');
+    }
+    const code = String(randomInt(100000, 1000000));
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         verifyCode: code,
         verifyCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        verifyCodeAttempts: 0,
         schoolEmail: email,
       },
     });
-    // TODO(SMTP): 接入邮件服务后在此真实发送验证码，并删除响应中的 devCode。
+
+    if (this.mail.isConfigured) {
+      try {
+        await this.mail.sendVerificationCode(email, code, 'student_verify');
+      } catch (e) {
+        // 没发出去就清掉本次码，别让 60s 冷却把用户卡在「收不到又不能重发」
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { verifyCode: null, verifyCodeExpiresAt: null },
+        });
+        throw e;
+      }
+      return { message: 'Verification code sent to your school email', expiresInSec: 600 };
+    }
+
+    // 生产不允许 devCode 回退：漏配 MAIL_* 必须当场暴露，而不是静默绕过邮箱验证
+    if (!this.mail.devFallbackAllowed) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { verifyCode: null, verifyCodeExpiresAt: null },
+      });
+      throw new ServiceUnavailableException('Email service is not configured');
+    }
+
+    // 开发回退：未配置 SMTP → 写日志并随响应返回 devCode
     console.log(`[verify] code for ${email} (user ${userId}): ${code}`);
     return {
       message: 'Verification code sent (dev mode: no email service connected, code shown below)',
@@ -348,7 +388,29 @@ export class UsersService {
     if (!email || email !== (user.schoolEmail || '')) {
       throw new BadRequestException('Email does not match the verification code, please request a new one');
     }
-    if (code !== user.verifyCode) {
+    // 原子占用一次比码名额（条件 UPDATE）：已登录用户对自己的码无限试错，
+    // 等于可爆破任意学邮的 6 位码伪造学生认证。与注册验证码同款防线，错 5 次作废。
+    const claimed = await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        verifyCode: { not: null },
+        verifyCodeAttempts: { lt: 5 },
+      },
+      data: { verifyCodeAttempts: { increment: 1 } },
+    });
+    if (claimed.count === 0) {
+      throw new BadRequestException('Too many incorrect attempts, please request a new code');
+    }
+    // 占位后重读，code 与 schoolEmail 都用同一新快照复核——否则并发重发把 schoolEmail
+    // 换成攻击者自有的真 .edu 后，可用旧快照通过 email 检查、却给另一邮箱盖章（自我竞态）。
+    const freshUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { verifyCode: true, schoolEmail: true },
+    });
+    if (email !== (freshUser?.schoolEmail || '')) {
+      throw new BadRequestException('Email does not match the verification code, please request a new one');
+    }
+    if (!freshUser?.verifyCode || code !== freshUser.verifyCode) {
       throw new BadRequestException('Incorrect verification code');
     }
     const updated = await this.prisma.user.update({
@@ -359,6 +421,7 @@ export class UsersService {
         schoolEmail: email,
         verifyCode: null,
         verifyCodeExpiresAt: null,
+        verifyCodeAttempts: 0,
       },
       select: { id: true, verificationStatus: true },
     });

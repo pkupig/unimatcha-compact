@@ -58,6 +58,16 @@ services:
       SEED_DEMO: ${SEED_DEMO:-false}
       # CORS 白名单（逗号分隔）；不设则放开（开发用）。生产设官网+H5 域名。
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      # SMTP 邮件（注册/学生认证验证码）。三个必填项不齐：开发环境回退 devCode，生产直接 503。
+      # 生产用 Spacemail：MAIL_HOST=mail.spacemail.com MAIL_PORT=465
+      # MAIL_USER=完整邮箱地址 MAIL_PASS=邮箱密码 MAIL_FROM 缺省 "Unimatcha <MAIL_USER>"。
+      # MAIL_SECURE 留空按端口推导（465→TLS，587→STARTTLS），别在这里写死默认值。
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_SECURE: ${MAIL_SECURE:-}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASS: ${MAIL_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
     # Behind Caddy: reachable on the internal network + via api.<domain>.
     # (was "3001:3001" — switch back to `ports` if you need direct host access.)
     expose:

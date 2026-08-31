@@ -25,12 +25,51 @@ async function doLogin() {
 }
 window.doLogin = doLogin;
 
+// 注册：发送邮箱验证码（60s 冷却与后端一致；未配置 SMTP 时后端返回 devCode 供测试）
+async function sendRegisterCode() {
+  const email = document.getElementById('register-email')?.value?.trim();
+  const zh = window.getLang && window.getLang() === 'zh';
+  if (!email) {
+    window.toast(zh ? '请先填写邮箱' : 'Enter your email first');
+    return;
+  }
+  const btn = document.getElementById('register-sendcode-btn');
+  if (btn?.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = zh ? '发送中…' : 'Sending…'; }
+  try {
+    const res = await window.api('/auth/register/send-code', 'POST', { email });
+    const env = res?.data || res || {};
+    const hint = document.getElementById('register-code-hint');
+    if (hint) {
+      // 未配置邮件服务 → 开发模式直接展示验证码；接好 SMTP 后后端不再返回 devCode
+      hint.textContent = env.devCode
+        ? (zh ? `开发模式（未接邮件服务）：验证码 ${env.devCode}` : `Dev mode (no email service yet): your code is ${env.devCode}`)
+        : (zh ? '验证码已发送到你的邮箱，10 分钟内有效' : 'Code sent to your email, valid for 10 minutes');
+      hint.setAttribute('data-no-i18n', '');
+      hint.classList.remove('hidden');
+    }
+    window.toast(zh ? '验证码已发送' : 'Code sent');
+    window.codeCooldown(btn, 60, 'Send code');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send code'; }
+    window.toast((zh ? '发送失败：' : 'Failed to send: ') + (e?.message || ''));
+  }
+}
+window.sendRegisterCode = sendRegisterCode;
+
 async function doRegister() {
   const email = document.getElementById('register-email')?.value?.trim();
+  const code = document.getElementById('register-code')?.value?.trim();
   const password = document.getElementById('register-password')?.value?.trim();
   const confirm = document.getElementById('register-password-confirm')?.value?.trim();
-  if (!email || !password || !confirm) {
+  const zh = window.getLang && window.getLang() === 'zh';
+  if (!email || !code || !password || !confirm) {
     window.toast('Please fill all fields');
+    return;
+  }
+  // 与后端 RegisterDto 的 Length(6,6) 对齐
+  if (!/^\d{6}$/.test(code)) {
+    window.toast(zh ? '请输入 6 位邮箱验证码' : 'Enter the 6-digit email verification code');
     return;
   }
   // 与后端 RegisterDto 的 MinLength(8) 对齐
@@ -45,7 +84,8 @@ async function doRegister() {
   try {
     const res = await window.api('/auth/register', 'POST', {
       email,
-      password
+      password,
+      code
     });
     const data = res.data || res; // 后端响应被包了一层 {success, data, timestamp}
     localStorage.setItem('cl_token', data.token || data.access_token);

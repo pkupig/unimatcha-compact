@@ -93,7 +93,7 @@ export class UsersController {
   }
 
   @Post('me/verification/send-code')
-  @ApiOperation({ summary: '学生认证：发送学校邮箱验证码（开发态随响应返回 devCode）' })
+  @ApiOperation({ summary: '学生认证：发送学校邮箱验证码（未配置邮件服务时返回 devCode）' })
   async sendVerificationCode(@CurrentUser('id') userId: string, @Body() dto: SendCodeDto) {
     return this.usersService.sendVerificationCode(userId, dto.schoolEmail);
   }

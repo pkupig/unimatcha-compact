@@ -68,6 +68,7 @@ model User {
   schoolEmail         String? // 已通过验证码校验的学校邮箱
   verifyCode          String? // 学校邮箱验证码（临时，提交后清空）
   verifyCodeExpiresAt DateTime?
+  verifyCodeAttempts  Int       @default(0) // 提交时错误次数，达上限作废（防已登录用户爆破他人学邮的码）
 
   // 扫码加好友：每人唯一连接码（二维码编码它，对方扫/输入即建立朋友会话）
   connectCode String? @unique
@@ -114,6 +115,22 @@ model User {
 enum UserStatus {
   ACTIVE
   BANNED
+}
+
+// 注册邮箱验证码：注册时用户还不存在，码不能挂在 User 上，单独一张表。
+// (email, purpose) 唯一 → 重发即覆盖旧码；purpose 预留扩展（如 password_reset）。
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  purpose   String // 'register'
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0) // 错误尝试次数，达上限作废，防 6 位码爆破
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, purpose])
+  @@map("email_verification_codes")
 }
 
 model AdminUser {

@@ -16,8 +16,30 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    func register(email: String, password: String) async {
-        await authenticate { try await AuthService.register(email: email, password: password) }
+    @Published var codeHint: String?
+    @Published var isSendingCode = false
+
+    /// 请求注册邮箱验证码；开发态后端会回 devCode，直接提示出来方便测试。
+    func sendRegisterCode(email: String) async {
+        guard !email.isEmpty else { errorMessage = "请先填写邮箱"; return }
+        isSendingCode = true; errorMessage = nil; codeHint = nil
+        do {
+            let res = try await AuthService.sendRegisterCode(email: email)
+            if let dev = res.devCode {
+                codeHint = "开发模式（未接邮件服务）：验证码 \(dev)"
+            } else {
+                codeHint = res.message ?? "验证码已发送到你的邮箱，10 分钟内有效"
+            }
+        } catch let error as APIError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isSendingCode = false
+    }
+
+    func register(email: String, password: String, code: String) async {
+        await authenticate { try await AuthService.register(email: email, password: password, code: code) }
     }
 
     func login(email: String, password: String) async {

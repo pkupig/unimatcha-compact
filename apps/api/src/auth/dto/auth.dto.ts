@@ -1,5 +1,11 @@
-import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+export class RegisterSendCodeDto {
+  @ApiProperty({ example: 'user@university.edu' })
+  @IsEmail({}, { message: 'Please enter a valid email address' })
+  email: string;
+}
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@university.edu' })
@@ -11,6 +17,11 @@ export class RegisterDto {
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @MaxLength(64)
   password: string;
+
+  @ApiProperty({ example: '123456', description: '邮箱验证码（POST /auth/register/send-code 获取）' })
+  @IsString()
+  @Length(6, 6, { message: 'Please enter the 6-digit verification code' })
+  code: string;
 }
 
 export class LoginDto {

@@ -11,6 +11,7 @@ import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { AdminCoreModule } from '../admin-core/admin-core.module';
 import { SponsorInviteModule } from '../sponsor-invite/sponsor-invite.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { SponsorInviteModule } from '../sponsor-invite/sponsor-invite.module';
     AdminCoreModule,
     // B5 广告商自注册：AdminAuthController 挂两个公开端点（invite-info / register-sponsor）
     SponsorInviteModule,
+    // 注册邮箱验证码发送
+    MailModule,
   ],
   controllers: [AuthController, AdminAuthController],
   providers: [AuthService, AdminAuthService, JwtStrategy, AdminJwtStrategy],

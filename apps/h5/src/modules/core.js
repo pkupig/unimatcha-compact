@@ -677,3 +677,25 @@ function readFileAsDataUrl(file, cb) {
   r.readAsDataURL(file);
 }
 window.readFileAsDataUrl = readFileAsDataUrl;
+
+// 验证码发送按钮的重发倒计时：期间禁用并显示「Ns」（语言中立，不经词典），
+// 归零后恢复 idleLabel——词典观察器会按当前语言重新翻译该文案。
+function codeCooldown(btn, seconds, idleLabel) {
+  if (!btn) return;
+  if (btn.__cdTimer) clearInterval(btn.__cdTimer);
+  let left = seconds;
+  btn.disabled = true;
+  btn.textContent = left + 's';
+  btn.__cdTimer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(btn.__cdTimer);
+      btn.__cdTimer = null;
+      btn.disabled = false;
+      btn.textContent = idleLabel;
+      return;
+    }
+    btn.textContent = left + 's';
+  }, 1000);
+}
+window.codeCooldown = codeCooldown;

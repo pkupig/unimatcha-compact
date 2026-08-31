@@ -589,9 +589,10 @@ async function sendVerifyCode() {
       hint.classList.remove('hidden');
     }
     window.toast(env.message || 'Code sent');
+    // 后端有 60s 重发冷却，按钮同步倒计时，免得点了报错
+    window.codeCooldown(btn, 60, 'Send code');
   } catch (e) {
     window.toast('Failed: ' + (e?.message || 'try again'));
-  } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Send code'; }
   }
 }

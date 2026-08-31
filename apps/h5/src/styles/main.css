@@ -1128,3 +1128,7 @@
     .dark .home-mode-seg.active { background: #CCFF00; color: #000; }
     /* 广场分段选中态写死黑字 */
     .dark .square-seg.active { color: #eceae6 !important; }
+    /* btn-secondary 写死黑字黑描边（上面 244 行），深色底上不可见——
+       注册发码按钮与学生认证发码按钮都用它 */
+    .dark .btn-secondary { color: #eceae6; border-color: rgba(255, 255, 255, 0.28); }
+    .dark .btn-secondary:hover { background: #eceae6; color: #121110; }

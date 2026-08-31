@@ -222,6 +222,7 @@ const ZH_PLACEHOLDER = {
   'Title': '标题', 'Capture the moment...': '记录此刻…',
   'Option 1': '选项 1', 'Option 2': '选项 2', 'Option 3': '选项 3',
   'Option 4': '选项 4', 'Option 5': '选项 5', 'Option 6': '选项 6',
+  '6-digit code': '6 位验证码',
   'Add new interest...': '添加兴趣…', 'e.g. Photography': '例如：摄影',
   'The Scholar': '你的昵称', 'Given name (名)': '名', 'Family name (姓)': '姓',
   'Anything else to help matching...': '还有什么想让匹配知道的…',

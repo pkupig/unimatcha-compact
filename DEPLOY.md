@@ -76,6 +76,15 @@ ALLOWED_ORIGINS=https://unimatcha.ai,https://www.unimatcha.ai,https://app.unimat
 
 # ── 演示数据：生产必须 false ──
 SEED_DEMO=false
+
+# ── SMTP 邮件（注册验证码 + 学生认证验证码）──
+# 三项必填不齐 → 开发回退：验证码不发邮件、随 API 响应返回 devCode（生产必须配齐）。
+# 域名邮箱托管在 Spacemail（Spaceship），MX 已指 spacemail.com。
+MAIL_HOST=mail.spacemail.com
+MAIL_PORT=465
+MAIL_USER=donotreply@unimatcha.ai   # Spacemail 发信邮箱（2026-08-31 已在服务器 .env 配好）
+MAIL_PASS=<该邮箱的登录密码>
+# MAIL_SECURE 留空按端口推导（465→TLS）；MAIL_FROM 缺省 "Unimatcha <MAIL_USER>"
 ```
 
 ## 4. 启动

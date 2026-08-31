@@ -289,6 +289,17 @@
               </div>
             </div>
 
+            <!-- 注册邮箱验证码：点 Send code → POST /auth/register/send-code，注册时随 payload 提交 -->
+            <div class="relative group">
+              <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Verification Code</label>
+              <div class="flex items-center space-x-3">
+                <span class="material-symbols-outlined text-outline group-focus-within:text-primary">pin</span>
+                <input id="register-code" class="w-full font-body text-base placeholder:text-outline-variant bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none" placeholder="6-digit code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                <button id="register-sendcode-btn" type="button" class="btn-secondary text-[10px] px-3 py-2 whitespace-nowrap shrink-0" onclick="sendRegisterCode()">Send code</button>
+              </div>
+              <p id="register-code-hint" class="hidden text-[10px] text-on-surface-variant mt-1.5"></p>
+            </div>
+
             <div class="relative group">
               <label class="font-headline text-[10px] font-bold tracking-[0.15em] text-outline block mb-1">Password</label>
               <div class="flex items-center space-x-3">

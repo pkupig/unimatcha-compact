@@ -6,9 +6,10 @@ import { UsersAdminService } from './users-admin.service';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { AdminCoreModule } from '../admin-core/admin-core.module';
 import { DiscoveryModule } from '../discovery/discovery.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
-  imports: [ProfilesModule, AdminCoreModule, DiscoveryModule],
+  imports: [ProfilesModule, AdminCoreModule, DiscoveryModule, MailModule],
   providers: [UsersService, UsersAdminService],
   controllers: [UsersController, UsersAdminController],
   exports: [UsersService],

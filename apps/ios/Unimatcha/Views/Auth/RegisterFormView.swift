@@ -3,12 +3,13 @@ import SwiftUI
 struct RegisterFormView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var email = ""
+    @State private var code = ""
     @State private var password = ""
     @State private var confirmPassword = ""
 
     private var passwordMismatch: Bool { !confirmPassword.isEmpty && password != confirmPassword }
     private var canSubmit: Bool {
-        !email.isEmpty && password.count >= 8 && password == confirmPassword && !authVM.isLoading
+        !email.isEmpty && code.count == 6 && password.count >= 8 && password == confirmPassword && !authVM.isLoading
     }
 
     var body: some View {
@@ -20,6 +21,25 @@ struct RegisterFormView: View {
                     .autocorrectionDisabled(true)
                     .textContentType(.emailAddress)
                     .modifier(InputFieldModifier())
+
+                HStack(spacing: 8) {
+                    TextField("6 位验证码", text: $code)
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .modifier(InputFieldModifier())
+                    Button(action: { Task { await authVM.sendRegisterCode(email: email) } }) {
+                        Text(authVM.isSendingCode ? "发送中…" : "发验证码")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .disabled(email.isEmpty || authVM.isSendingCode)
+                }
+
+                if let hint = authVM.codeHint {
+                    Text(hint)
+                        .font(.caption)
+                        .foregroundColor(Theme.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 SecureField("密码（至少 8 位）", text: $password)
                     .textContentType(.newPassword)
@@ -51,7 +71,7 @@ struct RegisterFormView: View {
                     .frame(maxWidth: .infinity)
             }
 
-            Button(action: { Task { await authVM.register(email: email, password: password) } }) {
+            Button(action: { Task { await authVM.register(email: email, password: password, code: code) } }) {
                 HStack(spacing: 8) {
                     if authVM.isLoading {
                         ProgressView().tint(Theme.onAccent).scaleEffect(0.85)
