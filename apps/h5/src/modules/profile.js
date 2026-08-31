@@ -236,9 +236,11 @@ window.getSetupTags = getSetupTags;
 function renderSetupTags() {
   const c = document.getElementById('setup-tags-list');
   if (!c) return;
+  // 只渲染已选 chips。「+ Add New」占位 chip 已删——下方本就有预设按钮和
+  // 输入框+Add 键（7/18 加的显式入口），两个添加按钮并存让用户困惑。
   c.innerHTML = S.setupTags.map((t, i) => {
     return `<span class="tag-chip" style="background-color: ${NEON}; color: #000000; border-color: ${NEON};">${window.escapeHtml(t)} <span class="tag-remove" onclick="removeSetupTag(${i})">×</span></span>`;
-  }).join('') + '<span class="tag-chip add-tag" onclick="document.getElementById(\'setup-tag-input\')?.focus()">+ Add New</span>';
+  }).join('');
 }
 window.renderSetupTags = renderSetupTags;
 
@@ -371,12 +373,12 @@ async function saveProfile() {
     // G rule (§6.3): after profile setup, enter home and surface the two
     // optional questionnaire cards (romantic / friend) instead of forcing a
     // single questionnaire. Both are optional and gate their own match mode.
-    window.showPage('page-home');
-    if (typeof window.switchHomeView === 'function') {
-      window.switchHomeView('chat');
-    } else {
-      window.switchTab('match');
-    }
+    // 必须走 switchTab('match')：它负责激活主页、显示底导+激活态、显示 #tab-match，
+    // 再按 S.homeView 进入 Chat 视图。以前直接调 switchHomeView('chat') 会跳过
+    // 这些步骤——showPage 刚把全部 tab 面板藏掉，结果新用户进来一片空白、
+    // 底导无激活态（用户截图报的正是这个，重启后走 checkUserState 才正常）。
+    S.homeView = 'chat';
+    window.switchTab('match');
     window.renderQuestionnaireCards();
   } catch (e) {
     window.toast('Save failed: ' + e.message);
