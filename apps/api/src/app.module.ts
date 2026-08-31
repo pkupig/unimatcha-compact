@@ -17,6 +17,7 @@ import { MetadataModule } from './metadata/metadata.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ChatModule } from './chat/chat.module';
 import { NotificationModule } from './notifications/notification.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { ReportsModule } from './reports/reports.module';
 import { EnergyModule } from './energy/energy.module';
 import { CoupleModule } from './couple/couple.module';
@@ -64,6 +65,7 @@ import { DiscoveryModule } from './discovery/discovery.module';
     UploadsModule,
     ChatModule,
     NotificationModule,
+    RealtimeModule,
     ReportsModule,
     EnergyModule,
     CoupleModule,

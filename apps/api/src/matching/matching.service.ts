@@ -8,6 +8,7 @@ import { Prisma, MatchMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { NotificationService } from '../notifications/notification.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { EnergyService, ENERGY_COST_ROMANTIC } from '../energy/energy.service';
 import { MatchFeedbackService } from './feedback/match-feedback.service';
 import {
@@ -59,6 +60,7 @@ export class MatchingService {
     private notificationService: NotificationService,
     private energyService: EnergyService,
     private matchFeedback: MatchFeedbackService,
+    private realtime: RealtimeService,
   ) {}
 
   // ─── Config ───────────────────────────────────────────────
@@ -618,6 +620,9 @@ export class MatchingService {
         // 曝光埋点（P0-2）：公布即曝光。事务提交后落库（埋点失败只告警，不影响匹配）；
         // (matchJobId, matchId) 唯一键保证 Bull 重试不重复。featureSnapshot 冻结自模型 metadata。
         if (createdMatch) {
+          // SSE：match_result 通知已随上方事务落库、事务已提交，给双方推失效事件
+          this.realtime.emitToUser(pair.userAId, { type: 'notification' });
+          this.realtime.emitToUser(pair.userBId, { type: 'notification' });
           await this.matchFeedback.logExposure({
             matchJobId: jobId,
             matchId: createdMatch.id,
@@ -906,6 +911,9 @@ export class MatchingService {
     });
 
     if (confirmedEvt) {
+      // SSE：relationship_confirmed 通知（事务已提交）
+      this.realtime.emitToUser(confirmedEvt.userAId, { type: 'notification' });
+      this.realtime.emitToUser(confirmedEvt.userBId, { type: 'notification' });
       void this.matchFeedback.logEvent({
         matchId,
         mode: confirmedEvt.mode,
@@ -977,6 +985,10 @@ export class MatchingService {
       return { mode: modeStr, wasTemp, userAId: m.userAId, userBId: m.userBId };
     });
 
+    // SSE：relationship_dissolved 通知发给对方（事务已提交）
+    this.realtime.emitToUser(outcome.userAId === userId ? outcome.userBId : outcome.userAId, {
+      type: 'notification',
+    });
     // 行为埋点（P0-2）：事务提交后落库，失败不影响解除
     void this.matchFeedback.logEvent({
       matchId,
@@ -1078,7 +1090,12 @@ export class MatchingService {
         }
         return true;
       });
-      if (didExpire) expired++;
+      if (didExpire) {
+        expired++;
+        // SSE：match_expired（+可能的退款）通知，事务已提交
+        this.realtime.emitToUser(m.userAId, { type: 'notification' });
+        this.realtime.emitToUser(m.userBId, { type: 'notification' });
+      }
     }
 
     if (expired > 0) this.logger.log(`已过期 ${expired} 个超 48h 未确认的临时对话`);
@@ -1402,6 +1419,8 @@ export class MatchingService {
       });
       return m;
     });
+    // SSE：friend_added 通知（事务已提交）
+    this.realtime.emitToUser(targetId, { type: 'notification' });
     const partner = await this.profilesService.getPublicProfile(targetId);
     return { matchId: match.id, message: 'Added — start chatting!', partner };
   }

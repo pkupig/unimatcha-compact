@@ -316,7 +316,10 @@ window.refreshUnreadBadge = refreshUnreadBadge;
 // Poll refresh: re-fetch the pages the user has already loaded so the expanded
 // view (Load More) is preserved while read-states stay current.
 async function refreshNotifications() {
-  if (S.notifLoadingMore) return;
+  // notifLoadingMore 只管 load-more；自身也要防重入——SSE 通知风暴时多个
+  // in-flight 全量刷新会乱序渲染列表
+  if (S.notifLoadingMore || S.notifRefreshBusy) return;
+  S.notifRefreshBusy = true;
   try {
     const pages = Math.max(1, S.notifPage);
     const merged = [];
@@ -335,6 +338,8 @@ async function refreshNotifications() {
     renderNotifications();
   } catch (e) {
     console.error('Failed to refresh notifications:', e);
+  } finally {
+    S.notifRefreshBusy = false;
   }
 }
 
@@ -345,7 +350,12 @@ function notifPollTick() {
 
 function startNotifPolling() {
   window.stopNotifPolling();
-  S.notifPollingId = setInterval(notifPollTick, 15000);
+  let tick = 0;
+  S.notifPollingId = setInterval(() => {
+    tick += 1;
+    if (S.realtimeUp && tick % 4 !== 0) return; // SSE 在线降为 60s 兜底
+    notifPollTick();
+  }, 15000);
 }
 window.startNotifPolling = startNotifPolling;
 

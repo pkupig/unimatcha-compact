@@ -5,9 +5,10 @@ import { SquareService } from './square.service';
 import { SquareAdminService } from './square-admin.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AdminCoreModule } from '../admin-core/admin-core.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [PrismaModule, AdminCoreModule],
+  imports: [PrismaModule, AdminCoreModule, RealtimeModule],
   controllers: [SquareController, SquareAdminController],
   providers: [SquareService, SquareAdminService],
   exports: [SquareService],

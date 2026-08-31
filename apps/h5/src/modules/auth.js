@@ -90,6 +90,7 @@ async function doRegister() {
     const data = res.data || res; // 后端响应被包了一层 {success, data, timestamp}
     localStorage.setItem('cl_token', data.token || data.access_token);
     S.currentUser = data.user || data;
+    window.startRealtime?.();
     window.showPage('page-profile-setup');
   } catch (e) {
     window.toast('Registration failed: ' + e.message);

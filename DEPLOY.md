@@ -249,6 +249,24 @@ dump 与 .env 属最高敏感级（全量用户数据+密钥）：bucket 必须�
    在这一步之前是个没有备份的裸奔站点**
 9. 数据丢失窗口 = 距上次备份的时间（当前每日一备 ≤24h；用户量上来后加密频次）
 
+## 6.9 换域名手册
+
+运行时代码已无硬编码（H5 按 hostname 推导 API 地址、api 全走 env、admin 走构建期 `API_URL`）。
+需要动手的只有**静态资产与配置**，按序：
+
+```bash
+# 1) 官网静态页 + Caddyfile + compose（约 55 处，全部是 OG/sitemap/mailto/反代域名这类必须绝对写的）
+cd /opt/unimatcha
+grep -rl 'unimatcha\.ai' apps/website Caddyfile docker-compose.yml | \
+  xargs sed -i 's/unimatcha\.ai/新域名/g'
+# 2) 服务器 .env：ALLOWED_ORIGINS / API_URL / NEXTAUTH_URL / MAIL_FROM 四处
+# 3) DNS：新域名五条 A 记录（@/www/app/admin/api）+ 邮件六条（MX×2/SPF/brevo-code/DKIM×2，见 6.8 上方）
+# 4) Brevo 后台重新认证新域名（发 DKIM）；Spacemail 若继续用需在 Spaceship 侧迁移
+# 5) docker compose up -d --build website admin-web caddy && docker compose restart api
+```
+
+改完跑第 5 节验证清单。别忘了旧域名 301（Caddy 加一段 redir）。
+
 ## 7. 每周匹配调度
 
 上线后把公布 cron 配置到正式时间（见 SCHEDULING.md / scripts/set-weekly-schedule.sh，

@@ -13,6 +13,7 @@ import { MatchFeedbackModule } from './feedback/match-feedback.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { NotificationModule } from '../notifications/notification.module';
 import { EnergyModule } from '../energy/energy.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { EnergyModule } from '../energy/energy.module';
     NotificationModule,
     EnergyModule,
     MatchFeedbackModule,
+    RealtimeModule,
   ],
   controllers: [MatchingController, MatchingAdminController],
   providers: [

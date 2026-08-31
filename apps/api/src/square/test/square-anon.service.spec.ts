@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SquareService } from '../square.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RealtimeService } from '../../realtime/realtime.service';
 
 // 匿名是隐私承诺，破了就是真实伤害——这套用例守的是「匿名评论除化名外什么都不剩」
 // 与「化名不可被离线反推」两条底线，任何一条被改坏都应当在这里立刻红掉。
@@ -15,7 +16,11 @@ describe('SquareService · 匿名（逐条评论）', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SquareService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        SquareService,
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: RealtimeService, useValue: { emitToUser: jest.fn() } },
+      ],
     }).compile();
     service = module.get<SquareService>(SquareService);
   });

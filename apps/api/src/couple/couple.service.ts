@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 const DAY = 86400000;
 // 仅恋人关系可用情侣空间（RELATIONSHIP_MODE 为旧数据兼容）
@@ -13,7 +14,10 @@ const ROMANTIC_STATUSES = ['RELATIONSHIP_ROMANTIC', 'RELATIONSHIP_MODE'];
 
 @Injectable()
 export class CoupleService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private realtime: RealtimeService,
+  ) {}
 
   // 校验当前用户属于该恋人 Match（且未解除），返回 { match, partnerId }
   private async assertMember(userId: string, matchId: string) {
@@ -176,6 +180,8 @@ export class CoupleService {
     }
     // 仅在自增真正生效时才发消息 + 评估里程碑
     await this.prisma.message.create({ data: { matchId, senderId: userId, content: 'I love you' } });
+    // SSE：与 chat.sendMessage 同款，给对方推「有新消息」
+    this.realtime.emitToUser(partnerId, { type: 'message', matchId });
     const [updated, partnerState] = await Promise.all([
       this.prisma.coupleMemberState.findUnique({
         where: { matchId_userId: { matchId, userId } },
@@ -193,7 +199,7 @@ export class CoupleService {
       });
       const nameOf = (uid: string) => profs.find((p) => p.userId === uid)?.nickname || 'your partner';
       // 幂等去重：check + create 放进同一 Serializable 事务，并发两侧不会重复发里程碑通知。
-      await this.prisma.$transaction(
+      const milestoneCreated = await this.prisma.$transaction(
         async (tx) => {
           const already = await tx.notification.findFirst({
             where: {
@@ -204,7 +210,7 @@ export class CoupleService {
               ],
             },
           });
-          if (already) return;
+          if (already) return false;
           for (const uid of [userId, partnerId]) {
             const other = uid === userId ? partnerId : userId;
             await tx.notification.create({
@@ -218,9 +224,15 @@ export class CoupleService {
               },
             });
           }
+          return true;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
+      if (milestoneCreated) {
+        // SSE：里程碑通知（事务已提交）
+        this.realtime.emitToUser(userId, { type: 'notification' });
+        this.realtime.emitToUser(partnerId, { type: 'notification' });
+      }
     }
     return this.getSpace(userId, matchId);
   }

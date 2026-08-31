@@ -1,20 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
+
 
 @Injectable()
 export class NotificationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private realtime: RealtimeService,
+  ) {}
 
   async createNotification(userId: string, type: string, title: string, body: string, metadata?: any) {
-    return this.prisma.notification.create({
+    const created = await this.prisma.notification.create({
       data: { userId, type, title, body, metadata, isRead: false },
     });
+    // SSE：全站通知都走本漏斗，这一处 emit 覆盖所有通知类型
+    this.realtime.emitToUser(userId, { type: 'notification' });
+    return created;
   }
 
   async createManyNotifications(items: { userId: string; type: string; title: string; body: string; metadata?: any }[]) {
-    return this.prisma.notification.createMany({
+    const result = await this.prisma.notification.createMany({
       data: items.map(i => ({ ...i, isRead: false })),
     });
+    for (const uid of new Set(items.map(i => i.userId))) {
+      this.realtime.emitToUser(uid, { type: 'notification' });
+    }
+    return result;
   }
 
   async getNotifications(userId: string, page = 1, limit = 20) {

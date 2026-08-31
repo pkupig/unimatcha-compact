@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, SquareBoard, SquareAuthorType, AdminRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { CreatePostDto, CreateCommentDto } from './dto/square.dto';
 
 /**
@@ -46,7 +47,10 @@ interface TasteProfile {
 
 @Injectable()
 export class SquareService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private realtime: RealtimeService,
+  ) {}
 
   // board 字符串 → Prisma 枚举（public：SquareAdminService 复用）
   toBoard(b: 'recommend' | 'campus_wall'): SquareBoard {
@@ -702,6 +706,7 @@ export class SquareService {
           metadata: { postId, commentId: comment.id },
         },
       });
+      this.realtime.emitToUser(post.authorUserId, { type: 'notification' });
     }
     if (
       parentComment &&
@@ -717,6 +722,7 @@ export class SquareService {
           metadata: { postId, commentId: comment.id },
         },
       });
+      this.realtime.emitToUser(parentComment.userId, { type: 'notification' });
     }
 
     // 出参也要脱敏：前端可能把 POST 的返回直接插进楼层，
@@ -827,6 +833,7 @@ export class SquareService {
             metadata: { postId, actorId: actorKey },
           },
         });
+        this.realtime.emitToUser(post.authorUserId, { type: 'notification' });
       }
     }
 

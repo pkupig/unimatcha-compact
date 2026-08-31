@@ -1004,7 +1004,13 @@ async function refreshReadReceipts() {
 
 // ---- Incremental polling ----
 async function pollChatMessages() {
-  if (!S.chatMatchId || S.chatPollBusy) return;
+  if (!S.chatMatchId) return;
+  if (S.chatPollBusy) {
+    // SSE 事件恰逢一次 poll 在途时不能静默丢（在途请求可能不含最新消息，
+    // 兜底轮询已降到 30s）：置 pending，busy 释放后立刻补拉一轮
+    S.chatPollPending = true;
+    return;
+  }
   // A9: snapshot the conversation + cursor up front so a response that lands
   // after the user switched conversations can be discarded instead of leaking
   // into the new conversation's state/DOM.
@@ -1048,6 +1054,10 @@ async function pollChatMessages() {
     console.warn('pollChatMessages failed:', e);
   } finally {
     S.chatPollBusy = false;
+    if (S.chatPollPending) {
+      S.chatPollPending = false;
+      window.pollChatMessages();
+    }
   }
 }
 window.pollChatMessages = pollChatMessages;
@@ -1057,8 +1067,12 @@ function startChatPolling() {
   // A9: capture the conversation this timer belongs to; if the active chat
   // changed but the old timer somehow survived, its ticks become no-ops.
   const matchId = S.chatMatchId;
+  let tick = 0;
   S.chatPollingId = setInterval(() => {
     if (S.chatMatchId !== matchId) return;
+    // SSE 在线时新消息是推过来的，本轮询降为 30s 兜底（每 6 跳跑 1 跳）
+    tick += 1;
+    if (S.realtimeUp && tick % 6 !== 0) return;
     window.pollChatMessages();
   }, 5000);
 }
@@ -1071,3 +1085,6 @@ function stopChatPolling() {
   }
 }
 window.stopChatPolling = stopChatPolling;
+
+// SSE read 事件（core.js）需要在收到对方已读时点亮回执
+window.refreshReadReceipts = refreshReadReceipts;

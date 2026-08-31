@@ -25,6 +25,7 @@ async function api(path, method = 'GET', body = null) {
       // continuing on with a null result (which previously crashed renderMatchTab).
       localStorage.removeItem('cl_token');
       window.stopMatchPolling?.();
+      window.stopRealtime?.();
       window.stopChatPolling?.();
       window.stopNotifPolling?.();
       window.stopCountdownTick?.();
@@ -63,6 +64,72 @@ window.uploadImageFile = uploadImageFile;
 
 // Clear every user-scoped field on S so a fresh login/anonymous session can
 // never see the previous account's data (cross-user bleed on shared devices).
+// ── SSE 实时通道：message/notification 事件到达即拉取，轮询降频为兜底 ──
+// 服务端只推「失效通知」，数据仍走既有 REST；EventSource 自带断线重连。
+function startRealtime() {
+  stopRealtime();
+  const token = localStorage.getItem('cl_token');
+  if (!token || typeof EventSource === 'undefined') return;
+  const es = new EventSource(`${S.API}/realtime/stream?token=${encodeURIComponent(token)}`);
+  S.realtimeES = es;
+  es.onopen = () => { S.realtimeUp = true; };
+  // 断开期间轮询自动恢复原频率；EventSource 会自行重连
+  es.onerror = () => { S.realtimeUp = false; };
+  es.onmessage = (ev) => {
+    let data = null;
+    try { data = JSON.parse(ev.data); } catch (e) { return; }
+    if (data.type === 'ready') { S.realtimeUp = true; return; }
+    if (data.type === 'evicted') {
+      // 服务端单用户连接上限挤掉了本连接：主动关闭、停在全频轮询，别再重连挤别人
+      stopRealtime();
+      return;
+    }
+    if (data.type === 'message') {
+      // 正在看这个会话 → 立刻拉新消息；会话列表节流刷新（红点/预览，带 trailing 补刷）
+      if (S.chatMatchId && data.matchId === S.chatMatchId) window.pollChatMessages?.();
+      throttleWithTrailing('realtimeSess', 3000, () => window.loadSessions?.());
+    } else if (data.type === 'read') {
+      // 对方读了我的消息：当前就在这个会话 → 立刻点亮「已读」
+      if (S.chatMatchId && data.matchId === S.chatMatchId) window.refreshReadReceipts?.();
+    } else if (data.type === 'notification') {
+      // 与会话列表同款 3s 节流：热帖被连续点赞时不能一赞一全量拉
+      throttleWithTrailing('realtimeNotif', 3000, () => window.notifPollTick?.());
+    }
+  };
+}
+window.startRealtime = startRealtime;
+
+function stopRealtime() {
+  if (S.realtimeES) { try { S.realtimeES.close(); } catch (e) { /* noop */ } S.realtimeES = null; }
+  S.realtimeUp = false;
+  // 清掉节流表里挂着的 trailing 定时器：否则登出后它们还会补发无令牌请求
+  if (S.rtThrottle) {
+    for (const k in S.rtThrottle) {
+      if (S.rtThrottle[k] && S.rtThrottle[k].timer) clearTimeout(S.rtThrottle[k].timer);
+    }
+  }
+  S.rtThrottle = {};
+}
+
+// leading+trailing 节流：窗口内首个调用立即执行，窗口内后续调用合并为窗口末尾补一次
+// ——纯 leading 会让「3s 内连来 N 条」的最后一条状态一直陈旧到下个事件
+function throttleWithTrailing(key, ms, fn) {
+  S.rtThrottle = S.rtThrottle || {};
+  const slot = S.rtThrottle[key] || (S.rtThrottle[key] = { last: 0, timer: null });
+  const now = Date.now();
+  if (now - slot.last >= ms) {
+    slot.last = now;
+    fn();
+  } else if (!slot.timer) {
+    slot.timer = setTimeout(() => {
+      slot.timer = null;
+      slot.last = Date.now();
+      fn();
+    }, ms - (now - slot.last));
+  }
+}
+window.stopRealtime = stopRealtime;
+
 function cleanupUserState() {
   // Tear down every background timer through its own stop helper so the
   // interval is actually cleared (not just the id nulled). This makes
@@ -73,6 +140,7 @@ function cleanupUserState() {
   window.stopChatPolling?.();
   window.stopNotifPolling?.();
   window.stopCountdownTick?.();
+  window.stopRealtime?.();
   window.stopSessionCountdown?.();
   S.currentUser = null;
   S.userSettings = null;
@@ -178,6 +246,7 @@ async function checkUserState() {
       window.showPage('page-banned');
       return;
     }
+    window.startRealtime?.();
     const hasProfile = u.hasProfile != null ? u.hasProfile : !!(u.profile && u.profile.nickname);
     // G 规则：两份问卷均为选填（可都填 / 只填一个 / 都不填）。资料填完即进主页；
     // 问卷不作为进主页的门槛——在进入「恋人 / 朋友」匹配模式时再按该模式按需引导填写

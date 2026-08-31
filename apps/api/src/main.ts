@@ -27,12 +27,22 @@ async function bootstrap() {
   // 静态资源加 nosniff，避免浏览器对上传文件做 MIME 嗅探（配合 uploads 控制器只放行光栅图，防存储型 XSS）
   app.useStaticAssets(uploadsDir, {
     prefix: '/uploads',
-    setHeaders: (res: any) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+    setHeaders: (res: any) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // 上传文件名是 uuid、内容不可变：一年强缓存，浏览器/CDN 直接复用
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
   });
 
   // Security
   app.use(helmet());
-  app.use(compression());
+  // SSE 事件流必须豁免压缩：compression 会缓冲 text/event-stream，事件永远推不出去
+  app.use(
+    compression({
+      filter: (req: any, res: any) =>
+        req.path && String(req.path).includes('/realtime/stream') ? false : compression.filter(req, res),
+    }),
+  );
 
   // CORS：设 ALLOWED_ORIGINS（逗号分隔，如 https://unimatcha.ai,https://app.unimatcha.ai）则白名单；
   // 未设保持放开（本地开发/手机 H5 直连需要）。

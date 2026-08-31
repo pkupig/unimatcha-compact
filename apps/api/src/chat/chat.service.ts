@@ -3,6 +3,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MatchFeedbackService } from '../matching/feedback/match-feedback.service';
+import { RealtimeService } from '../realtime/realtime.service';
+
 import {
   ALL_CHATTABLE,
   CONFIRM_WINDOW_MS,
@@ -23,6 +25,7 @@ export class ChatService {
   constructor(
     private prisma: PrismaService,
     private matchFeedback: MatchFeedbackService,
+    private realtime: RealtimeService,
   ) {}
 
   // 只读历史（可拉消息，但禁止发送）：已解除 / 已过期 / 被拒
@@ -137,6 +140,10 @@ export class ChatService {
       where: { id: matchId },
       data: { updatedAt: new Date() },
     });
+
+    // SSE：给对端推「有新消息」失效事件（无连接则静默丢弃，降频轮询兜底）
+    const recipientId = match.userAId === userId ? match.userBId : match.userAId;
+    this.realtime.emitToUser(recipientId, { type: 'message', matchId });
 
     // 行为埋点（P0-2）：本人在该 match 的第 1 条记 firstMessage，其余记 message；失败不影响发送
     const senderCount = await this.prisma.message.count({
@@ -323,6 +330,7 @@ export class ChatService {
     const msg = await this.prisma.message.create({ data: { matchId, senderId: userId, content, kind: 'nudge' } });
     // 与 sendMessage 一致 touch updatedAt：会话列表按 updatedAt 倒序，否则拍一拍产生新消息却不置顶
     await this.prisma.match.update({ where: { id: matchId }, data: { updatedAt: new Date() } });
+    this.realtime.emitToUser(partnerId, { type: 'message', matchId });
     return { ok: true, messageId: msg.id, content };
   }
 
@@ -336,12 +344,17 @@ export class ChatService {
 
   // ─── 标记消息已读 ─────────────────────────────────────────
   async markRead(matchId: string, userId: string) {
-    await this.verifyMatchAccess(matchId, userId);
+    const match = await this.verifyMatchAccess(matchId, userId);
 
     const result = await this.prisma.message.updateMany({
       where: { matchId, senderId: { not: userId }, isRead: false },
       data: { isRead: true },
     });
+    // SSE：给对方（消息发送者）推已读事件，「已读」小字即时点亮
+    if (result.count > 0) {
+      const senderId = match.userAId === userId ? match.userBId : match.userAId;
+      this.realtime.emitToUser(senderId, { type: 'read', matchId });
+    }
 
     return { markedRead: result.count };
   }

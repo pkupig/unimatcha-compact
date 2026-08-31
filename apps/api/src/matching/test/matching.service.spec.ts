@@ -6,6 +6,7 @@ import { MATCH_MODEL_PROVIDER } from '../providers/match-model.interface';
 import { NotificationService } from '../../notifications/notification.service';
 import { EnergyService } from '../../energy/energy.service';
 import { MatchFeedbackService } from '../feedback/match-feedback.service';
+import { RealtimeService } from '../../realtime/realtime.service';
 import { getQueueToken } from '@nestjs/bull';
 import { BadRequestException } from '@nestjs/common';
 
@@ -79,6 +80,7 @@ describe('MatchingService (dual-mode)', () => {
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: EnergyService, useValue: mockEnergyService },
         { provide: MatchFeedbackService, useValue: mockMatchFeedback },
+        { provide: RealtimeService, useValue: { emitToUser: jest.fn() } },
       ],
     }).compile();
 
