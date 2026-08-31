@@ -38,9 +38,19 @@ Ubuntu 22.04+，2GB 内存起步（matching-ml + 三个 Node 构建建议 4GB，
 curl -fsSL https://get.docker.com | sh
 # 防火墙只开 22/80/443
 ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw enable
-# 拉代码
-git clone https://github.com/pkupig/unipia.git /opt/unimatcha
+# 拉代码（唯一正确仓库是 unimatcha-compact——旧名 unipia/unimatcha 会被 GitHub
+# 重定向到冻结在 2026-08-19 的只读备份，用它部署=旧代码接新库，必炸）
+git clone https://github.com/pkupig/unimatcha-compact.git /opt/unimatcha
 cd /opt/unimatcha
+
+# 部署用裸仓库 + 钩子（本地 `git push server main` 即自动检出到 /opt/unimatcha）
+git init --bare /opt/unimatcha.git
+cat > /opt/unimatcha.git/hooks/post-receive <<'EOF'
+#!/bin/sh
+GIT_WORK_TREE=/opt/unimatcha git checkout -f main
+EOF
+chmod +x /opt/unimatcha.git/hooks/post-receive
+# 本地仓库添加远程：git remote add server root@<服务器IP>:/opt/unimatcha.git
 ```
 
 ## 3. 生产环境变量
@@ -119,7 +129,7 @@ H5 注册登录；admin 用 SEED_ADMIN 登录。
 
 ```bash
 cd /opt/unimatcha
-git pull unipia main 2>/dev/null || git pull origin main
+git pull origin main               # 正常情况用不到：日常走本地 git push server main 自动检出
 docker compose up -d --build       # 只重建有改动的镜像
 ```
 
@@ -220,14 +230,24 @@ dump 与 .env 属最高敏感级（全量用户数据+密钥）：bucket 必须�
 **灾难恢复 runbook**（服务器整机没了）：
 
 1. 新 droplet（Ubuntu + Docker），把 DNS 五条 A 记录指到新 IP（DO 面板）
-2. `git clone https://github.com/pkupig/unimatcha-compact /opt/unimatcha`
-3. 从异地取回最新备份：`rclone copy offsite:unimatcha-backups/... /opt/backups/unimatcha/`
+2. `git clone https://github.com/pkupig/unimatcha-compact.git /opt/unimatcha`
+3. `apt install -y rclone && rclone config` 重建 offsite remote（**S3 endpoint + key 必须和
+   .env 一样存在密码管理器里**——它们原本只活在死掉那台机的 /root/.config/rclone/），然后
+   `rclone copy offsite:unimatcha-backups/ /opt/backups/unimatcha/`
 4. 还原 `.env`（备份里的 `env-*` 或密码管理器）到 `/opt/unimatcha/.env`
-5. `docker compose up -d postgres` → 等 healthy →
-   `docker exec -i unimatcha_postgres pg_restore -U campuslove -d campuslove --no-owner < db-最新.dump`
-6. 还原 uploads：`docker run --rm -v unimatcha_uploads_data:/data -v /opt/backups/unimatcha:/b postgres:16-alpine tar xzf /b/uploads-最新.tar.gz -C /data`
-7. `docker compose up -d --build` 起全部服务；重建 server 裸仓库与 post-receive（见第 2 节）；跑第 5 节验证清单
-8. 数据丢失窗口 = 距上次备份的时间（当前每日一备 ≤24h；用户量上来后加密频次）
+5. `docker compose up -d postgres` → 等 healthy → 还原数据库（`--clean --if-exists`：对空库
+   无害；若 api 曾抢先启动把库初始化过，也会自动推倒重放，幂等可重试）：
+   `docker exec -i unimatcha_postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < db-最新.dump`
+   ⚠️ 若 api 已先起过而 pg_restore 没带 `--clean`，seed 写过的表会 COPY 撞键整表回滚——
+   看似恢复成功实则半空，必须带 `--clean` 重放。
+6. `docker compose up -d --build` 起全部服务，跑第 5 节验证清单
+7. 还原 uploads（放在 compose 起服务**之后**，卷由 compose 创建、带正确标签）：
+   `docker run --rm -v unimatcha_uploads_data:/data -v /opt/backups/unimatcha:/b postgres:16-alpine tar xzf /b/uploads-最新.tar.gz -C /data`（uploads 是静态文件，还原后无需重启）
+8. 重建部署链路与备份：按第 2 节建 `/opt/unimatcha.git` 裸仓库 + post-receive；
+   重装 `/etc/cron.d/unimatcha-backup`（内容见上方代码块）；跑一次
+   `scripts/db-backup.sh` 确认输出 `(local + offsite)`——**走完前 7 步的新服务器
+   在这一步之前是个没有备份的裸奔站点**
+9. 数据丢失窗口 = 距上次备份的时间（当前每日一备 ≤24h；用户量上来后加密频次）
 
 ## 7. 每周匹配调度
 
