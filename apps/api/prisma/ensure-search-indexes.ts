@@ -2,9 +2,9 @@
  * 搜索索引保障脚本（幂等，每次启动可跑）。
  *
  * 为什么是独立脚本而不是 Prisma schema：
- * 本项目用 `prisma db push`（prisma/migrations 为空，不走 migration），
- * 而 pg_trgm 扩展与 GIN 表达式索引无法用 Prisma schema 声明，
- * db push 也不会保留手工建的索引之外的东西——所以用一段幂等 SQL 在启动链里补齐。
+ * pg_trgm 扩展与 GIN 表达式索引无法用 Prisma schema 声明，因此**有意留在
+ * schema/迁移之外**，由本脚本幂等维护（2026-08-31 起启动链走 `prisma migrate deploy`，
+ * 它只执行迁移 SQL、不会动这些计划外索引；这批索引也别写进迁移文件，保持单一归属）。
  *
  * 为什么是 pg_trgm 而不是 tsvector 全文检索：
  * 广场内容中英混排，Postgres 内置 FTS 对中文不分词（'simple' 配置会把整句当一个 token），

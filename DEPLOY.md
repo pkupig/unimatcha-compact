@@ -96,11 +96,11 @@ docker compose ps                   # 全部 Up / healthy
 docker compose logs -f api          # 看 API 启动与 prisma 迁移日志
 ```
 
-数据库结构：API 镜像启动时执行 `prisma db push`/迁移（见 apps/api/Dockerfile 入口）；
-如未自动执行，手动跑一次：
+数据库结构：API 镜像启动时执行 `prisma migrate deploy`（见 apps/api/Dockerfile 入口与下方 6.5 节）；
+如未自动执行，手动跑一次（用 `run` 而不是 `exec`——迁移失败时容器在 crash-loop，exec 进不去）：
 
 ```bash
-docker compose exec api npx prisma db push
+docker compose run --rm --no-deps api npx prisma migrate deploy
 ```
 
 ## 5. 验证清单
@@ -124,6 +124,60 @@ docker compose up -d --build       # 只重建有改动的镜像
 ```
 
 改了 `API_URL` 这类构建期变量时：`docker compose up -d --build admin-web`。
+
+## 6.5 数据库迁移（2026-08-31 起：migrate deploy，不再 db push）
+
+api 容器启动时跑 `prisma migrate deploy`：只应用 `prisma/migrations/` 里未执行过的迁移，
+执行记录写入 `_prisma_migrations` 表，有版本、有历史、失败即启动失败（fail-closed）。
+存量生产库已用基线 `20260831120000_init` 打点（`migrate resolve --applied`，不真跑 SQL）。
+
+**改 schema 的流程（必须遵守）**：
+
+1. 改 `apps/api/prisma/schema.prisma`。
+2. 生成迁移文件。有本地库时用 `npx prisma migrate dev --name 描述`；
+   本机没库时用纯离线 diff（旧 schema 取自 git，不需要任何数据库）：
+
+   ```bash
+   cd apps/api
+   git show HEAD:apps/api/prisma/schema.prisma > /tmp/schema.old.prisma
+   DIR=prisma/migrations/$(date +%Y%m%d%H%M%S)_描述 && mkdir -p "$DIR"
+   npx prisma migrate diff \
+     --from-schema-datamodel /tmp/schema.old.prisma \
+     --to-schema-datamodel prisma/schema.prisma --script > "$DIR/migration.sql"
+   ```
+
+   （注意：离线 diff 的「旧基准」是上次提交的 schema——前提是每次改 schema 都配了迁移、
+   两者始终同步提交，这正是第 4 步要求的。）
+3. **人工读一遍生成的 SQL**——出现 `DROP TABLE` / `DROP COLUMN` / 类型收窄时想清楚是不是本意，
+   需要保数据的走 expand-contract（先加新列迁数据、下个版本再删旧列）。
+4. 迁移文件连同 schema 一起提交。只改 schema 不建迁移 = deploy 无事可做，生产结构不会变。
+5. 部署照常 `docker compose up -d --build api`，migrate deploy 在启动时自动应用。
+
+**带迁移的部署建议先预检**（旧容器持续服务，迁移验证通过才换容器）：
+
+```bash
+docker compose build api
+docker compose run --rm --no-deps api npx prisma migrate deploy   # 预检：失败则旧容器照常服务
+docker compose up -d api
+docker compose ps api && docker compose logs api | grep -i migrate
+```
+
+**回滚**：迁移没有自动回滚；schema 层回滚只有「写反向迁移再部署」一条路。镜像回滚仅在
+「该镜像与当前库结构一致」时可用；**永远不要对已进迁移管理的库跑 `db push`**（尤其
+`--accept-data-loss`——会绕过迁移历史造成漂移甚至删数据）。
+
+**Runbook：忘了打基线直接 up -d（或某次迁移失败）**：deploy 试图真跑迁移 SQL → 撞已有
+对象报错（DDL 单事务原子回滚，库结构零半应用）→ 失败记录写进 `_prisma_migrations` →
+容器 crash-loop、API 502，此后每次重启秒报 P3009。恢复：确认库结构实际正确后
+`docker compose run --rm --no-deps api npx prisma migrate resolve --applied <迁移名>`，
+下一次自动重启即自愈；排障看日志要从**第一次**尝试找根因（`docker logs unimatcha_api | head`，
+后续全是重复的 P3009）。
+
+**开发库**（本机 Docker 恢复后）：先对 dev 库跑一次
+`npx prisma migrate resolve --applied 20260831120000_init` 再用 `migrate dev`——
+跳过这步 migrate dev 会检测到「库非空但无迁移历史」而要求 **reset 整个开发库**。
+
+**注意**：pg_trgm 扩展与搜索 GIN 索引有意留在 schema 之外，由 `ensure-search-indexes` 启动脚本幂等维护，别写进迁移。
 
 ## 7. 每周匹配调度
 

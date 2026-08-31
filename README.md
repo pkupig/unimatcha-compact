@@ -509,8 +509,8 @@ cp .env.example .env
 # 3. 启动所有服务
 docker compose up -d --build
 
-# 4. 初始化数据库
-docker compose exec api npx prisma db push --accept-data-loss
+# 4. 初始化数据库（迁移与 seed 随 api 容器启动自动执行；需手动补跑时：）
+docker compose exec api npx prisma migrate deploy
 docker compose exec api npx prisma db seed
 
 # 5. 验证
@@ -547,7 +547,7 @@ open http://localhost:3002            # H5 移动端
 cd apps/api
 cp ../../.env.example .env    # 修改 DATABASE_URL 为本地数据库
 npm install
-npx prisma db push
+npx prisma migrate deploy    # 已有本地库首次接管前先打基线，见 DEPLOY.md 6.5
 npx prisma db seed
 npm run start:dev             # http://localhost:3001
 ```
@@ -592,8 +592,8 @@ nano .env
 # 构建并启动
 docker compose up -d --build
 
-# 初始化数据库
-docker compose exec api npx prisma db push --accept-data-loss
+# 初始化数据库（迁移与 seed 随 api 容器启动自动执行；需手动补跑时：）
+docker compose exec api npx prisma migrate deploy
 docker compose exec api npx prisma db seed
 
 # 查看日志
@@ -633,24 +633,25 @@ services:
       - uploads_data:/app/uploads
 ```
 
-### Schema 变更
+### Schema 变更（2026-08-31 起走迁移，禁止对生产 db push）
+
+改 `schema.prisma` 后**必须生成迁移文件一起提交**（流程见 [DEPLOY.md](DEPLOY.md) 6.5 节：
+`migrate dev --name 描述`，或无本地库时的离线 diff）。部署时容器启动自动 `migrate deploy`。
+对已进迁移管理的库跑 `db push`（尤其 `--accept-data-loss`）会绕过迁移历史造成漂移甚至删数据。
 
 ```bash
-# 推送 Schema 变更（开发 / MVP）
-docker compose exec api npx prisma db push --accept-data-loss
-
 # 查看数据库
 docker compose exec api npx prisma studio
 ```
 
 ### 搜索索引（pg_trgm）
 
-搜索依赖 `pg_trgm` 扩展与一组 GIN 索引。这些**无法用 Prisma schema 声明**（本项目走 `db push` 而非
-migrate），因此由幂等脚本 `apps/api/prisma/ensure-search-indexes.ts` 补齐，已接入容器启动链，
-正常部署无需手动操作：
+搜索依赖 `pg_trgm` 扩展与一组 GIN 索引。这些**有意留在 Prisma schema/迁移之外**，
+由幂等脚本 `apps/api/prisma/ensure-search-indexes.ts` 维护（`migrate deploy` 只执行迁移 SQL，
+不会动它们），已接入容器启动链，正常部署无需手动操作：
 
 ```bash
-# 启动链：db push → ensure-search-indexes → seed → 启动
+# 启动链：migrate deploy → ensure-search-indexes → seed → 启动
 # 需要时也可单独重跑（幂等，可重复执行）
 docker compose exec api node dist/prisma/ensure-search-indexes.js
 ```
@@ -789,7 +790,7 @@ curl -X POST http://localhost:3001/api/v1/admin/matching/jobs/trigger \
 **Q: 如何添加新的 Profile 字段？**
 
 1. 修改 `apps/api/prisma/schema.prisma` 的 `Profile` 模型
-2. `docker compose exec api npx prisma db push --accept-data-loss`
+2. 生成迁移文件并与 schema 一起提交（见 DEPLOY.md 6.5），部署时自动 `migrate deploy`
 3. 更新 `profiles.service.ts` 和对应 DTO
 4. 更新 H5：`apps/h5/index.html` 的表单标记 + `apps/h5/src/modules/profile.js` 的渲染逻辑
 

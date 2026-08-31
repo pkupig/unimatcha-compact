@@ -95,7 +95,7 @@
 - [x] **商业化域** — School/AdCampaign/AdPlacement/AdDailyStat/SchoolLedgerEntry/WithdrawalRequest `apps/api/prisma/schema.prisma:901-1058`
 - [x] **官网提交域** — PublicSubmission（WAITLIST/SPONSOR 类型 + 处理工作流状态与经手人字段） `apps/api/prisma/schema.prisma`
 - [x] **发现域** — UserSuggestionDismiss（(userId,targetUserId) 唯一，单向永久忽略）；隐私开关 searchable/discoverable 复用 User.settings.privacy JSON（无需建列） `apps/api/prisma/schema.prisma` UserSuggestionDismiss
-- [ ] 🟡 **迁移管理** — prisma/migrations 目录为空——生产走 db push 而非 migrate（Dockerfile 启动时 npx prisma db push） `apps/api/prisma/migrations（空）`
+- [x] ✅ **迁移管理** — 2026-08-31 切到 prisma migrate deploy：基线 20260831120000_init + migration_lock.toml，生产库 migrate resolve 打点，流程见 DEPLOY.md 6.5 `apps/api/prisma/migrations/`
 - [x] **搜索索引（db push 无法声明的部分）** — prisma/ensure-search-indexes.ts 幂等补 pg_trgm 扩展 + 10 个 GIN/复合索引（square_posts title/content/tags、profiles nickname/school/major/city/interests/tags、school+grade），接入 Dockerfile 启动链；**失败不阻断启动**，配套 PrismaService.hasTrgm() 探测一次并缓存，缺扩展时 SQL 去掉 similarity 分量降级为纯 ILIKE `apps/api/prisma/ensure-search-indexes.ts`
 
 ### 任务调度、Seed 与脚本

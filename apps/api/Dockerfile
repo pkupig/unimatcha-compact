@@ -43,11 +43,14 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/scripts ./scripts
 
-# Start: push schema → seed admin (idempotent) → run API.
-# - 去掉 --accept-data-loss：生产每次启动都跑，带该标志会静默丢弃「被判定为数据丢失」的列/数据；
-#   不带则在检测到破坏性变更时 db push 失败退出（安全默认，宁可启动失败也不毁数据）。
+# Start: apply migrations → seed admin (idempotent) → run API.
+# - 2026-08-31 起从 db push 切到 migrate deploy：迁移文件进 git 有版本有历史，
+#   deploy 只应用未执行的迁移并记录进 _prisma_migrations，失败即退出（fail-closed）。
+#   存量库已用 `prisma migrate resolve --applied 20260831120000_init` 打过基线；
+#   改 schema 的正确流程见 DEPLOY.md「数据库迁移」一节——手改 schema.prisma 后
+#   必须生成迁移文件一起提交，只改 schema 不建迁移会让 deploy 无事可做、生产不变。
 # - 演示数据（广场 / 广告）只在 SEED_DEMO=true 时播；否则生产库会被灌入假帖/假广告。
 # - dist/prisma/seed.js 用 upsert，幂等，可每次启动跑（建管理员账号）。
-# - ensure-search-indexes 补 pg_trgm 扩展与搜索用 GIN 索引（db push 无法声明），幂等；
+# - ensure-search-indexes 补 pg_trgm 扩展与搜索用 GIN 索引（有意留在 schema 之外），幂等；
 #   自身吞异常不退出，缺扩展权限时搜索退化为无索引 ILIKE 而非阻断启动。
-CMD ["sh", "-c", "npx prisma db push && (node dist/prisma/ensure-search-indexes.js || echo 'Search indexes skipped') && (node dist/prisma/seed.js || echo 'Seed skipped') && ([ \"$SEED_DEMO\" = \"true\" ] && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') || echo 'Demo seed disabled (set SEED_DEMO=true to enable)') && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && (node dist/prisma/ensure-search-indexes.js || echo 'Search indexes skipped') && (node dist/prisma/seed.js || echo 'Seed skipped') && ([ \"$SEED_DEMO\" = \"true\" ] && (node scripts/seed-square-demo.js || echo 'Square demo skipped') && (node scripts/seed-ads-demo.js || echo 'Ads demo skipped') || echo 'Demo seed disabled (set SEED_DEMO=true to enable)') && node dist/src/main"]

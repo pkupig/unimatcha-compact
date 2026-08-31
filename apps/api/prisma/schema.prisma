@@ -419,7 +419,7 @@ model QuestionnaireVersion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 每 type 至多一个 active：应用层 publishVersion 保证（partial unique index 由 db push 无法表达，故应用层强制）
+  // 每 type 至多一个 active：应用层 publishVersion 保证（partial unique index 无法在 Prisma schema 表达，故应用层强制）
   @@map("questionnaire_versions")
 }
 
