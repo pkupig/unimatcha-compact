@@ -96,7 +96,7 @@ function fmtTime(d) {
 async function renderCoupleSpace(container, matchId, partner) {
   S.coupleMatchId = matchId;
   S.couplePartner = partner || {};
-  S.coupleContainer = container || document.getElementById('match-content');
+  S.coupleContainer = container || document.querySelector('#home-match-romantic .match-content');
   const host = S.coupleContainer;
   if (!host) return;
   host.innerHTML = `<div class="w-full max-w-xl mx-auto py-10 text-center text-outline text-sm">Loading your space…</div>`;
@@ -106,7 +106,7 @@ window.renderCoupleSpace = renderCoupleSpace;
 
 async function loadCoupleSpace() {
   const matchId = S.coupleMatchId;
-  const host = S.coupleContainer || document.getElementById('match-content');
+  const host = S.coupleContainer || document.querySelector('#home-match-romantic .match-content');
   if (!matchId || !host) return;
   try {
     const res = await window.api('/couple/' + matchId);
@@ -289,7 +289,7 @@ async function coupleApi(path, method, body) {
   try {
     const res = await window.api('/couple/' + S.coupleMatchId + path, method, body);
     S.coupleSpace = res?.data || res;
-    const host = S.coupleContainer || document.getElementById('match-content');
+    const host = S.coupleContainer || document.querySelector('#home-match-romantic .match-content');
     if (host) host.innerHTML = renderCoupleHub(S.coupleSpace);
   } catch (e) {
     window.toast('Failed: ' + (e?.message || 'try again'));
@@ -307,7 +307,7 @@ async function coupleSendLoveYou() {
   try {
     const res = await window.api('/couple/' + S.coupleMatchId + '/love-you', 'POST', {});
     S.coupleSpace = res?.data || res;
-    const host = S.coupleContainer || document.getElementById('match-content');
+    const host = S.coupleContainer || document.querySelector('#home-match-romantic .match-content');
     if (host) host.innerHTML = renderCoupleHub(S.coupleSpace);
     window.toast('Sent I love you');
   } catch (e) {

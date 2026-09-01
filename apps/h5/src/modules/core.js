@@ -489,6 +489,8 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
   // 可选下拉进度回调（profile 用它做背景模糊随拉距消散）：跟手期间每帧传当前
   // 下拉距离 px，复位/回弹时传 0，刷新持住阈值位时传 THRESH。
   const onPull = opts && typeof opts.onPull === 'function' ? opts.onPull : null;
+  // 可选启用谓词（match 页用它把下拉刷新限定在 Chat 视图——匹配面板不做下拉刷新）
+  const enabled = opts && typeof opts.enabled === 'function' ? opts.enabled : null;
   const ind = document.createElement('div');
   ind.className = 'ptr-indicator';
   ind.innerHTML = '<span class="material-symbols-outlined">refresh</span>';
@@ -525,6 +527,7 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
   };
   container.addEventListener('touchstart', (e) => {
     if (refreshing) return;
+    if (enabled && !enabled()) return; // 当前视图未启用下拉刷新
     if (container.scrollTop <= 0 && !innerScrolled(e.target)) {
       startY = e.touches[0].clientY;
       pulling = true;

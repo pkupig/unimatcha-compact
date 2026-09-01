@@ -688,30 +688,37 @@
     </button>
   </div>
 
-  <!-- (b1) Chat 列表视图（所有对话：临时 + 永久，§6.6） -->
-  <!-- 左右留白交给行内（每行 6px）；顶距见 main.css 的 #home-chat-view，
-       = 顶栏高度 + 6px + 状态栏安全区 -->
-  <main id="home-chat-view" class="min-h-screen w-full max-w-2xl mx-auto px-0 pb-28">
-    <!-- 退款横幅挂载点：已改为只在通知中心告知，保留节点以兼容旧调用 -->
-    <div id="chat-banner" class="hidden"></div>
-    <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
-    <!-- 单列表（用户反馈：不分组、不要分组标题）：临时会话恒排在最前且带
-         淡荧光绿底与已连接区分；分隔线由行内元素画，不延伸到头像下方 -->
-    <section id="chat-sessions-temp-section">
-      <div id="chat-sessions-temp"></div>
-    </section>
-    <section id="chat-sessions-confirmed-section">
-      <div id="chat-sessions-confirmed"></div>
-    </section>
-    <!-- 空状态挂载点 -->
-    <div id="chat-sessions-empty" class="hidden"></div>
-  </main>
+  <!-- (b) 三视图横滑轨道（广场同款手感：跟手滑动 + 松手吸附，match.js bindHomeViewSwipe）
+       三个面板各自是独立的纵向滚动容器（#tab-match 本身改为 overflow:hidden，见 main.css）。
+       注意：面板不再是顶栏的兄弟 main，`.fixed.top-0 ~ main` 的安全区补偿够不着这里——
+       顶部安全区一律写进各面板自己的 padding（main.css .home-pane 系列规则）。 -->
+  <div id="home-track">
+    <!-- (b1) Chat 列表视图（所有对话：临时 + 永久，§6.6） -->
+    <main id="home-chat-view" class="home-pane w-full max-w-2xl mx-auto px-0 pb-28">
+      <!-- 退款横幅挂载点：已改为只在通知中心告知，保留节点以兼容旧调用 -->
+      <div id="chat-banner" class="hidden"></div>
+      <!-- 临时对话组（sessionType==='temp'，带倒计时 + 确认入口） -->
+      <!-- 单列表（用户反馈：不分组、不要分组标题）：临时会话恒排在最前且带
+           淡荧光绿底与已连接区分；分隔线由行内元素画，不延伸到头像下方 -->
+      <section id="chat-sessions-temp-section">
+        <div id="chat-sessions-temp"></div>
+      </section>
+      <section id="chat-sessions-confirmed-section">
+        <div id="chat-sessions-confirmed"></div>
+      </section>
+      <!-- 空状态挂载点 -->
+      <div id="chat-sessions-empty" class="hidden"></div>
+    </main>
 
-  <!-- (b2) 匹配界面（不含对话列表；恋人/朋友共用挂载点，§6.2/6.5） -->
-  <main id="home-match-view" class="min-h-screen w-full flex flex-col items-center justify-center px-6 pt-14 pb-52" style="display:none">
-    <!-- renderMatchTab 渲染入口（恋人/朋友分支都写进这里，沿用 #match-content） -->
-    <div id="match-content" class="w-full flex flex-col items-center justify-center"></div>
-  </main>
+    <!-- (b2/b3) 恋人 / 朋友匹配面板（原共用 #match-content，为横滑轨道拆成两份；
+         渲染入口经 match.js 的 matchContentEl(mode) 取对应面板的 .match-content） -->
+    <main id="home-match-romantic" class="home-pane home-match-pane">
+      <div class="match-content w-full flex flex-col items-center justify-center"></div>
+    </main>
+    <main id="home-match-friend" class="home-pane home-match-pane">
+      <div class="match-content w-full flex flex-col items-center justify-center"></div>
+    </main>
+  </div>
 </div>
 
 <!-- SQUARE TAB -->

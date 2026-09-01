@@ -592,7 +592,38 @@
     /* 列表首行距顶栏 6px：顶栏 h-14(56px) + 6px。
        安全区不在这里加——上面的 `.fixed.top-0 ~ main` 已统一补偿，
        两处都加会双倍下移。 */
-    #home-chat-view { padding-top: 62px; }
+    /* ---- 主页三视图横滑轨道（广场同款：跟手滑 + 松手吸附，match.js bindHomeViewSwipe）----
+       #tab-match 不再是滚动容器（改 overflow:hidden 装轨道），三个面板各自纵向滚动。
+       面板不再匹配 `.fixed.top-0 ~ main` 的安全区补偿规则（被 #home-track 包了一层），
+       顶部安全区写进各面板自己的 padding——只加这一处，别处再加就是双倍下移。 */
+    #tab-match { overflow: hidden; }
+    #home-track {
+      display: flex;
+      align-items: stretch;
+      gap: 12px; /* 页间留白与广场轨道一致 */
+      height: 100vh;
+      height: 100dvh;
+      will-change: transform;
+    }
+    .home-pane {
+      flex: 0 0 100%;
+      min-width: 0;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior-y: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* 列表首行距顶栏 6px：顶栏 h-14(56px) + 6px + 状态栏安全区 */
+    #home-chat-view { padding-top: calc(62px + var(--sat)); }
+    /* 匹配面板（非计划页态：matched 大卡/情侣空间/空态）：居中但滚动安全——
+       content 用纵向 auto margin 居中，内容超高时 margin 归零、顶端不被裁 */
+    .home-match-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: calc(56px + var(--sat)) 24px 13rem;
+    }
+    .home-match-pane > .match-content { margin-top: auto; margin-bottom: auto; }
     .session-row--temp { background: rgba(204, 255, 0, 0.15); }
     .session-row--temp:first-child { border-top-left-radius: 12px; border-top-right-radius: 12px; }
     .session-row--temp:last-of-type { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
@@ -1094,23 +1125,27 @@
     .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
     .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }
     /* ---- 匹配页 idle/searching 计划页（设计稿 UniMatcha新匹配页 ui.html）----
-       顶对齐满高布局：标题 → 出血荧光绿倒计时卡 → 只读摘要框（内部滚动）→ 贴底 CTA。
-       id 作用域压过元素上的 Tailwind 工具类（构建后工具类排在自定义规则之后，7/26 教训）。 */
-    #home-match-view.match-plan {
-      height: 100vh;
-      height: 100dvh;
-      min-height: 0;
+       顶对齐满高布局：标题 → 出血荧光绿倒计时卡 → 只读摘要框（头固定内容滚）→ 贴底 CTA。
+       两类选择器 (0,2,0)/(0,3,0) 恒压元素上的 Tailwind 工具类 (0,1,0)——特异度先于顺序。
+       上方距离按设计稿：顶栏底沿(56px+安全区) + 8px 空隙 = 64px + var(--sat)，单算一次。 */
+    .home-match-pane.match-plan {
       padding: calc(64px + var(--sat)) 30px calc(96px + var(--sab));
       align-items: stretch;
       justify-content: flex-start;
+      overflow: hidden; /* 计划页整页不滚，只有摘要框内容区滚 */
     }
-    #home-match-view.match-plan #match-content {
+    .home-match-pane.match-plan > .match-content {
       flex: 1 1 0;
       min-height: 0;
+      margin: 0; /* 盖掉非计划态的 auto 居中 margin */
       align-items: stretch;
       justify-content: flex-start;
     }
-    .mp-sub { color: #8a8a8a; }
+    /* 标题/副文案两态统一（用户反馈：匹配前/匹配中字体样式与偏好块位置要一致）：
+       标题恒 26px；副文案钳到两行高度（1.65 行高 × 2），文案长短不再推挤下方
+       绿卡与匹配偏好块的位置 */
+    .mp-title { font-size: 26px; }
+    .mp-sub { color: #8a8a8a; min-height: 3.3em; }
     .dark .mp-sub { color: #8c8a85; }
     /* 出血荧光绿卡：不规则圆角做手绘感；深色模式同样绿底黑字（品牌焦点） */
     .mp-card {
@@ -1150,9 +1185,13 @@
     }
     .mp-unit { font-size: 12px; font-weight: 700; color: rgba(0, 0, 0, 0.5); margin: 0 10px 0 5px; }
     .mp-unit--last { margin-right: 0; }
-    /* 只读摘要框：占卡与 CTA 之间的剩余空间，框内滚动（滚动条隐藏）、大小不随内容变 */
-    .mp-box { flex: 1 1 0; min-height: 88px; margin-top: 20px; overflow-y: auto; scrollbar-width: none; }
-    .mp-box::-webkit-scrollbar { display: none; }
+    /* 只读摘要框：占卡与 CTA 之间的剩余空间，大小不随内容变。
+       「匹配偏好」标题行与「编辑/锁定」固定（.mp-box-head），只有下方内容区滚动
+       （.mp-box-scroll，滚动条隐藏）——用户反馈：滚的是偏好里的内容，标题和编辑不动 */
+    .mp-box { display: flex; flex-direction: column; flex: 1 1 0; min-height: 88px; margin-top: 20px; overflow: hidden; }
+    .mp-box-head { flex-shrink: 0; }
+    .mp-box-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior-y: contain; }
+    .mp-box-scroll::-webkit-scrollbar { display: none; }
     .mp-label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.26em; color: #9a9a9a; }
     .mp-muted { color: #b0b0b0; }
     .mp-sep { border-bottom: 1px solid rgba(27, 27, 27, 0.07); }

@@ -59,17 +59,18 @@ document.addEventListener('DOMContentLoaded', () => {
     postImgInput.addEventListener('change', window.handlePostImages);
   }
   window.renderSetupTags();
-  // 下拉刷新：match 页按当前视图刷新（chat 列表 / 匹配状态），square 页刷新当前信息流
-  window.attachPullToRefresh(document.getElementById('tab-match'), () => {
-    const v = S.homeView || 'chat';
-    return v === 'chat' ? window.loadSessions?.() : window.loadMatchTab?.();
-  }, '#home-chat-view, #home-match-view');
+  // 下拉刷新：只保留 Chat 会话列表（匹配面板的下拉刷新已按用户要求移除——
+  // enabled 门 + movers 只挂 chat 面板）；square 页照旧刷新当前信息流
+  window.attachPullToRefresh(document.getElementById('tab-match'), () => window.loadSessions?.(), '#home-chat-view', {
+    enabled: () => (S.homeView || 'chat') === 'chat',
+  });
   window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.(), 'main');
-  // 主页三视图左右滑切换（Chat ↔ 恋人 ↔ 朋友）
+  // 主页三视图左右滑切换（Chat ↔ 恋人 ↔ 朋友，广场同款轨道跟手）
   window.bindHomeViewSwipe?.();
-  // 底部导航滚动隐藏（三个 tab 滚动容器都绑）
+  // 底部导航滚动隐藏。注意 #tab-match 已不是滚动容器（横滑轨道 overflow:hidden），
+  // 会话列表的滚动发生在 #home-chat-view 面板上——绑它。
   // 偏好卡的下拉关闭走 closeFilterSheet：关卡要同步主页摘要框的增强显示
   window.bindSheetDragClose('filter-overlay', () => window.closeFilterSheet());
-  ['tab-match', 'tab-square', 'tab-profile'].forEach(id =>
+  ['home-chat-view', 'tab-square', 'tab-profile'].forEach(id =>
     window.bindNavAutoHide(document.getElementById(id)));
 });
