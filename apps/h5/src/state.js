@@ -34,6 +34,10 @@ export const S = {
   friendPrefActivities: [],
   friendGender: 'all',                       // friend preferred-gender segment ('male'|'female'|'all')
   prefMode: 'romantic',                      // preferences sheet active tab ('romantic'|'friend')
+  matchPrefs: {                              // GET /matching/preferences cache, bucketed by mode
+    romantic: null,                          // (drives the read-only summary box on idle/searching)
+    friend: null,
+  },
 
   // Enhanced mode (J rule §10.5)
   energy: { totalEnergy: 0, usedEnergy: 0, availableEnergy: 0 }, // /energy/balance cache

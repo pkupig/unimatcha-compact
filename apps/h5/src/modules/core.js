@@ -153,7 +153,7 @@ function cleanupUserState() {
   // Enhanced/energy (§10.5): reset to state.js defaults. Without this, a different
   // account logging in on the same SPA session inherits the prior user's enhance
   // toggle + stale energy cache, so tapping "Join Matching Pool" could enrol them in
-  // a paid enhanced match they never selected (only openMatchSettings rehydrates these).
+  // a paid enhanced match they never selected (ensureEnhancedShape rehydrates these).
   S.energy = { totalEnergy: 0, usedEnergy: 0, availableEnergy: 0 };
   S.enhanced = {
     romantic: { enabled: false, cost: 3 },
@@ -161,6 +161,11 @@ function cleanupUserState() {
   };
   S.matchBasis = 'both';
   S.matchExtraInfo = '';
+  // 匹配页只读摘要框的偏好缓存（含 extraMatchInfo）：换账号必须清，
+  // 否则上一账号的偏好/补充信息会短暂展示给下一账号。
+  S.matchPrefs = { romantic: null, friend: null };
+  // 本轮增强标记归零 + 在途偏好响应作废（复查：慢响应可把上一账号的偏好回填进下一账号）
+  window.resetMatchPlanState?.();
   // match polling context (ids/counters reset by stopMatchPolling above,
   // re-asserted here as a defensive default)
   S.matchPollingId = null;
@@ -509,9 +514,18 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
     setContent(0, true);
     if (onPull) onPull(0);
   };
+  // 内滚容器守卫：手势起点落在「内部可滚且未到顶」的元素（如匹配页摘要框 .mp-box）时
+  // 不启动下拉——container.scrollTop 只代表自己，代表不了内滚容器（复查 high：否则框内
+  // 往回滚会同时触发整页下拉，>70px 松手即整页刷新、框内滚动位置归零）。
+  const innerScrolled = (t) => {
+    for (let el = t instanceof Element ? t : null; el && el !== container; el = el.parentElement) {
+      if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) return true;
+    }
+    return false;
+  };
   container.addEventListener('touchstart', (e) => {
     if (refreshing) return;
-    if (container.scrollTop <= 0) {
+    if (container.scrollTop <= 0 && !innerScrolled(e.target)) {
       startY = e.touches[0].clientY;
       pulling = true;
       dist = 0;
@@ -519,10 +533,10 @@ function attachPullToRefresh(container, onRefresh, contentSelector, opts) {
   }, { passive: true });
   container.addEventListener('touchmove', (e) => {
     if (!pulling || refreshing) return;
-    // 横滑切换进行中（square 左右切 tab）：下拉手势让位，避免双写 transform
+    // 横滑切换进行中（square 左右切 tab / 主页三视图）：下拉手势让位，避免双写 transform
     if (container.dataset.horizLock === '1') { dist = 0; ind.classList.remove('ptr-ready'); ind.style.opacity = '0'; return; } // 只藏指示器，内容 transform 归横滑手势管
     const dy = e.touches[0].clientY - startY;
-    if (dy <= 0 || container.scrollTop > 0) { dist = 0; reset(); return; }
+    if (dy <= 0 || container.scrollTop > 0 || innerScrolled(e.target)) { dist = 0; reset(); return; }
     // 橡皮筋阻尼（用户反馈：下拉太多不好看）：越拉越沉，渐进逼近 PULL_MAX 而
     // 永不超过——手感接近 iOS，也避免 profile 背景被拉伸过头。
     // dy=90→70(刚够触发)、dy=200→122、dy=400→160、dy→∞ 收敛到 180。
@@ -558,7 +572,9 @@ window.attachPullToRefresh = attachPullToRefresh;
 
 // 底部弹层下拉关闭（用户反馈：偏好弹出后可向下拉关掉）。
 // 抓手/头部区域跟手下拉，超过 110px 松手即关闭，否则弹回。
-function bindSheetDragClose(overlayId) {
+// onClose 可选：带关闭副作用的弹层（如偏好卡要同步主页摘要框）传自己的关闭函数，
+// 否则退回通用 hideOverlay（复查：X/下拉两条路径绕过 closeFilterSheet 会让摘要框显示陈旧）。
+function bindSheetDragClose(overlayId, onClose) {
   const overlay = document.getElementById(overlayId);
   const sheet = overlay?.querySelector('.bottom-sheet-transition');
   const header = sheet?.querySelector('header');
@@ -577,7 +593,7 @@ function bindSheetDragClose(overlayId) {
     drag = false;
     sheet.style.transition = '';
     sheet.style.transform = '';
-    if (dy > 110) window.hideOverlay(overlayId);
+    if (dy > 110) (onClose || (() => window.hideOverlay(overlayId)))();
   };
   header.addEventListener('touchend', end);
   header.addEventListener('touchcancel', end);

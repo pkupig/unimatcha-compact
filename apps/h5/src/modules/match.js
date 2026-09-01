@@ -19,20 +19,14 @@ function switchHomeView(view) {
   document.querySelectorAll('#home-mode-switch .home-mode-seg').forEach(el => {
     el.classList.toggle('active', el.dataset.view === view);
   });
-  // 左上角按钮随视图切换：Chat=加好友；恋人/朋友匹配页=Match Settings（本轮反馈4）
+  // 左上角按钮：三个视图统一为加号小弹出卡（新版匹配页把设置入口并入摘要框的
+  // 「编辑」，tune 入口移除）。防御性重置：旧会话可能残留 tune 状态。
   const leftBtn = document.getElementById('home-addfriend-btn');
   if (leftBtn) {
     const icon = leftBtn.querySelector('.material-symbols-outlined');
-    if (view === 'chat') {
-      // Chat 视图左上角加号 → 小弹出卡（搜索/扫码/关系网 + 深色/语言，本轮反馈7）
-      if (icon) icon.textContent = 'add';
-      leftBtn.title = 'Add';
-      leftBtn.onclick = () => window.toggleChatPlusMenu();
-    } else {
-      if (icon) icon.textContent = 'tune';
-      leftBtn.title = 'Match Settings';
-      leftBtn.onclick = () => window.openMatchSettings();
-    }
+    if (icon) icon.textContent = 'add';
+    leftBtn.title = 'Add';
+    leftBtn.onclick = () => window.toggleChatPlusMenu();
   }
   const chatView = document.getElementById('home-chat-view');
   const matchView = document.getElementById('home-match-view');
@@ -51,6 +45,50 @@ function switchHomeView(view) {
   ensureQuestionnaireThenMatch(view);
 }
 window.switchHomeView = switchHomeView;
+
+// ─── 主页三视图左右滑切换（Chat ↔ 恋人 ↔ 朋友）────────────────
+// 按当前视图下标 ±1 并在两端夹住（8/19 广场横滑的教训：不能按方向写死目标页）。
+// 只在松手时判定，不做跟手位移：三视图是 display 显隐不是滑轨，跟手需要重构结构。
+// 守卫：多指/取消手势作废；任何 .overlay.active（聊天对话/偏好卡等）或加号菜单
+// 打开时不切；横向位移必须显著大于纵向（不抢纵向滚动/下拉刷新）。
+function bindHomeViewSwipe() {
+  const root = document.getElementById('tab-match');
+  if (!root) return;
+  const ORDER = ['chat', 'romantic', 'friend'];
+  let sx = 0, sy = 0, tracking = false;
+  root.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 1) { tracking = false; return; } // 多指作废（8/26 手势审计同款）
+    tracking = true;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+  }, { passive: true });
+  root.addEventListener('touchmove', (e) => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    // 横向意图明确即挂 horizLock：下拉刷新让位（square 同款约定，attachPullToRefresh
+    // 的 touchmove 读这个标记——否则横滑带轻微下坠时刷新指示器会竖向抖动）
+    if (Math.abs(t.clientX - sx) > 24 && Math.abs(t.clientX - sx) > Math.abs(t.clientY - sy) * 1.5) {
+      root.dataset.horizLock = '1';
+    }
+  }, { passive: true });
+  root.addEventListener('touchcancel', () => { tracking = false; root.dataset.horizLock = '0'; }, { passive: true });
+  root.addEventListener('touchend', (e) => {
+    root.dataset.horizLock = '0';
+    if (!tracking) return;
+    tracking = false;
+    if (S.activeTab !== 'match') return;
+    if (document.querySelector('.overlay.active')) return;
+    if (document.getElementById('chat-plus-menu')) return;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const i = ORDER.indexOf(S.homeView || 'chat');
+    const ni = Math.min(ORDER.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)));
+    if (ni !== i) window.switchHomeView(ORDER[ni]);
+  }, { passive: true });
+}
+window.bindHomeViewSwipe = bindHomeViewSwipe;
 
 // ─── Chat 视图加号小弹出卡（本轮反馈7）────────────────────────
 // 顺序：搜索 → 扫码 → 关系网；附深色模式/语言。点击项后关卡片再执行。
@@ -145,6 +183,7 @@ function injectQuestionnaireBanner(mode) {
 // 未填问卷引导：在 #match-content 渲染一张引导卡，按钮跳问卷页填写对应模式问卷。
 function promptFillQuestionnaire(mode) {
   window.stopCountdownTick();
+  setMatchPlanLayout(false); // 引导卡走原有居中布局（同模块函数声明，安全提升）
   const container = document.getElementById('match-content');
   if (!container) return;
   const isFriend = mode === 'friend';
@@ -246,38 +285,233 @@ async function loadMatchTab() {
     }
     window.stopCountdownTick();
     const container = document.getElementById('match-content');
-    if (container) {
-      container.innerHTML = window.renderIdleMatch();
-      window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
-    }
+    if (container) renderPlanState(container, mode, false); // 未入池也跑倒计时
   }
 }
 window.loadMatchTab = loadMatchTab;
 
-function renderIdleMatch() {
-  // idle 与 searching 共用相同的固定高度骨架，保证两态切换时动画块与主按钮垂直位置不跳动。
+// ════════════════════════════════════════
+// 匹配页新版（设计稿「UniMatcha新匹配页 ui.html」）：idle / searching 共用一套
+// 「标题 → 出血荧光绿倒计时卡（周历 + 大数字） → 只读偏好/设置摘要框（框内滚动）
+//  → 贴底主按钮」。编辑入口 = 摘要框右上角「编辑」→ 偏好卡（匹配设置已并入）。
+// ════════════════════════════════════════
+
+// idle/searching 用顶对齐满高布局（#home-match-view.match-plan，见 main.css），
+// 其余状态（matched 大卡/情侣空间/空态/问卷引导）恢复原有垂直居中布局。
+function setMatchPlanLayout(on) {
+  const mv = document.getElementById('home-match-view');
+  if (mv) mv.classList.toggle('match-plan', !!on);
+}
+
+// 距下一轮公布的目标时刻：后端 nextRunAt → 本地 cron 解析 → 周五 17:00 兜底。
+function getNextRevealDate() {
   const mode = S.activeMatchMode || 'romantic';
-  const friend = mode === 'friend';
-  const title = friend ? 'Find New Friends' : 'Start Your Journey';
-  const sub = friend
-    ? 'Enter the matching pool to discover up to 5 like-minded companions.'
-    : 'Enter the matching pool to discover your intellectual companion.';
-  // 未入池也显示同一套倒计时（用户反馈）：距下一轮公布的时间与是否进池无关
+  const st = S.matchStatus?.[mode];
+  let next = st?.nextRunAt ? new Date(st.nextRunAt) : null;
+  if (!next || isNaN(next.getTime())) next = window.getNextCronRun(st?.matchConfig?.cronExpr);
+  if (!next) {
+    const now = new Date();
+    const day = now.getDay();
+    let dd = (5 - day + 7) % 7;
+    if (dd === 0 && now.getHours() >= 17) dd = 7;
+    next = new Date(now);
+    next.setDate(now.getDate() + dd);
+    next.setHours(17, 0, 0, 0);
+  }
+  return next;
+}
+
+// 周历行：本周一~周日的日期；今天=白底圆片，公布日=白色「公布日」小标 + 手绘白圈。
+function renderWeekRow() {
   const zh = (window.getLang?.() === 'zh');
-  return `<div class="w-full text-center px-8 flex flex-col items-center">
-    <div class="w-full max-w-sm mx-auto">
-      <p class="font-headline text-[10px] font-bold tracking-[0.28em] text-outline mb-3">${zh ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
-      ${renderCountdownBoxes()}
-    </div>
-    <div class="mt-7 flex flex-col items-center">
-      <h2 class="font-headline text-[22px] font-extrabold tracking-tight text-on-surface mb-2">${title}</h2>
-      <p class="font-body text-on-surface-variant text-[13px] leading-relaxed max-w-[16rem] mx-auto">${sub}</p>
-    </div>
-    <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
-      <button class="btn-cta w-full bg-neon text-black" onclick="startMatch()">Join Matching Pool</button>
-      <button class="text-[11px] font-bold tracking-wide text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
+  const names = zh ? ['一', '二', '三', '四', '五', '六', '日'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
+  const todayIdx = (now.getDay() + 6) % 7;
+  // 徽标按【日期】定位而非星期几：周五 17:00 后 reveal 已是下周五，按星期定位会把
+  // 「公布日」圈在本周（已过去的）五格上，与倒计时自相矛盾（复查确认）。
+  // reveal 不在本周（idx 出 0..6）则整行不出徽标，跨天 tick 重渲周历时自愈。
+  const reveal = getNextRevealDate();
+  const rd = new Date(reveal);
+  rd.setHours(0, 0, 0, 0);
+  const revealIdx = Math.round((rd - monday) / 86400000);
+  const badge = zh ? '公布日' : 'REVEAL';
+  let cells = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const num = String(d.getDate()).padStart(2, '0');
+    cells += `<span class="mp-day${i === todayIdx ? ' mp-day--today' : ''}">${i === revealIdx
+      ? `<span class="mp-day-badge" data-no-i18n>${badge}</span><svg class="mp-day-ring" width="40" height="28" viewBox="0 0 40 28" fill="none"><path d="M20 3 C30 2.5 37 8 37 14 C37 21.5 29 26 19 25.5 C10 25 3 21 3 14.5 C3 8 11 4 23 3.2" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round"/></svg>`
+      : ''}<span class="mp-day-name" data-no-i18n>${names[i]}</span><span class="mp-day-num" data-no-i18n>${num}</span></span>`;
+  }
+  return `<div id="mp-week" class="mp-week">${cells}</div>`;
+}
+
+// 出血荧光绿倒计时卡：标签 + 周历 + 单行大数字（白描边）。数字由 startCountdownTick
+// 按 [data-cd] 每秒就地更新；跨天时周历也由 tick 就地重渲（data-day-stamp 比对）。
+// alt=true 用镜像圆角（设计稿两画板的手绘感差异：idle/searching 各一套）。
+function renderCountdownCard(alt) {
+  const zh = (window.getLang?.() === 'zh');
+  const units = zh ? ['天', '时', '分', '秒'] : ['d', 'h', 'm', 's'];
+  const keys = ['d', 'h', 'm', 's'];
+  return `<div class="mp-card${alt ? ' mp-card--alt' : ''}">
+    <p class="mp-card-label" data-no-i18n>${zh ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
+    ${renderWeekRow()}
+    <div id="match-countdown" class="mp-cd" data-day-stamp="${new Date().getDate()}">
+      ${keys.map((k, i) => `<span class="mp-num" data-cd="${k}" data-no-i18n>00</span><span class="mp-unit${i === 3 ? ' mp-unit--last' : ''}" data-no-i18n>${units[i]}</span>`).join('')}
     </div>
   </div>`;
+}
+
+// 只读摘要框骨架：全部偏好字段 + 匹配设置（增强/补充信息），框内滚动、只读。
+// searching 时右上角换锁定提示、内容压暗（设计稿 opacity .55）。值由 fillPlanBox 填。
+function renderPlanBox(mode, searching) {
+  const zh = (window.getLang?.() === 'zh');
+  const friend = mode === 'friend';
+  const L = zh
+    ? { prefs: '匹配偏好', settings: '匹配设置', gender: '目标性别', age: '年龄范围', stage: '学业阶段', interests: '兴趣优先', school: '校区筛选', enhance: '增强模式', extra: '补充信息', edit: '编辑', lock: '匹配中锁定 · 离开后可修改' }
+    : { prefs: 'MATCH PREFERENCES', settings: 'MATCH SETTINGS', gender: 'Target Gender', age: 'Age Range', stage: 'University Stage', interests: 'Interest Priority', school: 'School Filter', enhance: 'Enhanced Mode', extra: 'Extra Info', edit: 'Edit', lock: 'Locked while matching · leave pool to edit' };
+  const header = searching
+    ? `<button class="mp-lockline" onclick="matchSettingsLockedToast()" data-no-i18n><span class="material-symbols-outlined" style="font-size:13px">lock</span><span>${L.lock}</span></button>`
+    : `<button class="mp-editlink" onclick="openFilterSheet('${mode}')" data-no-i18n><span>${L.edit}</span><svg width="26" height="5" viewBox="0 0 26 5" fill="none"><path d="M2 3 C7 1.6 13 3.8 18 2.6 C21 2 23.5 3 24 2.6" stroke="#CCFF00" stroke-width="2.6" stroke-linecap="round"/></svg></button>`;
+  const cell = (label, id) => `<span class="flex flex-col py-1.5 mp-sep" style="gap:1px">
+      <span class="text-[10px] tracking-[0.06em] mp-muted" data-no-i18n>${label}</span>
+      <span id="${id}" class="text-[14px] font-extrabold text-on-surface" data-no-i18n>—</span>
+    </span>`;
+  return `<div id="mp-box" class="mp-box" data-plan="${mode}:${searching ? 's' : 'i'}">
+    <div class="flex items-center justify-between">
+      <span class="mp-label" data-no-i18n>${L.prefs}</span>
+      ${header}
+    </div>
+    <div class="${searching ? 'mp-dim' : ''}">
+      <div class="grid grid-cols-2 gap-x-4 mt-0.5">
+        ${cell(L.gender, 'mp-v-gender')}
+        ${cell(L.age, 'mp-v-age')}
+        ${friend ? cell(L.interests, 'mp-v-interests') : cell(L.stage, 'mp-v-stage')}
+        ${cell(L.school, 'mp-v-school')}
+      </div>
+      <p class="mp-label mt-3 mb-1" data-no-i18n>${L.settings}</p>
+      <div class="flex items-center justify-between gap-3.5 py-1.5 mp-sep">
+        <span class="flex flex-col" style="gap:1px">
+          <span class="text-[14px] font-bold text-on-surface" data-no-i18n>${L.enhance}</span>
+          <span id="mp-enh-sub" class="text-[11px] mp-muted" data-no-i18n></span>
+        </span>
+        <span id="mp-enh-toggle" class="mp-toggle"></span>
+      </div>
+      <div class="py-1.5">
+        <span class="text-[14px] font-bold text-on-surface" data-no-i18n>${L.extra}</span>
+        <div id="mp-extra" class="mp-extra mt-1.5" data-no-i18n></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 摘要框填值：偏好字段来自 prefs（缓存或刚拉的），增强来自 S.enhanced（客户端态，
+// 进池时才提交扣费）。searching 且本轮确实以增强进池时按「本轮已生效」显示。
+function fillPlanBox(mode, prefs) {
+  const zh = (window.getLang?.() === 'zh');
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  if (prefs) {
+    const g = prefs.preferredGender;
+    set('mp-v-gender', g === 'male' ? (zh ? '男生' : 'Male') : g === 'female' ? (zh ? '女生' : 'Female') : (zh ? '不限' : 'Any'));
+    set('mp-v-age', prefs.ageMin == null && prefs.ageMax == null ? (zh ? '不限' : 'Any') : `${prefs.ageMin ?? 18} — ${prefs.ageMax ?? 30}`);
+    if (mode === 'friend') {
+      const ints = (Array.isArray(prefs.preferredInterests) ? prefs.preferredInterests : []).filter(Boolean);
+      set('mp-v-interests', ints.length ? ints.slice(0, 3).join(' · ') : (zh ? '未设置' : 'Not set'));
+    } else {
+      const stageMap = zh
+        ? { undergraduate: '本科', master: '硕士', doctor: '博士' }
+        : { undergraduate: 'Undergrad', master: 'Master', doctor: 'PhD' };
+      const stages = String(prefs.universityStage || '').split(',').map(s => stageMap[s.trim()]).filter(Boolean);
+      set('mp-v-stage', stages.length ? stages.join(' · ') : (zh ? '不限' : 'Any'));
+    }
+    const su = !!prefs.requireSameUniversity, sc = !!prefs.requireSameCity;
+    set('mp-v-school', su && sc ? (zh ? '仅同校 · 同城' : 'Same school · city') : su ? (zh ? '仅同校' : 'Same school only') : sc ? (zh ? '同城' : 'Same city') : (zh ? '不限' : 'Any'));
+    const extraEl = document.getElementById('mp-extra');
+    if (extraEl) {
+      const txt = String(prefs.extraMatchInfo || '').trim();
+      extraEl.textContent = txt || (zh ? '告诉算法更多关于你的事' : 'Anything else to help matching…');
+      extraEl.classList.toggle('mp-extra--empty', !txt);
+    }
+  }
+  ensureEnhancedShape();
+  const friend = mode === 'friend';
+  const searching = S.matchStatus?.[mode]?.state === 'searching';
+  const activeRound = searching && lastEnhancedRound[mode];
+  const on = activeRound || !!S.enhanced[mode]?.enabled;
+  const cells = friend ? Math.min(5, Math.max(1, parseInt(S.enhanced.friend.cells, 10) || 1)) : 3;
+  const tg = document.getElementById('mp-enh-toggle');
+  if (tg) tg.classList.toggle('on', on);
+  const sub = document.getElementById('mp-enh-sub');
+  if (sub) {
+    if (activeRound) sub.textContent = zh ? `本轮已生效 · ${cells} 能量` : `Active this round · ${cells} cells`;
+    else if (friend) sub.textContent = on ? (zh ? `保底 ${cells} 位 · ${cells} 能量` : `Guarantee ${cells} · ${cells} cells`) : (zh ? '每保底 1 位朋友 1 能量' : '1 cell per guaranteed friend');
+    else sub.textContent = zh ? '3 能量 · 未匹配自动退回' : '3 cells · refunded if no match';
+  }
+}
+
+// 摘要框数据装载：先用缓存立即填（renderPlanState 已做），这里拉新鲜值刷新。
+// 竞态令牌 + 目标节点存在性双守卫（视图切走/状态翻页后放弃）。
+async function loadPlanData(mode) {
+  const seq = (loadPlanData._seq = (loadPlanData._seq || 0) + 1);
+  let prefs;
+  try {
+    const data = await window.api('/matching/preferences?mode=' + mode);
+    prefs = data?.data || data || {};
+  } catch (e) { return; } // 加载失败：保留缓存/占位显示，不打扰
+  if (seq !== loadPlanData._seq) return;
+  if (!S.matchPrefs || typeof S.matchPrefs !== 'object') S.matchPrefs = { romantic: null, friend: null };
+  S.matchPrefs[mode] = prefs;
+  if ((S.activeMatchMode || 'romantic') !== mode) return;
+  if (!document.getElementById('mp-box')) return;
+  fillPlanBox(mode, prefs);
+}
+
+// idle / searching 整页渲染入口。
+function renderPlanState(container, mode, searching) {
+  setMatchPlanLayout(true);
+  // 同态重渲守卫（复查 medium）：30s 轮询无条件 renderMatchTab，整页重建会把 mp-box
+  // 滚动位置拽回顶部、每拍还多拉一次偏好。同 mode 同状态且计划页 DOM 仍在时只刷值。
+  // 标记放在 mp-box 自己身上：其它分支 innerHTML 覆盖后标记随 DOM 消失，天然失效。
+  const key = mode + ':' + (searching ? 's' : 'i');
+  const probe = container.querySelector('#mp-box');
+  if (probe && probe.dataset.plan === key) {
+    window.startCountdownTick(); // renderMatchTab 入口统一 stopCountdownTick 过，须重启
+    fillPlanBox(mode, S.matchPrefs?.[mode] || null);
+    return;
+  }
+  const friend = mode === 'friend';
+  const title = searching ? 'Matching in Progress' : (friend ? 'Find New Friends' : 'Start Your Journey');
+  const sub = searching
+    ? (friend
+      ? 'Names are revealed Friday 17:00 — friends on your wavelength are on the way.'
+      : 'Names are revealed Friday 17:00 — someone on your wavelength is walking toward you.')
+    : (friend
+      ? "Join this week's pool to meet up to 5 friends on your wavelength."
+      : "Join this week's pool — the algorithm will watch the crowd for someone on your wavelength.");
+  const cta = searching
+    ? `<button class="mp-cta mp-cta--leave" onclick="stopMatch()">Leave Pool</button>`
+    : `<button class="mp-cta" onclick="startMatch()">Join Matching Pool</button>`;
+  container.innerHTML = `
+    <h2 class="font-headline font-extrabold tracking-tight text-on-surface shrink-0" style="font-size:${searching ? 24 : 26}px">${title}</h2>
+    <p class="font-body text-[14px] mp-sub mt-1.5 shrink-0" style="line-height:1.65">${sub}</p>
+    ${renderCountdownCard(searching)}
+    ${renderPlanBox(mode, searching)}
+    ${cta}`;
+  window.startCountdownTick();
+  fillPlanBox(mode, S.matchPrefs?.[mode] || null);
+  loadPlanData(mode);
+}
+
+// 兼容壳：历史调用点（window.renderIdleMatch）——新版渲染带副作用（布局类/tick/
+// 数据拉取），统一走 renderPlanState；返回空串避免旧的 innerHTML= 用法覆盖。
+function renderIdleMatch() {
+  const container = document.getElementById('match-content');
+  if (container) renderPlanState(container, S.activeMatchMode || 'romantic', false);
+  return '';
 }
 window.renderIdleMatch = renderIdleMatch;
 
@@ -312,6 +546,8 @@ function renderMatchTab(data) {
   if (!container) return;
   // 每次重渲先清掉共享倒计时 interval，各分支再按需启动自己的 ticker，避免残留。
   window.stopCountdownTick();
+  // 布局基线：先恢复居中布局，idle/searching 分支（renderPlanState）再自行开启计划页布局。
+  setMatchPlanLayout(false);
   const mode = (data && data.mode) || S.activeMatchMode || 'romantic';
   if (mode === 'friend') return renderFriendMatchTab(container, data);
   return renderRomanticMatchTab(container, data);
@@ -398,9 +634,8 @@ function renderRomanticMatchTab(container, data) {
     return;
   }
 
-  // idle / 其它：进池入口。
-  container.innerHTML = window.renderIdleMatch();
-  window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
+  // idle / 其它：进池入口（新版计划页）。
+  renderPlanState(container, 'romantic', false);
 }
 
 // ─── 朋友分支（最多 5 张候选卡，C 规则 §6.5） ──────────────────
@@ -445,9 +680,8 @@ function renderFriendMatchTab(container, data) {
     return;
   }
 
-  // idle / 其它：进池入口（荧光绿点缀）。
-  container.innerHTML = window.renderIdleMatch();
-  window.startCountdownTick(); // 未入池也跑倒计时（动画已移除）
+  // idle / 其它：进池入口（新版计划页）。
+  renderPlanState(container, 'friend', false);
 }
 
 // 单张朋友候选卡。临时候选显示剩余倒计时；已确认朋友显示 Friends 标记。
@@ -488,22 +722,9 @@ function renderFriendCandidateCard(c) {
 }
 window.renderFriendCandidateCard = renderFriendCandidateCard;
 
-// searching 骨架（idle 同高度，避免跳动）。点缀统一荧光绿；mode 仅用于校园场景人物渲染。
+// searching：与 idle 同一套计划页布局，摘要框锁定压暗、主按钮换粉描边「离开匹配池」。
 function renderSearchingSkeleton(container, mode) {
-  container.innerHTML = `
-    <div class="w-full text-center px-8 flex flex-col items-center">
-      <!-- 等待动画已移除（用户反馈）：倒计时即视觉主体；「本轮已增强」徽标同样去掉 -->
-      <div class="w-full max-w-sm mx-auto">
-        <p class="font-headline text-[10px] font-bold tracking-[0.28em] text-outline mb-3">${(window.getLang?.() === 'zh') ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
-        ${renderCountdownBoxes()}
-      </div>
-      <div class="mt-8 w-full max-w-xs mx-auto flex flex-col items-center gap-5">
-        <button class="px-8 py-2.5 bg-transparent text-neon-pink border border-neon-pink rounded-full font-headline font-bold text-xs tracking-[0.1em] hover:bg-neon-pink hover:text-black transition-all active:scale-[0.98]" onclick="stopMatch()">Leave Pool</button>
-        <button class="text-[11px] font-bold tracking-wide text-outline hover:text-primary transition-colors underline underline-offset-8" onclick="openFilterSheet()">Modify Preferences</button>
-      </div>
-    </div>`;
-  window.startCountdownTick();
-
+  renderPlanState(container, mode === 'friend' ? 'friend' : 'romantic', true);
 }
 
 // 临时对话 48h 剩余倒计时块（恋人卡内）。
@@ -589,6 +810,18 @@ window.openConnectionChat = openConnectionChat;
 // 开增强前校验能量：availableEnergy<cost 则引导充值（openEnergyModal）。
 // 本轮以增强身份进池的会话内标记（searching 骨架显示徽标用）
 const lastEnhancedRound = { romantic: false, friend: false };
+
+// 换账号清理（cleanupUserState 调用；模块内 let/const 外部够不到）：
+// 本轮增强标记归零（否则下一账号的 searching 框会显示上一账号的「本轮已生效」）、
+// 在途偏好请求作废（慢响应会把上一账号的偏好含补充信息回填进下一账号的框/卡）。
+function resetMatchPlanState() {
+  lastEnhancedRound.romantic = false;
+  lastEnhancedRound.friend = false;
+  loadPlanData._seq = (loadPlanData._seq || 0) + 1;
+  loadPrefsForMode._seq = (loadPrefsForMode._seq || 0) + 1;
+  prefsLoadFailed = false;
+}
+window.resetMatchPlanState = resetMatchPlanState;
 
 async function startMatch() {
   const mode = S.activeMatchMode || 'romantic';
@@ -774,25 +1007,7 @@ function countdownParts(diff) {
   };
 }
 
-function renderCountdownBoxes() {
-  const zh = (window.getLang?.() === 'zh');
-  const units = [
-    ['d', zh ? '天' : 'DAYS'],
-    ['h', zh ? '时' : 'HRS'],
-    ['m', zh ? '分' : 'MIN'],
-    ['s', zh ? '秒' : 'SEC'],
-  ];
-  // 2×2 大格，荧光绿主题（用户反馈）：动画已移除，倒计时是唯一视觉主体，
-  // 故用品牌色块——荧光绿底 + 黑字（白底上直接用荧光绿文字对比度不足）。
-  // 恒为 4 格（天为 0 显示 00）避免布局跳动。
-  return `<div id="match-countdown" class="w-full grid grid-cols-2 gap-2.5">
-    ${units.map(([k, label]) => `
-      <div class="cd-box rounded-[18px] py-5 px-2 flex flex-col items-center">
-        <span data-cd="${k}" class="font-mono text-[46px] font-bold leading-none tracking-tight tabular-nums" data-no-i18n>00</span>
-        <span class="cd-label text-[10px] font-bold tracking-[0.18em] mt-2.5" data-no-i18n>${label}</span>
-      </div>`).join('')}
-  </div>`;
-}
+// （旧 2×2 荧光绿倒计时大格 renderCountdownBoxes 已被计划页的 renderCountdownCard 取代）
 
 function formatCountdown(diff) {
   if (diff <= 0) return '00:00:00';
@@ -805,24 +1020,10 @@ function formatCountdown(diff) {
 }
 window.formatCountdown = formatCountdown;
 
-// 优先用后端下发的 nextRunAt；缺失时 fallback 到本地 cron 解析，再退到周五 17:00。
-// 按当前匹配模式从分桶读取状态。
-// 距下一轮公布的毫秒数：优先后端 nextRunAt → 本地 cron 解析 → 周五 17:00 兜底
+// 距下一轮公布的毫秒数：目标时刻统一由 getNextRevealDate 提供
+// （后端 nextRunAt → 本地 cron 解析 → 周五 17:00 兜底），周历行同源。
 function getMatchCycleMs() {
-  const mode = S.activeMatchMode || 'romantic';
-  const st = S.matchStatus?.[mode];
-  let next = st?.nextRunAt ? new Date(st.nextRunAt) : null;
-  if (!next || isNaN(next.getTime())) next = window.getNextCronRun(st?.matchConfig?.cronExpr);
-  if (!next) {
-    const now = new Date();
-    const day = now.getDay();
-    let dd = (5 - day + 7) % 7;
-    if (dd === 0 && now.getHours() >= 17) dd = 7;
-    next = new Date(now);
-    next.setDate(now.getDate() + dd);
-    next.setHours(17, 0, 0, 0);
-  }
-  return next - Date.now();
+  return getNextRevealDate() - Date.now();
 }
 window.getMatchCycleMs = getMatchCycleMs;
 
@@ -849,6 +1050,13 @@ function startCountdownTick() {
     // 每次重新查 DOM：分支重渲后旧节点会失联，缓存引用会让倒计时静默停摆
     const root = document.getElementById('match-countdown');
     if (!root) return;
+    // 跨天：周历行的「今天」高亮与日期会过期，就地重渲周历（无网络请求）
+    const stamp = String(new Date().getDate());
+    if (root.dataset.dayStamp && root.dataset.dayStamp !== stamp) {
+      root.dataset.dayStamp = stamp;
+      const week = document.getElementById('mp-week');
+      if (week) week.outerHTML = renderWeekRow();
+    }
     const p = countdownParts(window.getMatchCycleMs());
     ['d', 'h', 'm', 's'].forEach((k) => {
       const cell = root.querySelector(`[data-cd="${k}"]`);
@@ -1082,7 +1290,7 @@ function currentMode() {
 }
 window.currentMode = currentMode;
 
-// 打开偏好面板：按当前匹配模式拉取偏好并回填对应区（增强字段已移至 Match Settings，此处不含）。
+// 打开偏好面板：按当前匹配模式拉取偏好并回填对应区（含并入的匹配设置：增强/补充信息/重填问卷）。
 // ── 匹配中锁定设置（产品规则）──
 // 偏好与增强都只在下一次撮合时生效，进池后再改会与本轮已提交的条件不一致，
 // 因此 searching 状态一律禁止修改，必须先离开匹配池。
@@ -1132,6 +1340,9 @@ window.applyPanelReadonly = applyPanelReadonly;
 
 async function openFilterSheet(mode) {
   window.openOverlay('filter-overlay');
+  // 标题「编辑」按语言设置（静态 HTML 不进词典：'Edit' 太短，做全局键有误翻用户内容的风险）
+  const title = document.getElementById('filter-sheet-title');
+  if (title) title.textContent = (window.getLang?.() === 'zh') ? '编辑' : 'Edit';
   const m = (mode === 'friend' || mode === 'romantic') ? mode : (S.activeMatchMode || 'romantic');
   S.prefMode = m;
   // switchPrefMode already fetches + backfills this mode's prefs (loadPrefsForMode).
@@ -1161,13 +1372,46 @@ function switchPrefMode(mode) {
 }
 window.switchPrefMode = switchPrefMode;
 
-// 拉取并回填某模式偏好（不含增强——增强已移至 Match Settings 面板）。
+// 偏好卡整卡加载失败标记：失败时共享控件（年龄/同校/同城）与 S.filter* 还留着上一次
+// 成功回填的值——可能是另一模式的，此时放行 Save 会把它们 PUT 进当前模式（复查 medium）。
+// 置位后 saveFilterPrefs 整体拒存，重开面板/加载成功即复位。
+let prefsLoadFailed = false;
+
+// 拉取并回填某模式偏好 + 匹配设置区（原 match-settings 抽屉并入本卡：
+// 增强区按模式显隐/开关回填、补充信息装载）。
 async function loadPrefsForMode(mode) {
-  let prefs = {};
+  // 竞态令牌：只有最后一次调用的响应才回填（快速切模式/重开面板会连发请求）
+  const seq = (loadPrefsForMode._seq = (loadPrefsForMode._seq || 0) + 1);
+  prefsLoadFailed = false;
+  ensureEnhancedShape();
+  // 网络请求前先同步就位：增强区显隐 + 开关状态 + 清空文本（弱网下旧模式残留窗口）
+  const rItem = document.getElementById('romantic-enhance-item');
+  const fItem = document.getElementById('friend-enhance-item');
+  if (rItem) rItem.style.display = mode === 'romantic' ? '' : 'none';
+  if (fItem) fItem.style.display = mode === 'friend' ? '' : 'none';
+  window.updateEnhanceUI(mode);
+  const extra = document.getElementById('match-extra-info');
+  if (extra) { extra.value = ''; extra.dataset.dirty = ''; extra.dataset.loadFailed = ''; extra.oninput = () => { extra.dataset.dirty = '1'; }; }
+  window.loadEnergyBar?.(); // 能量新鲜度（增强开关校验用）
+  let prefs = null;
   try {
     const data = await window.api('/matching/preferences?mode=' + mode);
     prefs = data?.data || data || {};
-  } catch (e) {}
+  } catch (e) { prefs = null; }
+  if (seq !== loadPrefsForMode._seq) return;
+  if (prefs === null) {
+    // 加载失败：不要把任何残留表单值当权威值——整卡拒存（共享控件此刻显示的可能是
+    // 另一模式的旧值），extraMatchInfo 的 loadFailed 标记留作双保险。
+    // 不动保存键 disabled：applyPanelReadonly 的 350ms 定时器会覆盖它，拦截靠
+    // saveFilterPrefs 里的 prefsLoadFailed 检查 + toast 反馈。
+    prefsLoadFailed = true;
+    if (extra) extra.dataset.loadFailed = '1';
+    window.toast('Preferences failed to load');
+    return;
+  }
+  if (!S.matchPrefs || typeof S.matchPrefs !== 'object') S.matchPrefs = { romantic: null, friend: null };
+  S.matchPrefs[mode] = prefs; // 顺带刷新主页摘要框的缓存源
+  if (extra && extra.dataset.dirty !== '1') extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
   if (mode === 'romantic') {
     fillRomanticPrefs(prefs);
   } else {
@@ -1225,15 +1469,25 @@ function fillFriendPrefs(prefs) {
 
 function closeFilterSheet() {
   window.closeOverlay('filter-overlay');
+  // 增强开关是即点即存的客户端态（toggleEnhance/persistEnhanced），不随 Save 提交——
+  // 关卡后同步主页摘要框的增强显示（其余值等保存成功才动）。
+  const m = S.activeMatchMode || 'romantic';
+  if (document.getElementById('mp-box')) fillPlanBox(m, S.matchPrefs?.[m] || null);
 }
 window.closeFilterSheet = closeFilterSheet;
 
-// 保存偏好：按当前偏好面板模式取字段 PUT（不含增强——增强由 saveMatchSettings 负责）。
+// 保存偏好 + 补充信息：按当前偏好面板模式取字段 PUT。
+// （增强开关不经此端点：后端只认 /matching/start 的扣费路径，偏好端点拒收增强字段）
 async function saveFilterPrefs(mode) {
   const m = (mode === 'friend' || mode === 'romantic') ? mode : currentMode();
   // 二次拦截：面板打开期间状态可能变成 searching（轮询/另一端进池）
   if (isMatchPoolActive(m)) { matchSettingsLockedToast(); window.closeFilterSheet(); return; }
-  // 年龄/同校/同城为恋人/朋友共享输入控件（始终在 DOM）。增强字段不在此提交（已移至 Match Settings）。
+  // 整卡加载失败：表单里是陈旧/他模式的值，拒存（保存键已禁用，此为兜底）
+  if (prefsLoadFailed) {
+    window.toast((window.getLang?.() === 'zh') ? '偏好还没加载成功，请关闭后重试' : 'Preferences failed to load — close and retry');
+    return;
+  }
+  // 年龄/同校/同城为恋人/朋友共享输入控件（始终在 DOM）。增强字段不在此提交（只走 /matching/start 扣费路径）。
   const ageAny = document.getElementById('filter-age-any')?.checked || false;
   const rawMin = parseInt(document.getElementById('filter-age-min')?.value, 10) || 18;
   const rawMax = parseInt(document.getElementById('filter-age-max')?.value, 10) || 24;
@@ -1265,11 +1519,23 @@ async function saveFilterPrefs(mode) {
       universityStage: (S.filterStages && S.filterStages.length) ? S.filterStages.join(',') : null,
     };
   }
+  // 补充信息（原 match-settings 抽屉字段，随本卡一并保存）：
+  // 偏好没加载成功且用户没动过输入框时不带该字段，防空白覆盖服务器上已有文本
+  const extraEl = document.getElementById('match-extra-info');
+  const skipExtra = extraEl?.dataset.loadFailed === '1' && extraEl?.dataset.dirty !== '1';
+  if (!skipExtra) prefs.extraMatchInfo = extraEl?.value || '';
+  persistEnhanced(); // 增强开关客户端态落地（进池时才提交扣费）
   window.btnBusy('filter-save-btn', true);
   try {
     await window.api('/matching/preferences', 'PUT', prefs);
+    // 主页摘要框缓存与显示就地刷新（仍停在该模式的 idle/searching 时）
+    if (!S.matchPrefs || typeof S.matchPrefs !== 'object') S.matchPrefs = { romantic: null, friend: null };
+    S.matchPrefs[m] = { ...(S.matchPrefs[m] || {}), ...prefs };
     window.toast('Preferences saved');
     window.closeFilterSheet();
+    if ((S.activeMatchMode || 'romantic') === m && document.getElementById('mp-box')) {
+      fillPlanBox(m, S.matchPrefs[m]);
+    }
   } catch (e) {
     window.toast('Failed: ' + e.message);
   } finally {
@@ -1466,6 +1732,11 @@ async function toggleEnhance(mode) {
   S.enhanced[m].enabled = turningOn;
   updateEnhanceUI(m);
   persistEnhanced();
+  // 主页摘要框就地同步（复查：X 键/下拉关卡不走 closeFilterSheet，开关状态会陈旧到
+  // 下一拍轮询——增强是即点即存的客户端态，改完立刻把框上的只读开关对齐）
+  if (m === (S.activeMatchMode || 'romantic') && document.getElementById('mp-box')) {
+    fillPlanBox(m, S.matchPrefs?.[m] || null);
+  }
   } finally { if (tg) tg.disabled = false; }
 }
 window.toggleEnhance = toggleEnhance;
@@ -1480,6 +1751,10 @@ function updateFriendCells(v) {
   const cost = document.getElementById('friend-cells-cost');
   if (cost) cost.textContent = cells;
   persistEnhanced();
+  // 摘要框副文案带档位（保底 N 位 · N 能量），拖滑块也要就地同步（同 toggleEnhance）
+  if ((S.activeMatchMode || 'romantic') === 'friend' && document.getElementById('mp-box')) {
+    fillPlanBox('friend', S.matchPrefs?.friend || null);
+  }
 }
 window.updateFriendCells = updateFriendCells;
 
@@ -1502,78 +1777,5 @@ function updateEnhanceUI(mode) {
 }
 window.updateEnhanceUI = updateEnhanceUI;
 
-// ========================================
-// MATCH SETTINGS（左上角图标入口）
-// extraMatchInfo 自由文本 + 增强模式；retake 问卷入口在此面板内。
-// （Match Basis 三选已按用户要求移除，后端 matchBasis 保持存量值/默认 both）
-// ========================================
-async function openMatchSettings() {
-  window.openOverlay('match-settings-overlay');
-  // 匹配中只读（回填后再置一次，覆盖异步渲染出来的控件）
-  const locked = isMatchPoolActive();
-  applyPanelReadonly('match-settings-overlay', locked);
-  setTimeout(() => applyPanelReadonly('match-settings-overlay', isMatchPoolActive()), 400);
-  ensureEnhancedShape();
-  const mode = S.activeMatchMode || 'romantic';
-  // 网络请求前先同步就位：区块显隐 + 开关状态 + 清空文本（修弱网下旧模式残留可交互窗口）
-  const rItem = document.getElementById('romantic-enhance-item');
-  const fItem = document.getElementById('friend-enhance-item');
-  if (rItem) rItem.style.display = mode === 'romantic' ? '' : 'none';
-  if (fItem) fItem.style.display = mode === 'friend' ? '' : 'none';
-  window.updateEnhanceUI(mode);
-  const extra = document.getElementById('match-extra-info');
-  if (extra) { extra.value = ''; extra.dataset.dirty = ''; extra.oninput = () => { extra.dataset.dirty = '1'; }; }
-  window.loadEnergyBar?.(); // 能量新鲜度（增强校验用）
-  // 竞态令牌：只有「最后一次打开、且模式未变」的响应才回填（审计 #12）
-  const seq = (openMatchSettings._seq = (openMatchSettings._seq || 0) + 1);
-  let prefs = null;
-  try {
-    const data = await window.api('/matching/preferences?mode=' + mode);
-    prefs = data?.data || data || {};
-  } catch (e) { prefs = null; }
-  if (seq !== openMatchSettings._seq || mode !== (S.activeMatchMode || 'romantic')) return;
-  if (prefs === null) {
-    // 加载失败：不要把空白当权威值——标记后由 saveMatchSettings 跳过该字段，
-    // 避免把服务器上已有的补充信息清空
-    if (extra) extra.dataset.loadFailed = '1';
-    window.toast('Preferences failed to load');
-    return;
-  }
-  if (extra) extra.dataset.loadFailed = '';
-  if (extra && extra.dataset.dirty !== '1') extra.value = prefs.extraMatchInfo != null ? prefs.extraMatchInfo : '';
-}
-window.openMatchSettings = openMatchSettings;
-
-function closeMatchSettings() {
-  window.closeOverlay('match-settings-overlay');
-}
-window.closeMatchSettings = closeMatchSettings;
-
-
-async function saveMatchSettings() {
-  ensureEnhancedShape();
-  const mode = S.activeMatchMode || 'romantic';
-  // 二次拦截：面板打开期间状态可能变成 searching
-  if (isMatchPoolActive(mode)) { matchSettingsLockedToast(); return; }
-  const extraEl = document.getElementById('match-extra-info');
-  const extraMatchInfo = extraEl?.value || '';
-  // 偏好没加载成功且用户没动过输入框：这次保存不带 extraMatchInfo，
-  // 否则空白会覆盖掉服务器上原有的文本
-  const skipExtra = extraEl?.dataset.loadFailed === '1' && extraEl?.dataset.dirty !== '1';
-  // 增强开关只在客户端状态 S.enhanced 里，join pool (startMatch → POST /matching/start) 时才
-  // 提交并预扣能量。这里不再把 enhancedModeEnabled/friendEnhancedCells 发到 /matching/preferences：
-  // 后端只认 /matching/start 的扣费路径，偏好端点已拒收这两个字段（防免费白嫖增强）。
-  const body = skipExtra ? { mode } : { mode, extraMatchInfo };
-  persistEnhanced();
-  window.btnBusy('ms-save-btn', true);
-  try {
-    await window.api('/matching/preferences', 'PUT', body);
-    window.toast('Settings saved');
-    window.closeMatchSettings();
-  } catch (e) {
-    window.toast('Failed: ' + e.message);
-  } finally {
-    window.btnBusy('ms-save-btn', false);
-  }
-}
-window.saveMatchSettings = saveMatchSettings;
+// （原 match-settings 左抽屉的 openMatchSettings/closeMatchSettings/saveMatchSettings 已删除：
+//  内容并入 #filter-overlay 偏好卡，装载走 loadPrefsForMode、保存走 saveFilterPrefs。）

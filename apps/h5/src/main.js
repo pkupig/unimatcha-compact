@@ -65,8 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return v === 'chat' ? window.loadSessions?.() : window.loadMatchTab?.();
   }, '#home-chat-view, #home-match-view');
   window.attachPullToRefresh(document.getElementById('tab-square'), () => window.loadSquareTab2?.(), 'main');
+  // 主页三视图左右滑切换（Chat ↔ 恋人 ↔ 朋友）
+  window.bindHomeViewSwipe?.();
   // 底部导航滚动隐藏（三个 tab 滚动容器都绑）
-  window.bindSheetDragClose('filter-overlay');
+  // 偏好卡的下拉关闭走 closeFilterSheet：关卡要同步主页摘要框的增强显示
+  window.bindSheetDragClose('filter-overlay', () => window.closeFilterSheet());
   ['tab-match', 'tab-square', 'tab-profile'].forEach(id =>
     window.bindNavAutoHide(document.getElementById(id)));
 });

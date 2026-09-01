@@ -24,7 +24,7 @@ const ZH = {
   Chat: '聊天', Romantic: '恋人', Friend: '朋友', Square: '广场', Profile: '我的',
   Match: '匹配', 'Edit Profile': '编辑资料', 'Contact Us': '联系我们', Settings: '设置', 'Log Out': '退出登录',
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
-  Send: '发送', 'Match Settings': '匹配设置', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
+  Send: '发送', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
   // ── 搜索面板（只搜已有联系人；找同学/猜你认识两区已按产品要求移除）──
   'Search & discover': '搜索与发现', COMMENT: '评论',
@@ -57,6 +57,12 @@ const ZH = {
   // ── 匹配 / 空态 ──
   'Start Your Journey': '开始你的旅程', 'Find New Friends': '寻找新朋友',
   'Join Matching Pool': '加入匹配池', 'Leave Pool': '离开匹配池',
+  // ── 匹配页计划页（新版：标题/副文案；框内动态值走 zh 三元 + data-no-i18n）──
+  'Matching in Progress': '匹配进行中',
+  "Join this week's pool — the algorithm will watch the crowd for someone on your wavelength.": '加入本周匹配池，让算法在人海里为你留意那个同频的人。',
+  "Join this week's pool to meet up to 5 friends on your wavelength.": '加入本周匹配池，最多认识 5 位同频的新朋友。',
+  'Names are revealed Friday 17:00 — someone on your wavelength is walking toward you.': '名字会在周五 17:00 准时揭晓——同频的人，正穿过人海向你走来。',
+  'Names are revealed Friday 17:00 — friends on your wavelength are on the way.': '名单会在周五 17:00 准时揭晓——同频的朋友们，正穿过人海向你走来。',
   'No Match This Week': '本周暂无匹配', 'No Friends This Round': '本轮暂无朋友候选',
   'Romantic Questionnaire': '恋人问卷', 'Friend Questionnaire': '朋友问卷',
   'Fill Out Questionnaire': '填写问卷', 'Retake Questionnaire': '重新填写问卷',
@@ -120,9 +126,7 @@ const ZH = {
   Upload: '上传', Start: '开始', 'Maybe Later': '稍后再说',
   'Complete Your Match Profile': '完善匹配资料',
   'Complete a questionnaire to unlock that mode.': '完成问卷即可解锁对应模式的匹配。',
-  'Enter the matching pool to discover your intellectual companion.': '加入匹配池，遇见与你同频的人。',
-  'Enter the matching pool to discover up to 5 like-minded companions.': '加入匹配池，认识最多 5 位志同道合的朋友。',
-  'Matching in progress': '匹配进行中', 'Next cycle in': '距下轮公布',
+  'Next cycle in': '距下轮公布',
   'No suitable match this week. See you next Friday.': '本周暂无合适匹配，下周五见。',
   'Both of you must tap "Confirm Partner" in chat within 48 hours': '48 小时内双方都在聊天中点「确认为恋人」即可',
   'Both must tap "Confirm Friend" in chat within 48 hours': '48 小时内双方都点「确认为好友」即可',

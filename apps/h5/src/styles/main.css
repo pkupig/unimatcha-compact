@@ -1093,17 +1093,112 @@
     /* ---- match 等待动画：iframe 直嵌设计文件（/loaders.html）---- */
     .match-anim { width: 252px; height: 252px; display: flex; align-items: center; justify-content: center; }
     .match-anim-frame { width: 240px; height: 240px; border: 0; pointer-events: none; background: transparent; }
-    /* ---- 倒计时格子：荧光绿品牌色块（等待动画已移除，倒计时是视觉主体）----
-       白底上直接用荧光绿文字对比度不足，故反过来做成绿底黑字。
-       深色模式同样保持绿底黑字——荧光绿在深底上依然是品牌焦点。 */
-    .cd-box {
+    /* ---- 匹配页 idle/searching 计划页（设计稿 UniMatcha新匹配页 ui.html）----
+       顶对齐满高布局：标题 → 出血荧光绿倒计时卡 → 只读摘要框（内部滚动）→ 贴底 CTA。
+       id 作用域压过元素上的 Tailwind 工具类（构建后工具类排在自定义规则之后，7/26 教训）。 */
+    #home-match-view.match-plan {
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      padding: calc(64px + var(--sat)) 30px calc(96px + var(--sab));
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    #home-match-view.match-plan #match-content {
+      flex: 1 1 0;
+      min-height: 0;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    .mp-sub { color: #8a8a8a; }
+    .dark .mp-sub { color: #8c8a85; }
+    /* 出血荧光绿卡：不规则圆角做手绘感；深色模式同样绿底黑字（品牌焦点） */
+    .mp-card {
+      box-sizing: border-box;
+      flex-shrink: 0;
+      width: calc(100% + 44px);
+      margin: 14px -22px 0;
       background: #CCFF00;
       color: #000;
-      box-shadow: 0 6px 18px rgba(204, 255, 0, 0.28);
+      border-radius: 24px 28px 22px 28px / 28px 22px 28px 24px;
+      padding: 14px 18px 16px;
     }
-    .cd-box .cd-label { color: rgba(0, 0, 0, 0.55); }
-    .dark .cd-box { background: #CCFF00; color: #000; box-shadow: 0 6px 18px rgba(204, 255, 0, 0.18); }
-    .dark .cd-box .cd-label { color: rgba(0, 0, 0, 0.55); }
+    .mp-card--alt { border-radius: 28px 24px 28px 22px / 22px 28px 24px 28px; }
+    .mp-card-label { margin: 0; font-size: 10px; font-weight: 800; letter-spacing: 0.3em; color: rgba(0, 0, 0, 0.5); }
+    /* 周历行：今天=白底圆片；公布日=白「公布日」小标 + 手绘白圈（绝对定位在格内） */
+    .mp-week { margin-top: 8px; display: flex; justify-content: space-between; }
+    .mp-day { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 44px; padding: 7px 0 6px; }
+    .mp-day--today { background: #ffffff; border-radius: 11px; }
+    .mp-day-name { font-size: 11px; font-weight: 700; color: rgba(0, 0, 0, 0.45); }
+    .mp-day--today .mp-day-name { color: rgba(0, 0, 0, 0.55); }
+    .mp-day-num { font-size: 16px; font-weight: 800; color: #1b1b1b; font-variant-numeric: tabular-nums; }
+    .mp-day--today .mp-day-num { color: #000000; }
+    .mp-day-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #ffffff; color: #000000; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; padding: 2px 6px 2.5px; border-radius: 5px; white-space: nowrap; z-index: 1; }
+    .mp-day-ring { position: absolute; top: 21px; left: 50%; transform: translateX(-50%); }
+    /* 单行大倒计时：黑字 + 8 向白描边（在荧光绿底上）；窄屏按视口收字号防溢出 */
+    .mp-cd { margin-top: 14px; display: flex; align-items: baseline; }
+    .mp-num {
+      display: inline-block;
+      font-size: min(48px, 12vw);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      color: #000000;
+      text-shadow: 2px 0 0 #ffffff, -2px 0 0 #ffffff, 0 2px 0 #ffffff, 0 -2px 0 #ffffff,
+        1.5px 1.5px 0 #ffffff, -1.5px 1.5px 0 #ffffff, 1.5px -1.5px 0 #ffffff, -1.5px -1.5px 0 #ffffff;
+    }
+    .mp-unit { font-size: 12px; font-weight: 700; color: rgba(0, 0, 0, 0.5); margin: 0 10px 0 5px; }
+    .mp-unit--last { margin-right: 0; }
+    /* 只读摘要框：占卡与 CTA 之间的剩余空间，框内滚动（滚动条隐藏）、大小不随内容变 */
+    .mp-box { flex: 1 1 0; min-height: 88px; margin-top: 20px; overflow-y: auto; scrollbar-width: none; }
+    .mp-box::-webkit-scrollbar { display: none; }
+    .mp-label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.26em; color: #9a9a9a; }
+    .mp-muted { color: #b0b0b0; }
+    .mp-sep { border-bottom: 1px solid rgba(27, 27, 27, 0.07); }
+    .dark .mp-sep { border-color: rgba(255, 255, 255, 0.09); }
+    .mp-dim { opacity: 0.55; }
+    .mp-editlink { display: flex; flex-direction: column; align-items: center; background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #1b1b1b; }
+    .dark .mp-editlink { color: #eceae6; }
+    .mp-editlink svg { display: block; margin-top: 1px; }
+    .mp-editlink:active { transform: scale(0.95); }
+    .mp-lockline { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; color: #b0b0b0; }
+    /* 只读增强开关（非表单控件，纯显示；编辑走偏好卡里的真开关） */
+    .mp-toggle { flex-shrink: 0; width: 40px; height: 22px; border-radius: 9999px; background: #d6d4d3; position: relative; display: inline-block; transition: background-color 0.2s ease; }
+    .mp-toggle::after { content: ''; position: absolute; top: 2.5px; left: 2.5px; width: 17px; height: 17px; border-radius: 9999px; background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.2s ease; }
+    .mp-toggle.on { background: #CCFF00; }
+    .mp-toggle.on::after { transform: translateX(18px); }
+    .dark .mp-toggle { background: #343230; }
+    .dark .mp-toggle.on { background: #CCFF00; }
+    /* 补充信息只读文本框（软填充，同站内输入风格） */
+    .mp-extra { background: #f3f3f3; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.6; color: #1b1b1b; white-space: pre-wrap; word-break: break-word; }
+    .mp-extra--empty { color: #b0b0b0; }
+    .dark .mp-extra { background: #23211f; color: #eceae6; }
+    .dark .mp-extra--empty { color: #8c8a85; }
+    /* 贴底主按钮：圆角 12 + 荧光绿投影；searching 态换粉描边 */
+    .mp-cta {
+      display: block;
+      flex-shrink: 0;
+      width: 100%;
+      margin-top: 14px;
+      background: #CCFF00;
+      color: #000000;
+      border: none;
+      border-radius: 12px;
+      padding: 17px 20px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(204, 255, 0, 0.35);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+    .mp-cta:hover { filter: brightness(0.96); }
+    .mp-cta:active { transform: scale(0.98); }
+    .mp-cta:disabled { opacity: 0.5; cursor: not-allowed; }
+    .mp-cta--leave { background: transparent; color: #FF2EC4; border: 1.5px solid #FF2EC4; padding: 16px 20px; box-shadow: none; }
+    .mp-cta--leave:hover { filter: none; background: rgba(255, 46, 196, 0.06); }
 
 
     

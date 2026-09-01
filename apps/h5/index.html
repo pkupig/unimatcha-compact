@@ -877,11 +877,14 @@
          滚动容器是下面的兄弟节点，这里的 sticky 本来也不吸顶。 -->
     <header class="w-full flex flex-col items-center pt-3 pb-4 border-b border-stone-100 bg-white z-10">
       <div class="w-10 h-1 bg-stone-200 mb-4"></div>
-      <div class="flex justify-between items-center w-full px-6">
-        <button class="text-stone-400 hover:text-black transition-colors active:scale-95" onclick="hideOverlay('filter-overlay')">
+      <!-- 标题绝对定位取真居中：justify-between 下左右两键宽度不同（图标 vs 保存胶囊），
+           标题夹在中间会偏左。文案「编辑」由 openFilterSheet 按语言设置（data-no-i18n）。 -->
+      <div class="relative flex justify-between items-center w-full px-6">
+        <!-- 必须走 closeFilterSheet（不能直接 hideOverlay）：关卡要同步主页摘要框的增强显示 -->
+        <button class="text-stone-400 hover:text-black transition-colors active:scale-95" onclick="closeFilterSheet()">
           <span class="material-symbols-outlined" data-icon="close">close</span>
         </button>
-        <h1 class="font-headline font-bold tracking-tighter text-black">Preferences</h1>
+        <h1 id="filter-sheet-title" class="absolute left-1/2 -translate-x-1/2 font-headline font-bold tracking-tighter text-black" data-no-i18n>Edit</h1>
         <button id="filter-save-btn" class="bg-neon text-black rounded-full px-5 py-2 font-headline text-xs font-bold tracking-widest active:scale-95 transition-all disabled:opacity-50" onclick="saveFilterPrefs()">Save</button>
       </div>
     </header>
@@ -980,6 +983,58 @@
           </div>
         </section>
       </div><!-- /#filter-shared-section -->
+
+      <!-- 匹配设置（原 match-settings-overlay 左抽屉的内容并入本卡，控件样式原样保留；
+           id 不变——match.js 的 updateEnhanceUI/toggleEnhance/updateFriendCells/
+           loadPrefsForMode 按这些 id 取值。恋人/朋友区显隐由 loadPrefsForMode 按模式切。 -->
+      <div id="filter-settings-section" class="space-y-7">
+        <section class="space-y-4">
+          <div class="flex items-center">
+            <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Enhanced Mode</h2>
+          </div>
+          <p class="text-[11px] text-stone-400 -mt-1">Applies the next time you join the pool</p>
+          <!-- 恋人增强：固定消耗 3 格能量（仅恋人模式显示） -->
+          <div id="romantic-enhance-item" class="match-setting-item border-b border-stone-100 pb-4">
+            <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
+              <span class="font-body text-sm text-on-surface leading-relaxed">Romantic Enhance<span class="block text-xs text-stone-500 mt-0.5">3 cells · refunded if no match</span></span>
+              <input id="romantic-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('romantic')" />
+            </label>
+          </div>
+          <!-- 朋友增强：1–5 格保底滑块（仅朋友模式显示） -->
+          <div id="friend-enhance-item" class="match-setting-item pt-1">
+            <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
+              <span class="font-body text-sm text-on-surface leading-relaxed">Friend Enhance<span class="block text-xs text-stone-500 mt-0.5">1 cell per guaranteed match · refunded if short</span></span>
+              <input id="friend-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('friend')" />
+            </label>
+            <div id="friend-cells-wrap" class="mt-5 hidden">
+              <div class="flex justify-between items-end mb-2">
+                <label class="font-label text-[10px] tracking-widest text-outline">GUARANTEE: <span id="friend-cells-display" class="font-headline font-bold text-black">1</span> friends</label>
+                <span class="font-label text-[10px] tracking-widest text-outline">Cost: <span id="friend-cells-cost" class="font-headline font-bold text-black">1</span> cells</span>
+              </div>
+              <input id="friend-cells-slider" class="ink-range w-full" type="range" min="1" max="5" value="1" oninput="updateFriendCells(this.value)" />
+              <div class="flex justify-between mt-2 text-[10px] font-medium text-stone-400">
+                <span>1</span>
+                <span>5</span>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="space-y-4">
+          <div class="flex items-center">
+            <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Extra Info</h2>
+          </div>
+          <textarea id="match-extra-info" maxlength="500" rows="4" placeholder="Anything else to help matching..." class="w-full bg-white border border-black rounded-[10px] px-4 py-3 text-sm font-medium text-black placeholder:text-stone-400 focus:outline-none focus:border-black resize-none"></textarea>
+        </section>
+        <section class="pb-2">
+          <button class="group w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]" onclick="retakeQuestionnaire()">
+            <div class="flex items-center">
+              <span class="material-symbols-outlined text-black">tune</span>
+              <span class="font-headline font-bold text-sm tracking-tight text-black">Retake Questionnaire</span>
+            </div>
+            <span class="material-symbols-outlined text-black">chevron_right</span>
+          </button>
+        </section>
+      </div><!-- /#filter-settings-section -->
     </div>
   </div>
 </div>
@@ -1646,75 +1701,6 @@
       </div>
     </section>
   </main>
-</div>
-
-<!-- Match Settings Overlay -->
-<div id="match-settings-overlay" class="overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] items-start justify-start" onclick="if(event.target===this)hideOverlay('match-settings-overlay')">
-  <div class="slide-left relative z-50 h-screen w-[86%] max-w-sm bg-white overflow-hidden shadow-2xl flex flex-col rounded-r-2xl">
-    <header class="sticky top-0 w-full z-10 bg-white border-b border-stone-100">
-      <div class="flex items-center gap-6 px-6 h-16 w-full">
-        <button class="active:scale-95 duration-200 hover:opacity-70 transition-opacity flex items-center" onclick="hideOverlay('match-settings-overlay')">
-          <span class="material-symbols-outlined text-black !text-2xl" data-icon="arrow_back">arrow_back</span>
-        </button>
-        <h1 class="font-headline text-xl font-bold tracking-tight text-black">Match Settings</h1>
-      </div>
-    </header>
-    <div class="flex-1 overflow-y-auto px-8 py-8 space-y-10">
-      <!-- (a) Retake Questionnaire -->
-      <section>
-        <button class="group w-full flex items-center justify-between py-4 px-4 border border-black rounded-[10px] hover:bg-neon transition-colors active:scale-[0.98]" onclick="retakeQuestionnaire()">
-          <div class="flex items-center">
-            <span class="material-symbols-outlined text-black">tune</span>
-            <span class="font-headline font-bold text-sm tracking-tight text-black">Retake Questionnaire</span>
-          </div>
-          <span class="material-symbols-outlined text-black">chevron_right</span>
-        </button>
-      </section>
-      <!-- (c) Extra info -->
-      <!-- (Match Basis 段已按用户要求移除；后端 matchBasis 保持默认 both) -->
-      <section class="space-y-4">
-        <div class="flex items-center">
-          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Extra Info</h2>
-        </div>
-        <textarea id="match-extra-info" maxlength="500" rows="4" placeholder="Anything else to help matching..." class="w-full bg-white border border-black rounded-[10px] px-4 py-3 text-sm font-medium text-black placeholder:text-stone-400 focus:outline-none focus:border-black resize-none"></textarea>
-      </section>
-      <!-- (d) 增强模式（从 Modify Preferences 移入；恋人/朋友分别放，§6.4 J 规则） -->
-      <section class="space-y-4">
-        <div class="flex items-center">
-          <h2 class="font-headline font-extrabold text-xs tracking-[0.2em] text-black">Enhanced Mode</h2>
-        </div>
-        <p class="text-[11px] text-stone-400 -mt-1">Applies the next time you join the pool</p>
-        <!-- 恋人增强：固定消耗 3 格能量（仅恋爱模式 match setting 显示，§本轮反馈3） -->
-        <div id="romantic-enhance-item" class="match-setting-item border-b border-stone-100 pb-4">
-          <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
-            <span class="font-body text-sm text-on-surface leading-relaxed">Romantic Enhance<span class="block text-xs text-stone-500 mt-0.5">3 cells · refunded if no match</span></span>
-            <input id="romantic-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('romantic')" />
-          </label>
-        </div>
-        <!-- 朋友增强：1–5 格保底滑块（仅朋友模式 match setting 显示，§本轮反馈3） -->
-        <div id="friend-enhance-item" class="match-setting-item pt-1">
-          <label class="flex items-start justify-between gap-4 py-2 cursor-pointer select-none">
-            <span class="font-body text-sm text-on-surface leading-relaxed">Friend Enhance<span class="block text-xs text-stone-500 mt-0.5">1 cell per guaranteed match · refunded if short</span></span>
-            <input id="friend-enhance-toggle" type="checkbox" class="ink-switch shrink-0 mt-1" onchange="toggleEnhance('friend')" />
-          </label>
-          <div id="friend-cells-wrap" class="mt-5 hidden">
-            <div class="flex justify-between items-end mb-2">
-              <label class="font-label text-[10px] tracking-widest text-outline">GUARANTEE: <span id="friend-cells-display" class="font-headline font-bold text-black">1</span> friends</label>
-              <span class="font-label text-[10px] tracking-widest text-outline">Cost: <span id="friend-cells-cost" class="font-headline font-bold text-black">1</span> cells</span>
-            </div>
-            <input id="friend-cells-slider" class="ink-range w-full" type="range" min="1" max="5" value="1" oninput="updateFriendCells(this.value)" />
-            <div class="flex justify-between mt-2 text-[10px] font-medium text-stone-400">
-              <span>1</span>
-              <span>5</span>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section>
-        <button id="ms-save-btn" class="w-full bg-neon text-black py-4 font-headline font-bold text-sm tracking-widest rounded-full active:scale-[0.98] transition-all disabled:opacity-50" onclick="saveMatchSettings()">Save</button>
-      </section>
-    </div>
-  </div>
 </div>
 
 <!-- Milestone Overlay -->

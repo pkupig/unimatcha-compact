@@ -155,11 +155,12 @@ async function loadQuestionnaire(mode = 'romantic') {
 }
 window.loadQuestionnaire = loadQuestionnaire;
 
-// Re-enter the current-mode questionnaire from the match-settings sheet.
+// Re-enter the current-mode questionnaire from the preferences sheet
+// (match settings merged into #filter-overlay in the match-page redesign).
 // loadQuestionnaire() restores any previously-saved/in-progress answers (A19),
 // so this resumes rather than wiping progress.
 function retakeQuestionnaire(mode) {
-  window.hideOverlay('match-settings-overlay');
+  window.hideOverlay('filter-overlay');
   window.showPage('page-questionnaire');
   // No explicit mode → retake the questionnaire for the match mode whose
   // settings sheet is open (§6.4 sets S.activeMatchMode per mode).
