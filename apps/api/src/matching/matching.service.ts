@@ -288,6 +288,9 @@ export class MatchingService {
           status: { in: FRIEND_ACTIVE as any },
           OR: [{ userAId: userId }, { userBId: userId }],
           dissolvedAt: null,
+          // 只展示匹配轮次产生的候选/朋友：扫码/搜索直加的好友（matchJobId=null，
+          // 见 schema 注释与 connectByUserId）只属于聊天列表，不该出现在朋友匹配卡片里
+          matchJobId: { not: null },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -1400,11 +1403,16 @@ export class MatchingService {
           status: confirmedStatusOf('friend') as any,
           userAConfirmed: true, userBConfirmed: true, confirmedAt: now,
           dissolvedAt: null, dissolvedBy: null, dissolveReason: null,
+          // 复活的旧行（曾是每周匹配对）也要转为「直加好友」身份：
+          // matchJobId 置空让它退出朋友匹配卡片（getFullMatchStatus 按此过滤）
+          matchJobId: null, score: null, metadata: { source },
         },
       });
       for (const uid of [aId, bId]) await this.ensureModeState(tx, uid, 'friend');
+      // 加好友不打断匹配：正在 searching 的人保持在本周匹配池里
+      // （原先无条件刷成 relationship，扫个码就被静默踢出池）
       await tx.userModeState.updateMany({
-        where: { userId: { in: [aId, bId] }, mode: 'friend' },
+        where: { userId: { in: [aId, bId] }, mode: 'friend', matchState: { notIn: ['searching'] } },
         data: { matchState: 'relationship' },
       });
       await tx.notification.create({
