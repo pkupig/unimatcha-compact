@@ -1387,3 +1387,110 @@ function renderChatStreak(session) {
   el.classList.toggle('hidden', !html);
 }
 window.renderChatStreak = renderChatStreak;
+
+// ═══════════════════════════════════════════════════════════
+// 转发选择器：把一条消息 / 一个广场帖子转发到某个会话
+// ═══════════════════════════════════════════════════════════
+// 两种载荷：
+//   { messageId } —— 转发聊天消息：复制其文本/图片到目标会话
+//   { postId }    —— 转发广场帖子：只传 postId，**快照由服务端取**
+//                    （客户端自带标题/作者就能伪造出任意内容的「帖子卡」）
+
+function openForwardPicker(payload) {
+  S.forwardPayload = payload || null;
+  if (!S.forwardPayload) return;
+  const overlay = document.getElementById('forward-overlay');
+  const list = document.getElementById('forward-list');
+  if (!overlay || !list) return;
+  const zh = zhNow();
+  document.getElementById('forward-title').textContent = zh ? '转发到' : 'FORWARD TO';
+
+  const sessions = (S.sessions || []).filter(function (s) {
+    // 只读历史会话不能发消息，别让用户选了才失败
+    const st = String(s.status || '').toUpperCase();
+    return !['DISSOLVED', 'EXPIRED', 'REJECTED'].includes(st);
+  });
+
+  if (!sessions.length) {
+    list.innerHTML = '<div class="px-6 py-14 text-center">'
+      + '<p class="text-sm text-on-surface-variant" data-no-i18n>'
+      + (zh ? '还没有可转发的会话' : 'No conversations to forward to') + '</p></div>';
+  } else {
+    list.innerHTML = sessions.map(function (s) {
+      const p = s.partner || {};
+      const name = p.note || p.nickname || p.name || 'Partner';
+      const av = p.avatarUrl
+        ? '<img src="' + window.safeUrl(p.avatarUrl) + '" class="w-9 h-9 rounded-full object-cover shrink-0" alt="">'
+        : '<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center shrink-0">'
+          + '<span class="material-symbols-outlined text-outline" style="font-size:18px">person</span></div>';
+      const badge = window.badgeFor
+        ? window.badgeFor({ verificationStatus: p.verificationStatus, verifiedSchool: p.verifiedSchool })
+        : '';
+      return '<button type="button" data-fwd-match="' + attrEscape(s.matchId) + '"'
+        + ' class="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-surface-container-low transition-colors">'
+        + av
+        + '<span class="flex-1 min-w-0 flex items-center gap-1.5">'
+        + '<span class="font-headline font-bold text-sm truncate" data-no-i18n>' + window.escapeHtml(name) + '</span>'
+        + badge + '</span>'
+        + '<span class="material-symbols-outlined text-outline shrink-0" style="font-size:18px">send</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  bindForwardList();
+  window.openOverlay('forward-overlay');
+  if (window.bindSheetDragClose) window.bindSheetDragClose('forward-overlay', closeForwardPicker);
+}
+window.openForwardPicker = openForwardPicker;
+
+function closeForwardPicker() {
+  S.forwardPayload = null;
+  window.closeOverlay('forward-overlay');
+}
+window.closeForwardPicker = closeForwardPicker;
+
+// 委托绑定（列表整段重写，逐项绑会失效），只绑一次
+function bindForwardList() {
+  const list = document.getElementById('forward-list');
+  if (!list || list.dataset.fwdBound) return;
+  list.dataset.fwdBound = '1';
+  list.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-fwd-match]');
+    if (btn) doForward(btn.dataset.fwdMatch, btn);
+  });
+}
+
+async function doForward(targetMatchId, btnEl) {
+  const payload = S.forwardPayload;
+  if (!payload || !targetMatchId) return;
+  const zh = zhNow();
+  if (btnEl) btnEl.disabled = true; // 防连点重复转发
+  try {
+    let body = null;
+    if (payload.postId) {
+      body = { sharePostId: payload.postId };
+    } else if (payload.messageId) {
+      const m = (S.chatMessages || []).find(function (v) { return v.id === payload.messageId; });
+      if (!m) throw new Error(zh ? '消息不存在' : 'Message not found');
+      if (m.kind === 'post_share' && m.metadata && m.metadata.postId) {
+        // 转发一张帖子卡 → 仍按帖子转发，让服务端重取快照（而不是复制旧快照）
+        body = { sharePostId: m.metadata.postId };
+      } else {
+        body = { content: m.content || undefined, imageUrl: m.imageUrl || undefined };
+      }
+      if (!body.content && !body.imageUrl && !body.sharePostId) {
+        throw new Error(zh ? '这条消息无法转发' : 'This message cannot be forwarded');
+      }
+    }
+    await window.api('/chat/' + targetMatchId + '/messages', 'POST', body);
+    closeForwardPicker();
+    window.toast(zh ? '已转发' : 'Forwarded');
+    // 转发到的正是当前打开的会话 → 立刻拉一次，别等轮询
+    if (S.chatMatchId === targetMatchId) window.pollChatMessages && window.pollChatMessages();
+    if (window.loadSessions) window.loadSessions();
+  } catch (e) {
+    window.toast((e && e.message) || (zh ? '转发失败' : 'Forward failed'));
+  } finally {
+    if (btnEl) btnEl.disabled = false;
+  }
+}

@@ -92,6 +92,9 @@ const ZH = {
   Quote: '引用', Forward: '转发', Copy: '复制', Like: '点赞', Unlike: '取消赞',
   'Copied to clipboard': '已复制到剪贴板', 'Copy failed': '复制失败',
   'Original message deleted': '原消息已删除', 'Square post': '广场帖子',
+  // 转发选择器
+  'Forward to chat': '转发到聊天', 'No conversations to forward to': '还没有可转发的会话',
+  Forwarded: '已转发', 'Forward failed': '转发失败',
   'Nothing pinned yet': '还没有置顶内容',
   'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',

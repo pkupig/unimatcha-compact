@@ -1398,6 +1398,7 @@ function openPdPostMenu(ev) {
   const menu = document.createElement('div');
   menu.className = 'pd-cm-menu fixed z-[130] min-w-[148px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
   menu.innerHTML =
+    row('forward', zh ? '转发到聊天' : 'Forward to chat', 'data-forward') +
     row('ios_share', zh ? '分享' : 'Share', 'data-share') +
     row('flag', zh ? '举报帖子' : 'Report post', 'data-report');
   const btn = document.getElementById('pd-report-btn');
@@ -1406,6 +1407,11 @@ function openPdPostMenu(ev) {
   menu.style.top = (r.bottom + 6) + 'px';
   document.body.appendChild(menu);
   const close = () => menu.remove();
+  menu.querySelector('[data-forward]').onclick = () => {
+    close();
+    // 只传 postId：快照由服务端取，客户端自带内容就能伪造任意「帖子卡」
+    window.openForwardPicker && window.openForwardPicker({ postId: S.currentPostId });
+  };
   menu.querySelector('[data-share]').onclick = () => { close(); sharePdPost(); };
   menu.querySelector('[data-report]').onclick = () => { close(); reportPdPost(); };
   setTimeout(() => document.addEventListener('click', function once() {
