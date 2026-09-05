@@ -194,6 +194,11 @@ async function ensureQuestionnaireThenMatch(mode) {
   }
   // 视图可能在等待期间被切走：仅当仍停留在该匹配模式时才继续渲染
   if (S.homeView !== mode) return;
+  if (completed) {
+    // 重填完成后横幅必须撤掉：横幅是 prepend 进面板的，而计划页同态守卫命中时
+    // loadMatchTab 不重建容器 DOM——没有这行，横幅会一直留到下次整页刷新。
+    matchContentEl(mode)?.querySelector('.q-refill-banner')?.remove();
+  }
   if (!completed) {
     // 问卷墙只拦「还没进任何状态」的用户。已在池中/已匹配/已在关系中的人必须能进
     // 匹配页——否则改版激活新问卷的瞬间（所有人完成度归零），在池的人连「离开匹配池」
