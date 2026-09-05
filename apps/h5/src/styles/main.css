@@ -1165,9 +1165,11 @@
     .mp-card--alt { border-radius: 15px 13px 15px 12px / 12px 15px 13px 15px; }
     .mp-card-label { margin: 0; font-size: 10px; font-weight: 800; letter-spacing: 0.3em; color: rgba(0, 0, 0, 0.5); }
     /* 周历行：今天=白底圆片；公布日=白「公布日」小标 + 手绘白圈（绝对定位在格内） */
+    /* 首末列与「距下轮公布」标签左右齐线：格子改内容宽 + space-between；
+       今日白片用左右 padding 撑出呼吸感、负 margin 抵消，不挪动列分布 */
     .mp-week { margin-top: 8px; display: flex; justify-content: space-between; }
-    .mp-day { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 44px; padding: 7px 0 6px; }
-    .mp-day--today { background: #ffffff; border-radius: 11px; }
+    .mp-day { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0 6px; }
+    .mp-day--today { background: #ffffff; border-radius: 11px; padding-left: 10px; padding-right: 10px; margin: 0 -10px; }
     .mp-day-name { font-size: 11px; font-weight: 700; color: rgba(0, 0, 0, 0.45); }
     .mp-day--today .mp-day-name { color: rgba(0, 0, 0, 0.55); }
     .mp-day-num { font-size: 16px; font-weight: 800; color: #1b1b1b; font-variant-numeric: tabular-nums; }
@@ -1175,7 +1177,9 @@
     .mp-day-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #ffffff; color: #000000; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; padding: 2px 6px 2.5px; border-radius: 5px; white-space: nowrap; z-index: 1; }
     .mp-day-ring { position: absolute; top: 21px; left: 50%; transform: translateX(-50%); }
     /* 单行大倒计时：黑字 + 8 向白描边（在荧光绿底上）；窄屏按视口收字号防溢出 */
-    .mp-cd { margin-top: 14px; display: flex; align-items: baseline; }
+    /* 与周历同宽：四组「数字+单位」两端对齐，左缘=标签左缘，右缘=周历右缘 */
+    .mp-cd { margin-top: 14px; display: flex; align-items: baseline; justify-content: space-between; }
+    .mp-cd-g { display: flex; align-items: baseline; }
     .mp-num {
       display: inline-block;
       font-size: min(48px, 12vw);
@@ -1187,8 +1191,7 @@
       text-shadow: 2px 0 0 #ffffff, -2px 0 0 #ffffff, 0 2px 0 #ffffff, 0 -2px 0 #ffffff,
         1.5px 1.5px 0 #ffffff, -1.5px 1.5px 0 #ffffff, 1.5px -1.5px 0 #ffffff, -1.5px -1.5px 0 #ffffff;
     }
-    .mp-unit { font-size: 12px; font-weight: 700; color: rgba(0, 0, 0, 0.5); margin: 0 10px 0 5px; }
-    .mp-unit--last { margin-right: 0; }
+    .mp-unit { font-size: 12px; font-weight: 700; color: rgba(0, 0, 0, 0.5); margin: 0 0 0 5px; }
     /* 只读摘要框：占卡与 CTA 之间的剩余空间，大小不随内容变。
        「匹配偏好」标题行与「编辑/锁定」固定（.mp-box-head），只有下方内容区滚动
        （.mp-box-scroll，滚动条隐藏）——用户反馈：滚的是偏好里的内容，标题和编辑不动 */

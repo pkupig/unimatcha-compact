@@ -60,7 +60,7 @@ const ZH = {
   // ── 匹配页计划页（新版：标题/副文案；框内动态值走 zh 三元 + data-no-i18n）──
   'Matching in Progress': '匹配进行中',
   "Join this week's pool — the algorithm will watch the crowd for someone on your wavelength.": '加入本周匹配池，让算法在人海里为你留意那个同频的人。',
-  "Join this week's pool to meet up to 5 friends on your wavelength.": '加入本周匹配池，最多认识 5 位同频的新朋友。',
+  "Join this week's pool — the algorithm will scan the crowd for 5 friends on your wavelength.": '加入本周匹配池，让算法在人海里为你留意 5 位同频的新朋友。',
   'Names are revealed Friday 17:00 — someone on your wavelength is walking toward you.': '名字会在周五 17:00 准时揭晓——同频的人，正穿过人海向你走来。',
   'Names are revealed Friday 17:00 — friends on your wavelength are on the way.': '名单会在周五 17:00 准时揭晓——同频的朋友们，正穿过人海向你走来。',
   'No Match This Week': '本周暂无匹配', 'No Friends This Round': '本轮暂无朋友候选',

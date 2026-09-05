@@ -418,7 +418,7 @@ function renderCountdownCard(mode, alt) {
     <p class="mp-card-label" data-no-i18n>${zh ? '距下轮公布' : 'NEXT REVEAL IN'}</p>
     ${renderWeekRow(mode)}
     <div class="mp-cd" data-mode="${mode}" data-day-stamp="${new Date().getDate()}">
-      ${keys.map((k, i) => `<span class="mp-num" data-cd="${k}" data-no-i18n>00</span><span class="mp-unit${i === 3 ? ' mp-unit--last' : ''}" data-no-i18n>${units[i]}</span>`).join('')}
+      ${keys.map((k, i) => `<span class="mp-cd-g"><span class="mp-num" data-cd="${k}" data-no-i18n>00</span><span class="mp-unit" data-no-i18n>${units[i]}</span></span>`).join('')}
     </div>
   </div>`;
 }
@@ -554,7 +554,7 @@ function renderPlanState(container, mode, searching) {
       ? 'Names are revealed Friday 17:00 — friends on your wavelength are on the way.'
       : 'Names are revealed Friday 17:00 — someone on your wavelength is walking toward you.')
     : (friend
-      ? "Join this week's pool to meet up to 5 friends on your wavelength."
+      ? "Join this week's pool — the algorithm will scan the crowd for 5 friends on your wavelength."
       : "Join this week's pool — the algorithm will watch the crowd for someone on your wavelength.");
   const cta = searching
     ? `<button class="mp-cta mp-cta--leave" onclick="stopMatch()">Leave Pool</button>`
