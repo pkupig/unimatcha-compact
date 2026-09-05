@@ -87,6 +87,27 @@ export class SquareController {
     });
   }
 
+  @Get('explore')
+  @ApiOperation({
+    summary: '探索：浏览其它学校的校园墙。不传 school 时只回学校列表（由内容驱动）。'
+      + '出参带 canInteract：外校墙仅已认证用户可互动，未认证只读。',
+  })
+  @ApiQuery({ name: 'school', required: false, description: '要浏览的学校名；不传则回学校列表' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  async listExplore(
+    @CurrentUser('id') userId: string,
+    @Query('school') school?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.squareService.listExplore(userId, {
+      school,
+      page: page ? Number(page) : undefined,
+      limit: limit != null ? Math.min(Math.max(Number(limit), 1), 50) : undefined,
+    });
+  }
+
   @Get('campus-wall')
   @ApiOperation({ summary: '校园墙流（同校硬过滤），分页' })
   @ApiQuery({ name: 'page', required: false, example: 1 })

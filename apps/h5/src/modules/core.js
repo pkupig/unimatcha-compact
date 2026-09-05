@@ -169,6 +169,10 @@ function cleanupUserState() {
   S.geo = null;
   S.geoError = null;
   S.nearbyMode = null;
+  // 探索：选中的学校与列表也随登出清（下一个账号不该继承上一个人在逛哪所学校）
+  S.exploreSchool = null;
+  S.exploreSchools = null;
+  S.exploreVerified = null;
   // 本轮增强标记归零 + 在途偏好响应作废（复查：慢响应可把上一账号的偏好回填进下一账号）
   window.resetMatchPlanState?.();
   // match polling context (ids/counters reset by stopMatchPolling above,

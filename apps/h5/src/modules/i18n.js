@@ -85,6 +85,9 @@ const ZH = {
   'Allow location in your browser settings, or add your city to see posts around you': '请在浏览器设置里允许定位，或在资料里填写城市，来看看附近的动态',
   'Allow location to see posts around you, or add your city in your profile': '开启定位即可看到附近的动态，也可以在资料里填写城市',
   'Try again': '重试', 'Add city instead': '改为填写城市',
+  // 探索：选校与只读态
+  'No other campus walls yet': '还没有其它学校的墙',
+  'Get verified to interact': '认证学生身份后可互动',
   'Nothing pinned yet': '还没有置顶内容',
   'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',

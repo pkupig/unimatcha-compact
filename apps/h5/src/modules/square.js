@@ -457,6 +457,10 @@ async function loadSquareTab2(tabArg) {
     // 搜索已独立成页（loadSquareSearch）：这里永远是未过滤信息流
     // 置顶页不分页（后台人工维护的少量信息，翻页反而看不全）
     let url = tab === 'pinned' ? endpoint : `${endpoint}?page=1&limit=20`;
+    if (tab === 'explore') {
+      // 未选学校时后端只回学校列表（needSchoolPick），选过之后才带 school 拉墙
+      if (S.exploreSchool) url += `&school=${encodeURIComponent(S.exploreSchool)}`;
+    }
     if (tab === 'nearby') {
       // 坐标随请求带上，服务端算完即弃；拿不到就让后端走同城降级
       const fix = await getGeoFix();
@@ -480,6 +484,18 @@ async function loadSquareTab2(tabArg) {
       if (tab === S.squareTab) S.squarePosts = [];
       renderSquareNeedSchool(tab);
       return;
+    }
+    // 探索：还没选学校 → 出选校列表（由后端按「墙上真有帖子的学校」聚合）
+    if (tab === 'explore' && env.needSchoolPick) {
+      S.exploreSchools = env.schools || [];
+      S.squarePostsByTab[tab] = [];
+      if (tab === S.squareTab) S.squarePosts = [];
+      renderExplorePicker();
+      return;
+    }
+    if (tab === 'explore') {
+      S.exploreSchools = env.schools || S.exploreSchools || [];
+      S.exploreVerified = !!env.verified;
     }
     // 附近：完全无位置信息（既没定位也没填城市）→ 引导，而不是空白
     if (tab === 'nearby' && env.needCity) {
@@ -510,6 +526,81 @@ window.loadSquareTab2 = loadSquareTab2;
 window.loadSquarePosts = loadSquareTab2;
 
 // Campus-wall gate: shown when the user has no school on their profile.
+// 探索：选学校。列表由后端按「墙上真有帖子的学校」聚合，永远非空、不列空学校。
+function renderExplorePicker() {
+  const container = feedEl('explore');
+  if (!container) return;
+  const zh = window.getLang?.() === 'zh';
+  const list = S.exploreSchools || [];
+  if (!list.length) {
+    container.innerHTML = `<div class="col-span-2 text-center py-24">
+      ${window.flatEmptyIcon('travel_explore')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface" data-no-i18n>${zh ? '还没有其它学校的墙' : 'No other campus walls yet'}</p>
+      <p class="text-sm text-on-surface-variant mt-2" data-no-i18n>${zh ? '等更多学校的同学发帖后，这里就能逛了' : 'Once students from other schools start posting, you can browse here'}</p>
+    </div>`;
+    layoutSquareMasonry();
+    return;
+  }
+  const rows = list.map((s) => {
+    const label = window.metaLabel ? window.metaLabel(s.school) : s.school;
+    const mine = s.isMine ? `<span class="text-[9px] font-bold tracking-widest text-black bg-neon rounded px-1.5 py-0.5 shrink-0" data-no-i18n>${zh ? '本校' : 'MINE'}</span>` : '';
+    // 校名走 data 属性 + 事件委托：escapeHtml 不转义引号，直接拼进 onclick
+    // 字符串时校名里一个撇号就能破掉结构（本仓库 8/30 记过这个坑）
+    const attr = window.escapeHtml(String(s.school)).replace(/"/g, '&quot;');
+    return `<button type="button" data-pick-school="${attr}" class="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-surface-container-low transition-colors border-b border-outline-variant/15">
+      ${window.schoolBadgeHtml ? window.schoolBadgeHtml(s.school, { size: 'md' }) : ''}
+      <span class="flex-1 min-w-0 font-headline font-bold text-sm truncate" data-no-i18n>${window.escapeHtml(label)}</span>
+      ${mine}
+      <span class="text-[11px] text-on-surface-variant shrink-0" data-no-i18n>${s.postCount}</span>
+      <span class="material-symbols-outlined text-outline shrink-0" style="font-size:18px">chevron_right</span>
+    </button>`;
+  }).join('');
+  container.innerHTML = `<div class="col-span-2">
+    <p class="px-4 pt-4 pb-2 text-[10px] font-bold tracking-[0.2em] text-outline" data-no-i18n>${zh ? '选择一所学校' : 'PICK A SCHOOL'}</p>
+    ${rows}
+  </div>`;
+  bindExplorePicker();
+  layoutSquareMasonry();
+}
+
+// 选校委托：容器整段 innerHTML 重写，逐按钮绑事件会丢，必须委托且只绑一次
+function bindExplorePicker() {
+  const container = feedEl('explore');
+  if (!container || container.dataset.pickBound) return;
+  container.dataset.pickBound = '1';
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-pick-school]');
+    if (btn) pickExploreSchool(btn.dataset.pickSchool);
+  });
+}
+
+function pickExploreSchool(school) {
+  S.exploreSchool = school;
+  window.loadSquareTab2('explore');
+}
+window.pickExploreSchool = pickExploreSchool;
+
+/** 探索页顶部的「当前学校 + 换一所」条 */
+function exploreHeaderHtml() {
+  if (!S.exploreSchool) return '';
+  const zh = window.getLang?.() === 'zh';
+  const label = window.metaLabel ? window.metaLabel(S.exploreSchool) : S.exploreSchool;
+  const readonly = S.exploreVerified === false
+    ? `<span class="text-[10px] text-on-surface-variant" data-no-i18n>${zh ? '· 只读' : '· read-only'}</span>` : '';
+  return `<div class="col-span-2 flex items-center gap-2 px-3 py-2.5 mb-1">
+    ${window.schoolBadgeHtml ? window.schoolBadgeHtml(S.exploreSchool, { size: 'sm' }) : ''}
+    <span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(label)}</span>
+    ${readonly}
+    <button type="button" class="ml-auto shrink-0 text-[10px] font-bold tracking-widest text-black border-b border-black pb-0.5" onclick="backToExplorePicker()" data-no-i18n>${zh ? '换一所' : 'CHANGE'}</button>
+  </div>`;
+}
+
+function backToExplorePicker() {
+  S.exploreSchool = null;
+  window.loadSquareTab2('explore');
+}
+window.backToExplorePicker = backToExplorePicker;
+
 // 附近：既无定位授权、资料里也没城市 —— 给两条出路而不是空白页
 function renderNearbyNeedLocation() {
   const container = feedEl('nearby');
@@ -589,7 +680,8 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 奇数小卡或被大卡打断都不再留视觉空位。
   // 广告插入规则（ADMIN-REDESIGN §6）：首屏第 3 个卡位后插 1 个，此后每 8 个小卡
   // 插 1 个；按拉取顺序轮换，本次渲染内不重复，用完即止。校园墙调用方传空 ads。
-  let html = '';
+  // 探索页顶部固定一条「当前学校 + 换一所」，让用户随时知道自己在逛谁的墙
+  let html = tab === 'explore' ? exploreHeaderHtml() : '';
   let adIdx = 0;             // 下一个待插广告下标
   let cardCount = 0;         // 总卡计数（首个广告在第 3 卡之后）
   let smallSinceAd = 0;      // 上个广告以来累计的小卡数（每满 8 再插）
@@ -1013,6 +1105,14 @@ window.buyEventTicket = buyEventTicket;
 
 function postLikeButton(p) {
   const liked = !!p.myLiked;
+  // canInteract 由后端在探索作用域下发：外校墙未认证 → 只读，按钮置灰给提示，
+  // 而不是让用户点下去吃一个 403
+  if (p.canInteract === false) {
+    return `<button class="flex items-center gap-1 shrink-0 opacity-40" onclick="event.stopPropagation();window.toast(window.getLang?.()==='zh'?'认证学生身份后可互动':'Get verified to interact')">
+      <span class="material-symbols-outlined text-sm">favorite</span>
+      <span class="text-xs font-bold">${p.likeCount || 0}</span>
+    </button>`;
+  }
   return `<button class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation();likePost('${p.id}', this)">
     <span data-like-icon class="material-symbols-outlined text-sm transition-colors ${liked ? 'text-neon-pink' : ''}" style="font-variation-settings:'FILL' ${liked ? 1 : 0};">favorite</span>
     <span class="text-xs font-bold" data-like-count>${p.likeCount || 0}</span>

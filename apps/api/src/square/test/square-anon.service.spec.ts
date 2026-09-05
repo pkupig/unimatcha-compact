@@ -190,4 +190,52 @@ describe('SquareService · 匿名（逐条评论）', () => {
       expect(Number.isNaN(km)).toBe(true);
     });
   });
+
+  // ─── 外校墙互动门禁（「探索」引入，同时补既有跨校越权洞）───────────
+  describe('探索：外校墙只有认证用户能互动', () => {
+    const gate = (userId: string, post: any) => (service as any).assertCanInteract(userId, post);
+    const setUser = (school: string | null, verification: string) => {
+      mockPrisma.profile.findUnique = jest.fn().mockResolvedValue({ school });
+      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({ verificationStatus: verification });
+    };
+
+    it('本校墙：未认证也照常互动（自己学校的规则一行没改）', async () => {
+      setUser('Warwick', 'unverified');
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'Warwick' })).resolves.toBeUndefined();
+    });
+
+    it('外校墙 + 未认证 → 拒绝（这同时补上了原先零校验的跨校越权）', async () => {
+      setUser('Warwick', 'unverified');
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).rejects.toThrow();
+    });
+
+    it('外校墙 + 审核中 → 仍拒绝（pending 不等于 verified）', async () => {
+      setUser('Warwick', 'pending');
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).rejects.toThrow();
+    });
+
+    it('外校墙 + 已认证 → 放行', async () => {
+      setUser('Warwick', 'verified');
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).resolves.toBeUndefined();
+    });
+
+    it('推荐流不设门槛（全网公共区，未认证照常互动）', async () => {
+      setUser('Warwick', 'unverified');
+      await expect(gate('u1', { board: 'RECOMMEND', school: 'UCL' })).resolves.toBeUndefined();
+    });
+
+    it('没填学校的用户在外校墙也被拦（空字符串不得当成「同校」放行）', async () => {
+      setUser(null, 'unverified');
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).rejects.toThrow();
+    });
+
+    it('canInteract 能力位与门禁判定一致（前端据此置灰，不能点了才报错）', () => {
+      const can = (post: any, mySchool: any, v: any) =>
+        (service as any).canInteractWith(post, mySchool, v);
+      expect(can({ board: 'CAMPUS_WALL', school: 'Warwick' }, 'Warwick', 'unverified')).toBe(true);
+      expect(can({ board: 'CAMPUS_WALL', school: 'UCL' }, 'Warwick', 'unverified')).toBe(false);
+      expect(can({ board: 'CAMPUS_WALL', school: 'UCL' }, 'Warwick', 'verified')).toBe(true);
+      expect(can({ board: 'RECOMMEND', school: 'UCL' }, 'Warwick', 'unverified')).toBe(true);
+    });
+  });
 });

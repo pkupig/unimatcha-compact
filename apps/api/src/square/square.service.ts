@@ -66,6 +66,146 @@ export class SquareService {
     return profile?.school ?? null;
   }
 
+  // ─── 外校墙互动门禁（「探索」引入）────────────────────────────
+  //
+  // 规则：自己学校的墙一切照旧（未认证也能评论点赞）；**别人学校**的墙只有已认证用户
+  // 才能互动，未认证只读。
+  //
+  // 顺带补一个既有越权洞：在此之前 createComment/likePost/likeComment 都只查
+  // isHidden，**完全不校验同校**——任何人拿到 postId 就能跨校评论点赞。
+  // 「探索」把外校墙正式摆到台面上，这道门同时也是在关那个洞。
+  //
+  // 做成 service 私有助手而不是 Guard：判定需要 post 行，而这些方法开头本来就已经
+  // 把 post 查出来了，Guard 会多打一次库还拿不到上下文。
+  private async assertCanInteract(
+    userId: string,
+    post: { school?: string | null; board?: any } | null,
+  ) {
+    // 只管校园墙帖；推荐流是全网公共区，不设门槛
+    if (!post || post.board !== SquareBoard.CAMPUS_WALL) return;
+    const postSchool = (post.school || '').trim();
+    if (!postSchool) return;
+    const mySchool = (await this.getUserSchool(userId)) || '';
+    if (mySchool.trim() === postSchool) return; // 本校墙：一切照旧
+    const me = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { verificationStatus: true },
+    });
+    if (me?.verificationStatus !== 'verified') {
+      throw new ForbiddenException(
+        "Only verified students can interact with other schools' walls. Get verified to join in.",
+      );
+    }
+  }
+
+  /** 读路径同步下发能力位，让前端能把按钮置灰而不是点了才报错 */
+  private canInteractWith(
+    post: any,
+    mySchool: string | null,
+    myVerification: string | null | undefined,
+  ): boolean {
+    if (post?.board !== SquareBoard.CAMPUS_WALL) return true;
+    const ps = (post.school || '').trim();
+    if (!ps) return true;
+    if ((mySchool || '').trim() === ps) return true;
+    return myVerification === 'verified';
+  }
+
+  // ─── 「探索」：浏览其它学校的校园墙（§8.1.6）────────────────────
+  // 与 listCampusWall 完全分开：同校路径的硬约束（school: mySchool）一个字都不动，
+  // 便于评审核对「本校墙没被这次改动放宽」。
+  // 需求明确「探索里不要置顶子分段」——H5 的 syncPinnedSeg 谓词天然把 explore 排除，
+  // 这里也不返回置顶帖，两侧口径一致。
+  async listExplore(
+    userId: string,
+    params: { school?: string; page?: number; limit?: number },
+  ) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(params.limit) || 20));
+    const school = (params.school || '').trim();
+    const [mySchool, me] = await Promise.all([
+      this.getUserSchool(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { verificationStatus: true },
+      }),
+    ]);
+
+    // 没指定学校 → 只回学校列表，由前端先让用户选
+    if (!school) {
+      return {
+        items: [],
+        page,
+        limit,
+        total: 0,
+        hasMore: false,
+        schools: await this.listWallSchools(mySchool),
+        needSchoolPick: true,
+        verified: me?.verificationStatus === 'verified',
+      };
+    }
+
+    const where: Prisma.SquarePostWhereInput = {
+      board: SquareBoard.CAMPUS_WALL,
+      school,
+      isHidden: false,
+      reviewStatus: 'approved', // 外校用户看不到别校的待审内容
+    };
+    const [posts, total] = await Promise.all([
+      this.prisma.squarePost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: this.postInclude(),
+      }),
+      this.prisma.squarePost.count({ where }),
+    ]);
+    const items = posts.map((p) => ({
+      ...this.shapeCard(p, userId, mySchool),
+      canInteract: this.canInteractWith(p, mySchool, me?.verificationStatus),
+    }));
+    await this.annotateMyVotes(items, userId);
+    return {
+      items,
+      page,
+      limit,
+      total,
+      hasMore: page * limit < total,
+      school,
+      schools: await this.listWallSchools(mySchool),
+      verified: me?.verificationStatus === 'verified',
+    };
+  }
+
+  /**
+   * 探索的学校列表：**由内容驱动**，不查 School 表。
+   * School 表只在开学生会账号时手打写入、可能只有寥寥几行，而 Profile.school /
+   * SquarePost.school 来自 78 条静态元数据——两套词表靠字符串相等硬碰。
+   * 按「墙上真有帖子的学校」聚合，永远非空、自维护、不会列出空学校。
+   */
+  private async listWallSchools(mySchool: string | null) {
+    const rows = await this.prisma.squarePost.groupBy({
+      by: ['school'],
+      where: {
+        board: SquareBoard.CAMPUS_WALL,
+        isHidden: false,
+        reviewStatus: 'approved',
+        school: { not: null },
+      },
+      _count: { _all: true },
+      orderBy: { _count: { school: 'desc' } },
+      take: 100,
+    });
+    return rows
+      .filter((r) => (r.school || '').trim())
+      .map((r) => ({
+        school: r.school as string,
+        postCount: r._count._all,
+        isMine: !!mySchool && r.school === mySchool,
+      }));
+  }
+
   // ─── 用户发帖（§8.1.5） ──────────────────────────────────────
   // authorType=USER；school 取作者 profile.school（用户无法伪造他校）
   async createPost(userId: string, dto: CreatePostDto) {
@@ -638,12 +778,17 @@ export class SquareService {
   async createComment(userId: string, postId: string, dto: CreateCommentDto) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
-      select: { id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true },
+      select: {
+        id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true,
+        school: true, board: true,
+      },
     });
     if (!post) throw new NotFoundException('Post not found');
     if (post.isHidden && post.authorUserId !== userId) {
       throw new NotFoundException('Post not found');
     }
+    // 外校墙需已认证（放在解析父评论之前，评论与回复共用这一道门）
+    await this.assertCanInteract(userId, post);
 
     // 校验父评论属于同帖
     let parentComment: { id: string; userId: string } | null = null;
@@ -748,12 +893,16 @@ export class SquareService {
   async likeComment(commentId: string, userId: string) {
     const comment = await this.prisma.squarePostComment.findUnique({
       where: { id: commentId },
-      select: { id: true, post: { select: { isHidden: true, authorUserId: true } } },
+      select: {
+        id: true,
+        post: { select: { isHidden: true, authorUserId: true, school: true, board: true } },
+      },
     });
     if (!comment) throw new NotFoundException('Comment not found');
     if (comment.post?.isHidden && comment.post.authorUserId !== userId) {
       throw new NotFoundException('Comment not found');
     }
+    await this.assertCanInteract(userId, comment.post);
     const liked = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.squareCommentLike.findUnique({
         where: { commentId_userId: { commentId, userId } },
@@ -774,12 +923,16 @@ export class SquareService {
   async likePost(postId: string, userId: string) {
     const post = await this.prisma.squarePost.findUnique({
       where: { id: postId },
-      select: { id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true },
+      select: {
+        id: true, isHidden: true, authorUserId: true, anonymous: true, authorType: true,
+        school: true, board: true,
+      },
     });
     if (!post) throw new NotFoundException('Post not found');
     if (post.isHidden && post.authorUserId !== userId) {
       throw new NotFoundException('Post not found');
     }
+    await this.assertCanInteract(userId, post);
 
     // 存在性检查 + 计数变更放进同一事务,并以 delete/create 真正命中行为准:
     // 并发重复 like/unlike 时,败者的 delete(P2025)/create(P2002) 会抛错回滚,
