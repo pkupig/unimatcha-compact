@@ -1,0 +1,123 @@
+{
+  "success": true,
+  "data": {
+    "matchId": "clxmch00000000000000000007",
+    "daysTogether": 43,
+    "since": "2026-07-22T17:00:00.000Z",
+    "partner": {
+      "userId": "clxusr00000000000000000002",
+      "nickname": "沐晨",
+      "avatarUrl": "https://api.unimatcha.ai/uploads/9c1f7b32-5a4e-4c11-8d3a-6b0e2f7a1c44.jpg",
+      "bio": "Third-year CS. Lives on cold brew, film photography and very long walks."
+    },
+    "me": { "userId": "clxusr00000000000000000001" },
+    "cover": "https://api.unimatcha.ai/uploads/1d8e4a55-7f20-42b9-a0c6-3e5b91d7cc10.jpg",
+    "loveYou": {
+      "me": { "count": 41, "sentToday": false },
+      "partner": { "count": 38 }
+    },
+    "status": { "me": "Happy", "partner": "flat white and a nap" },
+    "craving": {
+      "me": { "current": "Ramen", "history": ["Ramen", "Katsu curry", "Hotpot", "Bubble tea", "Tacos", "Dumplings"] },
+      "partner": { "current": "" }
+    },
+    "schedule": {
+      "me": [
+        {
+          "id": "clxsch00000000000000000011",
+          "text": "Library then gym",
+          "startAt": "2026-09-03T13:00:00.000Z",
+          "endAt": "2026-09-03T17:00:00.000Z",
+          "expired": false
+        },
+        {
+          "id": "clxsch00000000000000000010",
+          "text": "Group project stand-up",
+          "startAt": "2026-09-02T09:00:00.000Z",
+          "endAt": "2026-09-02T10:00:00.000Z",
+          "expired": true
+        }
+      ],
+      "partner": [
+        {
+          "id": "clxsch00000000000000000012",
+          "text": "Darkroom session",
+          "startAt": "2026-09-03T18:30:00.000Z",
+          "endAt": "2026-09-03T20:30:00.000Z",
+          "expired": false
+        }
+      ]
+    },
+    "gifts": {
+      "me": ["A good notebook"],
+      "partner": ["Film rolls (Portra 400)", "That green scarf", "Concert tickets"]
+    },
+    "anniversaries": [
+      {
+        "id": "clxann00000000000000000001",
+        "title": "First date",
+        "date": "2026-07-22T00:00:00.000Z",
+        "note": "Coffee at the Piazza, then the long way home.",
+        "images": [
+          "https://api.unimatcha.ai/uploads/aa11bb22-cc33-4d44-8e55-6f77aa88bb99.jpg",
+          "https://api.unimatcha.ai/uploads/bb22cc33-dd44-4e55-9f66-70088bb99cc0.jpg"
+        ],
+        "daysUntil": -43
+      },
+      {
+        "id": "clxann00000000000000000002",
+        "title": "100 days",
+        "date": "2026-10-30T00:00:00.000Z",
+        "note": "",
+        "images": [],
+        "daysUntil": 57
+      },
+      {
+        "id": "clxann00000000000000000003",
+        "title": "Her birthday",
+        "date": "2026-09-11T00:00:00.000Z",
+        "note": "",
+        "images": [],
+        "daysUntil": 8
+      },
+      {
+        "id": "clxann00000000000000000004",
+        "title": "Freshers week",
+        "date": "2026-09-28T00:00:00.000Z",
+        "note": "Plan something loud.",
+        "images": [],
+        "daysUntil": 25
+      }
+    ],
+    "bucket": [
+      {
+        "id": "clxbkt00000000000000000001",
+        "text": "Watch the sunrise together",
+        "done": true,
+        "createdBy": "clxusr00000000000000000001",
+        "doneBy": "clxusr00000000000000000002",
+        "doneNote": "Freezing, worth it.",
+        "doneImages": ["https://api.unimatcha.ai/uploads/cc33dd44-ee55-4f66-a077-8899aabbccdd.jpg"]
+      },
+      {
+        "id": "clxbkt00000000000000000002",
+        "text": "Cook something neither of us can pronounce",
+        "done": false,
+        "createdBy": "clxusr00000000000000000002",
+        "doneBy": null,
+        "doneNote": "",
+        "doneImages": []
+      },
+      {
+        "id": "clxbkt00000000000000000003",
+        "text": "Ride the last train to the coast",
+        "done": true,
+        "createdBy": "clxusr00000000000000000001",
+        "doneBy": "clxusr00000000000000000001",
+        "doneNote": "",
+        "doneImages": []
+      }
+    ]
+  },
+  "timestamp": "2026-09-03T12:00:00.000Z"
+}

@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "userId": "clxstranger0000000000000010",
+    "verificationStatus": "unverified",
+    "nickname": "Noble Hare",
+    "school": "University of Warwick",
+    "grade": "Year 1",
+    "age": 19,
+    "city": "Coventry",
+    "interests": [],
+    "bio": "Fresher.",
+    "avatarUrl": "https://api.unimatcha.ai/uploads/avatar-10.jpg",
+    "tags": []
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

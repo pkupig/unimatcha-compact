@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "data": {
+    "self": {
+      "id": "clu_me_0001",
+      "nickname": "You",
+      "avatarUrl": "https://api.unimatcha.ai/uploads/6b1f0e1a-me.jpg"
+    },
+    "nodes": [
+      {
+        "id": "clu_partner_0001",
+        "nickname": "沐晨",
+        "avatarUrl": "https://api.unimatcha.ai/uploads/8c2d4f7b-mu.jpg",
+        "school": "University of Warwick",
+        "kind": "romantic"
+      },
+      {
+        "id": "clu_friend_0002",
+        "nickname": "Noble Hare",
+        "avatarUrl": "",
+        "school": "University of Warwick",
+        "kind": "friend"
+      },
+      {
+        "id": "clu_friend_0003",
+        "nickname": "Alexandra Constantine",
+        "avatarUrl": "https://api.unimatcha.ai/uploads/2a9e6c31-al.jpg",
+        "school": "University College London",
+        "kind": "friend"
+      },
+      {
+        "id": "clu_friend_0004",
+        "nickname": "",
+        "avatarUrl": null,
+        "school": "University of Oxford",
+        "kind": "unknown-kind"
+      },
+      {
+        "id": "",
+        "nickname": "Dropped — no id",
+        "avatarUrl": null,
+        "school": "University of Bath",
+        "kind": "friend"
+      }
+    ],
+    "edges": [
+      { "a": "clu_me_0001", "b": "clu_partner_0001", "weight": 6, "raw": 5.412, "msgCount": 312, "posts": 18 },
+      { "a": "clu_me_0001", "b": "clu_friend_0002", "weight": 3, "raw": 2.104, "msgCount": 44, "posts": 3 },
+      { "a": "clu_me_0001", "b": "clu_friend_0003", "weight": 1, "raw": 0.512, "msgCount": 2, "posts": 0 },
+      { "a": "clu_me_0001", "b": "clu_friend_0004", "weight": 2, "raw": 1.004, "msgCount": 9, "posts": 1 },
+      { "a": "clu_me_0001", "b": "clu_not_a_node", "weight": 4, "raw": 3.001, "msgCount": 61, "posts": 5 }
+    ]
+  },
+  "timestamp": "2026-09-03T09:12:44.118Z"
+}

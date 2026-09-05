@@ -1,92 +1,88 @@
 import SwiftUI
 
-struct RegisterFormView: View {
-    @EnvironmentObject var authVM: AuthViewModel
-    @State private var email = ""
-    @State private var code = ""
-    @State private var password = ""
-    @State private var confirmPassword = ""
+// MARK: - RegisterFormView (`#register-form`, h5-auth §1.2 / §2.2 `sendRegisterCode` + `doRegister`)
+//
+// Header "Join Unimatcha" / "Create your academic profile" → Email Address (mail) → Verification
+// Code (pin): 6-digit numeric input + "Send code" `.btn-secondary text-[10px] px-3 py-2` with the
+// busy label / 60 s countdown ("59s"…"1s"), hint line (10 pt, mt-1.5) after a code is sent →
+// Password (lock) → Confirm Password (lock) → `.btn-cta` "Register".
 
-    private var passwordMismatch: Bool { !confirmPassword.isEmpty && password != confirmPassword }
-    private var canSubmit: Bool {
-        !email.isEmpty && code.count == 6 && password.count >= 8 && password == confirmPassword && !authVM.isLoading
-    }
+struct RegisterFormView: View {
+    @ObservedObject var vm: AuthViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 12) {
-                TextField("大学邮箱", text: $email)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .textContentType(.emailAddress)
-                    .modifier(InputFieldModifier())
+        VStack(spacing: 48) {
+            AuthFormHeader(title: L10n.t("Join Unimatcha"),
+                           subtitle: L10n.t("Create your academic profile"))
+            VStack(spacing: 32) {
+                AuthField(label: L10n.t("Email Address"),
+                          icon: "mail",
+                          text: $vm.regEmail,
+                          // Any email works at registration — school-email verification is a
+                          // separate, later step (Profile → Verify) that also needs a reviewed
+                          // student-card photo, not just this address. A ".edu" example here
+                          // wrongly implies it's required to sign up (H5 has the same wording;
+                          // flagged as a copy fix, not migration parity).
+                          placeholder: L10n.placeholder("you@example.com"),
+                          keyboard: .emailAddress,
+                          contentType: .username,
+                          submitLabel: .next)
 
-                HStack(spacing: 8) {
-                    TextField("6 位验证码", text: $code)
-                        .keyboardType(.numberPad)
-                        .textContentType(.oneTimeCode)
-                        .modifier(InputFieldModifier())
-                    Button(action: { Task { await authVM.sendRegisterCode(email: email) } }) {
-                        Text(authVM.isSendingCode ? "发送中…" : "发验证码")
-                            .font(.system(size: 13, weight: .bold))
+                VStack(alignment: .leading, spacing: 6) {
+                    AuthField(label: L10n.t("Verification Code"),
+                              icon: "pin",
+                              text: $vm.regCode,
+                              placeholder: L10n.placeholder("6-digit code"),
+                              keyboard: .numberPad,
+                              contentType: .oneTimeCode,
+                              submitLabel: .next,
+                              maxLength: AuthValidation.codeLength,
+                              digitsOnly: true) {
+                        CTAButton(title: vm.sendCodeLabel,
+                                  style: .outlineBlack,
+                                  size: 10,
+                                  disabled: vm.sendCodeDisabled,
+                                  fullWidth: false,
+                                  paddingV: 8,
+                                  paddingH: 12,
+                                  action: { Task { await vm.sendCode() } })
+                            .fixedSize()
+                            .accessibilityLabel(L10n.t("Send code"))
                     }
-                    .disabled(email.isEmpty || authVM.isSendingCode)
-                }
-
-                if let hint = authVM.codeHint {
-                    Text(hint)
-                        .font(.caption)
-                        .foregroundColor(Theme.textMuted)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                SecureField("密码（至少 8 位）", text: $password)
-                    .textContentType(.newPassword)
-                    .modifier(InputFieldModifier())
-
-                SecureField("确认密码", text: $confirmPassword)
-                    .textContentType(.newPassword)
-                    .modifier(InputFieldModifier())
-                    .overlay(
-                        passwordMismatch
-                            ? RoundedRectangle(cornerRadius: Theme.radiusSm).stroke(Theme.danger.opacity(0.7), lineWidth: 1)
-                            : nil
-                    )
-            }
-            .padding(.top, 24)
-
-            if passwordMismatch {
-                Text("两次输入的密码不一致")
-                    .font(.caption)
-                    .foregroundColor(Theme.danger)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if let error = authVM.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(Theme.danger)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-            }
-
-            Button(action: { Task { await authVM.register(email: email, password: password, code: code) } }) {
-                HStack(spacing: 8) {
-                    if authVM.isLoading {
-                        ProgressView().tint(Theme.onAccent).scaleEffect(0.85)
+                    if let hint = vm.codeHint, !hint.isEmpty {
+                        Text(hint)
+                            .font(Theme.font(10))
+                            .foregroundColor(Theme.C.onSurfaceVariant)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text("创建账号")
                 }
-            }
-            .buttonStyle(NeonButtonStyle(enabled: canSubmit))
-            .disabled(!canSubmit)
 
-            Text("注册即代表同意用户协议与隐私政策")
-                .font(.system(size: 12))
-                .foregroundColor(Theme.textMuted)
-                .padding(.top, 4)
+                AuthField(label: L10n.t("Password"),
+                          icon: "lock",
+                          text: $vm.regPassword,
+                          placeholder: "••••••••",
+                          secure: true,
+                          contentType: .newPassword,
+                          submitLabel: .next)
+                AuthField(label: L10n.t("Confirm Password"),
+                          icon: "lock",
+                          text: $vm.regConfirm,
+                          placeholder: "••••••••",
+                          secure: true,
+                          contentType: .newPassword,
+                          submitLabel: .go,
+                          onSubmit: { submit() })
+                CTAButton(title: L10n.t("Register"),
+                          style: .neon,
+                          busy: vm.isRegistering,
+                          busyTitle: L10n.t("Loading…"),
+                          action: { submit() })
+            }
         }
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func submit() {
+        Task { await vm.register() }
     }
 }

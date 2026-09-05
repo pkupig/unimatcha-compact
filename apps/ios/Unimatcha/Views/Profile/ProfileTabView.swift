@@ -1,266 +1,133 @@
 import SwiftUI
+import UIKit
 
-/// 「我的」标签页 —— 展示当前用户资料卡片，并提供进入编辑、匹配偏好、
-/// 连接码、能量、设置等页面的入口。仅使用 authVM + profileVM 的真实成员。
+// MARK: - Profile tab (`#tab-profile`, h5-profile.md §1.2, §2 "Profile tab"; design §7.2)
+//
+// Two layers, exactly like H5:
+//   layer 0  `ProfileHeroCover` — fixed behind the scroller, `400 + inset (+ pull)` tall, blur mask
+//   layer 1  the scroller: spacer `88 + inset` → hero text (px-6, mb-86) → white panel
+//            (`rounded-t-[24px]`, overlapping the hero text margin by 24, px-6 pt-7 pb-32,
+//            max-w-lg) with the five rows + version footer.
+// Pull-to-refresh (shared component) translates the scroller; `onPull` grows the cover 1:1 and
+// fades the blur (0 → 140 pt). Refresh = re-render + `GET /energy/balance` only.
+// `.reportScrollOffset(id: "profile")` feeds WP-16's BottomNav auto-hide. No top bar, no logout row,
+// no photo strip.
+
 struct ProfileTabView: View {
-    @EnvironmentObject var authVM: AuthViewModel
-    @EnvironmentObject var profileVM: ProfileViewModel
+    static let scrollId = "profile"
 
-    private var verified: Bool { authVM.currentUser?.verificationStatus == "verified" }
+    @ObservedObject private var vm = ProfileTabViewModel.shared
+    @ObservedObject private var session = SessionStore.shared
+    @ObservedObject private var energy = EnergyStore.shared
+
+    init() {}
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    headerCard
-                    completenessCard
-                    entriesCard
-                    logoutButton
-                    Text("Unimatcha v1.0.0")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.textMuted)
-                        .padding(.top, 4)
-                    Spacer().frame(height: 24)
+        GeometryReader { geo in
+            let window = OverlayChrome.windowSafeInsets
+            let top = geo.safeAreaInsets.top > 0 ? geo.safeAreaInsets.top : window.top
+            // When the host already ignores the bottom inset the scroll view gets no automatic
+            // bottom inset, so the panel pads it itself.
+            let extraBottom = geo.safeAreaInsets.bottom > 0 ? 0 : window.bottom
+            ZStack(alignment: .top) {
+                Theme.C.surface
+                ProfileHeroCover(coverUrl: session.currentUser?.profile?.coverUrl,
+                                 height: vm.heroHeight(topInset: top),
+                                 blurOpacity: vm.blurOpacity)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .allowsHitTesting(false)
+                ScrollView(.vertical, showsIndicators: false) {
+                    content(top: top, extraBottom: extraBottom)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .pullToRefresh(enabled: { true },
+                               topInset: top,
+                               onPull: { vm.handlePull($0) },
+                               action: { await vm.refresh() })
+                .reportScrollOffset(id: Self.scrollId)
             }
-            .themedScreen()
-            .navigationTitle("我的")
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .task { await profileVM.loadProfile() }
-            .refreshable {
-                await profileVM.loadProfile()
-                await authVM.refresh()
-            }
+            .frame(width: geo.size.width, height: geo.size.height + geo.safeAreaInsets.top, alignment: .top)
+            .ignoresSafeArea(edges: .top)
+        }
+        .background(Theme.C.surface)
+        .onAppear {
+            Task { await vm.onTabEnter() }
         }
     }
 
-    // MARK: - Header (cover + avatar + basic info)
-    private var headerCard: some View {
+    // MARK: Scroller content
+
+    private func content(top: CGFloat, extraBottom: CGFloat) -> some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                // Cover
-                Group {
-                    if let url = URL(string: profileVM.coverUrl), !profileVM.coverUrl.isEmpty {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let img): img.resizable().scaledToFill()
-                            default: Theme.accentGradient
-                            }
-                        }
-                    } else {
-                        Theme.accentGradient
-                    }
-                }
-                .frame(height: 132)
-                .frame(maxWidth: .infinity)
-                .clipped()
-
-                // Dark scrim so text stays readable over any cover
-                LinearGradient(colors: [.clear, Theme.bg.opacity(0.85)],
-                               startPoint: .top, endPoint: .bottom)
-                    .frame(height: 132)
-            }
-
-            HStack(alignment: .top, spacing: 14) {
-                avatarView
-                    .offset(y: -28)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 6) {
-                        Text(displayNickname)
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundColor(Theme.textPrimary)
-                        if verified {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 15))
-                                .foregroundColor(Theme.accent)
-                        }
-                    }
-
-                    if !profileVM.school.isEmpty {
-                        Text("\(profileVM.school) · \(profileVM.grade)")
-                            .font(.system(size: 13))
-                            .foregroundColor(Theme.textSecondary)
-                    }
-
-                    HStack(spacing: 6) {
-                        if !profileVM.mbti.isEmpty { chip(profileVM.mbti) }
-                        if !profileVM.zodiac.isEmpty { chip(profileVM.zodiac) }
-                        if profileVM.age > 0 { chip("\(profileVM.age)岁") }
-                    }
-                    .padding(.top, 1)
-                }
-                .padding(.top, 6)
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 14)
+            Color.clear
+                .frame(height: ProfileTabViewModel.topSpacer + top)
+            ProfileHeroText(user: session.currentUser, onVerifyTap: { onVerifyTap() })
+                .padding(.horizontal, Theme.Space.page)
+            // `mb-[86px]` on the hero text minus the panel's `-mt-6` pull-up.
+            Color.clear
+                .frame(height: ProfileTabViewModel.heroTextBottomMargin - ProfileTabViewModel.panelOverlap)
+            panel(extraBottom: extraBottom)
         }
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.outline, lineWidth: 1))
+        .frame(maxWidth: .infinity)
     }
 
-    private var avatarView: some View {
-        ZStack {
-            Circle()
-                .fill(Theme.surfaceHi)
-                .frame(width: 72, height: 72)
-            if let url = URL(string: profileVM.avatarUrl), !profileVM.avatarUrl.isEmpty {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img): img.resizable().scaledToFill()
-                    default: avatarPlaceholder
-                    }
-                }
-                .frame(width: 72, height: 72)
-                .clipShape(Circle())
-            } else {
-                avatarPlaceholder
-            }
-        }
-        .overlay(Circle().stroke(verified ? Theme.accent : Theme.outline, lineWidth: 3))
-    }
-
-    private var avatarPlaceholder: some View {
-        Text(String(displayNickname.prefix(1)))
-            .font(.system(size: 28, weight: .semibold))
-            .foregroundColor(Theme.accent)
-    }
-
-    private func chip(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(Theme.accent)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Theme.accent.opacity(0.12))
-            .clipShape(Capsule())
-    }
-
-    private var displayNickname: String {
-        profileVM.nickname.isEmpty ? "未设置昵称" : profileVM.nickname
-    }
-
-    // MARK: - Completeness bar
-    private var completenessCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("资料完整度")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Theme.textPrimary)
-                    Spacer()
-                    Text("\(profileVM.completeness)%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Theme.accent)
-                }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Theme.surfaceHi)
-                        Capsule()
-                            .fill(Theme.accentGradient)
-                            .frame(width: geo.size.width * CGFloat(min(max(profileVM.completeness, 0), 100)) / 100)
-                    }
-                }
-                .frame(height: 8)
-
-                if profileVM.completeness < 100 {
-                    Text("完善资料能显著提升匹配质量")
-                        .font(.system(size: 12))
-                        .foregroundColor(Theme.textMuted)
-                }
-            }
-        }
-    }
-
-    // MARK: - Navigation entries
-    private var entriesCard: some View {
+    /// `bg-background rounded-t-[24px] px-6 pt-7 pb-32 max-w-lg mx-auto`.
+    private func panel(extraBottom: CGFloat) -> some View {
         VStack(spacing: 0) {
-            NavigationLink {
-                ProfileEditView().environmentObject(profileVM)
-            } label: {
-                entryRow(icon: "pencil", title: "编辑资料", subtitle: "昵称、学校、标签、社交方式")
+            HairlineRow(material: "flash_on",
+                        filled: true,
+                        label: L10n.t("Energy"),
+                        action: { AppActions.shared.openEnergyPurchase() }) {
+                EnergyCellsView(cells: energy.cells)
             }
-            divider
-            NavigationLink {
-                MatchFilterView(mode: .romantic)
-            } label: {
-                entryRow(icon: "line.3.horizontal.decrease.circle", title: "匹配偏好", subtitle: "设定同城 / 同校等条件")
-            }
-            divider
-            NavigationLink {
-                ConnectCodeView()
-            } label: {
-                entryRow(icon: "qrcode", title: "我的连接码", subtitle: "扫码或输入编号，直接建立好友")
-            }
-            divider
-            NavigationLink {
-                EnergyView()
-            } label: {
-                entryRow(icon: "bolt.fill", title: "能量中心", subtitle: "签到领取，解锁增强匹配")
-            }
-            divider
-            NavigationLink {
-                SettingsView().environmentObject(authVM)
-            } label: {
-                entryRow(icon: "gearshape", title: "设置", subtitle: "隐私、认证、账号安全")
-            }
-        }
-        .padding(.vertical, 4)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.outline, lineWidth: 1))
-    }
-
-    private var divider: some View {
-        Divider().overlay(Theme.outline).padding(.leading, 56)
-    }
-
-    private func entryRow(icon: String, title: String, subtitle: String) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous)
-                    .fill(Theme.accent.opacity(0.12))
-                    .frame(width: 32, height: 32)
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Theme.accent)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Theme.textPrimary)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundColor(Theme.textMuted)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Theme.textMuted)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-    }
-
-    // MARK: - Logout
-    private var logoutButton: some View {
-        Button(role: .destructive) {
-            authVM.logout()
-        } label: {
-            Text("退出登录")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(Theme.danger)
+            HairlineRow(material: "confirmation_number",
+                        label: L10n.t("My Tickets"),
+                        action: { AppActions.shared.openTickets() })
+            HairlineRow(material: "person_outline",
+                        label: L10n.t("Edit Profile"),
+                        action: { AppActions.shared.openEditProfile() })
+            HairlineRow(material: "mail_outline",
+                        label: L10n.t("Contact Us"),
+                        action: { AppActions.shared.openContactUs() })
+            HairlineRow(material: "settings",
+                        label: L10n.t("Settings"),
+                        action: { AppActions.shared.openSettings() })
+            Text(ProfileTabCopy.versionLine)
+                .font(Theme.font(10, weight: .medium))
+                .tracking(Theme.tracking(Theme.Tracking.widest, size: 10))
+                .foregroundColor(Theme.C.outline)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.outline, lineWidth: 1))
+                .padding(.top, 40)
         }
+        .padding(.horizontal, Theme.Space.page)
+        .padding(.top, ProfileTabViewModel.panelTopPadding)
+        .padding(.bottom, ProfileTabViewModel.panelBottomPadding + extraBottom)
+        .frame(maxWidth: ProfileTabViewModel.panelMaxWidth)
+        .background(
+            Theme.C.surface
+                .clipShape(TopRoundedRectangle(radius: Theme.R.profileSheet))
+        )
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Actions
+
+    /// `#verify-btn` → `openVerify()` (guarded again there: only when not pending / verified).
+    private func onVerifyTap() {
+        let state = VerifyBadgeState.from(status: session.currentUser?.verificationStatus)
+        guard state.isTappable else { return }
+        AppActions.shared.openVerify()
+    }
+}
+
+// MARK: - Top-rounded rectangle (`rounded-t-[24px]`)
+
+struct TopRoundedRectangle: Shape {
+    var radius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let p = UIBezierPath(roundedRect: rect,
+                             byRoundingCorners: [.topLeft, .topRight],
+                             cornerRadii: CGSize(width: radius, height: radius))
+        return Path(p.cgPath)
     }
 }

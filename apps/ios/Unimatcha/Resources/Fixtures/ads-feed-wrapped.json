@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "cmp_wrapped_001",
+        "title": "Wrapped feed entry",
+        "content": "H5 tolerates {items} / {ads} wrappers around the ad list.",
+        "images": ["https://api.unimatcha.ai/uploads/2b7c1c2e-ad04-4c0e-9a5a-000000000005.jpg"],
+        "landingUrl": "https://example.com/wrapped",
+        "advertiserName": "Wrapper Ltd"
+      },
+      {
+        "title": "Entry without an id is dropped",
+        "content": "no id",
+        "images": [],
+        "landingUrl": null,
+        "advertiserName": "Nobody"
+      },
+      null,
+      {
+        "id": "",
+        "title": "Entry with an empty id is dropped too",
+        "content": "empty id",
+        "images": [],
+        "landingUrl": null,
+        "advertiserName": "Nobody"
+      }
+    ]
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

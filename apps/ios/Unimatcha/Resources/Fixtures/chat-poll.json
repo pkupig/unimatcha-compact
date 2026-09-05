@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "cmsg_005",
+        "content": "Haha no worries. Coffee after your seminar?",
+        "imageUrl": null,
+        "kind": "text",
+        "senderId": "cusr_partner_friend",
+        "isRead": false,
+        "createdAt": "2026-09-03T09:12:04.881Z"
+      }
+    ]
+  },
+  "timestamp": "2026-09-03T09:20:05.000Z"
+}

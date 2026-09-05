@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "mode": "romantic",
+    "matchConfig": { "cronExpr": "0 17 * * 5", "description": null },
+    "nextRunAt": "2026-09-04T09:00:00.000Z",
+    "state": "searching",
+    "searchingSince": "2026-09-01T11:20:31.004Z",
+    "match": null,
+    "partner": null
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

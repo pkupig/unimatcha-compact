@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Unimatcha</string>
 	<key>CFBundleName</key>
@@ -12,22 +22,33 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Plain launch screen (PLAN §G: UIColorName optional). The splash itself is SwiftUI. -->
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<!-- Backend base URL; read by APIConfig.baseURL. Point at prod api domain when shipping. -->
+	<!-- Backend base URL. Resolved per configuration from project.yml
+	     (Debug http://localhost:3001/api/v1, Release https://api.unimatcha.ai/api/v1);
+	     a Debug build may additionally override it with UserDefaults key `api_base_url`. -->
 	<key>API_BASE_URL</key>
-	<string>http://localhost:3001/api/v1</string>
-	<!-- Dev only: allow http to localhost. Remove / restrict for production (use https). -->
+	<string>$(API_BASE_URL_DEFAULT)</string>
+	<!-- Default ATS (no NSAllowsArbitraryLoads). The only exception is the local dev API. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan a friend's QR code to connect</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>用于上传头像与照片</string>
+	<string>Upload your avatar, cover and photos</string>
 </dict>
 </plist>

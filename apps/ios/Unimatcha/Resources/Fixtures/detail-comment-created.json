@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "id": "clsc0000000000000000new1",
+    "postId": "clsq0000000000000000rec01",
+    "content": "Just added an observation.",
+    "imageUrl": "https://api.unimatcha.ai/uploads/3f2a1c0e-0000-4000-8000-000000000399.jpg",
+    "anonymous": true,
+    "parentCommentId": "clsc0000000000000000cmt02",
+    "createdAt": "2026-09-03T10:05:00.000Z",
+    "updatedAt": "2026-09-03T10:05:00.000Z",
+    "user": { "profile": { "nickname": "Gentle Sparrow", "avatarUrl": null } },
+    "anonymousAuthor": { "aliasSeed": 66051, "nickname": "Gentle Sparrow", "avatarUrl": null }
+  }
+}

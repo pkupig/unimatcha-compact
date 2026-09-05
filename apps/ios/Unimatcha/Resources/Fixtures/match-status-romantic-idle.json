@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "mode": "romantic",
+    "matchConfig": { "cronExpr": "0 17 * * 5", "description": "Weekly reveal, Friday 17:00 Asia/Shanghai" },
+    "nextRunAt": "2026-09-04T09:00:00.000Z",
+    "state": "idle",
+    "match": null,
+    "partner": null
+  },
+  "message": null,
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

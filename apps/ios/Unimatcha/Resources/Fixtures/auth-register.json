@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "clx0new000000000000000002",
+      "email": "new@campus.ac.uk",
+      "status": "ACTIVE",
+      "createdAt": "2026-09-03T10:00:00.000Z"
+    },
+    "token": "eyJhbGciOiJIUzI1NiJ9.fixture.register"
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

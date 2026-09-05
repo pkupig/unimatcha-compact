@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "data": {
+    "mode": "romantic",
+    "matchConfig": null,
+    "nextRunAt": null,
+    "state": "relationship",
+    "match": {
+      "id": "clmatch000000000000000002",
+      "status": "RELATIONSHIP_ROMANTIC",
+      "myConfirmed": true,
+      "partnerConfirmed": true,
+      "remainingMs": null,
+      "score": 91,
+      "matchedAt": "2026-07-18T09:00:00.000Z",
+      "relationshipStartedAt": "2026-07-19T04:12:00.000Z",
+      "confirmedAt": "2026-07-19T04:12:00.000Z"
+    },
+    "partner": {
+      "userId": "cluser00000000000000000c",
+      "verificationStatus": "unverified",
+      "nickname": "Noble Hare",
+      "school": "University College London",
+      "grade": "master",
+      "age": 24,
+      "city": "London",
+      "interests": [],
+      "bio": null,
+      "avatarUrl": null,
+      "coverUrl": null,
+      "tags": []
+    }
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "data": {
+    "id": "clxevt00000000000000000001",
+    "title": "Freshers Bubble Tea Night",
+    "content": "Free-flow bubble tea, board games and a raffle. Bring your student card.",
+    "images": ["https://api.unimatcha.ai/uploads/3f2b9a0e-1c4d-4e8a-9b6f-7d2c1a5e8f01.jpg"],
+    "school": "University of Warwick",
+    "venue": "Piazza, Students' Union",
+    "startAt": "2026-10-09T18:00:00.000Z",
+    "endAt": "2026-10-09T21:00:00.000Z",
+    "priceCents": 250,
+    "capacity": 200,
+    "ticketsSold": 57,
+    "status": "published",
+    "createdByAdminId": "clxadm00000000000000000001",
+    "createdAt": "2026-09-01T09:12:00.000Z",
+    "updatedAt": "2026-09-03T08:40:00.000Z",
+    "createdByAdmin": { "name": "Warwick SU", "role": "STUDENT_UNION", "organizationName": "Warwick Students' Union" },
+    "post": { "id": "clxpost0000000000000000042" },
+    "remaining": 143,
+    "myTickets": 1
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

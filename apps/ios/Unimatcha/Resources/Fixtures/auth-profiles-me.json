@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "data": {
+    "id": "clxprof00000000000000000001",
+    "userId": "clx0me0000000000000000001",
+    "nickname": "晓月",
+    "realName": "Xiaoyue Zhang",
+    "familyName": "Zhang",
+    "givenName": "Xiaoyue",
+    "school": "University of Warwick",
+    "grade": "Year 2",
+    "gender": "female",
+    "genderPref": "any",
+    "age": 21,
+    "birthday": "2004-06-01",
+    "city": "Coventry",
+    "interests": [
+      "Music",
+      "Philosophy"
+    ],
+    "bio": "Hello there",
+    "avatarUrl": "https://api.unimatcha.ai/uploads/3f1c0000-0000-4000-8000-000000000000.jpg",
+    "socialLinks": {
+      "wechat": "xiaoyue_z"
+    },
+    "signature": "One thoughtful match, every week.",
+    "coverUrl": "https://api.unimatcha.ai/uploads/cover-0000-4000-8000-000000000000.jpg",
+    "tags": [
+      "猫奴"
+    ],
+    "major": "Computer Science",
+    "mbti": "INFP",
+    "nationality": "Chinese",
+    "studentId": "u2312345",
+    "realPhotos": [
+      "https://api.unimatcha.ai/uploads/p1.jpg"
+    ],
+    "zodiac": "Gemini",
+    "wishGifts": [
+      "Matcha latte"
+    ],
+    "extraData": null,
+    "relationshipScore": 0,
+    "profileCompleteness": 88,
+    "createdAt": "2026-07-01T09:00:00.000Z",
+    "updatedAt": "2026-09-01T09:00:00.000Z",
+    "joinedAt": "2026-07-01T08:00:00.000Z",
+    "connectCode": "CL7Q2M9XKD",
+    "verificationStatus": "unverified"
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

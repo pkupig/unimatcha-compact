@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "data": {
+    "id": "clprefs00000000000000001",
+    "userId": "cluser00000000000000000a",
+    "createdAt": "2026-08-01T10:00:00.000Z",
+    "updatedAt": "2026-09-02T12:30:00.000Z",
+    "mode": "romantic",
+    "requireSameCity": true,
+    "requireSameUniversity": true,
+    "requireSameMajor": false,
+    "preferredNationalities": [],
+    "preferredMbti": [],
+    "preferredGender": "female",
+    "ageMin": 19,
+    "ageMax": 25,
+    "universityStage": "undergraduate,master,mba",
+    "preferredInterests": ["Photography", "Hiking", "Coffee", "Running"],
+    "preferredActivities": [],
+    "friendRequirements": null,
+    "enhancedModeEnabled": true,
+    "friendEnhancedCells": 3,
+    "matchBasis": "both",
+    "extraMatchInfo": "I row on Tuesday mornings — early riser."
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

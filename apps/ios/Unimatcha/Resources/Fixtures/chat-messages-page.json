@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "cmsg_001",
+        "content": "Hi! Nice to match with you.",
+        "imageUrl": null,
+        "kind": "text",
+        "senderId": "cusr_me",
+        "isRead": true,
+        "createdAt": "2026-09-03T08:00:00.000Z"
+      },
+      {
+        "id": "cmsg_002",
+        "content": "",
+        "imageUrl": "https://api.unimatcha.ai/uploads/dd44.jpg",
+        "kind": "text",
+        "senderId": "cusr_partner_friend",
+        "isRead": false,
+        "createdAt": "2026-09-03T08:02:30.000Z"
+      },
+      {
+        "id": "cmsg_003",
+        "content": "沐晨 nudged Mo on the head",
+        "imageUrl": null,
+        "kind": "nudge",
+        "senderId": "cusr_partner_friend",
+        "isRead": false,
+        "createdAt": "2026-09-03T08:40:00.000Z"
+      },
+      {
+        "id": "cmsg_004",
+        "content": "Sorry, was in a lecture — that shot is lovely!",
+        "imageUrl": null,
+        "kind": "text",
+        "senderId": "cusr_me",
+        "isRead": false,
+        "createdAt": "2026-09-03T09:11:00.000Z"
+      }
+    ],
+    "nextCursor": "cmsg_004"
+  },
+  "timestamp": "2026-09-03T09:20:00.000Z"
+}

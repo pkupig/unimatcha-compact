@@ -1,52 +1,45 @@
 import SwiftUI
 
-struct LoginFormView: View {
-    @EnvironmentObject var authVM: AuthViewModel
-    @State private var email = ""
-    @State private var password = ""
+// MARK: - LoginFormView (`#signin-form`, h5-auth §1.2 / §2.2 `doLogin`)
+//
+// Header "Welcome Back" / "Enter your academic credentials" → Email Address (mail) → Password
+// (lock) → `.btn-cta` "Sign In". "Forgot Password?" is a dead button in H5 → omitted (PLAN C.1).
+// Blocks 48 pt apart, fields 32 pt apart. Wrong password shows the server text and stays here.
 
-    private var canSubmit: Bool { !email.isEmpty && !password.isEmpty && !authVM.isLoading }
+struct LoginFormView: View {
+    @ObservedObject var vm: AuthViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 12) {
-                TextField("邮箱", text: $email)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .textContentType(.emailAddress)
-                    .modifier(InputFieldModifier())
-
-                SecureField("密码", text: $password)
-                    .textContentType(.password)
-                    .modifier(InputFieldModifier())
+        VStack(spacing: 48) {
+            AuthFormHeader(title: L10n.t("Welcome Back"),
+                           subtitle: L10n.t("Enter your academic credentials"))
+            VStack(spacing: 32) {
+                AuthField(label: L10n.t("Email Address"),
+                          icon: "mail",
+                          text: $vm.loginEmail,
+                          placeholder: L10n.placeholder("you@example.com"),
+                          keyboard: .emailAddress,
+                          contentType: .username,
+                          submitLabel: .next)
+                AuthField(label: L10n.t("Password"),
+                          icon: "lock",
+                          text: $vm.loginPassword,
+                          placeholder: "••••••••",
+                          secure: true,
+                          contentType: .password,
+                          submitLabel: .go,
+                          onSubmit: { submit() })
+                CTAButton(title: L10n.t("Sign In"),
+                          style: .neon,
+                          busy: vm.isLoggingIn,
+                          busyTitle: L10n.t("Loading…"),
+                          action: { submit() })
             }
-            .padding(.top, 24)
-
-            if let error = authVM.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(Theme.danger)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-            }
-
-            Button(action: { Task { await authVM.login(email: email, password: password) } }) {
-                HStack(spacing: 8) {
-                    if authVM.isLoading {
-                        ProgressView().tint(Theme.onAccent).scaleEffect(0.85)
-                    }
-                    Text("登录")
-                }
-            }
-            .buttonStyle(NeonButtonStyle(enabled: canSubmit))
-            .disabled(!canSubmit)
-
-            Text("大学邮箱登录 · 每周五公布新一轮匹配")
-                .font(.system(size: 12))
-                .foregroundColor(Theme.textMuted)
-                .padding(.top, 4)
         }
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func submit() {
+        Task { await vm.login() }
     }
 }

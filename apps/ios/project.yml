@@ -1,30 +1,78 @@
 # XcodeGen spec — generate the Xcode project from this checked-in file:
 #   brew install xcodegen && cd apps/ios && xcodegen generate && open Unimatcha.xcodeproj
 # Keeping project.yml (text) in git instead of a binary .pbxproj makes the project reviewable/mergeable.
+# `Unimatcha.xcodeproj/` is generated and git-ignored.
 name: Unimatcha
 options:
   bundleIdPrefix: com.unimatcha
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
 settings:
   base:
-    MARKETING_VERSION: "1.0.0"
+    MARKETING_VERSION: "2.4.0"          # Profile footer reads CFBundleShortVersionString
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: ""
-    TARGETED_DEVICE_FAMILY: "1,2"
+    TARGETED_DEVICE_FAMILY: "1"         # phone only (PLAN D8 — H5 is phone-only)
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_EMIT_LOC_STRINGS: NO
+
 targets:
   Unimatcha:
     type: application
     platform: iOS
     sources:
+      # Everything but the bundled fixture folder (added below as a folder reference so the JSON
+      # keeps a `Fixtures/<name>.json` bundle path — the first lookup in Core/FixtureCheck).
+      # NB: the folder reference must NOT be named `Resources` — a top-level `Resources/` directory
+      # inside a shallow iOS .app makes `simctl install` fail with "Missing bundle ID".
       - path: Unimatcha
+        excludes:
+          - "Info.plist"
+          - "Resources"
+      - path: Unimatcha/Resources/Fixtures
+        type: folder
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unimatcha.app
+        TARGETED_DEVICE_FAMILY: "1"         # phone only (PLAN D8); must be set on the target,
+                                            # xcodegen's iOS-app preset otherwise forces "1,2"
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Unimatcha/Info.plist
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
+        CODE_SIGN_STYLE: Automatic
+      configs:
+        # Info.plist `API_BASE_URL` resolves this (PLAN §G / D12).
+        Debug:
+          API_BASE_URL_DEFAULT: "http://localhost:3001/api/v1"
+        Release:
+          API_BASE_URL_DEFAULT: "https://api.unimatcha.ai/api/v1"
+
+schemes:
+  Unimatcha:
+    build:
+      targets:
+        Unimatcha: all
+    run:
+      config: Debug
+      # Add `-unimatcha-decode-check` to run every <Domain>Fixtures.verify() at launch.
+      commandLineArguments:
+        "-unimatcha-decode-check": false
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

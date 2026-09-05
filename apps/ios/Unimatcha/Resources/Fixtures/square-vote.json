@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "pollOptions": [
+      { "text": "Rootes", "votes": 12 },
+      { "text": "Xananas", "votes": 19 },
+      { "text": "The Dirty Duck", "votes": 8 },
+      { "text": "Curiositea", "votes": 0 }
+    ],
+    "myVote": 2
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

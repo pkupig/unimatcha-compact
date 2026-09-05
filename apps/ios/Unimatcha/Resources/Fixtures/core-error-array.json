@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "statusCode": 400,
+  "message": ["Please enter a valid email address", "property foo should not exist"],
+  "errors": null,
+  "timestamp": "2026-09-03T10:00:00.000Z",
+  "path": "/api/v1/auth/register"
+}

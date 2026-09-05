@@ -1,0 +1,68 @@
+{
+  "success": true,
+  "data": {
+    "tickets": [
+      {
+        "id": "clxtkt00000000000000000009",
+        "code": "UMT-7K3PQ2WX9A",
+        "eventId": "clxevt00000000000000000001",
+        "userId": "clx0me0000000000000000001",
+        "pricePaidCents": 300,
+        "status": "valid",
+        "usedAt": null,
+        "createdAt": "2026-09-03T09:58:00.000Z",
+        "event": {
+          "id": "clxevt00000000000000000001",
+          "title": "Freshers Bubble Tea Night",
+          "venue": "Piazza, Students' Union",
+          "school": "University of Warwick",
+          "startAt": "2026-10-09T18:00:00.000Z",
+          "endAt": "2026-10-09T21:00:00.000Z",
+          "status": "published",
+          "images": ["https://api.unimatcha.ai/uploads/3f2b9a0e-1c4d-4e8a-9b6f-7d2c1a5e8f01.jpg"]
+        }
+      },
+      {
+        "id": "clxtkt00000000000000000004",
+        "code": "UMT-M8N2RT5VQ3",
+        "eventId": "clxevt00000000000000000002",
+        "userId": "clx0me0000000000000000001",
+        "pricePaidCents": 0,
+        "status": "used",
+        "usedAt": "2026-08-28T19:04:11.000Z",
+        "createdAt": "2026-08-20T14:30:00.000Z",
+        "event": {
+          "id": "clxevt00000000000000000002",
+          "title": "Welcome Week Campus Tour",
+          "venue": null,
+          "school": "University of Warwick",
+          "startAt": "2026-08-28T18:30:00.000Z",
+          "endAt": null,
+          "status": "closed",
+          "images": []
+        }
+      },
+      {
+        "id": "clxtkt00000000000000000002",
+        "code": "UMT-Q9W4E7RT2Y",
+        "eventId": "clxevt00000000000000000003",
+        "userId": "clx0me0000000000000000001",
+        "pricePaidCents": 100,
+        "status": "cancelled",
+        "usedAt": null,
+        "createdAt": "2026-08-12T11:00:00.000Z",
+        "event": {
+          "id": "clxevt00000000000000000003",
+          "title": "Lakeside Movie Night",
+          "venue": "Lakeside Lawn",
+          "school": null,
+          "startAt": "2026-08-30T20:00:00.000Z",
+          "endAt": "2026-08-30T22:30:00.000Z",
+          "status": "cancelled",
+          "images": []
+        }
+      }
+    ]
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

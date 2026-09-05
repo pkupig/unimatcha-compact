@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "matchId": "clm_friend_qr_0001",
+    "message": "Added — start chatting!",
+    "partner": {
+      "userId": "clu_friend_0002",
+      "nickname": "Noble Hare",
+      "school": "University of Warwick",
+      "grade": "Year 2",
+      "age": 20,
+      "verificationStatus": "verified",
+      "interests": ["Photography", "Badminton"],
+      "avatarUrl": "https://api.unimatcha.ai/uploads/3f7a12bc-hare.jpg"
+    }
+  },
+  "message": "Added — start chatting!",
+  "timestamp": "2026-09-03T09:13:02.550Z"
+}

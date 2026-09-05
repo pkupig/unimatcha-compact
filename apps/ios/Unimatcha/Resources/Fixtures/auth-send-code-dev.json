@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "message": "Verification code sent (dev mode: no email service configured, code shown below)",
+    "devCode": "483920",
+    "expiresInSec": 600
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

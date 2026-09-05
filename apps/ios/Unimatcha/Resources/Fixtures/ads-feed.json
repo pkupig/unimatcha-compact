@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "cmp_unioncafe_001",
+      "title": "Freshers bubble-tea BOGO",
+      "content": "Show your student card at the Union café this week and get a second cup free.\nValid until Friday.",
+      "images": ["https://api.unimatcha.ai/uploads/2b7c1c2e-ad01-4c0e-9a5a-000000000001.jpg"],
+      "landingUrl": null,
+      "advertiserName": "Union Café"
+    },
+    {
+      "id": "cmp_campusgym_002",
+      "title": "Campus gym — first month £9",
+      "content": "No joining fee for Warwick students. Bring a friend and you both train free for a week.",
+      "images": [
+        "https://api.unimatcha.ai/uploads/2b7c1c2e-ad02-4c0e-9a5a-000000000002.jpg",
+        "https://api.unimatcha.ai/uploads/2b7c1c2e-ad02-4c0e-9a5a-000000000003.jpg"
+      ],
+      "landingUrl": "https://example.com/campus-gym?src=unimatcha",
+      "advertiserName": "Campus Gym"
+    },
+    {
+      "id": "cmp_snacks_003",
+      "title": null,
+      "content": "Late-night study snacks delivered to the library.",
+      "images": ["https://api.unimatcha.ai/uploads/2b7c1c2e-ad03-4c0e-9a5a-000000000004.jpg"],
+      "landingUrl": null,
+      "advertiserName": null
+    }
+  ],
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

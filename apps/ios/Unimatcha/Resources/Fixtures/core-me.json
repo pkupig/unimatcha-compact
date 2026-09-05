@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "id": "clx0me0000000000000000001",
+    "email": "a@b.ac.uk",
+    "status": "ACTIVE",
+    "verificationStatus": "unverified",
+    "createdAt": "2026-09-03T10:00:00.000Z",
+    "modeStates": [
+      { "mode": "romantic", "matchState": "searching", "matchSearchingSince": "2026-09-01T10:00:00.000Z" }
+    ],
+    "profile": {
+      "nickname": "晓月",
+      "realName": "Xiaoyue Zhang",
+      "familyName": "Zhang",
+      "givenName": "Xiaoyue",
+      "school": "University of Warwick",
+      "grade": "Year 2",
+      "gender": "female",
+      "genderPref": "any",
+      "age": 21,
+      "city": "Coventry",
+      "interests": ["Music"],
+      "bio": "Hello there",
+      "avatarUrl": "https://api.unimatcha.ai/uploads/3f1c0000-0000-4000-8000-000000000000.jpg",
+      "socialLinks": null,
+      "relationshipScore": 0,
+      "profileCompleteness": 62,
+      "signature": "One thoughtful match, every week.",
+      "coverUrl": null,
+      "tags": ["猫奴"],
+      "major": "Computer Science",
+      "mbti": "INFP",
+      "nationality": "Chinese",
+      "realPhotos": [],
+      "zodiac": null,
+      "wishGifts": [],
+      "studentId": null,
+      "birthday": "2004-06-01"
+    },
+    "hasProfile": true,
+    "completedQuestionnaire": false
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

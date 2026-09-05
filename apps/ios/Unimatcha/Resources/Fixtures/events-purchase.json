@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": {
+    "ticketId": "clxtkt00000000000000000009",
+    "code": "UMT-7K3PQ2WX9A",
+    "event": {
+      "id": "clxevt00000000000000000001",
+      "title": "Freshers Bubble Tea Night",
+      "startAt": "2026-10-09T18:00:00.000Z",
+      "venue": "Piazza, Students' Union"
+    },
+    "pricePaidCents": 300,
+    "cellsPaid": 3
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

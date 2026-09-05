@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "data": {
+    "mode": "friend",
+    "requireSameCity": false,
+    "requireSameUniversity": false,
+    "requireSameMajor": false,
+    "preferredNationalities": [],
+    "preferredMbti": [],
+    "preferredGender": null,
+    "ageMin": null,
+    "ageMax": null,
+    "universityStage": null,
+    "preferredInterests": [],
+    "preferredActivities": [],
+    "friendRequirements": null,
+    "enhancedModeEnabled": false,
+    "friendEnhancedCells": null,
+    "matchBasis": "both",
+    "extraMatchInfo": null
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "data": {
+    "romantic": {
+      "completed": true,
+      "versionId": "clv2rom0000000000000rv4a"
+    },
+    "friend": {
+      "completed": false
+    }
+  },
+  "timestamp": "2026-08-30T09:00:00.000Z"
+}

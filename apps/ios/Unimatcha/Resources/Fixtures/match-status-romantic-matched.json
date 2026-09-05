@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "data": {
+    "mode": "romantic",
+    "matchConfig": { "cronExpr": "0 17 * * 5", "description": null },
+    "nextRunAt": "2026-09-11T09:00:00.000Z",
+    "state": "confirming",
+    "match": {
+      "id": "clmatch000000000000000001",
+      "status": "ROMANTIC_CONFIRMING",
+      "myConfirmed": true,
+      "partnerConfirmed": false,
+      "remainingMs": 93784000,
+      "score": 87,
+      "matchedAt": "2026-08-29T09:00:00.000Z",
+      "relationshipStartedAt": null,
+      "confirmedAt": null
+    },
+    "partner": {
+      "userId": "cluser00000000000000000b",
+      "verificationStatus": "verified",
+      "nickname": "沐晨",
+      "school": "University of Warwick",
+      "grade": "freshman",
+      "age": 22,
+      "city": "London",
+      "interests": ["Photography", "Hiking", "Coffee"],
+      "bio": "Chasing golden hour on the river path.",
+      "avatarUrl": "https://cdn.unimatcha.ai/u/avatar-b.jpg",
+      "coverUrl": "https://cdn.unimatcha.ai/u/cover-b.jpg",
+      "tags": ["INFP"]
+    }
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

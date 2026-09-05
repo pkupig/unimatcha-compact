@@ -1,134 +1,99 @@
 import SwiftUI
 
-/// 消息 tab — 通知列表。由 MainTabView 注入 NotificationViewModel。
-/// 列表项含图标 / 标题 / 正文 / 时间 / 未读圆点；工具栏「全部已读」。
+// MARK: - Notifications list overlay (h5-notifications.md §B, §2; overlay id `notifications`)
+//
+// Full-page overlay (fade, swipe-back) pushed from the home top-bar bell. Header = `FullPageBar`
+// (64 + safe-top), scroll body px 24 / pt 24 / pb 64 with Today / Yesterday / Earlier sections
+// (rolling 24 h), 28 pt between rows, 40 pt between sections, Load More pill, empty / error
+// states and an iOS-only loading line (H5 shows a blank area — gotcha 12).
+
 struct NotificationsView: View {
-    @EnvironmentObject var notifVM: NotificationViewModel
+    static let overlayId = "notifications"
+
+    @ObservedObject private var store = NotificationStore.shared
+
+    init() {}
+
+    /// Bell tap (`openNotifications()`): present the overlay and run the store's open sequence.
+    /// WP-16 implements `AppActions.openNotifications` with this.
+    @MainActor
+    static func present() {
+        OverlayRouter.shared.present(AppOverlay(
+            id: overlayId,
+            style: .fullPage,
+            swipeBack: true,
+            onDismiss: { NotificationStore.shared.close() }
+        ) {
+            NotificationsView()
+        })
+        Task { await NotificationStore.shared.open() }
+    }
+
+    @MainActor
+    static func dismiss() {
+        OverlayRouter.shared.dismiss(id: overlayId)
+    }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if notifVM.isLoading && notifVM.items.isEmpty {
-                    ProgressView().tint(Theme.accent)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if notifVM.items.isEmpty {
-                    emptyState
-                } else {
-                    list
-                }
-            }
-            .themedScreen()
-            .navigationTitle("消息")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        Task { await notifVM.markAllRead() }
-                    } label: {
-                        Text("全部已读")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .tint(Theme.accent)
-                    .disabled(notifVM.unread == 0)
-                }
+        VStack(spacing: 0) {
+            FullPageBar.backTitle(L10n.t("Notifications"), onBack: { NotificationsView.dismiss() })
+            ScrollView(.vertical, showsIndicators: false) {
+                content
+                    .padding(.horizontal, Theme.Space.page)
+                    .padding(.top, 24)
+                    .padding(.bottom, 64)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .task { await notifVM.load() }
+        .background(Theme.C.surface.ignoresSafeArea())
     }
 
-    // MARK: - List
+    @ViewBuilder
+    private var content: some View {
+        if store.items.isEmpty {
+            if store.loadFailed {
+                // B2 — no retry (user closes / reopens), H5 parity.
+                EmptyState(material: "cloud_off",
+                           title: L10n.t("Failed to load"),
+                           subtitle: L10n.t("Check your connection and try again"))
+            } else if store.isLoading {
+                LoadingLine(text: L10n.t("Loading..."), topPadding: 96, bottomPadding: 48)
+            } else {
+                // B1
+                EmptyState(material: "notifications",
+                           title: L10n.t("No notifications"),
+                           subtitle: L10n.t("You're all caught up"))
+            }
+        } else {
+            list
+        }
+    }
+
     private var list: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(notifVM.items) { item in
-                    row(item)
+        let groups = store.items.groupedByDay()
+        return LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(groups) { group in
+                VStack(alignment: .leading, spacing: 0) {
+                    NotificationSectionLabel(text: group.day.label)
+                    VStack(alignment: .leading, spacing: 28) {
+                        ForEach(group.items) { item in
+                            NotificationRow(item: item) { open(item) }
+                        }
+                    }
                 }
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 40)
-        }
-        .refreshable { await notifVM.load() }
-    }
-
-    private func row(_ item: AppNotification) -> some View {
-        let unread = !(item.isRead ?? false)
-        return Card {
-            HStack(alignment: .top, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(unread ? Theme.accent.opacity(0.15) : Theme.surfaceHi)
-                        .frame(width: 40, height: 40)
-                    Image(systemName: icon(for: item.type))
-                        .font(.system(size: 17))
-                        .foregroundColor(unread ? Theme.accent : Theme.textSecondary)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title ?? "通知")
-                        .font(.system(size: 15, weight: unread ? .semibold : .medium))
-                        .foregroundColor(Theme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if let body = item.body, !body.isEmpty {
-                        Text(body)
-                            .font(.system(size: 13))
-                            .foregroundColor(Theme.textSecondary)
-                            .lineLimit(3)
-                    }
-
-                    if let created = item.createdAt {
-                        Text(relativeTime(created))
-                            .font(.system(size: 11))
-                            .foregroundColor(Theme.textMuted)
-                    }
-                }
-
-                if unread {
-                    Circle()
-                        .fill(Theme.accent)
-                        .frame(width: 8, height: 8)
-                        .padding(.top, 6)
+            if store.hasMore {
+                NotificationLoadMoreButton(busy: store.isLoadingMore) {
+                    Task { await store.loadMore() }
                 }
             }
         }
     }
 
-    // MARK: - Empty
-    private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "bell.slash")
-                .font(.system(size: 44))
-                .foregroundColor(Theme.textMuted)
-            Text("暂无消息")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(Theme.textSecondary)
-            Text("匹配结果、聊天与广场互动都会出现在这里")
-                .font(.system(size: 13))
-                .foregroundColor(Theme.textMuted)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.horizontal, 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Helpers
-    private func icon(for type: String?) -> String {
-        switch type {
-        case "match", "MATCH": return "sparkles"
-        case "message", "chat", "MESSAGE": return "bubble.left.fill"
-        case "like", "LIKE": return "heart.fill"
-        case "comment", "COMMENT": return "text.bubble.fill"
-        case "system", "SYSTEM": return "gearshape.fill"
-        case "energy", "ENERGY": return "bolt.fill"
-        default: return "bell.fill"
-        }
-    }
-
-    private func relativeTime(_ iso: String) -> String {
-        guard let date = ISODate.parse(iso) else { return String(iso.prefix(10)) }
-        let f = RelativeDateTimeFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.unitsStyle = .short
-        return f.localizedString(for: date, relativeTo: Date())
+    /// Row tap: detail overlay above the list (which keeps polling) + optimistic mark-read.
+    private func open(_ item: AppNotification) {
+        NotificationDetailView.present(item)
+        store.markRead(id: item.id)
     }
 }

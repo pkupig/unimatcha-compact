@@ -1,0 +1,94 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "clans01000000000000000000",
+      "userId": "clx0me0000000000000000001",
+      "questionnaireVersionId": "clv2rom0000000000000rv4a",
+      "questionId": "clromq170000000000000000",
+      "value": "Kind and curious",
+      "submittedAt": "2026-08-31T12:00:00.000Z",
+      "updatedAt": "2026-08-31T12:00:00.000Z",
+      "question": {
+        "title": "一句话形容你想认识的人",
+        "type": "TEXT"
+      },
+      "questionnaireVersion": {
+        "version": 4,
+        "title": "恋爱问卷 v2"
+      }
+    },
+    {
+      "id": "clans02000000000000000000",
+      "userId": "clx0me0000000000000000001",
+      "questionnaireVersionId": "clv2rom0000000000000rv4a",
+      "questionId": "clromq160000000000000000",
+      "value": [
+        "music",
+        "travel"
+      ],
+      "submittedAt": "2026-08-31T11:59:00.000Z",
+      "updatedAt": "2026-08-31T11:59:00.000Z",
+      "question": {
+        "title": "希望和对方有共同的…（可多选）",
+        "type": "MULTIPLE_CHOICE"
+      },
+      "questionnaireVersion": {
+        "version": 4,
+        "title": "恋爱问卷 v2"
+      }
+    },
+    {
+      "id": "clans03000000000000000000",
+      "userId": "clx0me0000000000000000001",
+      "questionnaireVersionId": "clv2rom0000000000000rv4a",
+      "questionId": "clromq020000000000000000",
+      "value": 4,
+      "submittedAt": "2026-08-31T11:58:00.000Z",
+      "updatedAt": "2026-08-31T11:58:00.000Z",
+      "question": {
+        "title": "比起事业发展，我更把家庭与亲密关系放在优先位置",
+        "type": "SCALE"
+      },
+      "questionnaireVersion": {
+        "version": 4,
+        "title": "恋爱问卷 v2"
+      }
+    },
+    {
+      "id": "clans04000000000000000000",
+      "userId": "clx0me0000000000000000001",
+      "questionnaireVersionId": "clv2rom0000000000000rv4a",
+      "questionId": "clromq010000000000000000",
+      "value": "must_same_city",
+      "submittedAt": "2026-08-31T11:57:00.000Z",
+      "updatedAt": "2026-08-31T11:57:00.000Z",
+      "question": {
+        "title": "对异地 / 距离的态度",
+        "type": "SINGLE_CHOICE"
+      },
+      "questionnaireVersion": {
+        "version": 4,
+        "title": "恋爱问卷 v2"
+      }
+    },
+    {
+      "id": "clans05000000000000000000",
+      "userId": "clx0me0000000000000000001",
+      "questionnaireVersionId": "clv2rom0000000000000rv4a",
+      "questionId": "clold0q010000000000000000",
+      "value": "casual",
+      "submittedAt": "2026-07-01T10:00:00.000Z",
+      "updatedAt": "2026-07-01T10:00:00.000Z",
+      "question": {
+        "title": "旧版题目",
+        "type": "SINGLE_CHOICE"
+      },
+      "questionnaireVersion": {
+        "version": 4,
+        "title": "恋爱问卷 v2"
+      }
+    }
+  ],
+  "timestamp": "2026-08-30T09:00:00.000Z"
+}

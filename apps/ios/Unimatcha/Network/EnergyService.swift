@@ -1,24 +1,24 @@
 import Foundation
 
-struct EnergyService {
-    static func getBalance() async throws -> EnergyBalance {
-        try await APIClient.shared.request("/energy/balance")
+/// `/energy/*` (`api-matching §7`). Mock two-step purchase kept as-is (StoreKit may replace it later).
+enum EnergyService {
+    static func balance() async throws -> EnergyBalance {
+        try await APIClient.shared.request(.get("/energy/balance"))
     }
-    static func getPackages() async throws -> [EnergyPackage] {
-        try await APIClient.shared.request("/energy/packages")
+
+    /// Bare array on the wire (`[{packageId, cells, priceCny}]`).
+    static func packages() async throws -> [EnergyPackage] {
+        try await APIClient.shared.request(.get("/energy/packages"))
     }
-    static func purchase(packageId: String) async throws -> PurchaseIntent {
-        try await APIClient.shared.request("/energy/purchase", method: .POST, body: PurchaseRequest(packageId: packageId))
+
+    /// Creates the order; credits nothing until `confirm`.
+    static func purchase(packageId: String) async throws -> PurchaseOrder {
+        try await APIClient.shared.request(.post("/energy/purchase", body: PurchaseRequest(packageId: packageId)))
     }
-    static func confirmPurchase(orderId: String, packageId: String, transactionId: String? = nil) async throws -> PurchaseConfirmResult {
-        try await APIClient.shared.request("/energy/purchase/confirm", method: .POST,
-                                           body: PurchaseConfirmRequest(orderId: orderId, packageId: packageId, transactionId: transactionId))
-    }
-    @discardableResult
-    static func claim(_ type: String, taskKey: String? = nil) async throws -> ClaimResult {
-        try await APIClient.shared.request("/energy/claim", method: .POST, body: ClaimRequest(claimType: type, taskKey: taskKey))
-    }
-    static func getTransactions(page: Int = 1, limit: Int = 20) async throws -> EnergyTransactionsResponse {
-        try await APIClient.shared.request("/energy/transactions", queryParams: ["page": "\(page)", "limit": "\(limit)"])
+
+    /// Settles the order (idempotent per `orderId`).
+    static func confirm(orderId: String, packageId: String, transactionId: String? = nil) async throws -> PurchaseConfirm {
+        try await APIClient.shared.request(.post("/energy/purchase/confirm",
+                                                 body: PurchaseConfirmRequest(orderId: orderId, packageId: packageId, transactionId: transactionId)))
     }
 }

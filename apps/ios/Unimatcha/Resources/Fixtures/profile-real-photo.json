@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "message": "Real photo added",
+    "realPhotos": [
+      "https://api.unimatcha.ai/uploads/p1.jpg",
+      "https://api.unimatcha.ai/uploads/p2.jpg"
+    ]
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

@@ -1,0 +1,84 @@
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "clnotif0000000000000000001",
+        "type": "match_result",
+        "title": "Your match is here",
+        "body": "Great news! We found a match for you. Head to Chat and start the conversation!",
+        "isRead": false,
+        "createdAt": "2026-09-03T09:30:00.000Z",
+        "metadata": { "matchId": "clmatch000000000000000001", "mode": "romantic" }
+      },
+      {
+        "id": "clnotif0000000000000000002",
+        "type": "energy_refunded",
+        "title": "Energy refunded",
+        "body": "Your enhanced match wasn't confirmed within 48 hours, so 3 energy cells have been refunded.",
+        "isRead": false,
+        "createdAt": "2026-09-03T08:00:00.000Z",
+        "metadata": { "mode": "romantic", "energy": 3, "refundReason": "unconfirmed_48h", "matchId": "clmatch000000000000000002", "dedupeKey": "expire:clmatch000000000000000002:2026-09-01T08:00:00.000Z" }
+      },
+      {
+        "id": "clnotif0000000000000000003",
+        "type": "like",
+        "title": "New like",
+        "body": "Cozy Heron liked your post",
+        "isRead": true,
+        "createdAt": "2026-09-02T07:15:00.000Z",
+        "metadata": { "postId": "clpost0000000000000000001", "actorId": "hmac_3f9a2c1d5e7b" }
+      },
+      {
+        "id": "clnotif0000000000000000004",
+        "type": "comment",
+        "title": "New reply",
+        "body": "林小满 replied to your comment",
+        "isRead": true,
+        "createdAt": "2026-09-01T22:05:00.000Z",
+        "metadata": { "postId": "clpost0000000000000000001", "commentId": "clcomment00000000000000001" }
+      },
+      {
+        "id": "clnotif0000000000000000005",
+        "type": "system",
+        "title": "Poll rejected",
+        "body": "Your poll \"Best canteen?\" was not approved. Reason: Duplicate of an existing poll",
+        "isRead": false,
+        "createdAt": "2026-08-30T12:00:00.000Z",
+        "metadata": { "postId": "clpost0000000000000000002" }
+      },
+      {
+        "id": "clnotif0000000000000000006",
+        "type": "milestone",
+        "title": "A secret unlocked",
+        "body": "You and 晓月 have each said \"I love you\" 100 times. Here is to many more.",
+        "isRead": true,
+        "createdAt": "2026-08-28T18:45:00.000Z",
+        "metadata": { "kind": "love_you_100", "matchId": "clmatch000000000000000001" }
+      },
+      {
+        "id": "clnotif0000000000000000007",
+        "type": "energy_refunded",
+        "title": "Energy refunded",
+        "body": "The event was cancelled, so 1 energy cell has been refunded.",
+        "isRead": true,
+        "createdAt": "2026-08-27T10:00:00.000Z",
+        "metadata": { "mode": null, "energy": "1", "refundReason": "event_cancelled", "matchId": null }
+      },
+      {
+        "id": "clnotif0000000000000000008",
+        "type": "relationship_dissolved",
+        "title": "Friendship ended",
+        "body": "Noble Hare ended your friendship.",
+        "isRead": true,
+        "createdAt": "2026-08-26T10:00:00.000Z",
+        "metadata": null
+      }
+    ],
+    "total": 47,
+    "unread": 3,
+    "page": 1,
+    "limit": 20
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

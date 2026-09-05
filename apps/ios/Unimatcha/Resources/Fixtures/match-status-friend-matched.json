@@ -1,0 +1,68 @@
+{
+  "success": true,
+  "data": {
+    "mode": "friend",
+    "matchConfig": { "cronExpr": "0 17 * * 5", "description": null },
+    "nextRunAt": "2026-09-04T09:00:00.000Z",
+    "state": "matched",
+    "matches": [
+      {
+        "matchId": "clfmatch00000000000000001",
+        "status": "MATCHED_FRIEND",
+        "score": 78,
+        "myConfirmed": false,
+        "partnerConfirmed": false,
+        "remainingMs": 3723000,
+        "matchedAt": "2026-09-02T09:00:00.000Z",
+        "partner": {
+          "userId": "cluser00000000000000000d",
+          "verificationStatus": "verified",
+          "nickname": "青柠",
+          "school": "University of Warwick",
+          "grade": "sophomore",
+          "age": 20,
+          "city": "Coventry",
+          "interests": ["Badminton", "Board games"],
+          "bio": "Looking for a doubles partner.",
+          "avatarUrl": "https://cdn.unimatcha.ai/u/avatar-d.jpg",
+          "coverUrl": null,
+          "tags": []
+        }
+      },
+      {
+        "matchId": "clfmatch00000000000000002",
+        "status": "FRIEND_CONFIRMED",
+        "score": null,
+        "myConfirmed": true,
+        "partnerConfirmed": true,
+        "remainingMs": null,
+        "matchedAt": "2026-08-20T09:00:00.000Z",
+        "partner": {
+          "userId": "cluser00000000000000000e",
+          "verificationStatus": "unverified",
+          "nickname": "Quiet Quokka",
+          "school": "Imperial College London",
+          "grade": "junior",
+          "age": 21,
+          "city": "London",
+          "interests": [],
+          "bio": null,
+          "avatarUrl": null,
+          "coverUrl": null,
+          "tags": ["Film"]
+        }
+      },
+      {
+        "matchId": "clfmatch00000000000000003",
+        "status": "FRIEND_CONFIRMING",
+        "score": 66,
+        "myConfirmed": false,
+        "partnerConfirmed": true,
+        "remainingMs": null,
+        "matchedAt": "2026-09-02T09:00:00.000Z",
+        "partner": null
+      }
+    ]
+  },
+  "timestamp": "2026-09-03T06:00:00.000Z"
+}

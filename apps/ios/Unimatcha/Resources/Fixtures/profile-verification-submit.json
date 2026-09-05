@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "message": "Verification materials submitted, awaiting admin review",
+    "id": "clxver00000000000000000001",
+    "verificationStatus": "pending"
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

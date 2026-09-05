@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "data": {
+    "userId": "clxpartner000000000000000009",
+    "verificationStatus": "verified",
+    "nickname": "Morgan",
+    "realName": "Morgan Lee",
+    "school": "University College London",
+    "grade": "Year 3",
+    "age": 22,
+    "city": "London",
+    "interests": [
+      "Photography",
+      "Rowing"
+    ],
+    "bio": "Coffee, film and long walks.",
+    "avatarUrl": "https://api.unimatcha.ai/uploads/avatar-9.jpg",
+    "socialLinks": {
+      "instagram": "morgan.l"
+    },
+    "relationshipScore": 0,
+    "signature": "Say hi first.",
+    "coverUrl": "https://api.unimatcha.ai/uploads/cover-9.jpg",
+    "tags": [
+      "night owl"
+    ],
+    "major": "Film and Television Studies",
+    "mbti": "ENFP",
+    "nationality": "British",
+    "realPhotos": [
+      "https://api.unimatcha.ai/uploads/rp-9-1.jpg",
+      "https://api.unimatcha.ai/uploads/rp-9-2.jpg"
+    ],
+    "zodiac": "Leo",
+    "daysKnown": 12
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

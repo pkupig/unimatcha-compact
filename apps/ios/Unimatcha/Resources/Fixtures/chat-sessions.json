@@ -1,0 +1,121 @@
+{
+  "success": true,
+  "data": {
+    "sessions": [
+      {
+        "matchId": "cmatch_temp_friend_01",
+        "mode": "friend",
+        "status": "MATCHED_FRIEND",
+        "sessionType": "temp",
+        "remainingMs": 36000000,
+        "myConfirmed": false,
+        "partnerConfirmed": false,
+        "partner": {
+          "id": "cusr_partner_friend",
+          "note": null,
+          "nickname": "沐晨",
+          "avatarUrl": "https://api.unimatcha.ai/uploads/aa11.jpg",
+          "school": "University of Warwick",
+          "gender": "female",
+          "age": 21
+        },
+        "lastMessage": {
+          "id": "cmsg_101",
+          "content": "Hey! Saw you like film photography too — what camera do you shoot with these days?",
+          "imageUrl": null,
+          "kind": "text",
+          "senderId": "cusr_partner_friend",
+          "isRead": false,
+          "createdAt": "2026-09-03T09:12:04.881Z"
+        },
+        "unreadCount": 2,
+        "chatBackground": null,
+        "updatedAt": "2026-09-03T09:12:04.881Z"
+      },
+      {
+        "matchId": "cmatch_conf_friend_02",
+        "mode": "friend",
+        "status": "FRIEND_CONFIRMED",
+        "sessionType": "confirmed",
+        "remainingMs": null,
+        "myConfirmed": true,
+        "partnerConfirmed": true,
+        "partner": {
+          "id": "cusr_partner_climb",
+          "note": "climbing buddy",
+          "nickname": "Noble Hare",
+          "avatarUrl": null,
+          "school": "University College London",
+          "gender": "male",
+          "age": 22
+        },
+        "lastMessage": {
+          "id": "cmsg_202",
+          "content": "",
+          "imageUrl": "https://api.unimatcha.ai/uploads/bb22.jpg",
+          "kind": "text",
+          "senderId": "cusr_partner_climb",
+          "isRead": true,
+          "createdAt": "2026-09-02T18:40:00.000Z"
+        },
+        "unreadCount": 0,
+        "chatBackground": "https://api.unimatcha.ai/uploads/wall01.jpg",
+        "updatedAt": "2026-09-02T18:40:00.000Z"
+      },
+      {
+        "matchId": "cmatch_conf_romantic_03",
+        "mode": "romantic",
+        "status": "RELATIONSHIP_ROMANTIC",
+        "sessionType": "confirmed",
+        "remainingMs": null,
+        "myConfirmed": true,
+        "partnerConfirmed": true,
+        "partner": {
+          "userId": "cusr_partner_love",
+          "note": null,
+          "name": "林小满",
+          "avatar": "https://api.unimatcha.ai/uploads/cc33.jpg",
+          "school": "University of Oxford",
+          "gender": "female",
+          "age": 20
+        },
+        "lastMessage": {
+          "id": "cmsg_303",
+          "content": "林小满 nudged 我 on the head",
+          "imageUrl": null,
+          "kind": "nudge",
+          "senderId": "cusr_partner_love",
+          "isRead": true,
+          "createdAt": "2026-09-01T07:05:00.000Z"
+        },
+        "unreadCount": 0,
+        "chatBackground": null,
+        "updatedAt": "2026-09-01T07:05:00.000Z"
+      },
+      {
+        "matchId": "cmatch_temp_expired_04",
+        "mode": "romantic",
+        "status": "ROMANTIC_CONFIRMING",
+        "sessionType": "temp",
+        "remainingMs": 0,
+        "myConfirmed": true,
+        "partnerConfirmed": false,
+        "partner": {
+          "id": "cusr_partner_gone",
+          "note": null,
+          "nickname": null,
+          "avatarUrl": null,
+          "school": null,
+          "gender": null,
+          "age": null
+        },
+        "lastMessage": null,
+        "unreadCount": 0,
+        "chatBackground": null,
+        "updatedAt": "2026-08-30T12:00:00.000Z"
+      }
+    ],
+    "total": 4
+  },
+  "timestamp": "2026-09-03T09:20:00.000Z"
+}

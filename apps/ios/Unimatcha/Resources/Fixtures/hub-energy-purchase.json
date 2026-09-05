@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "orderId": "order_clu_me_1756890851234",
+    "packageId": "pkg_60",
+    "cells": 60,
+    "priceCny": 58,
+    "paymentIntent": { "mock": true }
+  },
+  "timestamp": "2026-09-03T09:14:11.612Z"
+}

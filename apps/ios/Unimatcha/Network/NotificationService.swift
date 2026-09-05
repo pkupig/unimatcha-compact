@@ -1,33 +1,33 @@
 import Foundation
 
-struct NotificationService {
-    static func list(page: Int = 1, limit: Int = 20) async throws -> NotificationsResponse {
-        try await APIClient.shared.request("/notifications", queryParams: ["page": "\(page)", "limit": "\(limit)"])
-    }
-    static func unreadCount() async throws -> UnreadCount {
-        try await APIClient.shared.request("/notifications/unread-count")
-    }
-    @discardableResult
-    static func markAllRead() async throws -> GenericResponse {
-        try await APIClient.shared.send("/notifications/read", method: .PUT)
-    }
-    @discardableResult
-    static func markRead(_ id: String) async throws -> GenericResponse {
-        try await APIClient.shared.send("/notifications/\(id)/read", method: .PUT)
-    }
-}
+/// `NotificationController` (api-chat-realtime-notifications.md §3, h5-notifications.md §3).
+///
+/// The H5 never calls `PUT /notifications/read` (mark-all) and has no UI for it, so it is
+/// deliberately not exposed here (D9: 1:1 parity, no mark-all-read).
+enum NotificationService {
+    /// `NOTIF_PAGE_SIZE` — constant 20.
+    static let pageSize = 20
 
-struct ReportService {
-    @discardableResult
-    static func create(category: String, content: String, contact: String? = nil) async throws -> GenericResponse {
-        struct Body: Encodable { let category: String; let content: String; let contact: String? }
-        return try await APIClient.shared.send("/reports", body: Body(category: category, content: content, contact: contact))
+    /// `GET /notifications?page=&limit=` → `{ items, total, unread, page, limit }` (bare array tolerated).
+    static func list(page: Int, limit: Int = pageSize) async throws -> NotificationsPage {
+        let p = max(1, page)
+        let l = max(1, limit)
+        return try await APIClient.shared.request(.get("/notifications", query: [
+            URLQueryItem(name: "page", value: String(p)),
+            URLQueryItem(name: "limit", value: String(l)),
+        ]))
     }
-}
 
-struct UploadService {
-    /// Upload image data → returns hosted URL to store in avatarUrl/coverUrl/realPhotos/post images.
-    static func upload(_ data: Data, filename: String = "photo.jpg", mime: String = "image/jpeg") async throws -> String {
-        try await APIClient.shared.uploadImage(data, filename: filename, mime: mime).url
+    /// `GET /notifications/unread-count` → `{ unreadCount }`.
+    static func unreadCount() async throws -> Int {
+        let r: UnreadCount = try await APIClient.shared.request(.get("/notifications/unread-count"))
+        return max(0, r.unreadCount)
+    }
+
+    /// `PUT /notifications/:id/read` — no body; the `{ success: true }` payload is unused.
+    /// Never 404s (scoped `updateMany`).
+    static func markRead(id: String) async throws {
+        let safe = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        try await APIClient.shared.send(.put("/notifications/\(safe)/read"))
     }
 }

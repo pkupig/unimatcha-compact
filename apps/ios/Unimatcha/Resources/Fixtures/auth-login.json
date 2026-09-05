@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "clx0me0000000000000000001",
+      "email": "a@b.ac.uk",
+      "status": "ACTIVE",
+      "hasProfile": true,
+      "profileCompleteness": 62
+    },
+    "token": "eyJhbGciOiJIUzI1NiJ9.fixture.login"
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}

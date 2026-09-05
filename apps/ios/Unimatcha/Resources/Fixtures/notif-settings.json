@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "data": {
+    "pushEnabled": true,
+    "privacy": {
+      "showProfile": true,
+      "showOnline": false,
+      "showMoments": true,
+      "searchable": true,
+      "discoverable": false
+    }
+  },
+  "timestamp": "2026-09-03T10:00:00.000Z"
+}
