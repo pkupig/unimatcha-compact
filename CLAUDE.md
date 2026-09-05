@@ -44,6 +44,10 @@ Unimatcha —— 面向大学生的长期恋爱匹配平台（v2.0）。每周�
 
 ## 每日日志
 
+### 2026-09-06
+- 完成（🔀 五个提交推上 origin，db2237f）：iOS 全量重写（2bc9697）/账号自助注销（a07eced）/运营三文档（339c2b2）/内容按用户限流（797a8d5）/日志（2a5d4fb）。推送前后共撞上并行会话四轮推进（9/4 样式+直加好友修复、9/5 广场四分类+聊天长按菜单+校标 9 条、9/5 上线日志、9/6 顶栏居中修复），全部 rebase 干净落上，零丢失；变基后复验 api tsc 0 + jest 69/69 + H5 build 过。**凭据记档**：本机此前无任何 GitHub 凭据（无 SSH key、keychain 无 token），走 `gh auth login --web` 设备码流程由用户在浏览器自行授权（pkupig，repo 权限，token 由 gh keyring 保管），`gh auth setup-git` 接好 credential helper 后推送恢复正常。
+- ⚠️ 待办（上线链路后半）：origin 推上 ≠ 生产部署。`server` 远程（root@209.97.179.143 裸仓库）本机未配且无 SSH key，`git push server main` + 服务器重建 api/h5 容器 + **`migrate deploy` 跑两条新迁移**（20260903 注销 + 20260905 广场聊天）都还没做——注销接口与限流在生产尚未生效。
+
 ### 2026-09-05
 - 完成（🧩 六大功能一轮实现，待上线）：用户一次性提了聊天长按菜单（引用/转发/复制/翻译/点赞，双击也点赞）、广场帖子直接转发进聊天、新增「附近」与「探索」两个分类、认证校标系统、广场页序改为 推荐→附近→探索→校园墙。**四点拍板**（AskUserQuestion）：校标先自动生成+后台可覆盖、附近走真 GPS、**本轮不做翻译**（只留入口）、认证门槛**仅限探索里的外校墙**（本校墙一切照旧）。中途追加「续火花」。
 - **schema 增量**（迁移 `20260905093000_square_chat_features`，纯增量+一条回填，**尚未上生产**）：`User.verifiedSchool`（管理员审核通过时写的学校快照）、`Message.kind/replyToId/metadata` + 新表 `MessageLike`、`Match.streakCount/streakLastDate`、`SquarePost.lat/lng`、`School.badgeUrl/badgeText/badgeColor`。**曾加过 `Profile.lat/lng/locationEnabled` 又删掉**——`getMyProfile` 是整行 spread，任何新列自动出网；而且「附近」是**帖子**流，位置该挂在帖子上，服务端**一点用户位置都不存**。
