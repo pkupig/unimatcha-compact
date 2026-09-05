@@ -17,6 +17,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { UploadRateLimit } from '../common/guards/user-rate-limit.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -82,6 +83,7 @@ export class UploadsController {
    * 文件保存到 /uploads 目录，通过 /uploads/{filename} 访问
    */
   @Post('image')
+  @UseGuards(UploadRateLimit)
   @ApiOperation({ summary: '上传图片文件' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -102,6 +104,7 @@ export class UploadsController {
   }
 
   @Post('avatar')
+  @UseGuards(UploadRateLimit)
   @ApiOperation({ summary: '设置头像 URL（占位：直接存 URL）' })
   async setAvatar(
     @CurrentUser('id') userId: string,
@@ -116,6 +119,7 @@ export class UploadsController {
   }
 
   @Post('real-photo')
+  @UseGuards(UploadRateLimit)
   @ApiOperation({ summary: '添加真实照片 URL（占位）' })
   async addRealPhoto(
     @CurrentUser('id') userId: string,

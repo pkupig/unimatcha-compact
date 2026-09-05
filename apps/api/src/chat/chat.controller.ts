@@ -4,6 +4,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { MessageSendRateLimit, NudgeRateLimit, LikeToggleRateLimit } from '../common/guards/user-rate-limit.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SendMessageDto, ConversationSessionsQueryDto } from './dto/chat.dto';
 
@@ -48,6 +49,7 @@ export class ChatController {
   }
 
   @Post(':matchId/nudge')
+  @UseGuards(NudgeRateLimit)
   @ApiOperation({ summary: '拍一拍（在已确认对话发一条系统消息）' })
   async nudge(@CurrentUser('id') userId: string, @Param('matchId') matchId: string) {
     return this.chatService.nudge(matchId, userId);
@@ -84,6 +86,7 @@ export class ChatController {
 
   // ─── 发送消息 ─────────────────────────────────────────────
   @Post(':matchId/messages')
+  @UseGuards(MessageSendRateLimit)
   @ApiOperation({ summary: '发送消息' })
   async sendMessage(
     @CurrentUser('id') userId: string,
@@ -99,6 +102,7 @@ export class ChatController {
   }
 
   @Post('messages/:messageId/like')
+  @UseGuards(LikeToggleRateLimit)
   @ApiOperation({ summary: '消息点赞/取消（长按菜单与双击共用；幂等）' })
   async toggleMessageLike(
     @CurrentUser('id') userId: string,

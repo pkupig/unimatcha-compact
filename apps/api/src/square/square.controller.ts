@@ -12,6 +12,13 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger'
 import { SquareBoard } from '@prisma/client';
 import { SquareService } from './square.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import {
+  PostCreateRateLimit,
+  CommentCreateRateLimit,
+  LikeToggleRateLimit,
+  VoteRateLimit,
+  ReportRateLimit,
+} from '../common/guards/user-rate-limit.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import {
   CreatePostDto,
@@ -33,6 +40,7 @@ export class SquareController {
   constructor(private squareService: SquareService) {}
 
   @Post('posts')
+  @UseGuards(PostCreateRateLimit)
   @ApiOperation({ summary: '用户发帖（authorType=USER；school 取自资料）' })
   async createPost(
     @CurrentUser('id') userId: string,
@@ -172,6 +180,7 @@ export class SquareController {
   }
 
   @Post('posts/:id/vote')
+  @UseGuards(VoteRateLimit)
   @ApiOperation({ summary: '校园墙投票（每人一票，可改票；仅审核通过的投票帖）' })
   async votePoll(
     @CurrentUser('id') userId: string,
@@ -182,6 +191,7 @@ export class SquareController {
   }
 
   @Post('posts/:id/like')
+  @UseGuards(LikeToggleRateLimit)
   @ApiOperation({ summary: '点赞（切换）' })
   async likePost(
     @CurrentUser('id') userId: string,
@@ -191,6 +201,7 @@ export class SquareController {
   }
 
   @Post('posts/:id/comments')
+  @UseGuards(CommentCreateRateLimit)
   @ApiOperation({ summary: '评论（楼中楼）' })
   async createComment(
     @CurrentUser('id') userId: string,
@@ -201,6 +212,7 @@ export class SquareController {
   }
 
   @Post('comments/:id/like')
+  @UseGuards(LikeToggleRateLimit)
   @ApiOperation({ summary: '评论点赞（切换）' })
   async likeComment(
     @CurrentUser('id') userId: string,
@@ -210,6 +222,7 @@ export class SquareController {
   }
 
   @Post('posts/:id/report')
+  @UseGuards(ReportRateLimit)
   @ApiOperation({ summary: '举报（累计 ≥3 自动隐藏）' })
   async reportPost(
     @CurrentUser('id') userId: string,

@@ -33,6 +33,8 @@ const ZH = {
   'Password is required': '请输入密码',
   'Your account has been deleted': '你的账号已注销',
   'Failed to delete account': '注销失败',
+  'Too many requests, please slow down': '操作太频繁了，歇一会再试',
+  'Too many requests, please try again later': '请求太频繁，请稍后再试',
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
   Send: '发送', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',
