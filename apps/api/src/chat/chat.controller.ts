@@ -93,7 +93,18 @@ export class ChatController {
     return this.chatService.sendMessage(matchId, userId, {
       content: dto.content,
       imageUrl: dto.imageUrl,
+      replyToId: dto.replyToId,
+      sharePostId: dto.sharePostId,
     });
+  }
+
+  @Post('messages/:messageId/like')
+  @ApiOperation({ summary: '消息点赞/取消（长按菜单与双击共用；幂等）' })
+  async toggleMessageLike(
+    @CurrentUser('id') userId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    return this.chatService.toggleMessageLike(messageId, userId);
   }
 
   // ─── 标记已读 ─────────────────────────────────────────────

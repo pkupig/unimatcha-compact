@@ -1203,7 +1203,11 @@
                改由 JS 渲染（有图出图、无图出首字母，与会话列表一致） -->
           <div id="chat-partner-avatar" onclick="openChatPartnerProfile()" class="w-9 h-9 shrink-0 cursor-pointer"></div>
           <div>
-            <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white" data-no-i18n>Chat Partner</h1>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <h1 id="chat-partner-name" class="font-headline font-bold tracking-tight text-sm text-black dark:text-white truncate" data-no-i18n>Chat Partner</h1>
+              <!-- 续火花：由 renderChatStreak 填，无火花时隐藏 -->
+              <span id="chat-streak" class="hidden"></span>
+            </div>
             <p id="chat-partner-location" class="text-[10px] tracking-widest text-neutral-400" data-no-i18n>Location</p>
           </div>
         </div>
@@ -1226,6 +1230,8 @@
         <button type="button" onclick="clearChatPendingImage()" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neon-pink text-white flex items-center justify-center active:scale-90"><span class="material-symbols-outlined" style="font-size:14px">close</span></button>
       </div>
     </div>
+    <!-- 引用条：长按消息选「引用」后出现，发送后自动清空 -->
+    <div id="chat-quote-bar" class="hidden max-w-2xl mx-auto flex items-center gap-2 mb-2 px-3 py-2 rounded-[10px] bg-surface-container-low border-l-2 border-neon"></div>
     <div class="max-w-2xl mx-auto flex items-end gap-2">
       <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="onChatImagePicked(this)"/>
       <button class="shrink-0 w-10 h-10 text-neutral-500 hover:text-black transition-colors focus:outline-none flex items-center justify-center" onclick="document.getElementById('chat-image-input').click()">

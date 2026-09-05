@@ -88,6 +88,9 @@ function startRealtime() {
       // 正在看这个会话 → 立刻拉新消息；会话列表节流刷新（红点/预览，带 trailing 补刷）
       if (S.chatMatchId && data.matchId === S.chatMatchId) window.pollChatMessages?.();
       throttleWithTrailing('realtimeSess', 3000, () => window.loadSessions?.());
+    } else if (data.type === 'message_like') {
+      // 轮询是 afterId 单向游标，带不回「旧消息被点赞」，必须靠推送就地刷新
+      if (S.chatMatchId && data.matchId === S.chatMatchId) window.refreshMessageLike?.(data.messageId);
     } else if (data.type === 'read') {
       // 对方读了我的消息：当前就在这个会话 → 立刻点亮「已读」
       if (S.chatMatchId && data.matchId === S.chatMatchId) window.refreshReadReceipts?.();
@@ -191,6 +194,8 @@ function cleanupUserState() {
   S.chatLoadingHistory = false;
   S.chatPollBusy = false;
   S.chatPollTick = 0;
+  S.chatStreak = null;
+  S.replyTo = null;
   // chat session list (§6.6)
   S.sessions = [];
   S.chatSessionType = null;
@@ -797,3 +802,40 @@ function codeCooldown(btn, seconds, idleLabel) {
   }, 1000);
 }
 window.codeCooldown = codeCooldown;
+
+// ── 复制到剪贴板（带兜底）────────────────────────────────────
+// navigator.clipboard 只在安全上下文存在：生产 https 没问题，但用手机连
+// 局域网 IP 自测时（http://192.168.x.x）它是 undefined——不兜底就会以为功能坏了。
+// iOS Safari 的 execCommand 兜底还必须用 readOnly+contentEditable+setSelectionRange，
+// 直接 el.select() 在 iOS 上不生效。
+// ⚠️ 必须在用户手势的同步栈内调用（iOS 要求），调用前不要 await 任何东西。
+async function copyText(text) {
+  const str = String(text ?? '');
+  if (!str) return false;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(str);
+      return true;
+    }
+  } catch (e) { /* 落到下面的兜底 */ }
+  try {
+    const el = document.createElement('textarea');
+    el.value = str;
+    el.readOnly = true;          // 防止 iOS 弹出软键盘
+    el.contentEditable = 'true'; // iOS 需要它才肯让选区生效
+    el.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(el);
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    el.setSelectionRange(0, str.length);
+    const ok = document.execCommand('copy');
+    el.remove();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+window.copyText = copyText;

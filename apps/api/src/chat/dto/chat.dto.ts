@@ -13,6 +13,16 @@ export class SendMessageDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @ApiPropertyOptional({ description: '引用回复：被引用消息的 id（须属于同一会话）' })
+  @IsOptional()
+  @IsString()
+  replyToId?: string;
+
+  @ApiPropertyOptional({ description: '转发广场帖子：帖子 id（服务端自取快照，客户端不得自带内容）' })
+  @IsOptional()
+  @IsString()
+  sharePostId?: string;
 }
 
 // ─── 会话列表查询（§4.2） ─────────────────────────────────

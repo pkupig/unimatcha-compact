@@ -92,7 +92,7 @@ function sessionRowHtml(s) {
       ${sessionAvatarHtml(partner, 'chat-avatar chat-avatar--lg')}
       <div class="flex-grow min-w-0">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="font-headline font-bold text-[15px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(name)}</span>${window.badgeFor?.({ verificationStatus: partner.verificationStatus, verifiedSchool: partner.verifiedSchool }) || ''}
+          <span class="font-headline font-bold text-[15px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(name)}</span>${window.badgeFor?.({ verificationStatus: partner.verificationStatus, verifiedSchool: partner.verifiedSchool }) || ''}${streakChip(s)}
           ${partner.note ? `<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-surface-container text-[10px] font-medium text-on-surface-variant truncate max-w-[45%]" data-no-i18n>${window.escapeHtml(partner.note)}</span>` : ''}
         </div>
         <p class="text-xs text-on-surface-variant truncate mt-1" data-no-i18n>${window.escapeHtml(lastTrunc) || `<span class="opacity-50">${zh ? '开始聊天吧…' : 'Start the conversation…'}</span>`}</p>
@@ -231,7 +231,10 @@ function openSession(session) {
   S.chatPartnerAvatar = partner.avatarUrl || partner.avatar || '';
   S.chatPartnerSchool = partner.school || '';
   S.chatBackground = session.chatBackground || null; // #7 各自的聊天背景
+  // 续火花：从会话列表带进来（列表已由后端算好活/死），进页即显示
+  S.chatStreak = { streakCount: session.streakCount || 0, streakToday: session.streakToday };
   openChat({ fromSession: true });
+  renderChatStreak(S.chatStreak);
 }
 window.openSession = openSession;
 
@@ -485,6 +488,8 @@ function isChatDissolved() {
 window.isChatDissolved = isChatDissolved;
 
 async function openChat(opts = {}) {
+  bindChatMessageGestures();
+  cancelQuoteReply(); // 换会话不继承上一个会话的引用
   // Two entry points (§6.6): from a Chat-list session (openSession seeds the
   // S.chat* fields + matchId up front) or from the match flow (read S.matchStatus).
   const fromSession = opts && opts.fromSession;
@@ -565,6 +570,8 @@ function openChatPartnerProfile() {
 window.openChatPartnerProfile = openChatPartnerProfile;
 
 function closeChat() {
+  closeChatMsgMenu();
+  cancelQuoteReply();
   window.stopChatPolling();
   // 清掉会话指针：openChat 的历史加载还在途时用户关掉聊天，await 后的
   // 「S.chatMatchId !== matchId」守卫得以生效——不再重启轮询、不再把
@@ -727,7 +734,22 @@ function messageHtml(m, myId) {
   if (!m.imageUrl && isNudge) {
     return `<div data-id="${attrEscape(m.id)}" data-no-i18n class="w-full text-center text-[11px] text-on-surface-variant py-1.5 italic">${window.escapeHtml(text)}</div>`;
   }
+  // 转发的广场帖子卡：走独立模板，但仍保留 .chat-row[data-id] 外壳
+  // （长按/点赞的事件委托按这个选择器定位，裸 div 会取不到）
+  if (m.kind === 'post_share' && m.metadata) {
+    return postShareRowHtml(m, mine);
+  }
   let body = '';
+  // 引用条：贴在气泡上方。原消息被删时后端 replyTo 为 null → 显示「原消息已删除」，
+  // 而不是让整条塌掉
+  if (m.replyToId) {
+    const q = m.replyTo;
+    const qText = q
+      ? (q.kind === 'post_share' ? (zhNow() ? '[帖子]' : '[Post]')
+        : (q.content || (q.imageUrl ? (zhNow() ? '[图片]' : '[Photo]') : '')))
+      : (zhNow() ? '原消息已删除' : 'Original message deleted');
+    body += `<div class="chat-quote${mine ? ' mine' : ''}" data-no-i18n>${window.escapeHtml(String(qText).slice(0, 60))}</div>`;
+  }
   if (m.imageUrl) {
     body += `<img src="${window.safeUrl(m.imageUrl)}" alt="Photo" loading="lazy"
       class="chat-image"
@@ -742,12 +764,44 @@ function messageHtml(m, myId) {
   const read = mine
     ? `<div class="chat-read"${m.isRead ? ' data-read="1"' : ' style="display:none"'} data-no-i18n>${zh ? '已读' : 'Read'}</div>`
     : '';
+  const likeCount = m._count?.likes ?? m.likeCount ?? 0;
+  const likeTag = `<div class="chat-like${likeCount ? '' : ' hidden'}" data-like-tag data-no-i18n>❤ <span data-like-n>${likeCount}</span></div>`;
   const av = avatarHtml(mine);
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
     ${mine ? '' : av}
     <div class="chat-col">
       ${body}
+      ${likeTag}
       ${read}
+    </div>
+    ${mine ? av : ''}
+  </div>`;
+}
+
+function zhNow() { return window.getLang?.() === 'zh'; }
+
+// 转发的广场帖子卡。内容全部取自后端写入的**快照**——原帖被删后卡片照常显示
+// 当时的样子，点开才提示已失效（聊天记录不该因为别人删帖而出现空洞）。
+function postShareRowHtml(m, mine) {
+  const meta = m.metadata || {};
+  const title = meta.title || meta.excerpt || (zhNow() ? '广场帖子' : 'Square post');
+  const cover = meta.coverUrl
+    ? `<img src="${window.safeUrl(meta.coverUrl)}" class="w-full h-24 object-cover rounded-t-[10px]" alt="" loading="lazy">`
+    : '';
+  const likeCount = m._count?.likes ?? 0;
+  const likeTag = `<div class="chat-like${likeCount ? '' : ' hidden'}" data-like-tag data-no-i18n>❤ <span data-like-n>${likeCount}</span></div>`;
+  const av = avatarHtml(mine);
+  return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
+    ${mine ? '' : av}
+    <div class="chat-col">
+      <button type="button" class="chat-share-card" data-open-post="${attrEscape(meta.postId || '')}">
+        ${cover}
+        <div class="px-3 py-2.5">
+          <p class="font-headline font-bold text-[13px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(title)}</p>
+          <p class="text-[11px] text-on-surface-variant truncate mt-0.5" data-no-i18n>${window.escapeHtml(meta.authorName || '')}</p>
+        </div>
+      </button>
+      ${likeTag}
     </div>
     ${mine ? av : ''}
   </div>`;
@@ -870,7 +924,12 @@ async function sendChatMessage() {
       if (stillHere()) { if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory(); }
     }
     if (text) {
-      const d = await window.api(`/chat/${matchId}/messages`, 'POST', { content: text });
+      const d = await window.api(`/chat/${matchId}/messages`, 'POST', {
+        content: text,
+        // 引用回复：服务端会校验被引用消息属于同一会话
+        ...(S.replyTo ? { replyToId: S.replyTo.id } : {}),
+      });
+      if (S.replyTo) cancelQuoteReply();
       const m = d?.data || d;
       if (stillHere()) { if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory(); }
     }
@@ -1088,3 +1147,243 @@ window.stopChatPolling = stopChatPolling;
 
 // SSE read 事件（core.js）需要在收到对方已读时点亮回执
 window.refreshReadReceipts = refreshReadReceipts;
+
+// ═══════════════════════════════════════════════════════════
+// 消息长按菜单 + 双击点赞（照搬 square.js bindPdCommentLongPress 的成熟实现）
+// ═══════════════════════════════════════════════════════════
+//
+// 事件委托绑在 #chat-messages 上、只绑一次：renderChatMessages 会整段 innerHTML
+// 重写，逐条气泡绑事件会全部失效。
+//
+// 与既有手势的冲突处理：
+//  · 左边缘返回（core.js bindEdgeSwipeBack，clientX<=30 触发）——长按目标限定
+//    .chat-bubble/.chat-image/.chat-share-card，不含头像（头像本就有点击菜单）；
+//    关闭聊天时顺手清菜单，避免面板滑走了菜单还浮在屏上。
+//  · 主页三视图横滑（match.js bindHomeViewSwipe）——它已有 .overlay.active 守卫，
+//    而 #chat-overlay 打开时正带这个类，天然不冲突。
+//  · #chat-messages 上没有下拉刷新，无冲突。
+
+function closeChatMsgMenu() {
+  document.querySelectorAll('.chat-msg-menu').forEach(function (e) { e.remove(); });
+}
+window.closeChatMsgMenu = closeChatMsgMenu;
+
+function openChatMsgMenu(msgId, x, y) {
+  closeChatMsgMenu();
+  const m = (S.chatMessages || []).find(function (v) { return v.id === msgId; });
+  if (!m) return;
+  const zh = zhNow();
+  const row = function (icon, label, attr) {
+    return '<button type="button" ' + attr + ' class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left active:bg-surface-container transition-colors">'
+      + '<span class="material-symbols-outlined text-on-surface-variant" style="font-size:18px">' + icon + '</span>'
+      + '<span class="text-sm text-on-surface" data-no-i18n>' + label + '</span></button>';
+  };
+  const menu = document.createElement('div');
+  menu.className = 'chat-msg-menu fixed z-[130] min-w-[152px] bg-surface-container-lowest border border-outline-variant/30 rounded-[12px] shadow-2xl py-1 overflow-hidden';
+  const liked = !!m.myLiked;
+  menu.innerHTML =
+    row('format_quote', zh ? '引用' : 'Quote', 'data-quote')
+    + row('forward', zh ? '转发' : 'Forward', 'data-forward')
+    + (m.content ? row('content_copy', zh ? '复制' : 'Copy', 'data-copy') : '')
+    + row('favorite', liked ? (zh ? '取消赞' : 'Unlike') : (zh ? '点赞' : 'Like'), 'data-like');
+  // 翻译：本轮按产品决定不做。菜单位与后端接口都预留好了，
+  // 拿到翻译服务的 key 后在这里补一行 row('translate', ...) 即可。
+
+  menu.style.left = Math.max(8, Math.min(x - 76, window.innerWidth - 168)) + 'px';
+  menu.style.top = Math.max(8, Math.min(y + 8, window.innerHeight - 200)) + 'px';
+  document.body.appendChild(menu);
+
+  menu.querySelector('[data-quote]').onclick = function () { closeChatMsgMenu(); startQuoteReply(m); };
+  menu.querySelector('[data-forward]').onclick = function () { closeChatMsgMenu(); window.openForwardPicker && window.openForwardPicker({ messageId: m.id }); };
+  const copyBtn = menu.querySelector('[data-copy]');
+  // 复制必须同步跑在手势栈里（iOS 要求），调用前不要 await 任何东西
+  if (copyBtn) {
+    copyBtn.onclick = function () {
+      closeChatMsgMenu();
+      window.copyText(m.content).then(function (ok) {
+        window.toast(ok ? (zh ? '已复制到剪贴板' : 'Copied to clipboard') : (zh ? '复制失败' : 'Copy failed'));
+      });
+    };
+  }
+  menu.querySelector('[data-like]').onclick = function () { closeChatMsgMenu(); toggleMessageLike(m.id); };
+
+  // 延一拍再挂关闭监听：本次 touchend 派生的 click 会立刻把菜单关掉
+  setTimeout(function () {
+    document.addEventListener('click', function once() {
+      closeChatMsgMenu();
+      document.removeEventListener('click', once);
+    });
+  }, 10);
+}
+
+async function toggleMessageLike(messageId) {
+  try {
+    const res = await window.api('/chat/messages/' + messageId + '/like', 'POST');
+    const d = (res && res.data) || res || {};
+    const msg = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
+    if (msg) {
+      msg.myLiked = d.liked;
+      msg._count = Object.assign({}, msg._count || {}, { likes: d.likeCount });
+    }
+    patchMessageLike(messageId, d.likeCount);
+  } catch (e) {
+    window.toast((e && e.message) || (zhNow() ? '操作失败' : 'Failed'));
+  }
+}
+window.toggleMessageLike = toggleMessageLike;
+
+// 就地 patch 点赞标，不整段重渲（重渲会丢滚动位置）
+function patchMessageLike(messageId, count) {
+  const row = document.querySelector('#chat-messages .chat-row[data-id="' + CSS.escape(messageId) + '"]');
+  if (!row) return;
+  const tag = row.querySelector('[data-like-tag]');
+  if (!tag) return;
+  const n = tag.querySelector('[data-like-n]');
+  if (n) n.textContent = count;
+  tag.classList.toggle('hidden', !count);
+}
+window.patchMessageLike = patchMessageLike;
+
+// SSE message_like 事件到达时刷新单条：轮询是 afterId 单向游标，
+// 永远带不回「一条旧消息被点赞了」
+async function refreshMessageLike(messageId) {
+  try {
+    const res = await window.api('/chat/' + S.chatMatchId + '/messages?limit=50');
+    const list = ((res && res.data) || res || {}).messages || [];
+    const fresh = list.find(function (v) { return v.id === messageId; });
+    if (!fresh) return;
+    const msg = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
+    if (msg) msg._count = fresh._count;
+    patchMessageLike(messageId, (fresh._count && fresh._count.likes) || 0);
+  } catch (e) { /* 兜底轮询会补上 */ }
+}
+window.refreshMessageLike = refreshMessageLike;
+
+// ── 引用回复 ──
+function startQuoteReply(m) {
+  S.replyTo = {
+    id: m.id,
+    text: m.content || (m.imageUrl ? (zhNow() ? '[图片]' : '[Photo]') : ''),
+    kind: m.kind,
+  };
+  renderQuoteBar();
+  const input = document.getElementById('chat-input');
+  if (input) input.focus();
+}
+
+function cancelQuoteReply() {
+  S.replyTo = null;
+  renderQuoteBar();
+}
+window.cancelQuoteReply = cancelQuoteReply;
+
+function renderQuoteBar() {
+  const bar = document.getElementById('chat-quote-bar');
+  if (!bar) return;
+  if (!S.replyTo) { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+  const zh = zhNow();
+  bar.classList.remove('hidden');
+  bar.innerHTML = '<span class="material-symbols-outlined text-outline shrink-0" style="font-size:16px">format_quote</span>'
+    + '<span class="flex-1 min-w-0 truncate text-[12px] text-on-surface-variant" data-no-i18n>'
+    + window.escapeHtml(String(S.replyTo.text).slice(0, 60)) + '</span>'
+    + '<button type="button" class="shrink-0 w-6 h-6 flex items-center justify-center active:scale-90" onclick="cancelQuoteReply()">'
+    + '<span class="material-symbols-outlined text-outline" style="font-size:16px">close</span></button>';
+}
+window.renderQuoteBar = renderQuoteBar;
+
+// ── 手势绑定（委托，只绑一次）──
+function bindChatMessageGestures() {
+  const box = document.getElementById('chat-messages');
+  if (!box || box.dataset.gestureBound) return;
+  box.dataset.gestureBound = '1';
+
+  let timer = null, sx = 0, sy = 0, targetId = null;
+  // 用「长按触发时刻」而不是布尔标志：布尔标志要靠下一次 touchstart 复位，
+  // 而长按后用户点的是菜单项（菜单在 body 上、不经过本容器），标志就一直挂着，
+  // 把之后的一次点击白白吞掉。时间戳会自己过期，卡不住。
+  let longFiredAt = 0;
+  const TARGET_SEL = '.chat-bubble, .chat-image, .chat-share-card';
+  const cancel = function () { if (timer) { clearTimeout(timer); timer = null; } };
+
+  box.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { cancel(); return; }
+    const el = e.target.closest(TARGET_SEL);
+    const row = e.target.closest('.chat-row[data-id]');
+    if (!el || !row) return;
+    const t = e.touches[0];
+    sx = t.clientX; sy = t.clientY; targetId = row.dataset.id;
+    cancel();
+    timer = setTimeout(function () {
+      longFiredAt = Date.now();
+      try { if (navigator.vibrate) navigator.vibrate(15); } catch (err) { /* 不支持就算了 */ }
+      openChatMsgMenu(targetId, sx, sy);
+    }, 600);
+  }, { passive: true });
+
+  box.addEventListener('touchmove', function (e) {
+    const t = e.touches[0];
+    if (!t) return;
+    if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel(); // 判定为滚动
+  }, { passive: true });
+
+  box.addEventListener('touchend', cancel, { passive: true });
+  box.addEventListener('touchcancel', cancel, { passive: true });
+
+  // 桌面右键唤出同一菜单
+  box.addEventListener('contextmenu', function (e) {
+    const el = e.target.closest(TARGET_SEL);
+    const row = e.target.closest('.chat-row[data-id]');
+    if (!el || !row) return;
+    e.preventDefault();
+    openChatMsgMenu(row.dataset.id, e.clientX, e.clientY);
+  });
+
+  // 双击点赞；与长按互斥（长按已弹菜单就不再算双击）
+  let lastTap = 0, lastId = null;
+  box.addEventListener('click', function (e) {
+    const openPost = e.target.closest('[data-open-post]');
+    if (openPost) {
+      const pid = openPost.dataset.openPost;
+      if (pid) { if (window.closeChat) window.closeChat(); if (window.openPostDetail) window.openPostDetail(pid); }
+      return;
+    }
+    // 长按刚触发的那一下会派生 click，忽略掉；400ms 后自动失效
+    if (Date.now() - longFiredAt < 400) return;
+    const el = e.target.closest(TARGET_SEL);
+    const row = e.target.closest('.chat-row[data-id]');
+    if (!el || !row) return;
+    const now = Date.now();
+    if (lastId === row.dataset.id && now - lastTap < 300) {
+      lastTap = 0; lastId = null;
+      toggleMessageLike(row.dataset.id);
+      return;
+    }
+    lastTap = now; lastId = row.dataset.id;
+  });
+}
+window.bindChatMessageGestures = bindChatMessageGestures;
+
+// ── 续火花（连续互发天数）──
+// 只在还活着时显示：断掉的火花挂着一个早已作废的数字，比不显示更糟。
+// streakToday=false 时给个「今天还没续上」的暗示（半透明 + 标题提示）。
+function streakChip(s) {
+  const n = s && s.streakCount ? Number(s.streakCount) : 0;
+  if (!n) return '';
+  const pending = s.streakToday === false;
+  const zh = window.getLang && window.getLang() === 'zh';
+  const title = pending
+    ? (zh ? '今天还没互发，别让火花断了' : "You haven't both messaged today")
+    : (zh ? '连续互发 ' + n + ' 天' : n + ' day streak');
+  return '<span class="chat-streak' + (pending ? ' pending' : '') + '" title="' + title.replace(/"/g, '&quot;') + '" data-no-i18n>🔥' + n + '</span>';
+}
+window.streakChip = streakChip;
+
+// 聊天页顶部的火花（进入会话时由 openSession/openChat 填）
+function renderChatStreak(session) {
+  const el = document.getElementById('chat-streak');
+  if (!el) return;
+  const html = streakChip(session || {});
+  el.innerHTML = html;
+  el.classList.toggle('hidden', !html);
+}
+window.renderChatStreak = renderChatStreak;

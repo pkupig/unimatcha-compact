@@ -1308,3 +1308,58 @@
 
     /* 个人主页 hero：校标浮在用户封面照上，加白描边保证深色徽章不糊进照片 */
     .pf-verified-badge .sch-badge { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); }
+
+    /* ── 聊天：引用 / 点赞 / 转发卡 / 续火花（本轮新增）── */
+    /* 引用条：贴在气泡上方的一行原文摘要 */
+    .chat-quote {
+      max-width: 100%;
+      margin-bottom: 4px;
+      padding: 5px 9px;
+      border-left: 2px solid rgba(0, 0, 0, 0.18);
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 6px;
+      font-size: 11.5px;
+      line-height: 1.35;
+      color: #6b6b6b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dark .chat-quote { background: rgba(255,255,255,0.06); border-left-color: rgba(255,255,255,0.24); color: #aaa8a3; }
+    /* 点赞标：气泡下方小心心，无人赞时不占位 */
+    .chat-like { margin-top: 2px; font-size: 11px; line-height: 1; color: #FF2EC4; }
+    .chat-row.mine .chat-like { text-align: right; }
+    /* 转发的广场帖子卡 */
+    .chat-share-card {
+      display: block;
+      width: 210px;
+      max-width: 78vw;
+      text-align: left;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .dark .chat-share-card { background: #1c1b19; border-color: rgba(255,255,255,0.10); }
+    .chat-share-card:active { transform: scale(0.985); }
+    /* 续火花 */
+    .chat-streak {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      padding: 2.5px 5px;
+      border-radius: 6px;
+      background: rgba(255, 122, 0, 0.12);
+      color: #d2691e;
+      white-space: nowrap;
+    }
+    /* 今天还没互发：压暗提示「快断了」，但不用红色（那是错误态的语义） */
+    .chat-streak.pending { opacity: 0.45; }
+    .dark .chat-streak { background: rgba(255, 122, 0, 0.16); color: #f0a06a; }
+    /* iOS 长按气泡会先弹系统「复制/查询」放大镜，把自定义菜单盖掉 */
+    .chat-bubble, .chat-image, .chat-share-card {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }

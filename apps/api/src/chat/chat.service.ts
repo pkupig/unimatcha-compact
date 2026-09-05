@@ -35,7 +35,12 @@ export class ChatService {
   private async verifyMatchAccess(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      select: { id: true, status: true, mode: true, userAId: true, userBId: true, createdAt: true },
+      select: {
+        id: true, status: true, mode: true, userAId: true, userBId: true, createdAt: true,
+        // 续火花：bumpStreak 要拿当前值判断是累加还是重置——不 select 出来的话
+        // 会恒为 undefined→0，火花每天都被重置成 1，连续天数永远涨不上去
+        streakCount: true, streakLastDate: true,
+      },
     });
     if (!match) throw new NotFoundException('Match not found');
     if (match.userAId !== userId && match.userBId !== userId) {
@@ -77,6 +82,14 @@ export class ChatService {
         senderId: true,
         isRead: true,
         createdAt: true,
+        // 引用回复：带出被引用消息的摘要（原消息被删时 replyTo 为 null，
+        // 前端渲染成「原消息已删除」而不是塌掉整条）
+        replyToId: true,
+        replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
+        // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
+        metadata: true,
+        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        _count: { select: { likes: true } },
       },
     });
 
@@ -101,11 +114,12 @@ export class ChatService {
   async sendMessage(
     matchId: string,
     userId: string,
-    payload: { content?: string; imageUrl?: string },
+    payload: { content?: string; imageUrl?: string; replyToId?: string; sharePostId?: string },
   ) {
     const content = payload.content?.trim() ?? '';
     const imageUrl = payload.imageUrl?.trim() || null;
-    if (!content && !imageUrl) {
+    const sharePostId = payload.sharePostId?.trim() || null;
+    if (!content && !imageUrl && !sharePostId) {
       throw new BadRequestException('At least one of message content or image is required');
     }
 
@@ -122,8 +136,37 @@ export class ChatService {
       throw new ForbiddenException('This chat has ended, you cannot send new messages');
     }
 
+    // 引用回复：被引用消息**必须属于同一会话**——否则可以拿别人会话里的消息 id 来引用，
+    // 服务端会把它 join 出来回显，等于跨会话读取他人聊天内容。
+    let replyToId: string | null = null;
+    if (payload.replyToId) {
+      const quoted = await this.prisma.message.findUnique({
+        where: { id: payload.replyToId },
+        select: { id: true, matchId: true },
+      });
+      if (!quoted || quoted.matchId !== matchId) {
+        throw new BadRequestException('You can only quote messages from this conversation');
+      }
+      replyToId = quoted.id;
+    }
+
+    // 转发广场帖子：快照由**服务端**取，客户端只传 postId。
+    // 客户端自带标题/作者会让人伪造成任意内容的「转发卡」。
+    let shareMeta: any = null;
+    if (sharePostId) {
+      shareMeta = await this.buildPostShareSnapshot(sharePostId);
+      if (!shareMeta) throw new NotFoundException('Post not found');
+    }
+
     const message = await this.prisma.message.create({
-      data: { matchId, senderId: userId, content, imageUrl },
+      data: {
+        matchId,
+        senderId: userId,
+        content,
+        imageUrl,
+        replyToId,
+        ...(shareMeta ? { kind: 'post_share', metadata: shareMeta } : {}),
+      },
       select: {
         id: true,
         content: true,
@@ -132,6 +175,14 @@ export class ChatService {
         senderId: true,
         isRead: true,
         createdAt: true,
+        // 引用回复：带出被引用消息的摘要（原消息被删时 replyTo 为 null，
+        // 前端渲染成「原消息已删除」而不是塌掉整条）
+        replyToId: true,
+        replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
+        // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
+        metadata: true,
+        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        _count: { select: { likes: true } },
       },
     });
 
@@ -141,8 +192,16 @@ export class ChatService {
       data: { updatedAt: new Date() },
     });
 
-    // SSE：给对端推「有新消息」失效事件（无连接则静默丢弃，降频轮询兜底）
+    // 续火花：本人发完后判定「对方今天也发过吗」，达成则推进。
+    // 失败不抛——火花是锦上添花，绝不能让发消息本身失败。
     const recipientId = match.userAId === userId ? match.userBId : match.userAId;
+    const streakCount = await this.bumpStreak(matchId, userId, recipientId, {
+      streakCount: (match as any).streakCount ?? 0,
+      streakLastDate: (match as any).streakLastDate ?? null,
+    });
+    (message as any).streakCount = streakCount;
+
+    // SSE：给对端推「有新消息」失效事件（无连接则静默丢弃，降频轮询兜底）
     this.realtime.emitToUser(recipientId, { type: 'message', matchId });
 
     // 行为埋点（P0-2）：本人在该 match 的第 1 条记 firstMessage，其余记 message；失败不影响发送
@@ -194,6 +253,8 @@ export class ChatService {
         status: true,
         userAId: true,
         userBId: true,
+        streakCount: true,
+        streakLastDate: true,
         userAConfirmed: true,
         userBConfirmed: true,
         createdAt: true,
@@ -203,9 +264,10 @@ export class ChatService {
           take: 1,
           select: {
             id: true,
+            kind: true,
+            metadata: true,
             content: true,
             imageUrl: true,
-            kind: true,
             senderId: true,
             isRead: true,
             createdAt: true,
@@ -290,6 +352,13 @@ export class ChatService {
           verificationStatus: pu?.verificationStatus ?? null,
           verifiedSchool: pu?.verifiedSchool ?? null,
         },
+        // 续火花：只有还活着（最后达成日=今天或昨天）才下发天数，
+        // 断掉的直接给 0——挂着一个早已断掉的数字比不显示更糟
+        streakCount: ChatService.isStreakAlive((m as any).streakLastDate)
+          ? ((m as any).streakCount ?? 0)
+          : 0,
+        // 今天是否已达成（前端可给「今天还没续上」的提示）
+        streakToday: (m as any).streakLastDate === ChatService.utcDay(),
         lastMessage: m.messages[0] ?? null,
         unreadCount: unreadMap.get(m.id) ?? 0,
         chatBackground: backgrounds[m.id] ?? null,
@@ -349,6 +418,140 @@ export class ChatService {
     // 行锁串行化读-改-写，避免与其它 settings 端点并发时互相丢更新（FOR UPDATE）
     await this.prisma.updateUserSettings(userId, (settings) => ({ ...settings, nudgeSuffix: clean }));
     return { nudgeSuffix: clean };
+  }
+
+  // ─── 续火花（连续互发天数）──────────────────────────────────
+  //
+  // 规则（同 Snapchat）：**双方**都在同一天发过消息，这一天才计入；断一天即归零。
+  // 只在「我发消息」时推进，判定为「对方今天也发过吗」——所以两人各自发完后，
+  // 后发的那个人触发推进，不会重复计数（streakLastDate === today 时直接返回）。
+  //
+  // 用 UTC 日期字符串而非 DateTime：只关心「哪一天」，存时刻会让每次比较都要做
+  // 时区归一，夏令时切换那天极易算错。
+  static utcDay(d = new Date()): string {
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  }
+
+  private static prevUtcDay(day: string): string {
+    const d = new Date(day + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  /** 火花是否还活着：最后达成日是今天或昨天（今天没互发也还有一天补救时间） */
+  static isStreakAlive(streakLastDate: string | null | undefined): boolean {
+    if (!streakLastDate) return false;
+    const today = ChatService.utcDay();
+    return streakLastDate === today || streakLastDate === ChatService.prevUtcDay(today);
+  }
+
+  /**
+   * 我发完消息后推进火花。返回推进后的天数（未达成则返回当前值）。
+   * 失败不抛：火花是锦上添花，绝不能因为它让发消息失败。
+   */
+  private async bumpStreak(
+    matchId: string,
+    senderId: string,
+    partnerId: string,
+    current: { streakCount: number; streakLastDate: string | null },
+  ): Promise<number> {
+    try {
+      const today = ChatService.utcDay();
+      if (current.streakLastDate === today) return current.streakCount; // 今天已计过
+
+      // 对方今天发过吗？没有就还不算数（等他发时由他那侧触发推进）
+      const partnerSentToday = await this.prisma.message.findFirst({
+        where: {
+          matchId,
+          senderId: partnerId,
+          createdAt: { gte: new Date(today + 'T00:00:00.000Z') },
+        },
+        select: { id: true },
+      });
+      if (!partnerSentToday) return current.streakCount;
+
+      // 昨天也达成 → 累加；否则从 1 重新开始
+      const next =
+        current.streakLastDate === ChatService.prevUtcDay(today) ? current.streakCount + 1 : 1;
+      await this.prisma.match.update({
+        where: { id: matchId },
+        data: { streakCount: next, streakLastDate: today },
+      });
+      return next;
+    } catch (e) {
+      this.logger?.warn?.(`bumpStreak failed for match ${matchId}: ${(e as Error)?.message}`);
+      return current.streakCount;
+    }
+  }
+
+  /**
+   * 转发帖子的快照。存快照而非只存 id：原帖被删/被隐藏后，聊天里的卡片仍要显示
+   * 当时的样子（点开才提示已失效）——聊天记录不该因为别人删帖而出现空洞。
+   *
+   * ⚠️ 匿名帖必须写化名、且**绝不能带学校**。快照是永久持久化的，
+   * 写错了以后改代码也追不回历史消息里的那一份。
+   */
+  private async buildPostShareSnapshot(postId: string): Promise<any | null> {
+    const post = await this.prisma.squarePost.findUnique({
+      where: { id: postId },
+      select: {
+        id: true, title: true, content: true, images: true, anonymous: true,
+        authorUserId: true, authorType: true,
+        authorUser: { select: { profile: { select: { nickname: true } } } },
+        admin: { select: { name: true, organizationName: true } },
+      },
+    });
+    if (!post) return null;
+    const authorName = post.anonymous
+      ? 'Anonymous'  // 匿名：只留通用占位，连化名种子都不入快照
+      : (post.authorUser?.profile?.nickname
+        || post.admin?.name
+        || post.admin?.organizationName
+        || 'User');
+    const text = (post.content || '').replace(/\s+/g, ' ').trim();
+    return {
+      postId: post.id,
+      title: post.title || null,
+      excerpt: text.slice(0, 80),
+      coverUrl: Array.isArray(post.images) && post.images.length ? post.images[0] : null,
+      authorName,
+      // 刻意不存 school —— 匿名帖带学校即缩小作者候选集，且快照不可回收
+    };
+  }
+
+  // ─── 消息点赞（长按菜单 / 双击）──────────────────────────────
+  async toggleMessageLike(messageId: string, userId: string) {
+    const msg = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { id: true, matchId: true, senderId: true },
+    });
+    if (!msg) throw new NotFoundException('Message not found');
+    // 复用既有会话准入校验：不是这个会话的人不能点赞（也就读不到）
+    const match = await this.verifyMatchAccess(msg.matchId, userId);
+
+    const liked = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.messageLike.findUnique({
+        where: { messageId_userId: { messageId, userId } },
+      });
+      if (existing) {
+        await tx.messageLike.delete({ where: { id: existing.id } });
+        return false;
+      }
+      await tx.messageLike.create({ data: { messageId, userId } });
+      return true;
+    });
+
+    const likeCount = await this.prisma.messageLike.count({ where: { messageId } });
+
+    // SSE：轮询是 afterId 单向游标，永远带不回「旧消息被点赞了」，必须推事件。
+    // 事务已提交后再 emit（事务内 emit 会让对端在提交前来拉、拉到旧值）。
+    const partnerId = match.userAId === userId ? match.userBId : match.userAId;
+    this.realtime.emitToUser(partnerId, {
+      type: 'message_like',
+      matchId: msg.matchId,
+      messageId,
+    });
+    return { messageId, liked, likeCount };
   }
 
   // ─── 标记消息已读 ─────────────────────────────────────────
@@ -423,6 +626,14 @@ export class ChatService {
         senderId: true,
         isRead: true,
         createdAt: true,
+        // 引用回复：带出被引用消息的摘要（原消息被删时 replyTo 为 null，
+        // 前端渲染成「原消息已删除」而不是塌掉整条）
+        replyToId: true,
+        replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
+        // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
+        metadata: true,
+        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        _count: { select: { likes: true } },
       },
     });
 

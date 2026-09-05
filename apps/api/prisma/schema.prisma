@@ -569,6 +569,13 @@ model Match {
 
   userAConfirmed Boolean   @default(false)
   userBConfirmed Boolean   @default(false)
+
+  // ── 续火花（连续互发天数）──
+  // 规则同 Snapchat：**双方**都在同一天发过消息，这一天才算数；连续天数断掉即归零。
+  // streakLastDate 存 UTC 的 YYYY-MM-DD（字符串而非 DateTime：只关心"哪一天"，
+  // 存时刻反而要在每次比较时做时区归一，容易在夏令时切换那天算错）。
+  streakCount    Int     @default(0)
+  streakLastDate String? // 最近一个「双方都发过」的日期；今天/昨天 = 火花还活着
   confirmedAt    DateTime?
 
   relationshipStartedAt DateTime?

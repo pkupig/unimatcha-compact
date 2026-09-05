@@ -2,6 +2,10 @@
 ALTER TABLE "users" ADD COLUMN     "verifiedSchool" TEXT;
 
 -- AlterTable
+ALTER TABLE "matches" ADD COLUMN     "streakCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "streakLastDate" TEXT;
+
+-- AlterTable
 ALTER TABLE "square_posts" ADD COLUMN     "lat" DOUBLE PRECISION,
 ADD COLUMN     "lng" DOUBLE PRECISION;
 

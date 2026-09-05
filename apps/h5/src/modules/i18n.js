@@ -88,6 +88,10 @@ const ZH = {
   // 探索：选校与只读态
   'No other campus walls yet': '还没有其它学校的墙',
   'Get verified to interact': '认证学生身份后可互动',
+  // 聊天：长按菜单 / 引用 / 转发 / 复制
+  Quote: '引用', Forward: '转发', Copy: '复制', Like: '点赞', Unlike: '取消赞',
+  'Copied to clipboard': '已复制到剪贴板', 'Copy failed': '复制失败',
+  'Original message deleted': '原消息已删除', 'Square post': '广场帖子',
   'Nothing pinned yet': '还没有置顶内容',
   'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',
