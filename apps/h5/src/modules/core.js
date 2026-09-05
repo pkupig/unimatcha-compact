@@ -176,6 +176,11 @@ function cleanupUserState() {
   S.exploreSchool = null;
   S.exploreSchools = null;
   S.exploreVerified = null;
+  S.exploreReadonly = null;
+  // 各页帖子缓存也要清：含上一账号的校园墙/已选外校墙/搜索结果，新账号预热
+  // 响应落地前会把旧内容原样摆在屏上（squareReqSeqs 保持不清零是对的——
+  // 清零反而让在途旧响应撞上新账号的序号）
+  S.squarePostsByTab = {};
   // 本轮增强标记归零 + 在途偏好响应作废（复查：慢响应可把上一账号的偏好回填进下一账号）
   window.resetMatchPlanState?.();
   // match polling context (ids/counters reset by stopMatchPolling above,

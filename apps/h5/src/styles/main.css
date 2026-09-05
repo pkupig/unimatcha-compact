@@ -51,6 +51,10 @@
        它若参与布局，一出现就会把居中的「推荐/校园墙」整体往左推（用户反馈：那两个不许动）。
        left:100% 贴着分段组右缘，再留 6px（四段并排后 375px 很紧：16px 会溢出屏幕，10px 仍压住搜索键的点击盒）。
        字号比另两段小一档，并按【文字底部】与校园墙对齐——所以用 bottom 定位而不是垂直居中。 */
+    /* 居中后的让位动画：syncPinnedSeg 实测重叠量写 transform，这里只管过渡曲线 */
+    #square-tabs {
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
     #square-seg-pinned {
       position: absolute;
       left: 100%;
@@ -72,6 +76,12 @@
       opacity: 1;
       transform: translateX(0);
       pointer-events: auto;
+    }
+    /* 320px 英文屏：让位截断后仍残留重叠时藏掉置顶段（syncPinnedSeg 打标）——
+       残留态下它整个落在搜索键的点击盒里，点了走错门；进置顶走校园墙左滑 */
+    #square-tabs.show-pinned #square-seg-pinned.pin-clipped {
+      opacity: 0;
+      pointer-events: none;
     }
     /* 置顶页里整页都是置顶帖，逐张再挂 PINNED 角标没有信息量，反而占地方。
        墙上现在只剩活动置顶帖，那里的角标要保留（提示它为什么排在最前）。 */

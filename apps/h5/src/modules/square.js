@@ -147,10 +147,45 @@ function alignPinnedSegBaseline() {
 }
 window.alignPinnedSegBaseline = alignPinnedSegBaseline;
 
+// 旋转/改窗后让位量按新视口重算——不挂这个的话，竖屏算好的 ~37px 左移会
+// 原样带进横屏（偏左却无物可让），或横屏的 0 让位带回竖屏（重叠回来）。
+window.addEventListener('resize', () => syncPinnedSeg(S.squareTab));
+
 function syncPinnedSeg(tab) {
   const tabs = document.getElementById('square-tabs');
   if (!tabs) return;
-  tabs.classList.toggle('show-pinned', tab === 'campus_wall' || tab === 'pinned');
+  const show = tab === 'campus_wall' || tab === 'pinned';
+  tabs.classList.toggle('show-pinned', show);
+  // 四段居中后，置顶段（挂在组右外侧）在**英文态**会盖到搜索键——运行时实测：
+  // 真会重叠才把整组平滑左移正好让开的量，中文态实测重叠为 0、一像素不动。
+  // 左移带上限（组左缘不进 8px 内），320px 极窄英文屏宁可残留少量重叠也不把「推荐」挤出屏。
+  // transform 不改 offsetLeft，下划线定位（positionSquareInk 按组内坐标）不受影响。
+  //
+  // ⚠️ 测量必须用 offsetLeft/offsetWidth 这类**不含 transform 的布局坐标**。
+  // getBoundingClientRect 会把本函数上一次写进去的 translateX 一并读回来，
+  // 形成「输出回流进输入」的反馈回路：让位生效后任何一次 show=true 的再调用
+  // （校园墙↔置顶互切、离开广场再回来）都会测出 overlap≈0 → 把让位清零，
+  // 置顶段重新压回搜索键，每切一次翻转一次永不收敛；0.28s 过渡没走完时
+  // 还会读到中间值。tabs 与搜索键的 offsetParent 同为顶栏的 .relative 容器，
+  // offset 坐标可直接相减，也天然不受过渡中间态影响。
+  const pin = document.getElementById('square-seg-pinned');
+  let shift = 0;
+  if (show && pin) {
+    const search = document.getElementById('square-search-btn');
+    if (search && tabs.offsetWidth) { // 广场页隐藏时 offsetWidth 为 0，跳过等可见再算
+      const pinRight = tabs.offsetLeft + tabs.offsetWidth + 6 + pin.offsetWidth; // margin-left:6px + 段宽
+      const overlap = pinRight - (search.offsetLeft - 4);
+      const maxShift = Math.max(0, tabs.offsetLeft - 8);
+      shift = Math.max(0, Math.min(overlap, maxShift));
+      // 截断后仍残留的重叠（320px 英文屏）会把「置顶」整个送进搜索键的点击盒——
+      // 搜索键是排在后面的 positioned 兄弟，命中测试它赢，点「置顶」开的是搜索。
+      // 与其留一个走错门的按钮，残留时干脆藏掉置顶段（校园墙左滑仍能进置顶）。
+      pin.classList.toggle('pin-clipped', overlap - shift > 2);
+    }
+  } else if (pin) {
+    pin.classList.remove('pin-clipped');
+  }
+  tabs.style.transform = shift ? `translateX(-${shift}px)` : '';
   alignPinnedSegBaseline();
   setTimeout(() => { alignPinnedSegBaseline(); positionSquareInk(); }, 300);
 }
@@ -491,6 +526,10 @@ async function loadSquareTab2(tabArg) {
     }
     // 探索：还没选学校 → 出选校列表（由后端按「墙上真有帖子的学校」聚合）
     if (tab === 'explore' && env.needSchoolPick) {
+      // 服务端拒了这个学校（如恰为本校）：状态里的选择必须一并清掉，否则
+      // 之后每次进探索都带着注定被弹回的 school= 白跑一轮，且界面（选校列表）
+      // 与状态（记着已选校）自相矛盾
+      S.exploreSchool = null;
       S.exploreSchools = env.schools || [];
       S.squarePostsByTab[tab] = [];
       if (tab === S.squareTab) S.squarePosts = [];
@@ -500,6 +539,9 @@ async function loadSquareTab2(tabArg) {
     if (tab === 'explore') {
       S.exploreSchools = env.schools || S.exploreSchools || [];
       S.exploreVerified = !!env.verified;
+      // 只读章跟墙走（后端按「这面墙对我是否只读」下发），不再按用户认证状态一刀切：
+      // 未认证的人看**本校**墙一切照旧，之前把本校也标成只读（2026-09-05 线上反馈）
+      S.exploreReadonly = env.readonly === true;
     }
     // 附近：完全无位置信息（既没定位也没填城市）→ 引导，而不是空白
     if (tab === 'nearby' && env.needCity) {
@@ -535,7 +577,8 @@ function renderExplorePicker() {
   const container = feedEl('explore');
   if (!container) return;
   const zh = window.getLang?.() === 'zh';
-  const list = S.exploreSchools || [];
+  // 服务端已不下发本校；这里再滤一次 isMine 是挡旧 bundle 期间缓存进 S 的列表
+  const list = (S.exploreSchools || []).filter((s) => !s.isMine);
   if (!list.length) {
     container.innerHTML = `<div class="col-span-2 text-center py-24">
       ${window.flatEmptyIcon('travel_explore')}
@@ -547,14 +590,12 @@ function renderExplorePicker() {
   }
   const rows = list.map((s) => {
     const label = window.metaLabel ? window.metaLabel(s.school) : s.school;
-    const mine = s.isMine ? `<span class="text-[9px] font-bold tracking-widest text-black bg-neon rounded px-1.5 py-0.5 shrink-0" data-no-i18n>${zh ? '本校' : 'MINE'}</span>` : '';
     // 校名走 data 属性 + 事件委托：escapeHtml 不转义引号，直接拼进 onclick
     // 字符串时校名里一个撇号就能破掉结构（本仓库 8/30 记过这个坑）
     const attr = window.escapeHtml(String(s.school)).replace(/"/g, '&quot;');
     return `<button type="button" data-pick-school="${attr}" class="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-surface-container-low transition-colors border-b border-outline-variant/15">
       ${window.schoolBadgeHtml ? window.schoolBadgeHtml(s.school, { size: 'md' }) : ''}
       <span class="flex-1 min-w-0 font-headline font-bold text-sm truncate" data-no-i18n>${window.escapeHtml(label)}</span>
-      ${mine}
       <span class="text-[11px] text-on-surface-variant shrink-0" data-no-i18n>${s.postCount}</span>
       <span class="material-symbols-outlined text-outline shrink-0" style="font-size:18px">chevron_right</span>
     </button>`;
@@ -589,7 +630,7 @@ function exploreHeaderHtml() {
   if (!S.exploreSchool) return '';
   const zh = window.getLang?.() === 'zh';
   const label = window.metaLabel ? window.metaLabel(S.exploreSchool) : S.exploreSchool;
-  const readonly = S.exploreVerified === false
+  const readonly = S.exploreReadonly
     ? `<span class="text-[10px] text-on-surface-variant" data-no-i18n>${zh ? '· 只读' : '· read-only'}</span>` : '';
   return `<div class="col-span-2 flex items-center gap-2 px-3 py-2.5 mb-1">
     ${window.schoolBadgeHtml ? window.schoolBadgeHtml(S.exploreSchool, { size: 'sm' }) : ''}

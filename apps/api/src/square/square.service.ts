@@ -132,7 +132,9 @@ export class SquareService {
   ) {
     const page = Math.max(1, Number(params.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(params.limit) || 20));
-    const school = (params.school || '').trim();
+    // ?school=A&school=B 这种重复键 qs 会给数组，.trim() 直接 TypeError 变 500——
+    // 只认字符串，其余形态一律当没传（走选校列表分支）
+    const school = typeof params.school === 'string' ? params.school.trim() : '';
     const [mySchool, me] = await Promise.all([
       this.getUserSchool(userId),
       this.prisma.user.findUnique({
@@ -141,15 +143,24 @@ export class SquareService {
       }),
     ]);
 
-    // 没指定学校 → 只回学校列表，由前端先让用户选
-    if (!school) {
+    // 「本校」= 资料里的学校（校园墙那页看的墙）∪ 认证快照学校（信任根）。
+    // 探索定位是「逛**别的**学校」（2026-09-05 用户拍板：看不了本校，只能选外校）——
+    // 本校墙走校园墙那页；这里连显式传参也拦，免得旧客户端/手拼请求绕过选校列表。
+    // 大小写归一后比较：verifiedSchool 走管理员覆盖参数时是自由文本（只 trim），
+    // 手输 'warwick' 对上词表的 'Warwick' 逐字符比较会漏——放宽只会多剔不会少剔，安全
+    const ownSchools = [mySchool, me?.verifiedSchool]
+      .map((v) => (v || '').trim().toLowerCase())
+      .filter(Boolean);
+
+    // 没指定学校（或指了本校）→ 只回学校列表，由前端先让用户选
+    if (!school || ownSchools.includes(school.toLowerCase())) {
       return {
         items: [],
         page,
         limit,
         total: 0,
         hasMore: false,
-        schools: await this.listWallSchools(mySchool),
+        schools: await this.listWallSchools(ownSchools),
         needSchoolPick: true,
         verified: me?.verificationStatus === 'verified',
       };
@@ -183,8 +194,17 @@ export class SquareService {
       total,
       hasMore: page * limit < total,
       school,
-      schools: await this.listWallSchools(mySchool),
+      schools: await this.listWallSchools(ownSchools),
       verified: me?.verificationStatus === 'verified',
+      // 只读与否是**这面墙**的属性，不是用户的属性：未认证的人看本校墙照常互动，
+      // 只有外校墙才只读。判定与 canInteractWith/assertCanInteract 同一套信任根
+      // （认证用户以 verifiedSchool 为准）——三处口径必须一致，否则章和门对不上。
+      readonly: !this.canInteractWith(
+        { board: SquareBoard.CAMPUS_WALL, school },
+        mySchool,
+        me?.verificationStatus,
+        me?.verifiedSchool,
+      ),
     };
   }
 
@@ -194,7 +214,10 @@ export class SquareService {
    * SquarePost.school 来自 78 条静态元数据——两套词表靠字符串相等硬碰。
    * 按「墙上真有帖子的学校」聚合，永远非空、自维护、不会列出空学校。
    */
-  private async listWallSchools(mySchool: string | null) {
+  // ownSchools：调用方算好的「本校」集合（资料学校 + 认证快照学校），
+  // 这些学校**整个不出现**在探索的选校列表里——探索只逛别的学校
+  // （2026-09-05 用户拍板，替换了同日早些时候「本校钉最前」的相反口径）。
+  private async listWallSchools(ownSchools: string[]) {
     const rows = await this.prisma.squarePost.groupBy({
       by: ['school'],
       where: {
@@ -209,12 +232,14 @@ export class SquareService {
       orderBy: [{ _count: { school: 'desc' } }, { school: 'asc' }],
       take: 100,
     });
+    // 入参在函数内自行归一，不依赖调用方已 lowercase——两边都归一才是逐字符可比的
+    const own = ownSchools.map((v) => (v || '').trim().toLowerCase());
     return rows
       .filter((r) => (r.school || '').trim())
+      .filter((r) => !own.includes((r.school as string).trim().toLowerCase()))
       .map((r) => ({
         school: r.school as string,
         postCount: r._count._all,
-        isMine: !!mySchool && r.school === mySchool,
       }));
   }
 

@@ -724,10 +724,11 @@
 <!-- SQUARE TAB -->
 <div id="tab-square" class="tab-content" style="display: none;">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-    <!-- 四段（推荐/附近/探索/校园墙）后改左对齐：居中放不下——
-         「校园墙」右外侧还挂着绝对定位的置顶段，右上角是搜索键，
-         375px 下居中必然让置顶段压到搜索键上（实测 364 > 327）。 -->
-    <div class="relative flex justify-start items-center h-11 pl-4 pr-16">
+    <!-- 四段（推荐/附近/探索/校园墙）居中（2026-09-05 用户要求改回）。
+         置顶段仍绝对定位挂在「校园墙」右外侧：中文态放得下；英文态在校园墙/置顶页
+         会压到搜索键（旧实测 364 > 327），由 syncPinnedSeg 运行时实测后
+         给整组一个带上限的平滑左移让位，中文态测出重叠为 0、一像素都不动。 -->
+    <div class="relative flex justify-center items-center h-11">
       <!-- 四段切换：滑动荧光绿下划线（#square-tab-ink 由 JS 定位并过渡） -->
       <div id="square-tabs" class="relative flex gap-3">
         <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[-0.01em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>

@@ -268,4 +268,74 @@ describe('SquareService · 匿名（逐条评论）', () => {
       expect(can({ board: 'RECOMMEND', school: 'UCL' }, 'Warwick', 'unverified')).toBe(true);
     });
   });
+
+  describe('探索：本校不出现（2026-09-05 用户拍板：探索只逛别的学校）', () => {
+    it('选校列表剔除本校——本校墙有帖也不列', async () => {
+      mockPrisma.squarePost.groupBy = jest.fn().mockResolvedValue([
+        { school: 'UCL', _count: { _all: 7 } },
+        { school: 'Warwick', _count: { _all: 2 } },
+        { school: 'Imperial', _count: { _all: 3 } },
+      ]);
+      const list = await (service as any).listWallSchools(['Warwick']);
+      expect(list.map((s: any) => s.school)).toEqual(['UCL', 'Imperial']);
+      expect(list.some((s: any) => 'isMine' in s)).toBe(false);
+    });
+
+    it('认证快照学校与资料学校不同时，两所都剔除', async () => {
+      mockPrisma.squarePost.groupBy = jest.fn().mockResolvedValue([
+        { school: 'UCL', _count: { _all: 7 } },
+        { school: 'Warwick', _count: { _all: 2 } },
+        { school: 'Imperial', _count: { _all: 3 } },
+      ]);
+      const list = await (service as any).listWallSchools(['UCL', 'Warwick']);
+      expect(list.map((s: any) => s.school)).toEqual(['Imperial']);
+    });
+
+    it('重复 school 查询参数（qs 解析成数组）不 500，按没传处理', async () => {
+      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
+        verificationStatus: 'unverified',
+        verifiedSchool: null,
+        profile: { school: 'Warwick' },
+      });
+      mockPrisma.profile.findUnique = jest.fn().mockResolvedValue({ school: 'Warwick' });
+      mockPrisma.squarePost.groupBy = jest.fn().mockResolvedValue([]);
+      const res = await service.listExplore('u1', { school: ['UCL', 'Warwick'] as any });
+      expect(res.needSchoolPick).toBe(true);
+    });
+
+    it('本校大小写拼写不一致（管理员手输 verifiedSchool）也剔除', async () => {
+      mockPrisma.squarePost.groupBy = jest.fn().mockResolvedValue([
+        { school: 'Warwick', _count: { _all: 2 } },
+        { school: 'UCL', _count: { _all: 7 } },
+      ]);
+      const list = await (service as any).listWallSchools(['warwick']);
+      expect(list.map((s: any) => s.school)).toEqual(['UCL']);
+    });
+
+    it('listExplore 显式传本校 -> 弹回选校列表而不是出本校的墙', async () => {
+      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
+        verificationStatus: 'unverified',
+        verifiedSchool: null,
+        profile: { school: 'Warwick' },
+      });
+      mockPrisma.profile.findUnique = jest.fn().mockResolvedValue({ school: 'Warwick' });
+      mockPrisma.squarePost.groupBy = jest.fn().mockResolvedValue([
+        { school: 'UCL', _count: { _all: 7 } },
+      ]);
+      const res = await service.listExplore('u1', { school: 'Warwick' });
+      expect(res.needSchoolPick).toBe(true);
+      expect((res as any).items).toEqual([]);
+      expect((res as any).schools.map((s: any) => s.school)).toEqual(['UCL']);
+    });
+
+    it('readonly 是墙的属性不是用户的属性：未认证看本校 false、看外校 true、认证看外校 false', () => {
+      const ro = (school: string, mySchool: any, v: any, vs: any = null) =>
+        !(service as any).canInteractWith({ board: 'CAMPUS_WALL', school }, mySchool, v, vs);
+      expect(ro('Warwick', 'Warwick', 'unverified')).toBe(false); // 截图里的 bug 本体
+      expect(ro('UCL', 'Warwick', 'unverified')).toBe(true);
+      expect(ro('UCL', 'Warwick', 'verified', 'Warwick')).toBe(false);
+      // 认证用户把资料学校改成 UCL：UCL 墙对他不算「本校」但仍可互动 → 不只读
+      expect(ro('UCL', 'UCL', 'verified', 'Warwick')).toBe(false);
+    });
+  });
 });
