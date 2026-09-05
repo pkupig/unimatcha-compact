@@ -88,8 +88,11 @@ export class ChatService {
         replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
         // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
         metadata: true,
-        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        // 消息点赞：_count 出总数，likes 只取自己的那行判定 myLiked
+        // （必须两个都要——只有 _count 的话前端 m.myLiked 恒 undefined，
+        //  长按菜单会永远显示「点赞」而不是「取消赞」）
         _count: { select: { likes: true } },
+        likes: { where: { userId }, select: { id: true } },
       },
     });
 
@@ -107,7 +110,21 @@ export class ChatService {
     const nextCursor =
       messages.length === limit ? messages[messages.length - 1].id : null;
 
-    return { messages, nextCursor };
+    return { messages: messages.map((m) => this.shapeMessage(m)), nextCursor };
+  }
+
+  /**
+   * 消息出参整形：把 likes 行数组折成 myLiked 布尔 + likeCount 数字。
+   * 不能把 likes 数组原样下发——它是「谁点了赞」的原始行，前端也用不上。
+   */
+  private shapeMessage(m: any) {
+    if (!m) return m;
+    const out: any = { ...m };
+    out.myLiked = Array.isArray(m.likes) ? m.likes.length > 0 : false;
+    out.likeCount = m._count?.likes ?? 0;
+    delete out.likes;
+    delete out._count;
+    return out;
   }
 
   // ─── 发送消息 ─────────────────────────────────────────────
@@ -181,8 +198,11 @@ export class ChatService {
         replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
         // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
         metadata: true,
-        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        // 消息点赞：_count 出总数，likes 只取自己的那行判定 myLiked
+        // （必须两个都要——只有 _count 的话前端 m.myLiked 恒 undefined，
+        //  长按菜单会永远显示「点赞」而不是「取消赞」）
         _count: { select: { likes: true } },
+        likes: { where: { userId }, select: { id: true } },
       },
     });
 
@@ -218,7 +238,7 @@ export class ChatService {
     });
 
     this.logger.debug(`Message sent in match ${matchId} by user ${userId}`);
-    return message;
+    return { ...this.shapeMessage(message), streakCount };
   }
 
   // ─── 会话列表（临时对话 + 永久对话统一入口，§4.2） ────────
@@ -632,8 +652,11 @@ export class ChatService {
         replyTo: { select: { id: true, content: true, imageUrl: true, kind: true, senderId: true } },
         // 转发帖子卡的快照（{postId,title,excerpt,coverUrl,authorName}）
         metadata: true,
-        // 消息点赞：_count 出总数，likes 只取自己的行判定 myLiked
+        // 消息点赞：_count 出总数，likes 只取自己的那行判定 myLiked
+        // （必须两个都要——只有 _count 的话前端 m.myLiked 恒 undefined，
+        //  长按菜单会永远显示「点赞」而不是「取消赞」）
         _count: { select: { likes: true } },
+        likes: { where: { userId }, select: { id: true } },
       },
     });
 
@@ -648,6 +671,6 @@ export class ChatService {
       });
     }
 
-    return { messages };
+    return { messages: messages.map((m) => this.shapeMessage(m)) };
   }
 }

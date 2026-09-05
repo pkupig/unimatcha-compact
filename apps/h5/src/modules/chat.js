@@ -764,7 +764,7 @@ function messageHtml(m, myId) {
   const read = mine
     ? `<div class="chat-read"${m.isRead ? ' data-read="1"' : ' style="display:none"'} data-no-i18n>${zh ? '已读' : 'Read'}</div>`
     : '';
-  const likeCount = m._count?.likes ?? m.likeCount ?? 0;
+  const likeCount = m.likeCount ?? 0;
   const likeTag = `<div class="chat-like${likeCount ? '' : ' hidden'}" data-like-tag data-no-i18n>❤ <span data-like-n>${likeCount}</span></div>`;
   const av = avatarHtml(mine);
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
@@ -788,7 +788,7 @@ function postShareRowHtml(m, mine) {
   const cover = meta.coverUrl
     ? `<img src="${window.safeUrl(meta.coverUrl)}" class="w-full h-24 object-cover rounded-t-[10px]" alt="" loading="lazy">`
     : '';
-  const likeCount = m._count?.likes ?? 0;
+  const likeCount = m.likeCount ?? 0;
   const likeTag = `<div class="chat-like${likeCount ? '' : ' hidden'}" data-like-tag data-no-i18n>❤ <span data-like-n>${likeCount}</span></div>`;
   const av = avatarHtml(mine);
   return `<div class="chat-row ${mine ? 'mine' : ''}" data-id="${attrEscape(m.id)}">
@@ -1223,7 +1223,7 @@ async function toggleMessageLike(messageId) {
     const msg = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
     if (msg) {
       msg.myLiked = d.liked;
-      msg._count = Object.assign({}, msg._count || {}, { likes: d.likeCount });
+      msg.likeCount = d.likeCount;
     }
     patchMessageLike(messageId, d.likeCount);
   } catch (e) {
@@ -1253,8 +1253,8 @@ async function refreshMessageLike(messageId) {
     const fresh = list.find(function (v) { return v.id === messageId; });
     if (!fresh) return;
     const msg = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
-    if (msg) msg._count = fresh._count;
-    patchMessageLike(messageId, (fresh._count && fresh._count.likes) || 0);
+    if (msg) { msg.likeCount = fresh.likeCount; msg.myLiked = fresh.myLiked; }
+    patchMessageLike(messageId, fresh.likeCount || 0);
   } catch (e) { /* 兜底轮询会补上 */ }
 }
 window.refreshMessageLike = refreshMessageLike;
