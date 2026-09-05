@@ -6,7 +6,9 @@ import {
   IsEnum,
   IsBoolean,
   IsInt,
+  IsNumber,
   Min,
+  Max,
   ArrayMinSize,
   ArrayMaxSize,
 } from 'class-validator';
@@ -44,6 +46,22 @@ export class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   anonymous?: boolean;
+
+  // 「附近」用的发帖位置快照：仅在作者本次显式开启定位时由客户端传入。
+  // 服务端落库前截到 3 位小数（≈110m），且**永不下发**（shapePost 统一剔除）。
+  @ApiPropertyOptional({ description: '发帖位置纬度（可选，用户授权定位时才带）' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  lat?: number;
+
+  @ApiPropertyOptional({ description: '发帖位置经度（可选，用户授权定位时才带）' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  lng?: number;
 
   @ApiPropertyOptional({ type: [String], description: '分类标签（本期入库占位，不参与排序）' })
   @IsOptional()

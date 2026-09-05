@@ -134,4 +134,60 @@ describe('SquareService · 匿名（逐条评论）', () => {
   it('同帖同人恒等：同一个匿名者在楼里始终是同一个名字和头像', () => {
     expect(seedOf('postA', 'user1')).toBe(seedOf('postA', 'user1'));
   });
+
+  // ─── 「附近」隐私底线 ───────────────────────────────────────
+  // 帖子坐标一旦出网就能被多点采样反解出发帖位置（宿舍楼/常去的地方）。
+  // 这组用例守三条：坐标永不下发、落库先截断、距离只给档位。
+  describe('附近：坐标不出网', () => {
+    const shape = (post: any, viewer?: string) => (service as any).shapePost(post, viewer);
+
+    it('shapePost 剔除帖子经纬度（全站唯一出参口，列表/详情/后台复用同一处）', () => {
+      const out = shape(
+        { id: 'p1', authorUserId: 'u1', anonymous: false, lat: 52.3811, lng: -1.5615, content: 'x' },
+        'viewer',
+      );
+      expect(out.lat).toBeUndefined();
+      expect(out.lng).toBeUndefined();
+      expect(JSON.stringify(out)).not.toContain('52.381');
+    });
+
+    it('匿名帖同样不下发坐标（匿名 + 精确位置 = 直接指认到人）', () => {
+      const out = shape(
+        { id: 'p2', authorUserId: 'u1', authorType: 'USER', anonymous: true, lat: 51.5, lng: -0.12 },
+        'viewer',
+      );
+      expect(out.lat).toBeUndefined();
+      expect(out.lng).toBeUndefined();
+      expect(out.authorUser).toBeNull();
+    });
+
+    it('落库前坐标截到 3 位小数（≈110m），非法值落 null', () => {
+      const t = (v: any) => (SquareService as any).truncCoord(v);
+      expect(t(52.38112345)).toBe(52.381);
+      expect(t(-1.56159999)).toBe(-1.562);
+      expect(t(undefined)).toBeNull();
+      expect(t('abc')).toBeNull();
+      expect(t(NaN)).toBeNull();
+    });
+
+    it('对外只给距离档位，不给精确米数（精确距离可三角反解坐标）', () => {
+      const b = (km: number) => (service as any).distanceBucket(km);
+      expect(b(0.4)).toBe('under_1km');
+      expect(b(2.2)).toBe('1_3km');
+      expect(b(7)).toBe('3_10km');
+      expect(b(30)).toBe('10_50km');
+      expect(b(120)).toBe('over_50km');
+    });
+
+    it('haversine 距离计算正确（伦敦↔华威约 130km，容差 10km）', () => {
+      const km = (service as any).haversineKm(51.5074, -0.1278, 52.3811, -1.5615);
+      expect(km).toBeGreaterThan(120);
+      expect(km).toBeLessThan(140);
+    });
+
+    it('缺坐标的帖子返回 NaN，由调用方过滤掉而不是当成 0km 排到最前', () => {
+      const km = (service as any).haversineKm(51.5, -0.12, null, null);
+      expect(Number.isNaN(km)).toBe(true);
+    });
+  });
 });

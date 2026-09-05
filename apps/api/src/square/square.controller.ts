@@ -63,6 +63,30 @@ export class SquareController {
     });
   }
 
+  @Get('nearby')
+  @ApiOperation({
+    summary: '附近流（按真实距离排序）。lat/lng 随请求传入、算完即弃，服务器不保存用户位置；'
+      + '未传坐标时降级为同城（mode=city）。出参只含分桶距离，不含坐标。',
+  })
+  @ApiQuery({ name: 'lat', required: false, description: '看的人的纬度（不落库）' })
+  @ApiQuery({ name: 'lng', required: false, description: '看的人的经度（不落库）' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  async listNearby(
+    @CurrentUser('id') userId: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.squareService.listNearby(userId, {
+      lat: lat != null ? Number(lat) : undefined,
+      lng: lng != null ? Number(lng) : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit != null ? Math.min(Math.max(Number(limit), 1), 50) : undefined,
+    });
+  }
+
   @Get('campus-wall')
   @ApiOperation({ summary: '校园墙流（同校硬过滤），分页' })
   @ApiQuery({ name: 'page', required: false, example: 1 })

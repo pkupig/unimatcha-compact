@@ -164,6 +164,11 @@ function cleanupUserState() {
   // 匹配页只读摘要框的偏好缓存（含 extraMatchInfo）：换账号必须清，
   // 否则上一账号的偏好/补充信息会短暂展示给下一账号。
   S.matchPrefs = { romantic: null, friend: null };
+  // 「附近」定位缓存：共享设备上必须随登出清掉，否则下一个账号的第一屏
+  // 会按上一个人的位置排序（同 S.matchPrefs 的换账号泄显教训）。
+  S.geo = null;
+  S.geoError = null;
+  S.nearbyMode = null;
   // 本轮增强标记归零 + 在途偏好响应作废（复查：慢响应可把上一账号的偏好回填进下一账号）
   window.resetMatchPlanState?.();
   // match polling context (ids/counters reset by stopMatchPolling above,

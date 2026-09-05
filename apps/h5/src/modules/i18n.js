@@ -80,6 +80,11 @@ const ZH = {
   Undergraduate: '本科', Master: '硕士', PhD: '博士', 'Interest Priority': '兴趣优先级',
   // ── 广场 ──
   Recommend: '推荐', Nearby: '附近', Explore: '探索', 'Campus Wall': '校园墙', Pinned: '置顶',
+  // 附近：定位空态
+  'Location is off': '定位未开启', 'Turn on location': '开启定位',
+  'Allow location in your browser settings, or add your city to see posts around you': '请在浏览器设置里允许定位，或在资料里填写城市，来看看附近的动态',
+  'Allow location to see posts around you, or add your city in your profile': '开启定位即可看到附近的动态，也可以在资料里填写城市',
+  'Try again': '重试', 'Add city instead': '改为填写城市',
   'Nothing pinned yet': '还没有置顶内容',
   'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',

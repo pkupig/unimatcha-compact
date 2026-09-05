@@ -20,6 +20,35 @@ function isOfficial(p) {
 // 'pinned' 挂在最后：它不是主段，而是校园墙的子页（分段绝对定位在右外侧），
 // 但仍需在数组里占位，否则 trackOffset 算不出它的偏移。
 const SQUARE_PAGES = ['recommend', 'nearby', 'explore', 'campus_wall', 'pinned'];
+
+// ── 「附近」定位 ────────────────────────────────────────────
+// 坐标只在内存里存（S.geo），随请求发一次给服务端算距离，服务端不落库。
+// **绝不写 localStorage**：共享设备上会跨账号残留（本仓库已有 S.matchPrefs
+// 换账号泄显的教训）。cleanupUserState 里一并清。
+const GEO_MAX_AGE_MS = 5 * 60 * 1000;
+
+function getGeoFix() {
+  // 命中新鲜缓存直接用，避免每次切页都弹系统定位
+  if (S.geo && Date.now() - S.geo.at < GEO_MAX_AGE_MS) return Promise.resolve(S.geo);
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        S.geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, at: Date.now() };
+        resolve(S.geo);
+      },
+      (err) => {
+        // 1=拒绝授权 2=定位不可用 3=超时。三者都不抛错——
+        // 「附近」降级为同城即可，绝不用弹窗阻断（本仓库空态惯例）。
+        S.geoError = err?.code || 0;
+        resolve(null);
+      },
+      // 不开高精度：室内会慢到十几秒且耗电；5 分钟缓存够用
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: GEO_MAX_AGE_MS },
+    );
+  });
+}
+window.getGeoFix = getGeoFix;
 function normTab(tab) {
   const t = tab || S.squareTab;
   return SQUARE_PAGES.includes(t) ? t : 'recommend';
@@ -421,11 +450,19 @@ async function loadSquareTab2(tabArg) {
   const seq = ++S.squareReqSeqs[tab];
   const endpoint = tab === 'pinned' ? '/square/v2/pinned'
     : tab === 'campus_wall' ? '/square/v2/campus-wall'
+    : tab === 'nearby' ? '/square/v2/nearby'
+    : tab === 'explore' ? '/square/v2/explore'
     : '/square/v2/recommend';
   try {
     // 搜索已独立成页（loadSquareSearch）：这里永远是未过滤信息流
     // 置顶页不分页（后台人工维护的少量信息，翻页反而看不全）
-    const url = tab === 'pinned' ? endpoint : `${endpoint}?page=1&limit=20`;
+    let url = tab === 'pinned' ? endpoint : `${endpoint}?page=1&limit=20`;
+    if (tab === 'nearby') {
+      // 坐标随请求带上，服务端算完即弃；拿不到就让后端走同城降级
+      const fix = await getGeoFix();
+      if (seq !== S.squareReqSeqs[tab]) return; // 定位是异步的，期间可能已被更新的请求取代
+      if (fix) url += `&lat=${encodeURIComponent(fix.lat)}&lng=${encodeURIComponent(fix.lng)}`;
+    }
     // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
     const wantAds = tab === 'recommend';
@@ -444,8 +481,16 @@ async function loadSquareTab2(tabArg) {
       renderSquareNeedSchool(tab);
       return;
     }
+    // 附近：完全无位置信息（既没定位也没填城市）→ 引导，而不是空白
+    if (tab === 'nearby' && env.needCity) {
+      S.squarePostsByTab[tab] = [];
+      if (tab === S.squareTab) S.squarePosts = [];
+      renderNearbyNeedLocation();
+      return;
+    }
     const posts = Array.isArray(env) ? env : (env.items || env.posts || []);
-    S.squarePostsByTab[tab] = posts; // 两页各自缓存（切页时指针跟随）
+    if (tab === 'nearby') S.nearbyMode = env.mode || null; // 'gps' | 'city'，渲染时提示降级
+    S.squarePostsByTab[tab] = posts; // 各页各自缓存（切页时指针跟随）
     if (tab === S.squareTab) S.squarePosts = posts; // 缓存当前页数据（点赞/详情同步用）
     renderSquareFeed(posts, ads, tab);
   } catch (e) {
@@ -465,6 +510,29 @@ window.loadSquareTab2 = loadSquareTab2;
 window.loadSquarePosts = loadSquareTab2;
 
 // Campus-wall gate: shown when the user has no school on their profile.
+// 附近：既无定位授权、资料里也没城市 —— 给两条出路而不是空白页
+function renderNearbyNeedLocation() {
+  const container = feedEl('nearby');
+  if (!container) return;
+  const denied = S.geoError === 1;
+  container.innerHTML = `<div class="col-span-2 text-center py-24">
+    ${window.flatEmptyIcon('location_off')}
+    <p class="font-headline text-base font-extrabold tracking-tight text-on-surface">${denied ? 'Location is off' : 'Turn on location'}</p>
+    <p class="text-sm text-on-surface-variant mt-2">${denied
+      ? 'Allow location in your browser settings, or add your city to see posts around you'
+      : 'Allow location to see posts around you, or add your city in your profile'}</p>
+    <button onclick="retryNearby()" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1">Try again</button>
+    <button onclick="window.switchTab('profile')" class="mt-4 block mx-auto font-headline text-[10px] font-bold tracking-[0.2em] text-outline">Add city instead</button>
+  </div>`;
+  layoutSquareMasonry();
+}
+
+function retryNearby() {
+  S.geo = null; S.geoError = null; // 清缓存重新问一次定位
+  window.loadSquareTab2('nearby');
+}
+window.retryNearby = retryNearby;
+
 function renderSquareNeedSchool(tab) {
   const container = feedEl(tab);
   if (!container) return;

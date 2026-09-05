@@ -260,13 +260,6 @@ model Profile {
   age        Int?
   birthday   String? // YYYY-MM-DD；注册改收生日，age 由生日推算后仍存（匹配按 age 过滤）
   city       String?
-  // ── 「附近」定位（用户显式授权后才写；隐私底线见下）──
-  // lat/lng 仅用于服务端算距离，**任何接口都不得下发他人的经纬度**——
-  // 对外只暴露算好的距离（且按档位模糊）。用户可随时关闭，关闭即清空坐标。
-  lat               Float?
-  lng               Float?
-  locationEnabled   Boolean   @default(false)
-  locationUpdatedAt DateTime?
   interests  String[]
   bio        String?  @db.Text
   avatarUrl  String?
@@ -701,6 +694,14 @@ model SquarePost {
 
   school String? // 右上角学校标注
 
+  // ── 「附近」：发帖时的位置快照（作者显式开启才写）──
+  // 刻意存在帖子上而不是用户上：①「这条帖子在哪」不该随作者之后的移动而变；
+  // ② 服务器因此**根本不保存用户的实时位置**——看的人把自己的坐标随请求传一次即算即弃。
+  // 落库前截到 3 位小数（≈110m），DB 万一泄露也定位不到具体楼栋。
+  // 出参绝不下发这两列（shapeCard/shapePost 主动 delete），对外只给分桶距离。
+  lat Float?
+  lng Float?
+
   coupleMatchId String? // 可选：CouplePost 迁移而来的情侣帖（前端取双方 profile 展示双头像）
 
   title   String?
@@ -757,6 +758,7 @@ model SquarePost {
   // 置顶页列表：按校取置顶帖并按手动顺序排
   @@index([school, pinnedAt, pinnedOrder])
   @@index([coupleMatchId])
+  @@index([lat, lng]) // 「附近」bbox 粗筛（lat 段走索引，lng 段过滤）
   @@map("square_posts")
 }
 

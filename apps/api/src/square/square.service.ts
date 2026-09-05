@@ -104,6 +104,10 @@ export class SquareService {
         content: dto.content,
         images: dto.images || [],
         anonymous: dto.anonymous ?? false,
+        // 「附近」位置快照：作者本次开启定位才有值；截到 3 位小数（≈110m）后落库，
+        // 且永不下发（shapePost 统一 delete）。两者必须同时有效，只有一个则不写。
+        lat: SquareService.truncCoord(dto.lat),
+        lng: SquareService.truncCoord(dto.lng),
         tags: dto.tags || [],
         postType: isPoll ? 'poll' : 'normal',
         pollOptions: pollOptions as any,
@@ -1213,6 +1217,11 @@ export class SquareService {
     // 若原样返回，任何人（含被举报作者）都能看到谁举报了自己。整块 metadata 目前只承载
     // 审核数据，前端无消费，直接剔除。
     delete out.metadata;
+    // 「附近」隐私底线：帖子的经纬度**永不出网**。对外只给分桶距离（distanceBucket），
+    // 精确坐标或精确距离都能被多点采样反解出发帖位置。
+    // 这里是全站唯一的帖子出参整形口，删在这里等于所有列表/详情/后台复用路径一起生效。
+    delete out.lat;
+    delete out.lng;
     // 用户侧只给布尔（何时被置顶属后管信息）
     out.isPinned = !!post.pinnedAt;
     delete out.pinnedAt;
@@ -1231,6 +1240,140 @@ export class SquareService {
     }
     out.isMine = isMine;
     return out;
+  }
+
+  // ─── 「附近」：按真实距离排序的帖子流（§8.1.5）──────────────────
+  //
+  // 隐私设计（三条底线，改这段前先读）：
+  // 1) **服务器不保存任何用户的实时位置**。看的人把自己的坐标随本次请求传进来，
+  //    算完距离即弃；坐标只在发帖时按作者意愿快照到那条帖子上。
+  // 2) 出参**只给分桶距离**（<1km / 1-3km / …），不给精确米数——精确距离可被
+  //    多点采样三角反解出发帖坐标。帖子的 lat/lng 由 shapePost 统一剔除。
+  // 3) 落库前坐标截到 3 位小数（≈110m），DB 万一泄露也定位不到具体楼栋。
+  //
+  // 查询方案：bbox 粗筛（走 @@index([lat,lng])）→ haversine 精算 → 距离排序。
+  // 不用 PostGIS：生产是官方 postgres:16-alpine 镜像，为这一个功能换镜像等于动部署基线。
+  private static readonly NEARBY_RADIUS_KM = 50;
+
+  /** 距离分桶：对外只暴露档位，不暴露精确值 */
+  private distanceBucket(km: number): string {
+    if (km < 1) return 'under_1km';
+    if (km < 3) return '1_3km';
+    if (km < 10) return '3_10km';
+    if (km < 50) return '10_50km';
+    return 'over_50km';
+  }
+
+  async listNearby(
+    userId: string,
+    params: { lat?: number; lng?: number; page?: number; limit?: number },
+  ) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(params.limit) || 20));
+    const lat = Number(params.lat);
+    const lng = Number(params.lng);
+    const hasFix = Number.isFinite(lat) && Number.isFinite(lng)
+      && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+    const mySchool = await this.getUserSchool(userId);
+
+    // 没有定位 → 降级为同城（用资料里已必填的 city，零新增数据）。
+    // 前端据 mode 字段决定是否展示「开启定位看更近的」引导条。
+    if (!hasFix) {
+      return this.listNearbyByCity(userId, page, limit, mySchool);
+    }
+
+    // bbox 粗筛边长：纬度 1° ≈ 111.045km；经度随纬度收窄，靠近极点时钳住避免除零
+    const R = SquareService.NEARBY_RADIUS_KM;
+    const dLat = R / 111.045;
+    const cosLat = Math.max(0.01, Math.cos((lat * Math.PI) / 180));
+    const dLng = R / (111.045 * cosLat);
+
+    const where: Prisma.SquarePostWhereInput = {
+      board: SquareBoard.RECOMMEND,
+      isHidden: false,
+      reviewStatus: 'approved',
+      lat: { gte: lat - dLat, lte: lat + dLat },
+      lng: { gte: lng - dLng, lte: lng + dLng },
+    };
+
+    // bbox 内全取（本仓库量级下远小于上限），再精算距离排序、切页。
+    // take 兜底防 bbox 命中过多时把内存打满。
+    const rows = await this.prisma.squarePost.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      include: this.postInclude(),
+    });
+
+    const withDist = rows
+      .map((p: any) => ({ p, km: this.haversineKm(lat, lng, p.lat, p.lng) }))
+      .filter((x) => Number.isFinite(x.km) && x.km <= R)
+      .sort((a, b) => a.km - b.km);
+
+    const total = withDist.length;
+    const slice = withDist.slice((page - 1) * limit, (page - 1) * limit + limit);
+    const items = slice.map(({ p, km }) => ({
+      ...this.shapeCard(p, userId, mySchool), // 内部已 delete lat/lng
+      distanceBucket: this.distanceBucket(km),
+    }));
+    await this.annotateMyVotes(items, userId);
+    return { items, page, limit, total, hasMore: page * limit < total, mode: 'gps' };
+  }
+
+  /** 定位不可用时的兜底：同城帖子（按资料里的 city 字符串） */
+  private async listNearbyByCity(
+    userId: string,
+    page: number,
+    limit: number,
+    mySchool: string | null,
+  ) {
+    const me = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { city: true },
+    });
+    const city = (me?.city || '').trim();
+    if (!city) {
+      return { items: [], page, limit, total: 0, hasMore: false, mode: 'none', needCity: true };
+    }
+    const where: Prisma.SquarePostWhereInput = {
+      board: SquareBoard.RECOMMEND,
+      isHidden: false,
+      reviewStatus: 'approved',
+      authorUser: { is: { profile: { is: { city } } } },
+    };
+    const [posts, total] = await Promise.all([
+      this.prisma.squarePost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: this.postInclude(),
+      }),
+      this.prisma.squarePost.count({ where }),
+    ]);
+    const items = posts.map((p) => this.shapeCard(p, userId, mySchool));
+    await this.annotateMyVotes(items, userId);
+    return { items, page, limit, total, hasMore: page * limit < total, mode: 'city', city };
+  }
+
+  /** haversine 球面距离（km）。任一坐标缺失返回 NaN，由调用方过滤。 */
+  private haversineKm(aLat: number, aLng: number, bLat: any, bLng: any): number {
+    if (typeof bLat !== 'number' || typeof bLng !== 'number') return NaN;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  /** 坐标落库前截断到 3 位小数（≈110m）——发帖路径唯一入口 */
+  static truncCoord(v: any): number | null {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n * 1000) / 1000;
   }
 
   // ─── 匿名身份（§8.1.1）────────────────────────────────────
