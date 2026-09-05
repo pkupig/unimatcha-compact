@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { randomInt } from 'crypto';
+import * as bcrypt from 'bcrypt';
+import { randomInt, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { DiscoveryService } from '../discovery/discovery.service';
@@ -429,4 +431,87 @@ export class UsersService {
     return { message: 'Verification materials submitted, awaiting admin review', ...updated };
   }
 
+  /**
+   * 自助注销账号（App Store 5.1.1(v) 要求：支持注册的 App 必须提供应用内自助删除）。
+   *
+   * 不做硬删除：Match/Message/SquarePost 等历史行会被其他用户继续引用（对方的聊天记录/
+   * 匹配历史不该因为你注销就消失或报错），级联删除 User 行会破坏这些外键关系。改为原地
+   * 匿名化——email/密码作废（此后无法再登录，也无法凭旧邮箱重新注册占用它）、Profile 全部
+   * 个人信息清空、nickname 固定改成字面量 "Deleted User"（而不是清空成 null）：这样广场/聊天/
+   * 情侣空间等所有读 profile.nickname 的展示位不需要逐个补 null 兜底，历史内容照常显示、
+   * 作者位自然变成「已注销用户」。呼应隐私政策 6. Data Retention 的承诺（30 天内删除或匿名化，
+   * 这里是立即匿名化，早于承诺的时限）。
+   *
+   * 二次确认：要求重新输入当前密码（与 changePassword 同一套校验），防止设备遗留登录态被
+   * 别人一键注销账号。
+   */
+  async deleteAccount(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true, status: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.status === 'DELETED') {
+      throw new BadRequestException('This account has already been deleted');
+    }
+    const valid = await bcrypt.compare(password || '', user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Current password is incorrect');
+
+    // .invalid 是 IANA 保留的“恒不可解析”顶级域（RFC 2606），专用于占位邮箱，不会被误当作
+    // 真实可达地址；带 userId 保证唯一，满足 email 列的 @unique 约束。
+    const anonymizedEmail = `deleted-${userId}@unimatcha.invalid`;
+    const unusablePasswordHash = await bcrypt.hash(randomBytes(32).toString('hex'), 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: anonymizedEmail,
+          passwordHash: unusablePasswordHash,
+          status: 'DELETED',
+          deletedAt: new Date(),
+          studentCardUrl: null,
+          schoolEmail: null,
+          verifyCode: null,
+          verifyCodeExpiresAt: null,
+          verifyCodeAttempts: 0,
+          connectCode: null,
+          settings: null,
+        },
+      }),
+      this.prisma.profile.updateMany({
+        where: { userId },
+        data: {
+          nickname: 'Deleted User',
+          realName: null,
+          familyName: null,
+          givenName: null,
+          school: null,
+          grade: null,
+          gender: null,
+          genderPref: null,
+          age: null,
+          birthday: null,
+          city: null,
+          interests: [],
+          bio: null,
+          avatarUrl: null,
+          socialLinks: null,
+          signature: null,
+          coverUrl: null,
+          tags: [],
+          major: null,
+          mbti: null,
+          nationality: null,
+          studentId: null,
+          realPhotos: [],
+          zodiac: null,
+          wishGifts: [],
+          extraData: null,
+        },
+      }),
+    ]);
+
+    return { message: 'Your account has been deleted' };
+  }
 }

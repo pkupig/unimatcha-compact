@@ -58,6 +58,7 @@ model User {
   email        String     @unique
   passwordHash String
   status       UserStatus @default(ACTIVE)
+  deletedAt    DateTime? // 自助注销时间戳；DELETED 状态下非空。PII 已在注销时清空/匿名化，此字段仅供审计。
   // 已删除：mode / matchState / matchSearchingSince / weeklyMatchNote（迁入 UserModeState）
 
   // 认证状态（unverified/pending/verified/rejected）
@@ -122,6 +123,7 @@ model User {
 enum UserStatus {
   ACTIVE
   BANNED
+  DELETED // 自助注销：账号与 email/passwordHash 已作废，profile PII 已清空；Match/Message/SquarePost 等历史行原样保留（对方的聊天记录/匹配历史不因你注销而消失），作者显示走 profile.nickname="Deleted User"
 }
 
 // 注册邮箱验证码：注册时用户还不存在，码不能挂在 User 上，单独一张表。

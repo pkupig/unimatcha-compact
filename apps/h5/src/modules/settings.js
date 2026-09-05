@@ -156,7 +156,7 @@ const CONTENT_PAGES = {
       ${faqItem('How do I edit my profile or matching preferences?', 'Go to Profile → Edit Profile to update your photos, bio and interests. Matching preferences (gender, age range, school filters) live behind the filter icon on the Match tab.')}
       ${faqItem('How do I end a connection?', 'Open your partner’s profile from the Match tab and choose Unmatch. This is permanent: the chat closes and both of you return to the matching pool.')}
       ${faqItem('How do I verify my student status?', 'Register with your university email address. Additional campus verification options are rolling out — verified profiles get a badge and priority in matching.')}
-      ${faqItem('How do I delete my account?', 'Contact us at contact@unimatcha.ai from your registered email and we will remove your account and data in line with our Privacy Policy.')}
+      ${faqItem('How do I delete my account?', 'Go to Settings and tap Delete Account near the bottom. You will need to confirm your password — deletion is immediate and permanent, in line with our Privacy Policy.')}
     `,
   },
   safety: {
@@ -221,7 +221,7 @@ const CONTENT_PAGES_ZH = {
       ${faqItem('如何修改资料或匹配偏好？', '前往「我的」→「编辑资料」更新照片、简介和兴趣。匹配偏好（性别、年龄范围、学校筛选）在匹配页的设置入口里调整。')}
       ${faqItem('如何解除连接？', '在匹配页打开对方资料并选择解除。此操作不可撤销：聊天将关闭，双方都会回到匹配池。')}
       ${faqItem('如何完成学生认证？', '使用大学邮箱注册即可。更多校园认证方式陆续开放——认证用户会获得标识，并在匹配中享有优先。')}
-      ${faqItem('如何注销账号？', '用注册邮箱发送邮件至 contact@unimatcha.ai，我们会按照隐私政策删除你的账号与数据。')}
+      ${faqItem('如何注销账号？', '在「设置」页面底部点击「注销账号」，输入密码确认即可。注销立即生效且不可撤销，处理方式遵循我们的隐私政策。')}
     `,
   },
   safety: {
@@ -330,6 +330,56 @@ async function submitReport() {
   if (btn) btn.disabled = false;
 }
 window.submitReport = submitReport;
+
+// ========================================
+// DELETE ACCOUNT (self-service; App Store 5.1.1(v) parity — same endpoint iOS uses)
+// ========================================
+async function deleteAccount() {
+  const ok = await window.confirmCard({
+    title: 'Delete your account?',
+    body: 'This permanently deletes your profile, photos and personal information. Your existing chats and matches keep working for the other person, but you will no longer be able to sign in. This cannot be undone.',
+    confirmLabel: 'Delete Account',
+    danger: true,
+  });
+  if (!ok) return; // false = explicit Cancel, null = backdrop tap — both abort
+
+  // promptCard's title/label/confirmLabel are text nodes the global dictionary observer
+  // translates on insert; `placeholder` is an attribute value the observer can't reach
+  // (same reason auth.js/questionnaire.js branch on getLang() for their placeholders).
+  const zh = window.getLang && window.getLang() === 'zh';
+  const password = await window.promptCard({
+    title: 'Confirm your password',
+    label: 'Password',
+    placeholder: zh ? '输入密码以继续' : 'Enter your password to continue',
+    confirmLabel: 'Delete Account',
+    secure: true,
+  });
+  if (password === null) return; // cancelled / backdrop tap
+  if (!password) {
+    window.toast('Password is required');
+    return;
+  }
+
+  try {
+    await window.api('/users/me/delete', 'POST', { password });
+  } catch (e) {
+    window.toast(e.message || 'Failed to delete account');
+    return;
+  }
+
+  window.toast('Your account has been deleted');
+  // Same teardown as doLogout — the token is invalid server-side now regardless,
+  // but we still clear it locally and reset every per-user store before landing back on auth.
+  window.stopMatchPolling();
+  window.stopChatPolling();
+  window.stopNotifPolling();
+  window.stopCountdownTick();
+  localStorage.removeItem('cl_token');
+  window.cleanupUserState();
+  window.closeAllOverlays();
+  window.showPage('page-auth');
+}
+window.deleteAccount = deleteAccount;
 
 // ========================================
 // LOVE MODE (couple space, unlocks in relationship mode)

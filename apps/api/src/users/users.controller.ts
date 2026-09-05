@@ -38,6 +38,12 @@ class SubmitVerificationDto {
   code: string;
 }
 
+class DeleteAccountDto {
+  @ApiProperty({ description: '当前密码，二次确认，防止仅凭遗留登录态即可注销' })
+  @IsString()
+  password: string;
+}
+
 class SetNoteDto {
   @ApiProperty()
   @IsString()
@@ -121,6 +127,12 @@ export class UsersController {
   @ApiQuery({ name: 'q', required: true })
   async search(@CurrentUser('id') userId: string, @Query('q') q: string) {
     return this.usersService.searchUsers(userId, q || '');
+  }
+
+  @Post('me/delete')
+  @ApiOperation({ summary: '自助注销账号（需重新输入密码二次确认；App Store 5.1.1(v) 合规要求）' })
+  async deleteAccount(@CurrentUser('id') userId: string, @Body() dto: DeleteAccountDto) {
+    return this.usersService.deleteAccount(userId, dto?.password);
   }
 
   @Get(':id/public-profile')

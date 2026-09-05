@@ -23,6 +23,16 @@ window.isDarkMode = () => getTheme() === 'dark';
 const ZH = {
   Chat: '聊天', Romantic: '恋人', Friend: '朋友', Square: '广场', Profile: '我的',
   Match: '匹配', 'Edit Profile': '编辑资料', 'Contact Us': '联系我们', Settings: '设置', 'Log Out': '退出登录',
+  'Delete Account': '注销账号',
+  'Delete your account?': '确定要注销账号吗？',
+  'This permanently deletes your profile, photos and personal information. Your existing chats and matches keep working for the other person, but you will no longer be able to sign in. This cannot be undone.':
+    '这将永久删除你的资料、照片与个人信息。你已有的聊天和匹配记录仍会保留在对方那边，但你之后将无法再登录。此操作不可撤销。',
+  'Confirm your password': '请确认密码',
+  Password: '密码',
+  'Enter your password to continue': '输入密码以继续',
+  'Password is required': '请输入密码',
+  'Your account has been deleted': '你的账号已注销',
+  'Failed to delete account': '注销失败',
   ENERGY: '能量', 'Get Energy': '获取能量', 'Open Chat': '打开聊天', 'End Relationship': '解除关系',
   Send: '发送', Friends: '好友', Chats: '聊天', 'Search chats': '搜索会话',
   'Relationship Network': '关系网', 'Add by QR': '扫码添加', 'My QR': '我的二维码', Scan: '扫一扫',

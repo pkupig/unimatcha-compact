@@ -401,14 +401,15 @@ function confirmCard({ title = 'Are you sure?', body = '', confirmLabel = 'Confi
 }
 window.confirmCard = confirmCard;
 
-function promptCard({ title = 'Enter a value', label = '', placeholder = '', value = '', confirmLabel = 'Save', cancelLabel = 'Cancel', multiline = false } = {}) {
+function promptCard({ title = 'Enter a value', label = '', placeholder = '', value = '', confirmLabel = 'Save', cancelLabel = 'Cancel', multiline = false, secure = false } = {}) {
   return new Promise((resolve) => {
     const esc = window.escapeHtml || ((s) => s);
     const back = appCardBackdrop();
     const fieldCls = 'w-full bg-transparent bg-surface-container-low rounded-[10px] border-0 px-3 py-2.5 focus:ring-1 focus:ring-neon focus:outline-none';
+    // secure：re-auth 场景（如注销前要求重新输入密码）遮罩输入，不落回车键提交外的任何 UI 回显。
     const field = multiline
       ? `<textarea data-card-input rows="3" class="${fieldCls} resize-none" placeholder="${esc(placeholder)}"></textarea>`
-      : `<input data-card-input type="text" class="${fieldCls}" placeholder="${esc(placeholder)}"/>`;
+      : `<input data-card-input type="${secure ? 'password' : 'text'}" autocomplete="${secure ? 'current-password' : 'off'}" class="${fieldCls}" placeholder="${esc(placeholder)}"/>`;
     back.innerHTML = `
       <div class="w-full max-w-sm bg-surface-container-lowest rounded-[10px] shadow-2xl p-6" role="dialog" aria-modal="true">
         <h3 class="font-headline font-extrabold text-lg tracking-tight text-on-surface mb-3">${esc(title)}</h3>
