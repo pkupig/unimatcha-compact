@@ -889,7 +889,7 @@
 <!-- 转发选择器：选一个会话把消息/帖子转过去。贴底弹层，与 #filter-overlay 同款骨架 -->
 <div id="forward-overlay" class="overlay fixed inset-0 z-[120] bg-black/40 backdrop-blur-[2px] items-center justify-end" onclick="if(event.target===this)closeForwardPicker()">
   <div class="relative z-50 w-full max-w-md bg-surface rounded-t-xl overflow-hidden shadow-2xl flex flex-col bottom-sheet-transition" style="max-height:78vh">
-    <div class="shrink-0 pt-2 pb-1 flex justify-center" data-sheet-handle>
+    <div class="shrink-0 pt-2 pb-1 flex justify-center sheet-handle" data-sheet-handle>
       <div class="w-9 h-1 rounded-full bg-outline-variant/50"></div>
     </div>
     <div class="shrink-0 flex items-center justify-between px-4 pb-2">
@@ -1178,7 +1178,13 @@
   </main>
   <!-- 评论输入固定为页脚（不再跟着内容滚到最下面才可见）；底部内边距见 main.css 的
        #post-detail-overlay > footer（safe-area + 8px） -->
-  <footer class="shrink-0 border-t border-outline-variant/20 bg-surface px-3 pt-3">
+  <!-- 外校墙未认证 → 只读提示条替换整个输入区（而不是让用户敲完字点发送才吃 403） -->
+  <div id="pd-readonly" class="shrink-0 border-t border-outline-variant/20 bg-surface px-5 py-4 text-center" style="display:none">
+    <p class="text-xs text-on-surface-variant leading-relaxed" data-no-i18n id="pd-readonly-text"></p>
+    <button type="button" id="pd-readonly-cta" onclick="window.closePostDetail();window.switchTab('profile')"
+      class="mt-2 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-0.5" data-no-i18n></button>
+  </div>
+  <footer id="pd-composer" class="shrink-0 border-t border-outline-variant/20 bg-surface px-3 pt-3">
     <div id="pd-reply-bar" class="hidden items-center justify-between mb-2">
       <span id="pd-reply-label" class="text-[10px] font-bold tracking-widest text-on-surface-variant"></span>
       <button onclick="cancelPdReply()" class="text-[10px] font-bold tracking-widest text-outline hover:text-primary">Cancel</button>

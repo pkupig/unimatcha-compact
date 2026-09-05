@@ -599,6 +599,23 @@ function exploreHeaderHtml() {
   </div>`;
 }
 
+// 「附近」降级提示条：仅在服务端回落同城时出现。
+// 两种降级的成因不同，说法也必须不同——否则拒绝了定位的人会以为「附近就是没人发」：
+//   city_fallback = 定位拿到了，但半径内没有带位置的帖子
+//   city          = 压根没定位（用户拒绝/取不到），按城市出的列表
+function nearbyModeHint() {
+  const mode = S.nearbyMode;
+  if (mode !== 'city_fallback' && mode !== 'city') return '';
+  const zh = window.getLang?.() === 'zh';
+  const text = mode === 'city_fallback'
+    ? (zh ? '附近还没有带位置的帖子，先给你看同城的' : 'No located posts nearby yet — showing your city instead')
+    : (zh ? '未开启定位，按同城给你排的' : 'Location is off — showing your city instead');
+  return `<div class="col-span-2 flex items-start gap-2 px-3 py-2.5 mb-1 rounded-[6px] bg-surface-container-low">
+    <span class="material-symbols-outlined text-outline shrink-0" style="font-size:15px">near_me_disabled</span>
+    <span class="text-[11px] leading-snug text-on-surface-variant" data-no-i18n>${text}</span>
+  </div>`;
+}
+
 function backToExplorePicker() {
   S.exploreSchool = null;
   window.loadSquareTab2('explore');
@@ -650,6 +667,17 @@ function renderSquareFeed(posts, ads = [], tab) {
   if (!container) return;
   // 广场搜索只出帖子（用户要求）：结果里不再混入「同学」，找人走好友面板/扫码
   const isSearch = tab === 'search';
+  // 探索：选了学校但那所学校没内容 → 给一条明确的回头路，别让用户卡在空页
+  if (!posts.length && tab === 'explore' && S.exploreSchool) {
+    const zhE = window.getLang?.() === 'zh';
+    container.innerHTML = exploreHeaderHtml() + `<div class="col-span-2 text-center py-20">
+      ${window.flatEmptyIcon('forum')}
+      <p class="font-headline text-base font-extrabold tracking-tight text-on-surface" data-no-i18n>${zhE ? '这所学校的墙还是空的' : 'This wall is empty'}</p>
+      <button onclick="backToExplorePicker()" class="mt-6 font-headline text-[10px] font-bold tracking-[0.2em] text-black border-b-2 border-black pb-1" data-no-i18n>${zhE ? '换一所学校' : 'Pick another school'}</button>
+    </div>`;
+    layoutSquareMasonry();
+    return;
+  }
   if (!posts.length && tab === 'pinned') {
     // 置顶页空态：说清楚这页是干什么的，避免用户以为加载失败
     container.innerHTML = `<div class="col-span-2 text-center py-24">
@@ -686,6 +714,9 @@ function renderSquareFeed(posts, ads = [], tab) {
   // 插 1 个；按拉取顺序轮换，本次渲染内不重复，用完即止。校园墙调用方传空 ads。
   // 探索页顶部固定一条「当前学校 + 换一所」，让用户随时知道自己在逛谁的墙
   let html = tab === 'explore' ? exploreHeaderHtml() : '';
+  // 附近：服务端按距离没排出内容而回落同城时，必须说明——否则用户看到的是一份
+  // 同城列表，却以为这就是「附近」，对距离的判断整个是错的
+  if (tab === 'nearby') html += nearbyModeHint();
   let adIdx = 0;             // 下一个待插广告下标
   let cardCount = 0;         // 总卡计数（首个广告在第 3 卡之后）
   let smallSinceAd = 0;      // 上个广告以来累计的小卡数（每满 8 再插）
@@ -1233,7 +1264,7 @@ function bentoWideCard(p) {
     <div class="flex items-center gap-3 mb-4">
       ${renderAuthorAvatars(p)}
       <div class="min-w-0 flex-1">
-        <p class="font-headline text-base font-bold truncate" data-no-i18n>${window.escapeHtml(d.name)}</p>${window.badgeFor?.({ ...d, badgeSize: 'md' }) || ''}
+        <span class="flex items-center gap-1.5 min-w-0"><p class="font-headline text-base font-bold truncate" data-no-i18n>${window.escapeHtml(d.name)}</p>${window.badgeFor?.({ ...d, badgeSize: 'md' }) || ''}</span>
         <p class="text-[10px] text-neutral-400 font-medium tracking-widest" data-no-i18n>${window.formatPostTime(p.createdAt)}</p>
       </div>
       ${pinnedBadge(p)}
@@ -1342,6 +1373,7 @@ async function openPostDetail(postId, focusComposer = false) {
   if (hdrAuthor) hdrAuthor.innerHTML = ''; // 清掉上一帖的人，避免加载期闪现错误作者
   window.clearPdImage?.(); // 待发的图同理，不能跟到下一帖
   window.syncPdAnonUI?.();
+  applyPdInteractGate(null); // 上一帖若是只读的，别让提示条留到这一帖的加载期
   window.openOverlay('post-detail-overlay');
   await window.loadPostDetail(postId);
   // 从卡片评论数点进来：内容渲染完后直接跳到评论输入条
@@ -1869,6 +1901,34 @@ function renderPostDetail(post) {
     hint.textContent = (window.getLang?.() === 'zh') ? '· 长按更多操作' : '· long-press for options';
   }
   bindPdCommentLongPress();
+  applyPdInteractGate(post);
+}
+
+// 探索页点进外校墙且自己未认证 → 后端下发 canInteract:false。
+// 把输入区整条换成说明 + 去认证入口，点赞置灰给同一句提示；
+// 服务端仍会拦（这里只是别让用户敲完一整条评论才被拒）。
+function applyPdInteractGate(post) {
+  const blocked = post && post.canInteract === false;
+  const zh = window.getLang?.() === 'zh';
+  const composer = document.getElementById('pd-composer');
+  const notice = document.getElementById('pd-readonly');
+  if (composer) composer.style.display = blocked ? 'none' : '';
+  if (notice) {
+    notice.style.display = blocked ? '' : 'none';
+    if (blocked) {
+      const t = document.getElementById('pd-readonly-text');
+      const cta = document.getElementById('pd-readonly-cta');
+      if (t) t.textContent = zh
+        ? '这是其他学校的校园墙，你可以浏览，但需认证学生身份后才能评论、点赞。'
+        : "You're viewing another school's wall. Verify your student status to comment and like.";
+      if (cta) cta.textContent = zh ? '去认证' : 'GET VERIFIED';
+    }
+  }
+  const likeBtn = document.getElementById('pd-like-btn');
+  if (likeBtn) {
+    likeBtn.classList.toggle('opacity-40', !!blocked);
+    likeBtn.dataset.pdBlocked = blocked ? '1' : '';
+  }
 }
 window.renderPostDetail = renderPostDetail;
 
@@ -1978,6 +2038,12 @@ async function submitPdComment() {
   const content = input?.value?.trim();
   // 只有图没有字也允许发（配图本身就是内容）；两样都没有才拦
   if ((!content && !S.pdImageFile) || !S.currentPostId) return;
+  // 外校墙未认证：输入区本已被 applyPdInteractGate 换成提示条，这里兜住
+  // 「回复」等其它可能触达发送的路径（服务端仍是最终关卡）
+  if (S.pdPostData && S.pdPostData.canInteract === false) {
+    window.toast(window.getLang?.() === 'zh' ? '认证学生身份后可互动' : 'Get verified to interact');
+    return;
+  }
   if (S.pdSending) return; // 上传可能要几秒，防连点发出多条
   S.pdSending = true;
   const sendBtn = document.getElementById('pd-send-btn');
@@ -2014,6 +2080,11 @@ async function submitPdComment() {
 window.submitPdComment = submitPdComment;
 
 async function likePdPost() {
+  // 外校墙未认证：点赞按钮已置灰，这里再挡一次（键盘/程序化触发也走这条）
+  if (S.pdPostData && S.pdPostData.canInteract === false) {
+    window.toast(window.getLang?.() === 'zh' ? '认证学生身份后可互动' : 'Get verified to interact');
+    return;
+  }
   if (!S.currentPostId) return;
   const postId = S.currentPostId;
   try {

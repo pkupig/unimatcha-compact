@@ -204,7 +204,9 @@ export class SquareService {
         school: { not: null },
       },
       _count: { _all: true },
-      orderBy: { _count: { school: 'desc' } },
+      // 次序键必须补：同帖数的学校之间顺序由数据库决定，翻页/刷新会互相换位，
+      // 选校列表看上去就是在乱跳
+      orderBy: [{ _count: { school: 'desc' } }, { school: 'asc' }],
       take: 100,
     });
     return rows
@@ -735,7 +737,25 @@ export class SquareService {
     // 匿名按【每条评论】自己的 anonymous 处理——不再因为帖子匿名就把全楼一律脱敏
     // （用户口径：发帖可选匿名，发评论也各自可选）
     this.anonymizeComments(post);
-    const shaped = { ...this.shapePost(post, userId), comments: this.shapeComments(post.comments), myLiked };
+    // canInteract 随详情一起下发：从探索页点进外校帖时，前端要能直接把
+    // 评论框/点赞置灰，而不是让用户点了才吃 403
+    const [meForGate, mySchoolForGate] = await Promise.all([
+      userId
+        ? this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { verificationStatus: true, verifiedSchool: true },
+          })
+        : Promise.resolve(null),
+      userId ? this.getUserSchool(userId) : Promise.resolve(null),
+    ]);
+    const shaped = {
+      ...this.shapePost(post, userId),
+      comments: this.shapeComments(post.comments),
+      myLiked,
+      canInteract: !userId
+        ? false
+        : this.canInteractWith(post, mySchoolForGate, meForGate?.verificationStatus, meForGate?.verifiedSchool),
+    };
     if (userId) await this.annotateMyVotes([shaped], userId);
     return shaped;
   }
@@ -1015,6 +1035,9 @@ export class SquareService {
 
   // ─── 举报（累计 ≥3 自动隐藏，§8.1.7）─────────────────────────
   async reportPost(postId: string, userId: string, reason?: string) {
+    // 「探索」把所有学校的墙对任意账号开放后，跨校刷举报即可自动下架任意帖子。
+    // 举报本身有意不设同校/认证门槛（安全阀），故改在这里加频次上限挡小号批量下架。
+    this.assertReportBurstOk(userId);
     // 并发举报同帖时若在事务外读-改-写，后发请求可能基于过期 reports 覆盖前者，
     // 导致计数丢失或重复触发隐藏。整个读-改-写 + 阈值判定置于同一事务内原子执行（§8.1.7）。
     // 仅默认隔离级别（Read Committed）下两并发举报仍可能各自读到旧 metadata 后互相覆盖（lost update），
@@ -1403,6 +1426,34 @@ export class SquareService {
     }
     out.isMine = isMine;
     return out;
+  }
+
+  // 举报有意**不设**同校/认证门槛（安全阀：未认证读者看到外校辱骂内容也必须能标记）。
+  // 但「探索」把全部学校的墙开放给任意账号后，跨校刷举报即可自动下架任意帖子，
+  // 故补一条每人每帖只计一次的去重（原实现按 userId 去重已在 reportPost 内，
+  // 这里再加一层「同一用户短时间内举报数」的软上限，防小号批量下架）。
+  private static readonly REPORT_BURST_WINDOW_MS = 60 * 60 * 1000;
+  private static readonly REPORT_BURST_MAX = 10;
+  // 进程内计数（与 PublicRateLimitGuard 同款思路）。**不能查 Report 表**——
+  // 帖子举报写的是 SquarePost.metadata.reports[]，Report 表是「问题反馈」，两回事。
+  // 多实例部署时各实例独立计数，量级上仍足够挡住小号批量下架。
+  private reportBurst = new Map<string, number[]>();
+
+  private assertReportBurstOk(userId: string) {
+    const now = Date.now();
+    const since = now - SquareService.REPORT_BURST_WINDOW_MS;
+    const hits = (this.reportBurst.get(userId) || []).filter((t) => t > since);
+    if (hits.length >= SquareService.REPORT_BURST_MAX) {
+      throw new ForbiddenException('Too many reports in a short time, please try again later');
+    }
+    hits.push(now);
+    this.reportBurst.set(userId, hits);
+    // 表过大时清掉过期用户，防内存膨胀
+    if (this.reportBurst.size > 5000) {
+      for (const [k, v] of this.reportBurst) {
+        if (!v.some((t) => t > since)) this.reportBurst.delete(k);
+      }
+    }
   }
 
   // ─── 「附近」：按真实距离排序的帖子流（§8.1.5）──────────────────

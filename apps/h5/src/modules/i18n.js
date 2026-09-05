@@ -88,12 +88,12 @@ const ZH = {
   // 探索：选校与只读态
   'No other campus walls yet': '还没有其它学校的墙',
   'Get verified to interact': '认证学生身份后可互动',
-  // 聊天：长按菜单 / 引用 / 转发 / 复制
-  Quote: '引用', Forward: '转发', Copy: '复制', Like: '点赞', Unlike: '取消赞',
+  // 聊天：只收 toast 文案。长按菜单项（引用/转发/复制/点赞）、被删原消息占位、
+  // 帖子卡占位标题一律在调用点用 zh?:'' 三元产出，**不进全局词典**——
+  // Quote / Forward / Copy / Like 这种通用短词一旦进词典，哪段用户内容漏了
+  // data-no-i18n 就会被整词替换（8/13 教训）。
   'Copied to clipboard': '已复制到剪贴板', 'Copy failed': '复制失败',
-  'Original message deleted': '原消息已删除', 'Square post': '广场帖子',
-  // 转发选择器
-  'Forward to chat': '转发到聊天', 'No conversations to forward to': '还没有可转发的会话',
+  // 转发选择器（这两条是 toast，同样只在调用点用；保留 toast 两条即可）
   Forwarded: '已转发', 'Forward failed': '转发失败',
   // 发帖：带上位置
   'Add location': '带上位置', 'Lets people nearby find this post': '让附近的人能看到这条',

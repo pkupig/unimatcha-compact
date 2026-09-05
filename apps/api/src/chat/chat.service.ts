@@ -512,8 +512,10 @@ export class ChatService {
    * 写错了以后改代码也追不回历史消息里的那一份。
    */
   private async buildPostShareSnapshot(postId: string): Promise<any | null> {
-    const post = await this.prisma.squarePost.findUnique({
-      where: { id: postId },
+    // 可见性校验：不能把已下架/作者已删/未过审的帖子内容永久固化进聊天记录。
+    // 快照一旦写入就不受之后的删帖、举报下架、审核动作影响——取的这一刻是唯一的门。
+    const post = await this.prisma.squarePost.findFirst({
+      where: { id: postId, isHidden: false, reviewStatus: 'approved' },
       select: {
         id: true, title: true, content: true, images: true, anonymous: true,
         authorUserId: true, authorType: true,

@@ -63,6 +63,12 @@ export class SquareAdminService {
     const items = posts.map((p) => {
       const out: any = {
         ...p,
+        // ⚠️ 这里是**不走 shapePost 的独立整形口**：postInclude 会回带全部标量列，
+        // 帖子的 lat/lng 会原样出网。匿名投票帖虽在下面剔除了 authorUser，但坐标
+        // 留在同一对象里，等于把匿名发起人的 ≈110m 位置交给同校学生会审核员，
+        // 脱敏当场落空。
+        lat: undefined,
+        lng: undefined,
         metadata: undefined,
         hasUnionReviewer: !!p.school && unionSet.has(p.school),
       };

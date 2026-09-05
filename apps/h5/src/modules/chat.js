@@ -930,6 +930,12 @@ async function sendChatMessage() {
         ...(S.replyTo ? { replyToId: S.replyTo.id } : {}),
       });
       if (S.replyTo) cancelQuoteReply();
+      // 发送响应带回推进后的火花天数：就地更新顶部，别让它停在进会话时的旧值
+      const sent = (d && d.data) || d || {};
+      if (typeof sent.streakCount === 'number') {
+        S.chatStreak = { streakCount: sent.streakCount, streakToday: sent.streakCount > 0 };
+        renderChatStreak(S.chatStreak);
+      }
       const m = d?.data || d;
       if (stillHere()) { if (m && m.id) appendOwnMessage(m); else await window.loadChatHistory(); }
     }
@@ -1253,9 +1259,19 @@ window.patchMessageLike = patchMessageLike;
 // 永远带不回「一条旧消息被点赞了」
 async function refreshMessageLike(messageId) {
   try {
-    const res = await window.api('/chat/' + S.chatMatchId + '/messages?limit=50');
+    // 先在本地缓存里找；找不到再去拉。
+    // 注意不能用 GET /messages?limit=50 —— 那拿的是**最旧** 50 条，
+    // 稍长一点的会话里对方给近期消息点的赞永远刷不出来。
+    const local = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
+    if (!local) return; // 不在当前视图里，等下次进会话自然带出
+    const res = await window.api('/chat/' + S.chatMatchId + '/messages?limit=50&before=' + encodeURIComponent(messageId));
     const list = ((res && res.data) || res || {}).messages || [];
-    const fresh = list.find(function (v) { return v.id === messageId; });
+    let fresh = list.find(function (v) { return v.id === messageId; });
+    if (!fresh) {
+      // 兜底：整段重拉当前视图尾部
+      const res2 = await window.api('/chat/' + S.chatMatchId + '/messages?limit=50');
+      fresh = (((res2 && res2.data) || res2 || {}).messages || []).find(function (v) { return v.id === messageId; });
+    }
     if (!fresh) return;
     const msg = (S.chatMessages || []).find(function (v) { return v.id === messageId; });
     if (msg) { msg.likeCount = fresh.likeCount; msg.myLiked = fresh.myLiked; }
@@ -1268,7 +1284,11 @@ window.refreshMessageLike = refreshMessageLike;
 function startQuoteReply(m) {
   S.replyTo = {
     id: m.id,
-    text: m.content || (m.imageUrl ? (zhNow() ? '[图片]' : '[Photo]') : ''),
+    // 帖子卡的 content 是空的（内容在 metadata 快照里），不特判的话引用条是空白一条。
+    // 与气泡内引用条（messageHtml）用同一套占位文案，两处显示才一致。
+    text: m.kind === 'post_share'
+      ? ((m.metadata && m.metadata.title) || (zhNow() ? '[帖子]' : '[Post]'))
+      : (m.content || (m.imageUrl ? (zhNow() ? '[图片]' : '[Photo]') : '')),
     kind: m.kind,
   };
   renderQuoteBar();
