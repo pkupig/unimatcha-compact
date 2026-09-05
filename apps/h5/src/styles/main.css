@@ -1129,7 +1129,8 @@
        两类选择器 (0,2,0)/(0,3,0) 恒压元素上的 Tailwind 工具类 (0,1,0)——特异度先于顺序。
        上方距离按设计稿：顶栏底沿(56px+安全区) + 8px 空隙 = 64px + var(--sat)，单算一次。 */
     .home-match-pane.match-plan {
-      padding: calc(64px + var(--sat)) 30px calc(96px + var(--sab));
+      /* 左右 8px = 顶栏 px-2：标题/绿卡/偏好框/CTA 全部对齐加号左缘与铃铛右缘（用户要求） */
+      padding: calc(64px + var(--sat)) 8px calc(96px + var(--sab));
       align-items: stretch;
       justify-content: flex-start;
       overflow: hidden; /* 计划页整页不滚，只有摘要框内容区滚 */
@@ -1147,18 +1148,19 @@
     .mp-title { font-size: 26px; }
     .mp-sub { color: #8a8a8a; min-height: 3.3em; }
     .dark .mp-sub { color: #8c8a85; }
-    /* 出血荧光绿卡：不规则圆角做手绘感；深色模式同样绿底黑字（品牌焦点） */
+    /* 荧光绿倒计时卡：与面板同宽（对齐顶栏图标外缘），小号不规则圆角保留一点手绘感；
+       深色模式同样绿底黑字（品牌焦点） */
     .mp-card {
       box-sizing: border-box;
       flex-shrink: 0;
-      width: calc(100% + 44px);
-      margin: 14px -22px 0;
+      width: 100%;
+      margin: 14px 0 0;
       background: #CCFF00;
       color: #000;
-      border-radius: 24px 28px 22px 28px / 28px 22px 28px 24px;
+      border-radius: 13px 15px 12px 15px / 15px 12px 15px 13px;
       padding: 14px 18px 16px;
     }
-    .mp-card--alt { border-radius: 28px 24px 28px 22px / 22px 28px 24px 28px; }
+    .mp-card--alt { border-radius: 15px 13px 15px 12px / 12px 15px 13px 15px; }
     .mp-card-label { margin: 0; font-size: 10px; font-weight: 800; letter-spacing: 0.3em; color: rgba(0, 0, 0, 0.5); }
     /* 周历行：今天=白底圆片；公布日=白「公布日」小标 + 手绘白圈（绝对定位在格内） */
     .mp-week { margin-top: 8px; display: flex; justify-content: space-between; }
