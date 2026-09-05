@@ -95,6 +95,8 @@ const ZH = {
   // 转发选择器
   'Forward to chat': '转发到聊天', 'No conversations to forward to': '还没有可转发的会话',
   Forwarded: '已转发', 'Forward failed': '转发失败',
+  // 发帖：带上位置
+  'Add location': '带上位置', 'Lets people nearby find this post': '让附近的人能看到这条',
   'Nothing pinned yet': '还没有置顶内容',
   'Your student union pins important notices here': '学生会会把重要通知置顶在这里', Search: '搜索', 'Be the first to share a moment': '来发布第一条动态吧',
   Publish: '发布', 'To Recommend': '发到推荐', 'To Campus Wall': '发到校园墙',

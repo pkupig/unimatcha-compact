@@ -85,12 +85,19 @@ export class SquareService {
     if (!post || post.board !== SquareBoard.CAMPUS_WALL) return;
     const postSchool = (post.school || '').trim();
     if (!postSchool) return;
-    const mySchool = (await this.getUserSchool(userId)) || '';
-    if (mySchool.trim() === postSchool) return; // 本校墙：一切照旧
     const me = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { verificationStatus: true },
+      select: { verificationStatus: true, verifiedSchool: true },
     });
+    // 「本校」判定：**已认证的人一律以 verifiedSchool 为准**，不看 profile.school。
+    // 否则认证用户把资料里的学校下拉改成任意学校，那所学校的墙就变成了「本校」，
+    // 「外校墙需认证」这道门等于一个下拉框就能绕过。
+    // 未认证用户没有可信学校，只能以自填的 profile.school 为准——这与发帖归属
+    // 用的是同一个声明值，口径一致（他们同一时刻也只能属于一所学校）。
+    const myClaimed = me?.verificationStatus === 'verified'
+      ? (me.verifiedSchool || '')
+      : ((await this.getUserSchool(userId)) || '');
+    if (myClaimed.trim() === postSchool) return; // 本校墙：一切照旧
     if (me?.verificationStatus !== 'verified') {
       throw new ForbiddenException(
         "Only verified students can interact with other schools' walls. Get verified to join in.",
@@ -103,11 +110,14 @@ export class SquareService {
     post: any,
     mySchool: string | null,
     myVerification: string | null | undefined,
+    myVerifiedSchool?: string | null,
   ): boolean {
     if (post?.board !== SquareBoard.CAMPUS_WALL) return true;
     const ps = (post.school || '').trim();
     if (!ps) return true;
-    if ((mySchool || '').trim() === ps) return true;
+    // 与 assertCanInteract 同一判定：认证用户以 verifiedSchool 为准
+    const mine = myVerification === 'verified' ? (myVerifiedSchool || '') : (mySchool || '');
+    if (mine.trim() === ps) return true;
     return myVerification === 'verified';
   }
 
@@ -127,7 +137,7 @@ export class SquareService {
       this.getUserSchool(userId),
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { verificationStatus: true },
+        select: { verificationStatus: true, verifiedSchool: true },
       }),
     ]);
 
@@ -163,7 +173,7 @@ export class SquareService {
     ]);
     const items = posts.map((p) => ({
       ...this.shapeCard(p, userId, mySchool),
-      canInteract: this.canInteractWith(p, mySchool, me?.verificationStatus),
+      canInteract: this.canInteractWith(p, mySchool, me?.verificationStatus, me?.verifiedSchool),
     }));
     await this.annotateMyVotes(items, userId);
     return {
@@ -1436,18 +1446,26 @@ export class SquareService {
       return this.listNearbyByCity(userId, page, limit, mySchool);
     }
 
+    // **观察点坐标先吸附到 ~500m 网格再参与计算**：出参虽然只给距离档位，
+    // 但调用方可以任意指定自己的坐标并按返回的排序做二分，多次探测即可把某条
+    // 帖子的位置收敛到很小范围（分桶本身挡不住三角定位）。把观察点量化后，
+    // 探测精度被钉死在网格粒度上，同时对真实使用几乎无感（附近流本就是粗粒度的）。
+    const GRID = 0.005; // ≈ 500m
+    const qLat = Math.round(lat / GRID) * GRID;
+    const qLng = Math.round(lng / GRID) * GRID;
+
     // bbox 粗筛边长：纬度 1° ≈ 111.045km；经度随纬度收窄，靠近极点时钳住避免除零
     const R = SquareService.NEARBY_RADIUS_KM;
     const dLat = R / 111.045;
-    const cosLat = Math.max(0.01, Math.cos((lat * Math.PI) / 180));
+    const cosLat = Math.max(0.01, Math.cos((qLat * Math.PI) / 180));
     const dLng = R / (111.045 * cosLat);
 
     const where: Prisma.SquarePostWhereInput = {
       board: SquareBoard.RECOMMEND,
       isHidden: false,
       reviewStatus: 'approved',
-      lat: { gte: lat - dLat, lte: lat + dLat },
-      lng: { gte: lng - dLng, lte: lng + dLng },
+      lat: { gte: qLat - dLat, lte: qLat + dLat },
+      lng: { gte: qLng - dLng, lte: qLng + dLng },
     };
 
     // bbox 内全取（本仓库量级下远小于上限），再精算距离排序、切页。
@@ -1460,9 +1478,17 @@ export class SquareService {
     });
 
     const withDist = rows
-      .map((p: any) => ({ p, km: this.haversineKm(lat, lng, p.lat, p.lng) }))
+      .map((p: any) => ({ p, km: this.haversineKm(qLat, qLng, p.lat, p.lng) }))
       .filter((x) => Number.isFinite(x.km) && x.km <= R)
       .sort((a, b) => a.km - b.km);
+
+    // GPS 命中 0 条 → 回落同城。否则「授权定位的人看到空页、拒绝定位的人
+    // 反而有内容」，行为完全颠倒（帖子坐标要靠作者逐条选择上报，起步阶段必然稀疏）。
+    if (withDist.length === 0) {
+      const fallback: any = await this.listNearbyByCity(userId, page, limit, mySchool);
+      fallback.mode = 'city_fallback'; // 前端据此提示「附近还没有内容，先看同城」
+      return fallback;
+    }
 
     const total = withDist.length;
     const slice = withDist.slice((page - 1) * limit, (page - 1) * limit + limit);

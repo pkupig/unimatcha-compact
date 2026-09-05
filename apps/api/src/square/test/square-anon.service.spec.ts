@@ -194,9 +194,13 @@ describe('SquareService · 匿名（逐条评论）', () => {
   // ─── 外校墙互动门禁（「探索」引入，同时补既有跨校越权洞）───────────
   describe('探索：外校墙只有认证用户能互动', () => {
     const gate = (userId: string, post: any) => (service as any).assertCanInteract(userId, post);
-    const setUser = (school: string | null, verification: string) => {
+    // verifiedSchool = 审核快照（可信）；school = 用户自填的资料（可随时改）
+    const setUser = (school: string | null, verification: string, verifiedSchool: string | null = school) => {
       mockPrisma.profile.findUnique = jest.fn().mockResolvedValue({ school });
-      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({ verificationStatus: verification });
+      mockPrisma.user.findUnique = jest.fn().mockResolvedValue({
+        verificationStatus: verification,
+        verifiedSchool: verification === 'verified' ? verifiedSchool : null,
+      });
     };
 
     it('本校墙：未认证也照常互动（自己学校的规则一行没改）', async () => {
@@ -229,6 +233,32 @@ describe('SquareService · 匿名（逐条评论）', () => {
       await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).rejects.toThrow();
     });
 
+
+    it('认证用户改资料里的学校**不能**把外校墙变成本校墙（门禁只认审核快照）', async () => {
+      // Warwick 认证的人，把资料学校改成 UCL，想去 UCL 墙互动
+      setUser('UCL', 'verified', 'University of Warwick');
+      // 仍然放行——因为他已认证，认证用户本就能逛任何外校墙。
+      // 关键是下一条：这道判定不再把 UCL 当成他的「本校」。
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).resolves.toBeUndefined();
+    });
+
+    it('未认证用户改资料学校仍受限于「一次只能属于一所学校」（与发帖归属同口径）', async () => {
+      setUser('UCL', 'unverified');
+      // 改成 UCL 后可以在 UCL 墙互动（与他发帖会发到 UCL 墙一致）
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'UCL' })).resolves.toBeUndefined();
+      // 但别的学校仍然拦住
+      await expect(gate('u1', { board: 'CAMPUS_WALL', school: 'Imperial' })).rejects.toThrow();
+    });
+
+    it('能力位对认证用户同样以 verifiedSchool 为准', () => {
+      const can = (post: any, mySchool: any, v: any, vs: any) =>
+        (service as any).canInteractWith(post, mySchool, v, vs);
+      // 资料改成 UCL、认证学校是 Warwick → UCL 墙不是「本校」，但已认证仍可互动
+      expect(can({ board: 'CAMPUS_WALL', school: 'UCL' }, 'UCL', 'verified', 'University of Warwick')).toBe(true);
+      // 未认证 + 资料写着 UCL → UCL 墙算他的本校
+      expect(can({ board: 'CAMPUS_WALL', school: 'UCL' }, 'UCL', 'unverified', null)).toBe(true);
+      expect(can({ board: 'CAMPUS_WALL', school: 'Imperial' }, 'UCL', 'unverified', null)).toBe(false);
+    });
     it('canInteract 能力位与门禁判定一致（前端据此置灰，不能点了才报错）', () => {
       const can = (post: any, mySchool: any, v: any) =>
         (service as any).canInteractWith(post, mySchool, v);

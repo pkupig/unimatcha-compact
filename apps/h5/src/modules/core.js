@@ -196,6 +196,7 @@ function cleanupUserState() {
   S.chatPollTick = 0;
   S.chatStreak = null;
   S.forwardPayload = null;
+  S.newPostGeo = null;
   S.replyTo = null;
   // chat session list (§6.6)
   S.sessions = [];

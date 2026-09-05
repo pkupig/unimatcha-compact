@@ -1207,13 +1207,18 @@ function openChatMsgMenu(msgId, x, y) {
   }
   menu.querySelector('[data-like]').onclick = function () { closeChatMsgMenu(); toggleMessageLike(m.id); };
 
-  // 延一拍再挂关闭监听：本次 touchend 派生的 click 会立刻把菜单关掉
+  // 关闭监听必须听「下一次按下」而不是 click：菜单是在手指**仍按着**时（600ms）
+  // 弹出的，抬手派生的那个 click 会立刻把它关掉（延时 10ms 挡不住，抬手远晚于此）。
+  // pointerdown/touchstart 的本次事件早已发生，下一个才是真正的新交互。
   setTimeout(function () {
-    document.addEventListener('click', function once() {
+    const closeOnNextDown = function () {
       closeChatMsgMenu();
-      document.removeEventListener('click', once);
-    });
-  }, 10);
+      document.removeEventListener('pointerdown', closeOnNextDown, true);
+      document.removeEventListener('touchstart', closeOnNextDown, true);
+    };
+    document.addEventListener('pointerdown', closeOnNextDown, true);
+    document.addEventListener('touchstart', closeOnNextDown, true);
+  }, 0);
 }
 
 async function toggleMessageLike(messageId) {
@@ -1341,14 +1346,15 @@ function bindChatMessageGestures() {
   // 双击点赞；与长按互斥（长按已弹菜单就不再算双击）
   let lastTap = 0, lastId = null;
   box.addEventListener('click', function (e) {
+    // 长按守卫必须排在最前：否则长按一张转发卡时，抬手派生的 click 会命中
+    // data-open-post 分支，菜单刚弹出就跳去帖子详情
+    if (Date.now() - longFiredAt < 400) return;
     const openPost = e.target.closest('[data-open-post]');
     if (openPost) {
       const pid = openPost.dataset.openPost;
       if (pid) { if (window.closeChat) window.closeChat(); if (window.openPostDetail) window.openPostDetail(pid); }
       return;
     }
-    // 长按刚触发的那一下会派生 click，忽略掉；400ms 后自动失效
-    if (Date.now() - longFiredAt < 400) return;
     const el = e.target.closest(TARGET_SEL);
     const row = e.target.closest('.chat-row[data-id]');
     if (!el || !row) return;

@@ -1106,6 +1106,13 @@
           <span class="font-body text-sm text-on-surface">Post anonymously</span>
           <input id="newpost-anonymous" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostAnonymous(this.checked)" />
         </label>
+        <!-- 「带上位置」开关：默认关，打开才请求定位并把坐标随帖上报。
+             位置是「附近」页排序的唯一数据源——不逐条征得同意就上报，
+             等于让每条帖子都变成一次静默的位置采集。 -->
+        <label class="flex items-center justify-between gap-4 px-4 py-3.5 cursor-pointer select-none border-t border-outline-variant/20">
+          <span class="font-body text-sm text-on-surface">Add location<span class="block text-xs text-on-surface-variant mt-0.5">Lets people nearby find this post</span></span>
+          <input id="newpost-location" type="checkbox" class="ink-switch shrink-0" onchange="toggleNewPostLocation(this.checked)" />
+        </label>
         <!-- 校园墙投票（需审核）：整行仅校园墙发帖时显示（推荐页不出现），2–6 个选项 -->
         <div id="newpost-poll-row" class="border-t border-outline-variant/20">
           <label class="flex items-center justify-between gap-4 px-4 py-3.5 cursor-pointer select-none">

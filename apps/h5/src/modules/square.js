@@ -462,10 +462,14 @@ async function loadSquareTab2(tabArg) {
       if (S.exploreSchool) url += `&school=${encodeURIComponent(S.exploreSchool)}`;
     }
     if (tab === 'nearby') {
-      // 坐标随请求带上，服务端算完即弃；拿不到就让后端走同城降级
-      const fix = await getGeoFix();
-      if (seq !== S.squareReqSeqs[tab]) return; // 定位是异步的，期间可能已被更新的请求取代
-      if (fix) url += `&lat=${encodeURIComponent(fix.lat)}&lng=${encodeURIComponent(fix.lng)}`;
+      // **只有用户真的站在「附近」页时才请求定位权限**。四页是全量预热的，
+      // 若在预热里请求，用户刚点进广场（还在推荐页）就会被弹系统定位授权框——
+      // 既突兀又拿不到对价（他还没表达过想看附近）。
+      if (S.squareTab === 'nearby') {
+        const fix = await getGeoFix();
+        if (seq !== S.squareReqSeqs[tab]) return; // 定位是异步的，期间可能已被更新的请求取代
+        if (fix) url += `&lat=${encodeURIComponent(fix.lat)}&lng=${encodeURIComponent(fix.lng)}`;
+      }
     }
     // 推荐流首页并行拉广告（ADMIN-REDESIGN §6）：校园墙不插广告，
     // 无学校资料不请求（fetchSquareAds 内部判定）。广告失败静默为空，不影响正常流。
@@ -2053,6 +2057,10 @@ function openNewPost() {
   S.newPostBoard = S.squareTab === 'campus_wall' ? 'campus_wall' : 'recommend';
   S.newPostBoardOrigin = S.newPostBoard; // 取消投票时还原用
   S.newPostAnonymous = false;
+  // 位置逐条选择上报，不继承上一条的选择
+  S.newPostGeo = null;
+  const locBox = document.getElementById('newpost-location');
+  if (locBox) locBox.checked = false;
   S.newPostPoll = false;
   const titleEl = document.getElementById('post-title');
   const contentEl = document.getElementById('post-content');
@@ -2151,6 +2159,23 @@ function syncNewPostBoardUI() {
   if (label) label.textContent = S.newPostBoard === 'campus_wall' ? 'Campus Wall' : 'Recommend';
 }
 
+// 「带上位置」开关：打开时就地取一次定位（在用户手势里请求授权，时机自然）。
+// 取不到就把开关弹回并提示——不要让用户以为带上了位置、实际发出去没有。
+async function toggleNewPostLocation(checked) {
+  const box = document.getElementById('newpost-location');
+  if (!checked) { S.newPostGeo = null; return; }
+  const zh = window.getLang && window.getLang() === 'zh';
+  const fix = await getGeoFix();
+  if (!fix) {
+    S.newPostGeo = null;
+    if (box) box.checked = false;
+    window.toast(zh ? '拿不到定位，可在系统设置里允许后重试' : "Couldn't get your location — allow it in settings and try again");
+    return;
+  }
+  S.newPostGeo = { lat: fix.lat, lng: fix.lng };
+}
+window.toggleNewPostLocation = toggleNewPostLocation;
+
 // Anonymous toggle → S.newPostAnonymous (post shows as 「匿名同学」, school kept).
 function toggleNewPostAnonymous(checked) {
   S.newPostAnonymous = !!checked;
@@ -2221,7 +2246,9 @@ async function submitNewPost() {
       board: S.newPostBoard === 'campus_wall' ? 'campus_wall' : 'recommend',
       content,
       images: imageUrls,
-      anonymous: !!S.newPostAnonymous
+      anonymous: !!S.newPostAnonymous,
+      // 位置快照：仅在用户本次打开了「带上位置」时才有值（服务端会截到 3 位小数）
+      ...(S.newPostGeo ? { lat: S.newPostGeo.lat, lng: S.newPostGeo.lng } : {})
     };
     if (title) payload.title = title;
     // 投票帖：收集选项，强制校园墙，需审核
