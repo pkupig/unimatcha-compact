@@ -662,15 +662,21 @@ function postAuthorDisplay(p) {
     // 没有 seed 时退回后端那串英文，再没有才兜底。
     const seed = p.anonymousAuthor?.aliasSeed;
     const alias = seed != null ? window.aliasName(seed) : (p.anonymousAuthor?.nickname || 'Anonymous');
+    // 匿名：绝不带 verifiedSchool/verificationStatus——挂上校标等于给匿名号盖「已认证」章，
+    // 把作者候选集从全校缩到该校 verified 用户。school 字段是既有产品口径（帖子标学校），保留。
     return { name: alias, nickname: alias, avatarUrl: null, anonymous: true, aliasSeed: seed, school: p.school };
   }
   const prof = p?.authorUser?.profile || {};
+  const au = p?.authorUser || {};
   return {
     name: prof.nickname || p?.admin?.name || p?.admin?.organizationName || 'User',
     nickname: prof.nickname,
     avatarUrl: prof.avatarUrl,
     anonymous: false,
     school: prof.school || p?.school,
+    // 校标依据：认证快照（后端 select 已带），与可随意改的 profile.school 无关
+    verificationStatus: au.verificationStatus || null,
+    verifiedSchool: au.verifiedSchool || null,
   };
 }
 window.postAuthorDisplay = postAuthorDisplay;
@@ -947,7 +953,7 @@ function cardAuthorRow(p) {
   return `<div class="flex items-center justify-between gap-2 mt-1.5">
     <div class="flex items-center gap-1.5 min-w-0" data-no-i18n>
       ${avatarChip(d, d.name, 'w-4 h-4 shrink-0', 'text-[7px]', '')}
-      <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>
+      <span class="text-neutral-400 text-[11px] truncate">${window.escapeHtml(d.name)}</span>${window.badgeFor?.(d) || ''}
     </div>
     ${postLikeButton(p)}
   </div>`;
@@ -1051,7 +1057,7 @@ function bentoWideCard(p) {
     <div class="flex items-center gap-3 mb-4">
       ${renderAuthorAvatars(p)}
       <div class="min-w-0 flex-1">
-        <p class="font-headline text-base font-bold truncate" data-no-i18n>${window.escapeHtml(d.name)}</p>
+        <p class="font-headline text-base font-bold truncate" data-no-i18n>${window.escapeHtml(d.name)}</p>${window.badgeFor?.({ ...d, badgeSize: 'md' }) || ''}
         <p class="text-[10px] text-neutral-400 font-medium tracking-widest" data-no-i18n>${window.formatPostTime(p.createdAt)}</p>
       </div>
       ${pinnedBadge(p)}
@@ -1547,7 +1553,7 @@ function renderPdComment(cm, replyTargetId, isReply, authorKey) {
         : `<div class="${avSize} rounded-full bg-surface-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-outline text-base">person</span></div>`)}
     <div class="flex-1 min-w-0">
       <div class="flex items-baseline justify-between gap-2">
-        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${authorTag}</span>
+        <span class="flex items-center gap-1.5 min-w-0"><span class="font-headline font-bold text-[13px] truncate" data-no-i18n>${window.escapeHtml(name)}</span>${window.badgeFor?.({ anonymous: !!cm.anonymous, verificationStatus: cm.user?.verificationStatus, verifiedSchool: cm.user?.verifiedSchool }) || ''}${authorTag}</span>
         <span class="text-[10px] text-on-surface-variant font-label tracking-widest shrink-0" data-no-i18n>${window.formatPostTime(cm.createdAt)}</span>
       </div>
       ${cm.content ? `<p class="text-on-surface text-sm leading-relaxed mt-1" data-no-i18n>${window.escapeHtml(cm.content)}</p>` : ''}
@@ -1611,7 +1617,7 @@ function renderPdHeaderAuthor(post, d, school, badge) {
   box.innerHTML = `
     ${avatarChip(d, d.name, 'w-8 h-8 shrink-0', 'text-[10px]', '')}
     <div class="min-w-0 leading-tight">
-      <p class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(d.name)}</p>
+      <p class="font-headline font-bold text-[13px] truncate">${window.escapeHtml(d.name)}${window.badgeFor?.(d) || ''}</p>
       ${school ? `<p class="text-[10px] text-on-surface-variant truncate">${window.escapeHtml(window.metaLabel(school))}</p>` : ''}
     </div>
     ${badge ? `<div class="shrink-0">${badge}</div>` : ''}`;

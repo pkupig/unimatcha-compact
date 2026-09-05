@@ -252,6 +252,7 @@ async function checkUserState() {
       return;
     }
     window.startRealtime?.();
+    window.loadSchoolBadges?.(); // 校标元信息（失败自动降级为生成徽章，不阻断）
     const hasProfile = u.hasProfile != null ? u.hasProfile : !!(u.profile && u.profile.nickname);
     // G 规则：两份问卷均为选填（可都填 / 只填一个 / 都不填）。资料填完即进主页；
     // 问卷不作为进主页的门槛——在进入「恋人 / 朋友」匹配模式时再按该模式按需引导填写

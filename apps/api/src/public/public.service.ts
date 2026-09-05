@@ -12,13 +12,40 @@ type SiteStats = {
   timezone: string;
 };
 
+type SchoolBadge = {
+  name: string;
+  badgeUrl: string | null;
+  badgeText: string | null;
+  badgeColor: string | null;
+};
+
 @Injectable()
 export class PublicService {
   private readonly logger = new Logger(PublicService.name);
   private statsCache: { at: number; data: SiteStats } | null = null;
+  private badgesCache: { at: number; data: { items: SchoolBadge[] } } | null = null;
   private static readonly CACHE_MS = 60_000;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * 校标元信息：H5 给认证用户渲染学校徽章用。学校数量极少且几乎不变，走同款 60s 缓存。
+   * ⚠️ select 只放这四个字段——School 同表还有分成 bps 与银行账号，
+   * 投影写宽一格就是把它们发到公网上。
+   */
+  async getSchoolBadges(): Promise<{ items: SchoolBadge[] }> {
+    if (this.badgesCache && Date.now() - this.badgesCache.at < PublicService.CACHE_MS) {
+      return this.badgesCache.data;
+    }
+    const rows = await this.prisma.school.findMany({
+      where: { isActive: true },
+      select: { name: true, badgeUrl: true, badgeText: true, badgeColor: true },
+      orderBy: { name: 'asc' },
+    });
+    const data = { items: rows };
+    this.badgesCache = { at: Date.now(), data };
+    return data;
+  }
 
   async getSiteStats(): Promise<SiteStats> {
     if (this.statsCache && Date.now() - this.statsCache.at < PublicService.CACHE_MS) {

@@ -72,6 +72,6 @@ export class UsersAdminController {
     @Param('id') id: string,
     @Body() dto: UpdateVerificationDto,
   ) {
-    return this.usersAdminService.updateUserVerification(actor, id, dto.status);
+    return this.usersAdminService.updateUserVerification(actor, id, dto.status, dto.verifiedSchool);
   }
 }

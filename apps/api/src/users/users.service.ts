@@ -51,6 +51,7 @@ export class UsersService {
       select: {
         id: true, email: true, status: true,
         verificationStatus: true,
+        verifiedSchool: true,
         createdAt: true,
         // 双模式：每模式状态迁入 UserModeState
         modeStates: {

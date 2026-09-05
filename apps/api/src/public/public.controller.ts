@@ -19,6 +19,12 @@ export class PublicController {
     return this.publicService.getSiteStats();
   }
 
+  @Get('school-badges')
+  @ApiOperation({ summary: '校标元信息（H5 渲染认证用户的学校徽章；缺项由前端自动生成兜底）' })
+  async schoolBadges() {
+    return this.publicService.getSchoolBadges();
+  }
+
   @Post('waitlist')
   @UseGuards(PublicRateLimitGuard)
   @ApiOperation({ summary: '加入候补名单' })

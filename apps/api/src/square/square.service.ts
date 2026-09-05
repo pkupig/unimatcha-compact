@@ -531,6 +531,8 @@ export class SquareService {
             user: {
               select: {
                 id: true,
+                verificationStatus: true,
+                verifiedSchool: true,
                 profile: { select: { nickname: true, avatarUrl: true } },
               },
             },
@@ -544,6 +546,8 @@ export class SquareService {
                 user: {
                   select: {
                     id: true,
+                    verificationStatus: true,
+                    verifiedSchool: true,
                     profile: { select: { nickname: true, avatarUrl: true } },
                   },
                 },
@@ -675,6 +679,8 @@ export class SquareService {
           user: {
             select: {
               id: true,
+              verificationStatus: true,
+              verifiedSchool: true,
               profile: { select: { nickname: true, avatarUrl: true } },
             },
           },
@@ -920,6 +926,10 @@ export class SquareService {
       authorUser: {
         select: {
           id: true,
+          // 校标：认 verifiedSchool（审核快照）而非 profile.school（用户可随意改）。
+          // shapePost 对匿名帖会把整个 authorUser 置 null，故此处无需额外防匿名。
+          verificationStatus: true,
+          verifiedSchool: true,
           profile: { select: { nickname: true, avatarUrl: true, school: true } },
         },
       },
@@ -1284,8 +1294,14 @@ export class SquareService {
         // 楼主本人的匿名评论才打「作者」标；别人的匿名评论不能带这个 token
         if (authorTok && uid === authorId) c.anonymousAuthorToken = authorTok;
       } else if (c.user) {
-        // 实名评论：只留展示所需，不下发 user.id（它是反解匿名者的原料之一）
-        c.user = { profile: c.user.profile || null };
+        // 实名评论：只留展示所需，不下发 user.id（它是反解匿名者的原料之一）。
+        // 校标两字段随实名评论下发；匿名分支整体替换 c.user，天然剥掉它们——
+        // 匿名号带上「已认证」会把候选集从全校缩到该校 verified 用户，等于泄漏。
+        c.user = {
+          profile: c.user.profile || null,
+          verificationStatus: c.user.verificationStatus ?? null,
+          verifiedSchool: c.user.verifiedSchool ?? null,
+        };
       }
       if (Array.isArray(c.replies)) c.replies.forEach(shape);
     };

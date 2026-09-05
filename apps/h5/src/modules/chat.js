@@ -92,7 +92,7 @@ function sessionRowHtml(s) {
       ${sessionAvatarHtml(partner, 'chat-avatar chat-avatar--lg')}
       <div class="flex-grow min-w-0">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="font-headline font-bold text-[15px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(name)}</span>
+          <span class="font-headline font-bold text-[15px] text-on-surface truncate" data-no-i18n>${window.escapeHtml(name)}</span>${window.badgeFor?.({ verificationStatus: partner.verificationStatus, verifiedSchool: partner.verifiedSchool }) || ''}
           ${partner.note ? `<span class="shrink-0 px-1.5 py-0.5 rounded-[10px] bg-surface-container text-[10px] font-medium text-on-surface-variant truncate max-w-[45%]" data-no-i18n>${window.escapeHtml(partner.note)}</span>` : ''}
         </div>
         <p class="text-xs text-on-surface-variant truncate mt-1" data-no-i18n>${window.escapeHtml(lastTrunc) || `<span class="opacity-50">${zh ? '开始聊天吧…' : 'Start the conversation…'}</span>`}</p>

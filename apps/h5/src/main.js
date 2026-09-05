@@ -1,6 +1,7 @@
 import './styles/main.css';
 import { S } from './state.js';
 import './modules/core.js';
+import './modules/schoolbadge.js';
 import './modules/i18n.js';
 import './modules/auth.js';
 import './modules/questionnaire.js';

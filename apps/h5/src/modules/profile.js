@@ -517,11 +517,22 @@ function renderVerifyButton() {
   const status = S.currentUser?.verificationStatus || 'unverified';
   const zh = (window.getLang?.() === 'zh');
   if (status === 'verified') {
-    btn.className = 'shrink-0 w-[22px] h-[22px] rounded-full bg-neon text-black flex items-center justify-center';
-    btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:15px;font-variation-settings:'FILL' 1">check</span>`;
+    // 校标替换掉原来的荧光绿对勾：徽章本身即「已认证」，并且额外说明是哪所学校。
+    // 认证学校取 verifiedSchool（审核快照）；老数据缺该字段时回落对勾，不留空白。
+    const badge = window.badgeFor?.({
+      verificationStatus: 'verified',
+      verifiedSchool: S.currentUser?.verifiedSchool,
+      badgeSize: 'md',
+    }) || '';
+    btn.className = 'shrink-0 flex items-center justify-center pf-verified-badge';
+    btn.innerHTML = badge
+      || `<span class="material-symbols-outlined w-[22px] h-[22px] rounded-full bg-neon text-black flex items-center justify-center" style="font-size:15px;font-variation-settings:'FILL' 1">check</span>`;
     btn.disabled = true;
     btn.onclick = null;
-    btn.title = zh ? '已认证' : 'Verified';
+    btn.tabIndex = -1; // 纯展示，别让读屏念出一个空按钮
+    btn.title = S.currentUser?.verifiedSchool
+      ? (zh ? `已认证 · ${S.currentUser.verifiedSchool}` : `Verified · ${S.currentUser.verifiedSchool}`)
+      : (zh ? '已认证' : 'Verified');
   } else if (status === 'pending') {
     btn.className = 'shrink-0 inline-flex items-center gap-1 bg-white/22 backdrop-blur-md text-white rounded-full px-2.5 py-1';
     btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:13px">hourglass_top</span><span class="text-[10px] font-bold tracking-wider" data-no-i18n>${zh ? '审核中' : 'Pending'}</span>`;

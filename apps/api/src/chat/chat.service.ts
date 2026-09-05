@@ -224,7 +224,7 @@ export class ChatService {
     );
     const matchIds = matches.map((m) => m.id);
 
-    const [profiles, unread] = await Promise.all([
+    const [profiles, partnerUsers, unread] = await Promise.all([
       this.prisma.profile.findMany({
         where: { userId: { in: partnerIds } },
         select: {
@@ -235,6 +235,11 @@ export class ChatService {
           gender: true,
           age: true,
         },
+      }),
+      // 校标：认证学校快照（与 profiles 同批并发拉，避免 N+1）
+      this.prisma.user.findMany({
+        where: { id: { in: partnerIds } },
+        select: { id: true, verificationStatus: true, verifiedSchool: true },
       }),
       this.prisma.message.groupBy({
         by: ['matchId'],
@@ -248,6 +253,7 @@ export class ChatService {
     ]);
 
     const profMap = new Map(profiles.map((p) => [p.userId, p]));
+    const userMap = new Map(partnerUsers.map((u) => [u.id, u]));
     const unreadMap = new Map(unread.map((u) => [u.matchId, u._count._all]));
     // #3 备注：本人对各对象的备注存在 settings.notes，列表里优先显示备注
     const me = await this.prisma.user.findUnique({ where: { id: userId }, select: { settings: true } });
@@ -260,6 +266,7 @@ export class ChatService {
       const pid = isA ? m.userBId : m.userAId;
       const temp = isTempStatus(m.status);
       const prof = profMap.get(pid);
+      const pu = userMap.get(pid);
       return {
         matchId: m.id,
         mode: m.mode.toLowerCase(),
@@ -280,6 +287,8 @@ export class ChatService {
           school: prof?.school ?? null,
           gender: prof?.gender ?? null,
           age: prof?.age ?? null,
+          verificationStatus: pu?.verificationStatus ?? null,
+          verifiedSchool: pu?.verifiedSchool ?? null,
         },
         lastMessage: m.messages[0] ?? null,
         unreadCount: unreadMap.get(m.id) ?? 0,

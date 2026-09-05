@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ListQueryDto } from '../../common/dto/list-query.dto';
 
 /** 用户后管 DTO（原 admin.controller.ts 内联类，Step6 迁入） */
@@ -14,6 +14,14 @@ export class UpdateVerificationDto {
   @ApiProperty({ enum: ['unverified', 'pending', 'verified', 'rejected'] })
   @IsIn(['unverified', 'pending', 'verified', 'rejected'])
   status: 'unverified' | 'pending' | 'verified' | 'rejected';
+
+  // 认证学校快照（校标唯一依据）。status=verified 时不传则回落到申请人当时的
+  // profile.school；管理员在审核队列里能看到学邮域名，可据此纠正。
+  @ApiPropertyOptional({ description: '认证学校名（须与 School.name 精确一致）' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  verifiedSchool?: string;
 }
 
 export class ListUsersQueryDto extends ListQueryDto {

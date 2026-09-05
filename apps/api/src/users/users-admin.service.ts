@@ -214,12 +214,29 @@ export class UsersAdminService {
     actor: AdminActor,
     userId: string,
     status: 'unverified' | 'pending' | 'verified' | 'rejected',
+    verifiedSchool?: string,
   ) {
     await this.assertUserScope(actor, userId);
+    // 认证学校快照：只在「通过」时写入，其余状态一律清空。
+    // 校标认这个字段而非 profile.school——后者用户随时可改，
+    // 认过一次就能给自己挂任意学校的校标。
+    let schoolSnapshot: string | null = null;
+    if (status === 'verified') {
+      const explicit = (verifiedSchool || '').trim();
+      if (explicit) {
+        schoolSnapshot = explicit;
+      } else {
+        const prof = await this.prisma.profile.findUnique({
+          where: { userId },
+          select: { school: true },
+        });
+        schoolSnapshot = (prof?.school || '').trim() || null;
+      }
+    }
     const row = await this.prisma.user.update({
       where: { id: userId },
-      data: { verificationStatus: status },
-      select: { id: true, email: true, verificationStatus: true },
+      data: { verificationStatus: status, verifiedSchool: schoolSnapshot },
+      select: { id: true, email: true, verificationStatus: true, verifiedSchool: true },
     });
     // 处置动作的响应不得绕过受限投影：学生会视角不回传登录 email
     return actor.role === AdminRole.STUDENT_UNION ? { ...row, email: null } : row;

@@ -72,10 +72,15 @@ export class ProfilesService {
     // 获取用户认证状态
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { verificationStatus: true },
+      // verifiedSchool = 审核通过时的学校快照，校标只认它（profile.school 用户可随意改）
+      select: { verificationStatus: true, verifiedSchool: true },
     });
 
-    const result: any = { userId, verificationStatus: user?.verificationStatus || 'unverified' };
+    const result: any = {
+      userId,
+      verificationStatus: user?.verificationStatus || 'unverified',
+      verifiedSchool: user?.verifiedSchool || null,
+    };
     publicFields.forEach((field) => {
       result[field] = (profile as any)[field];
     });
@@ -109,15 +114,17 @@ export class ProfilesService {
       this.prisma.profile.findMany({ where: { userId: { in: uniqueIds } } }),
       this.prisma.user.findMany({
         where: { id: { in: uniqueIds } },
-        select: { id: true, verificationStatus: true },
+        select: { id: true, verificationStatus: true, verifiedSchool: true },
       }),
     ]);
     const verificationMap = new Map(users.map((u) => [u.id, u.verificationStatus]));
+    const verifiedSchoolMap = new Map(users.map((u) => [u.id, u.verifiedSchool]));
 
     for (const profile of profiles) {
       const entry: any = {
         userId: profile.userId,
         verificationStatus: verificationMap.get(profile.userId) || 'unverified',
+        verifiedSchool: verifiedSchoolMap.get(profile.userId) || null,
       };
       publicFields.forEach((field) => {
         entry[field] = (profile as any)[field];

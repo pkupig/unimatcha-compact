@@ -663,7 +663,7 @@ function renderRomanticMatchTab(container, data) {
               <div class="w-28 h-28 rounded-full border-4 border-primary p-1 overflow-hidden bg-white mb-3 cl-pulse">
                 ${avatar ? `<img src="${window.safeUrl(avatar)}" class="w-full h-full object-cover rounded-full">` : `<div class="w-full h-full rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-4xl text-outline">person</span></div>`}
               </div>
-              <h3 class="text-2xl font-headline font-bold tracking-tight text-on-surface flex items-center gap-2 justify-center">${window.escapeHtml(p.nickname || 'Match')}${verified ? `<span class="material-symbols-outlined text-base text-primary" title="Campus verified">verified</span>` : ''}</h3>
+              <h3 class="text-2xl font-headline font-bold tracking-tight text-on-surface flex items-center gap-2 justify-center">${window.escapeHtml(p.nickname || 'Match')}${window.badgeFor?.({ verificationStatus: p.verificationStatus, verifiedSchool: p.verifiedSchool, badgeSize: 'md' }) || (verified ? `<span class="material-symbols-outlined text-base text-primary" title="Campus verified">verified</span>` : '')}</h3>
               <p class="font-body text-sm text-outline" data-no-i18n>${window.escapeHtml(window.metaLabel(p.school || 'University'))}${p.academic_year ? ' · ' + window.escapeHtml(window.metaLabel(p.academic_year)) : ''}</p>
             </div>
             ${interests.length ? `<div class="mb-5"><p class="text-[10px] tracking-[0.2em] text-outline mb-2">Shared Interests</p><div class="flex flex-wrap gap-2">${interests.slice(0, 6).map(t => `<span class="bg-primary text-on-primary px-3 py-1 rounded-[10px] text-[10px] font-bold tracking-widest">${window.escapeHtml(t)}</span>`).join('')}</div></div>` : ''}
@@ -766,7 +766,7 @@ function renderFriendCandidateCard(c) {
         ${avatar ? `<img src="${window.safeUrl(avatar)}" class="w-full h-full object-cover rounded-full">` : `<div class="w-full h-full rounded-full bg-surface-container flex items-center justify-center"><span class="material-symbols-outlined text-xl text-outline">person</span></div>`}
       </div>
       <div class="min-w-0 flex-1">
-        <h3 class="font-headline font-bold text-sm tracking-tight text-on-surface truncate">${window.escapeHtml(p.nickname || 'Friend')}</h3>
+        <h3 class="font-headline font-bold text-sm tracking-tight text-on-surface truncate">${window.escapeHtml(p.nickname || 'Friend')}${window.badgeFor?.({ verificationStatus: p.verificationStatus, verifiedSchool: p.verifiedSchool }) || ''}</h3>
         <p class="font-body text-xs text-outline truncate" data-no-i18n>${window.escapeHtml(window.metaLabel(p.school || 'University'))}</p>
       </div>
     </div>

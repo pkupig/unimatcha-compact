@@ -1272,3 +1272,39 @@
        注册发码按钮与学生认证发码按钮都用它 */
     .dark .btn-secondary { color: #eceae6; border-color: rgba(255, 255, 255, 0.28); }
     .dark .btn-secondary:hover { background: #eceae6; color: #121110; }
+
+    /* ── 校标（认证学校徽章）：认证用户名字后的小徽章 ──
+       sb-gen = 自动生成（缩写+散列色，白字恒可读）；img 变体是后台上传覆盖。
+       深色模式不改底色：徽章是学校身份色，两个主题下保持一致更好认。 */
+    /* 类名用 .sch-badge 不用 .school-badge：后者是 §6.11 的旧「学校胶囊」
+       （带 padding/黑底/max-width），同名会把这里的方块内容挤没。 */
+    .sch-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      flex-shrink: 0;
+      padding: 0;
+      border: none;
+      border-radius: 5px;
+      overflow: hidden;
+      object-fit: cover;
+    }
+    .sch-badge.sb-sm { width: 15px; height: 15px; font-size: 8px; }
+    .sch-badge.sb-md { width: 20px; height: 20px; font-size: 10px; }
+    .sch-badge.sb-gen {
+      color: #ffffff;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* CJK 两字比两个拉丁字母宽得多，同字号会顶满方块——各降一档并收紧字距 */
+    .sch-badge.sb-gen.sb-cjk { letter-spacing: -0.04em; }
+    .sch-badge.sb-sm.sb-cjk { font-size: 6.5px; }
+    .sch-badge.sb-md.sb-cjk { font-size: 8.5px; }
+    /* 深色基底 #121110 上给学校身份色描一圈，避免深色徽章糊进背景 */
+    .dark .sch-badge { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
+
+    /* 个人主页 hero：校标浮在用户封面照上，加白描边保证深色徽章不糊进照片 */
+    .pf-verified-badge .sch-badge { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); }

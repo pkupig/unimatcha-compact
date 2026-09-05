@@ -63,6 +63,12 @@ model User {
   // 认证状态（unverified/pending/verified/rejected）
   verificationStatus String @default("unverified")
 
+  // 认证学校快照：管理员审核通过时写入，**校标只认这个字段**。
+  // 不能用 Profile.school 当校标依据——那是用户自己随时可改的下拉框，
+  // 认证过的人改一下就能挂任意学校的校标，「认证校标」就失去意义了。
+  // 用户改 Profile.school 只影响校园墙归属，不影响已认证的校标。
+  verifiedSchool      String?
+
   // 学生认证材料（上传学生卡 + 学校邮箱验证码）
   studentCardUrl      String? // 学生卡照片 URL（管理员审核用）
   schoolEmail         String? // 已通过验证码校验的学校邮箱
@@ -95,6 +101,7 @@ model User {
   squareComments SquarePostComment[] @relation("SquarePostCommentAuthor")
   squareLikes    SquarePostLike[]    @relation("SquarePostLikes")
   squareCommentLikes SquareCommentLike[] @relation("SquareCommentLikes")
+  messageLikes       MessageLike[]       @relation("MessageLikes")
 
   // 匹配偏好（每模式一条）
   matchPreferences UserMatchPreferences[]
@@ -253,6 +260,13 @@ model Profile {
   age        Int?
   birthday   String? // YYYY-MM-DD；注册改收生日，age 由生日推算后仍存（匹配按 age 过滤）
   city       String?
+  // ── 「附近」定位（用户显式授权后才写；隐私底线见下）──
+  // lat/lng 仅用于服务端算距离，**任何接口都不得下发他人的经纬度**——
+  // 对外只暴露算好的距离（且按档位模糊）。用户可随时关闭，关闭即清空坐标。
+  lat               Float?
+  lng               Float?
+  locationEnabled   Boolean   @default(false)
+  locationUpdatedAt DateTime?
   interests  String[]
   bio        String?  @db.Text
   avatarUrl  String?
@@ -904,13 +918,41 @@ model Message {
   sender   User    @relation("MessageSender", fields: [senderId], references: [id])
   content  String  @db.Text
   imageUrl String?
-  kind     String  @default("text") // 消息类型：'text' 普通消息 | 'nudge' 拍一拍（H5 据此判定，免去字符串匹配）
+  // 'text' 普通 | 'nudge' 拍一拍 | 'post_share' 广场帖子转发卡（详情存 metadata）
+  kind     String  @default("text")
   isRead   Boolean @default(false)
+
+  // 引用回复：指向同会话内被引用的消息。onDelete: SetNull——被引用消息删了，
+  // 引用它的消息仍在（前端渲染成「原消息已删除」），不级联毁掉整串对话。
+  replyToId String?
+  replyTo   Message?  @relation("MessageReply", fields: [replyToId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  replies   Message[] @relation("MessageReply")
+
+  // post_share 卡片快照：{ postId, title, excerpt, coverUrl, authorName }
+  // 存快照而非只存 id：原帖被删/被隐藏后，聊天里的卡片仍能显示当时的样子（点开才提示已失效）
+  metadata Json?
+
+  likes MessageLike[]
 
   createdAt DateTime @default(now())
 
   @@index([matchId, createdAt])
+  @@index([replyToId])
   @@map("messages")
+}
+
+// 消息点赞（长按菜单 / 双击）。与 SquarePostLike 同构：唯一键幂等，级联清理。
+model MessageLike {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("MessageLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@map("message_likes")
 }
 
 model Report {
@@ -1002,6 +1044,13 @@ model School {
   name     String  @unique // 与 Profile.school / SquarePost.school 字符串相等匹配
   city     String?
   isActive Boolean @default(true)
+
+  // ── 校标（认证用户名字后的学校徽章）──
+  // 默认由前端按 name/badgeText 自动生成（缩写+色圆徽，零版权风险）；
+  // badgeUrl 非空则用上传的图覆盖。badgeText/badgeColor 为自动生成的可选覆盖项。
+  badgeUrl   String? // 后台上传的校标图（/uploads/image 返回的 URL）
+  badgeText  String? // 缩写覆盖（不填则由学校名自动推导：英文取首字母、中文取前两字）
+  badgeColor String? // 徽章底色覆盖（#RRGGBB，不填走内置调色板按名字散列）
 
   // 分成配置（基点 bps，0–10000）：null = 继承全局 SystemConfig(ad_share_defaults)
   // ——与下方计价覆盖三字段同构的「school override → 全局配置 → seed 默认」三级解析
