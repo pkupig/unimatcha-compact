@@ -1129,8 +1129,10 @@
        两类选择器 (0,2,0)/(0,3,0) 恒压元素上的 Tailwind 工具类 (0,1,0)——特异度先于顺序。
        上方距离按设计稿：顶栏底沿(56px+安全区) + 8px 空隙 = 64px + var(--sat)，单算一次。 */
     .home-match-pane.match-plan {
-      /* 左右 8px = 顶栏 px-2：标题/绿卡/偏好框/CTA 全部对齐加号左缘与铃铛右缘（用户要求） */
-      padding: calc(64px + var(--sat)) 8px calc(96px + var(--sab));
+      /* 左右 21px = 顶栏图标「墨迹」边缘（用户要求对齐加号最左/铃铛最右的可见图形，
+         不是 40px 按钮热区）：按钮 8px + 图形在 22px 字号 Material Symbols 24 网格里的
+         内缩（add 5/24≈4.6px、notifications 4/24≈3.7px）→ 取 21px 两侧误差 <0.7px */
+      padding: calc(64px + var(--sat)) 21px calc(96px + var(--sab));
       align-items: stretch;
       justify-content: flex-start;
       overflow: hidden; /* 计划页整页不滚，只有摘要框内容区滚 */
