@@ -1230,13 +1230,12 @@
       font-weight: 800;
       letter-spacing: 0.18em;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(204, 255, 0, 0.35);
       transition: transform 0.15s ease, filter 0.2s ease;
     }
     .mp-cta:hover { filter: brightness(0.96); }
     .mp-cta:active { transform: scale(0.98); }
     .mp-cta:disabled { opacity: 0.5; cursor: not-allowed; }
-    .mp-cta--leave { background: transparent; color: #FF2EC4; border: 1.5px solid #FF2EC4; padding: 16px 20px; box-shadow: none; }
+    .mp-cta--leave { background: transparent; color: #FF2EC4; border: 1.5px solid #FF2EC4; padding: 16px 20px; }
     .mp-cta--leave:hover { filter: none; background: rgba(255, 46, 196, 0.06); }
 
 
