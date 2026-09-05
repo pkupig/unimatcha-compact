@@ -724,11 +724,16 @@
 <!-- SQUARE TAB -->
 <div id="tab-square" class="tab-content" style="display: none;">
   <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20">
-    <div class="relative flex justify-center items-center h-11 px-4">
-      <!-- 两段切换 [推荐 | 校园墙]：滑动荧光绿下划线（#square-tab-ink 由 JS 定位并过渡） -->
-      <div id="square-tabs" class="relative flex gap-8">
-        <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
-        <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[0.02em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
+    <!-- 四段（推荐/附近/探索/校园墙）后改左对齐：居中放不下——
+         「校园墙」右外侧还挂着绝对定位的置顶段，右上角是搜索键，
+         375px 下居中必然让置顶段压到搜索键上（实测 364 > 327）。 -->
+    <div class="relative flex justify-start items-center h-11 pl-4 pr-16">
+      <!-- 四段切换：滑动荧光绿下划线（#square-tab-ink 由 JS 定位并过渡） -->
+      <div id="square-tabs" class="relative flex gap-3">
+        <button data-tab="recommend" onclick="switchSquareTab(this, 'recommend')" class="square-seg active text-xs font-bold tracking-[-0.01em] text-neutral-400 hover:text-black transition-colors pb-1.5">Recommend</button>
+        <button data-tab="nearby" onclick="switchSquareTab(this, 'nearby')" class="square-seg text-xs font-bold tracking-[-0.01em] text-neutral-400 hover:text-black transition-colors pb-1.5">Nearby</button>
+        <button data-tab="explore" onclick="switchSquareTab(this, 'explore')" class="square-seg text-xs font-bold tracking-[-0.01em] text-neutral-400 hover:text-black transition-colors pb-1.5">Explore</button>
+        <button data-tab="campus_wall" onclick="switchSquareTab(this, 'campus_wall')" class="square-seg text-xs font-bold tracking-[-0.01em] text-neutral-400 hover:text-black transition-colors pb-1.5">Campus Wall</button>
         <!-- 置顶段：绝对定位挂在 #square-tabs 右外侧，**不参与 flex 布局**——
              否则它一出现就会把「推荐/校园墙」整体往左推（用户反馈：这两个不能动）。
              位置/字号/底部对齐见 main.css 的 #square-seg-pinned。 -->
@@ -752,6 +757,10 @@
              Tailwind 工具类排在自定义规则之后，会把 row-gap:0 覆盖回 6px，
              1px 行网格的 span 间距被放大数百倍——8/10 生产实测根因） -->
         <section id="square-feed-recommend" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
+        <!-- 附近：按真实距离排序的推荐流（需定位授权，未授权时页内出引导） -->
+        <section id="square-feed-nearby" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
+        <!-- 探索：浏览其它学校的校园墙（页内自带学校选择器；无置顶子分段） -->
+        <section id="square-feed-explore" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
         <section id="square-feed-campus_wall" class="square-feed-grid w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>
         <!-- 置顶页：只放学生会置顶的信息，卡片文字比校园墙小一档（.square-pinned-page） -->
         <section id="square-feed-pinned" class="square-feed-grid square-pinned-page w-full shrink-0 grid grid-cols-2 grid-flow-row-dense items-start"></section>

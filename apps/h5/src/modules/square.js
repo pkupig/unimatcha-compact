@@ -16,7 +16,10 @@ function isOfficial(p) {
 
 // 三页翻页器辅助：按 tab 取 feed 容器 / 轨道定位。
 // 页序固定 推荐 → 校园墙 → 置顶；「置顶」只在校园墙/置顶页时才在顶栏出现（见 syncPinnedSeg）。
-const SQUARE_PAGES = ['recommend', 'campus_wall', 'pinned'];
+// 主序即轨道顺序（DOM 顺序必须一致）：推荐 → 附近 → 探索 → 校园墙。
+// 'pinned' 挂在最后：它不是主段，而是校园墙的子页（分段绝对定位在右外侧），
+// 但仍需在数组里占位，否则 trackOffset 算不出它的偏移。
+const SQUARE_PAGES = ['recommend', 'nearby', 'explore', 'campus_wall', 'pinned'];
 function normTab(tab) {
   const t = tab || S.squareTab;
   return SQUARE_PAGES.includes(t) ? t : 'recommend';
@@ -51,15 +54,15 @@ async function loadSquareTab() {
   setTimeout(positionSquareInk, 300);
   setTrack(trackOffset(S.squareTab), false);
   // 每次进入广场是全新会话：两页各自的滚动位置记忆清零（隐藏期间 window 滚动已复位）
-  S.squareScrollPos = { recommend: 0, campus_wall: 0, pinned: 0 };
+  S.squareScrollPos = { recommend: 0, nearby: 0, explore: 0, campus_wall: 0, pinned: 0 };
   // 双页都加载：滑动时另一页已是真实内容
   syncPinnedSeg(S.squareTab); // 「置顶」段按当前页显隐
   // web 字体晚到会改变文字度量，字体就绪后再校一次基线（与下划线定位同理）
   if (document.fonts?.ready) document.fonts.ready.then(alignPinnedSegBaseline);
   syncSquareFab(S.squareTab);
-  window.loadSquareTab2('recommend');
-  window.loadSquareTab2('campus_wall');
-  window.loadSquareTab2('pinned');
+  // 全页预热：拖动时相邻页要有真实内容而不是白板。
+  // 遍历 SQUARE_PAGES 而非写死页名——加页时漏一行就是永久空白页。
+  SQUARE_PAGES.forEach((t) => window.loadSquareTab2(t));
 }
 window.loadSquareTab = loadSquareTab;
 
@@ -83,7 +86,8 @@ if (!window.__squareInkResizeBound) {
 // 留着它只会把帖子发到推荐流（openNewPost 按 S.squareTab 决定去向），与所在页面对不上。
 function syncSquareFab(tab) {
   const fab = document.getElementById('square-fab');
-  if (fab) fab.classList.toggle('hidden', tab === 'pinned');
+  // 探索看的是外校的墙、置顶页是学生会内容——两者都不给发帖入口
+  if (fab) fab.classList.toggle('hidden', tab === 'pinned' || tab === 'explore');
 }
 
 // 「置顶」段的字比另两段小，要让**文字底部**与校园墙齐，就得把两者的基线对上。
@@ -1871,6 +1875,7 @@ function openNewPost() {
   S.newPostImages = [];
   // Default the new-post destination to the tab the user is currently viewing
   // (recommend or campus_wall), and reset the anonymous + poll toggles.
+  // 只有站在自己学校的墙上才发到墙；附近/探索/置顶一律发到推荐
   S.newPostBoard = S.squareTab === 'campus_wall' ? 'campus_wall' : 'recommend';
   S.newPostBoardOrigin = S.newPostBoard; // 取消投票时还原用
   S.newPostAnonymous = false;
